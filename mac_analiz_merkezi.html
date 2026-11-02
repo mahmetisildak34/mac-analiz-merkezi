@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<title>Maç Analiz Merkezi</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#141f31;--muted:#9eacc2;--line:#26354b;--accent:#38d6b0;--warn:#ffca70}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#101b2d,#0b1220 45%);color:#f4f7fb;font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:760px;margin:auto;padding:22px 16px 50px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px}.tag{font-size:12px;color:#061a18;background:var(--accent);font-weight:800;border-radius:99px;padding:7px 10px}
+h1{font-size:25px;margin:18px 0 6px}.sub{color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 18px}
+.panel{background:rgba(20,31,49,.96);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0}
+label{display:block;color:#c5d0df;font-size:13px;margin:10px 0 6px}
+input,select{width:100%;background:#0c1524;border:1px solid #34445d;border-radius:11px;color:#fff;padding:13px;font-size:16px}
+button{border:0;border-radius:12px;background:var(--accent);color:#06221d;font-size:15px;font-weight:800;padding:13px 15px;cursor:pointer}
+button.secondary{background:#26364d;color:#eaf2fc}button:disabled{opacity:.55}
+.row{display:flex;gap:9px;align-items:center}.row>*{flex:1}.hint{font-size:12px;color:var(--muted);line-height:1.45;margin-top:9px}
+.status{font-size:13px;color:var(--warn);min-height:18px;margin-top:10px}
+.match{background:#101a2a;border:1px solid var(--line);border-radius:15px;padding:14px;margin:10px 0}
+.meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.teams{font-weight:800;font-size:16px;margin:12px 0}.score{color:var(--muted);font-size:13px}
+.pred{border-top:1px solid var(--line);margin-top:12px;padding-top:11px;font-size:13px;line-height:1.55;color:#dce6f3}
+.small{font-size:12px;color:var(--muted)}.empty{color:var(--muted);text-align:center;padding:25px 10px}
+a{color:var(--accent)}.footer{font-size:12px;color:var(--muted);line-height:1.5;margin-top:18px}
+</style>
+</head>
+<body><main>
+<div class="top"><div style="font-weight:900;letter-spacing:.4px">⚽ MAÇ ANALİZ MERKEZİ</div><span class="tag">İLK SÜRÜM</span></div>
+<h1>Günün maçlarını incele</h1>
+<p class="sub">API-Football verileriyle fikstürü getir, seçtiğin maçın sağlayıcı tahminini incele. Bu araç bahis garantisi vermez.</p>
+
+<section class="panel">
+<label for="key">API anahtarın</label>
+<input id="key" type="password" autocomplete="off" placeholder="API anahtarını buraya cihazında gir">
+<div class="row" style="margin-top:10px"><button id="save">Anahtarı bu telefona kaydet</button><button class="secondary" id="clear">Sil</button></div>
+<div class="hint">Anahtar bu sayfanın tarayıcı hafızasında saklanır. Kimseyle paylaşma. Ortak cihazda kaydetme.</div>
+</section>
+
+<section class="panel">
+<div class="row">
+<div><label for="date">Maç tarihi</label><input id="date" type="date"></div>
+<div><label for="league">Lig filtresi</label><select id="league">
+<option value="all">Tüm ligler</option><option value="39">Premier League</option><option value="203">Süper Lig</option><option value="140">La Liga</option><option value="78">Bundesliga</option><option value="135">Serie A</option><option value="61">Ligue 1</option><option value="2">Şampiyonlar Ligi</option>
+</select></div>
+</div>
+<button id="load" style="width:100%;margin-top:14px">Günün maçlarını getir</button>
+<div id="status" class="status"></div>
+<div id="matches"><div class="empty">Önce API anahtarını kaydet, sonra maçları getir.</div></div>
+</section>
+<div class="footer">Veri kaynağı: API-FOOTBALL. Fikstür sorgusu ve her maçın tahmini ayrı API isteği kullanır. Ücretsiz günlük 100 istek sınırını korumak için yalnızca ilgilendiğin maçlarda “Tahmini getir” düğmesine bas. Tahminler olasılıktır; kesin sonuç değildir.</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const today=new Date(); const localDate=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+$('date').value=localDate;
+$('key').value=localStorage.getItem('apifootball_key')||'';
+$('save').onclick=()=>{const k=$('key').value.trim();if(!k){$('status').textContent='Önce API anahtarını gir.';return}localStorage.setItem('apifootball_key',k);$('status').textContent='Anahtar bu telefona kaydedildi.'};
+$('clear').onclick=()=>{localStorage.removeItem('apifootball_key');$('key').value='';$('status').textContent='Kayıtlı anahtar silindi.'};
+async function api(path){const key=$('key').value.trim()||localStorage.getItem('apifootball_key');if(!key)throw Error('API anahtarını girip kaydet.');const r=await fetch('https://v3.football.api-sports.io/'+path,{method:'GET',headers:{'x-apisports-key':key}});let j;try{j=await r.json()}catch{throw Error('Sunucudan okunabilir yanıt alınamadı.')}if(!r.ok||j.errors&&Object.keys(j.errors).length)throw Error('API yanıtı: '+JSON.stringify(j.errors||j.message||r.status));return j}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(matches){const box=$('matches');if(!matches.length){box.innerHTML='<div class="empty">Bu tarih ve lig filtresinde maç bulunamadı.</div>';return}
+box.innerHTML=matches.map(m=>{const f=m.fixture||{},l=m.league||{},t=m.teams||{},g=m.goals||{};const date=f.date?new Date(f.date).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Istanbul'}):'';
+return `<article class="match"><div class="meta"><span>${esc(l.name)} · ${esc(l.country)}</span><span>${esc(date)} · ${esc(f.status?.short)}</span></div><div class="teams">${esc(t.home?.name)} <span class="score">${g.home!=null?' '+g.home+' - '+g.away:' - '}</span> ${esc(t.away?.name)}</div><div class="row"><span class="small">Maç ID: ${esc(f.id)}</span><button class="secondary predBtn" data-id="${esc(f.id)}">Tahmini getir (1 istek)</button></div><div class="pred" id="pred-${esc(f.id)}">Henüz tahmin istenmedi.</div></article>`}).join('');
+box.querySelectorAll('.predBtn').forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent='Yükleniyor…';const target=$('pred-'+b.dataset.id);try{const j=await api('predictions?fixture='+encodeURIComponent(b.dataset.id));const p=j.response?.[0]?.predictions;const goals=p?.under_over||'Sağlayıcı gol alt/üst tahmini döndürmedi';const advice=p?.advice||'Belirgin bir tavsiye yok';const winner=p?.winner?.name||'Net kazanan tahmini yok';const comparison=j.response?.[0]?.comparison||{};target.innerHTML='<b>API tahmini</b><br>Gol alt/üst: '+esc(goals)+'<br>Tavsiye: '+esc(advice)+'<br>Kazanan: '+esc(winner)+'<br><span class="small">Bu, sağlayıcının model çıktısıdır; 1.5/2.5 için kesin olasılık veya garanti değildir.</span>';if(!j.response?.length)target.textContent='Bu maç için tahmin verisi bulunamadı.'}catch(e){target.textContent=e.message}finally{b.disabled=false;b.textContent='Tahmini yeniden getir'}})}
+$('load').onclick=async()=>{const b=$('load');b.disabled=true;$('status').textContent='Fikstür alınıyor…';$('matches').innerHTML='';try{const date=$('date').value;if(!date)throw Error('Bir tarih seç.');let path='fixtures?date='+encodeURIComponent(date)+'&timezone=Europe%2FIstanbul';const j=await api(path);let a=j.response||[];const league=$('league').value;if(league!=='all')a=a.filter(x=>String(x.league?.id)===league);render(a);$('status').textContent=`${a.length} maç bulundu. Fikstür sorgusu 1 API isteği kullandı.`}catch(e){$('status').textContent=e.message;$('matches').innerHTML='<div class="empty">Bağlantı veya API yanıtı kontrol edilmeli.</div>'}finally{b.disabled=false}};
+</script>
+</body></html>
