@@ -65,4 +65,101 @@ return `<article class="match"><div class="meta"><span>${esc(l.name)} · ${esc(l
 box.querySelectorAll('.predBtn').forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent='Yükleniyor…';const target=$('pred-'+b.dataset.id);try{const j=await api('predictions?fixture='+encodeURIComponent(b.dataset.id));const p=j.response?.[0]?.predictions;const goals=p?.under_over||'Sağlayıcı gol alt/üst tahmini döndürmedi';const advice=p?.advice||'Belirgin bir tavsiye yok';const winner=p?.winner?.name||'Net kazanan tahmini yok';const comparison=j.response?.[0]?.comparison||{};target.innerHTML='<b>API tahmini</b><br>Gol alt/üst: '+esc(goals)+'<br>Tavsiye: '+esc(advice)+'<br>Kazanan: '+esc(winner)+'<br><span class="small">Bu, sağlayıcının model çıktısıdır; 1.5/2.5 için kesin olasılık veya garanti değildir.</span>';if(!j.response?.length)target.textContent='Bu maç için tahmin verisi bulunamadı.'}catch(e){target.textContent=e.message}finally{b.disabled=false;b.textContent='Tahmini yeniden getir'}})}
 $('load').onclick=async()=>{const b=$('load');b.disabled=true;$('status').textContent='Fikstür alınıyor…';$('matches').innerHTML='';try{const date=$('date').value;if(!date)throw Error('Bir tarih seç.');let path='fixtures?date='+encodeURIComponent(date)+'&timezone=Europe%2FIstanbul';const j=await api(path);let a=j.response||[];const league=$('league').value;if(league!=='all')a=a.filter(x=>String(x.league?.id)===league);render(a);$('status').textContent=`${a.length} maç bulundu. Fikstür sorgusu 1 API isteği kullandı.`}catch(e){$('status').textContent=e.message;$('matches').innerHTML='<div class="empty">Bağlantı veya API yanıtı kontrol edilmeli.</div>'}finally{b.disabled=false}};
 </script>
-</body></html>
+  <script>
+  (function(){
+const box=document.getElementById('matches');
+
+const factorial=n=>{
+let r=1;
+for(let i=2;i<=n;i++)r*=i;
+return r;
+};
+
+const poisson=(l,k)=>Math.exp(-l)*Math.pow(l,k)/factorial(k);
+
+async function teamStats(id,venue){
+const j=await api('fixtures?team='+id+'&last=10&status=FT');
+const games=(j.response||[]).filter(x=>x.goals?.home!=null&&x.goals?.away!=null);
+const selected=games.filter(x=>{
+const isHome=x.teams.home.id==id;
+return venue==='home'?isHome:!isHome;
+});
+const arr=selected.length>=2?selected:games;
+if(!arr.length)throw Error('Takımın geçmiş maç verisi bulunamadı.');
+let gf=0,ga=0;
+arr.forEach(x=>{
+const home=x.teams.home.id==id;
+gf+=home?x.goals.home:x.goals.away;
+ga+=home?x.goals.away:x.goals.home;
+});
+return {gf:gf/arr.length,ga:ga/arr.length,count:arr.length};
+}
+
+box.addEventListener('click',async e=>{
+const b=e.target.closest?.('.predBtn');
+if(!b)return;
+e.preventDefault();
+e.stopImmediatePropagation();
+
+const id=b.dataset.id;
+const target=document.getElementById('pred-'+id);
+b.disabled=true;
+b.textContent='Hesaplanıyor…';
+
+try{
+const fixture=await api('fixtures?id='+encodeURIComponent(id));
+const m=fixture.response?.[0];
+if(!m)throw Error('Maç bilgisi bulunamadı.');
+
+const home=m.teams.home;
+const away=m.teams.away;
+
+const [hs,as]=await Promise.all([
+teamStats(home.id,'home'),
+teamStats(away.id,'away')
+]);
+
+const lh=Math.max(.15,(hs.gf+as.ga)/2);
+const la=Math.max(.15,(as.gf+hs.ga)/2);
+
+let win=0,draw=0,lose=0,o15=0,o25=0,o35=0,btts=0;
+
+for(let i=0;i<=12;i++){
+for(let j=0;j<=12;j++){
+const p=poisson(lh,i)*poisson(la,j);
+if(i>j)win+=p;
+else if(i===j)draw+=p;
+else lose+=p;
+if(i+j>=2)o15+=p;
+if(i+j>=3)o25+=p;
+if(i+j>=4)o35+=p;
+if(i>0&&j>0)btts+=p;
+}
+}
+
+const pct=n=>(n*100).toFixed(1)+'%';
+
+target.innerHTML=
+'<b>📊 KENDİ İSTATİSTİKSEL TAHMİNİMİZ</b><br>'+
+'Beklenen ev sahibi golü: '+lh.toFixed(2)+'<br>'+
+'Beklenen deplasman golü: '+la.toFixed(2)+'<br>'+
+'<hr>'+
+'1,5 Üst: <b>'+pct(o15)+'</b><br>'+
+'2,5 Üst: <b>'+pct(o25)+'</b><br>'+
+'3,5 Üst: <b>'+pct(o35)+'</b><br>'+
+'Karşılıklı Gol: <b>'+pct(btts)+'</b><br>'+
+'<hr>'+
+'Ev sahibi galibiyeti: '+pct(win)+'<br>'+
+'Beraberlik: '+pct(draw)+'<br>'+
+'Deplasman galibiyeti: '+pct(lose)+'<br>'+
+'<span class="small">Son '+hs.count+' iç saha ve '+as.count+' deplasman maçı kullanıldı. Tahminler garanti değildir.</span>';
+
+}catch(err){
+target.textContent='Hata: '+err.message;
+}finally{
+b.disabled=false;
+b.textContent='Kendi tahminini yenile';
+}
+},true);
+})();
+</script></body></html>
