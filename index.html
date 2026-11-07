@@ -123,10 +123,8 @@ if(!m)throw Error('Maç bilgisi bulunamadı.');
 const home=m.teams.home;
 const away=m.teams.away;
 
-const [hs,as]=await Promise.all([
-teamStats(home.id,'home',m.fixture.date),
-teamStats(away.id,'away',m.fixture.date)
-]);
+const hs=await teamStats(home.id,'home',m.fixture.date);
+const as=await teamStats(away.id,'away',m.fixture.date);
 
 const lh=Math.max(.15,(hs.gf+as.ga)/2);
 const la=Math.max(.15,(as.gf+hs.ga)/2);
