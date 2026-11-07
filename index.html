@@ -83,14 +83,14 @@ const games=(j.response||[])
 .filter(x=>x.goals?.home!==null&&x.goals?.away!==null)
 .filter(x=>!matchDate||new Date(x.fixture.date)<new Date(matchDate))
 .sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date))
-.slice(0,10);
+
 
 const selected=games.filter(x=>{
 const isHome=x.teams.home.id===id;
 return venue==='home'?isHome:!isHome;
 });
 
-const arr=selected.length>=2?selected:games;
+const arr=selected.length>=2?selected.slice(0,10):games.slice(0,10);
 
 if(!arr.length)throw Error('Takımın geçmiş maç verisi bulunamadı.');
 
