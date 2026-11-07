@@ -77,24 +77,33 @@ return r;
 
 const poisson=(l,k)=>Math.exp(-l)*Math.pow(l,k)/factorial(k);
 
-async function teamStats(id,venue){
-const j=await api('fixtures?team='+id+'&last=10&status=FT');
-const games=(j.response||[]).filter(x=>x.goals?.home!=null&&x.goals?.away!=null);
+async function teamStats(id,venue,matchDate){
+const j=await api('fixtures?team='+id+'&last=20&status=FT');
+const games=(j.response||[])
+.filter(x=>x.goals?.home!==null&&x.goals?.away!==null)
+.filter(x=>!matchDate||new Date(x.fixture.date)<new Date(matchDate))
+.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date))
+.slice(0,10);
+
 const selected=games.filter(x=>{
-const isHome=x.teams.home.id==id;
+const isHome=x.teams.home.id===id;
 return venue==='home'?isHome:!isHome;
 });
+
 const arr=selected.length>=2?selected:games;
+
 if(!arr.length)throw Error('Takımın geçmiş maç verisi bulunamadı.');
+
 let gf=0,ga=0;
+
 arr.forEach(x=>{
-const home=x.teams.home.id==id;
+const home=x.teams.home.id===id;
 gf+=home?x.goals.home:x.goals.away;
 ga+=home?x.goals.away:x.goals.home;
 });
+
 return {gf:gf/arr.length,ga:ga/arr.length,count:arr.length};
 }
-
 box.addEventListener('click',async e=>{
 const b=e.target.closest?.('.predBtn');
 if(!b)return;
@@ -115,8 +124,8 @@ const home=m.teams.home;
 const away=m.teams.away;
 
 const [hs,as]=await Promise.all([
-teamStats(home.id,'home'),
-teamStats(away.id,'away')
+teamStats(home.id,'home',m.fixture.date),
+teamStats(away.id,'away',m.fixture.date)
 ]);
 
 const lh=Math.max(.15,(hs.gf+as.ga)/2);
