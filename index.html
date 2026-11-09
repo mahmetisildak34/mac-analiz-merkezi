@@ -117,17 +117,39 @@ function qs(values){
  return p.toString();
 }
 
+let apiQueue=Promise.resolve();
+let lastApiCall=0;
+
 async function api(path){
- const url=WORKER.replace(/\/$/,"")+"/api/"+path.replace(/^\/+/,"");
- const response=await fetch(url);
- let data;
- try{data=await response.json();}
- catch(e){throw new Error("Sunucudan okunabilir yanıt alınamadı.");}
- if(!response.ok)throw new Error("Sunucu hatası: "+response.status);
- if(data.errors&&Object.keys(data.errors).length){
-  throw new Error(JSON.stringify(data.errors));
- }
- return data;
+  const run=apiQueue.then(async()=>{
+    const delay=Math.max(0,8000-(Date.now()-lastApiCall));
+    if(delay) await new Promise(resolve=>setTimeout(resolve,delay));
+
+    lastApiCall=Date.now();
+
+    const url=WORKER.replace(/\/$/,"")+"/api/"+path.replace(/^\+/,"");
+    const response=await fetch(url);
+
+    let data;
+    try{
+      data=await response.json();
+    }catch(e){
+      throw new Error("Sunucudan okunabilir yanıt alınamadı.");
+    }
+
+    if(!response.ok){
+      throw new Error("Sunucu hatası: "+response.status);
+    }
+
+    if(data.errors&&Object.keys(data.errors).length){
+      throw new Error(JSON.stringify(data.errors));
+    }
+
+    return data;
+  });
+
+  apiQueue=run.catch(()=>{});
+  return run;
 }
 
 function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0}
