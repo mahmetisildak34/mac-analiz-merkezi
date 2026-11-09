@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="tr">
 <head>
@@ -89,147 +90,106 @@ API bağlantısı Cloudflare Worker üzerinden yapılır. API anahtarı Cloudfla
 </section>
 
 <div class="footer">
-Veri kaynağı: API-FOOTBALL. Takım istatistikleri önbelleğe alınır. İlk fikstür sorgusu ve her takımın geçmiş maç sorgusu API kotası kullanır. Tahminler istatistiksel olasılıktır; kesin sonuç veya garanti değildir.
+Veri kaynağı: API-FOOTBALL. Takım istatistikleri 12 saat önbelleğe alınır. Analiz sırasında takım geçmişi sorguları sırayla yapılır. Tahminler istatistiksel olasılıktır; kesin sonuç veya garanti değildir.
 </div>
 </main>
 
 <script>
 "use strict";
 
-const $ = id => document.getElementById(id);
-const WORKER = "https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
-const CACHE_HOURS = 12;
-
-const now = new Date();
-$("date").value = new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+const $=id=>document.getElementById(id);
+const WORKER="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+const CACHE_HOURS=12;
+const today=new Date();
+$("date").value=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
 
 function esc(value){
- return String(value ?? "").replace(/[&<>"']/g,c=>({
+ return String(value??"").replace(/[&<>"']/g,c=>({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
  })[c]);
 }
 
-function queryString(values){
- const p = new URLSearchParams();
+function qs(values){
+ const p=new URLSearchParams();
  Object.entries(values).forEach(([k,v])=>{
-  if(v!==undefined && v!==null && v!=="") p.set(k,v);
+  if(v!==undefined&&v!==null&&v!=="")p.set(k,v);
  });
  return p.toString();
 }
 
 async function api(path){
- const url = WORKER.replace(/\/$/,"") + "/api/" + path.replace(/^\/+/,"");
- const response = await fetch(url,{method:"GET"});
+ const url=WORKER.replace(/\/$/,"")+"/api/"+path.replace(/^\/+/,"");
+ const response=await fetch(url);
  let data;
  try{data=await response.json();}
  catch(e){throw new Error("Sunucudan okunabilir yanıt alınamadı.");}
- if(!response.ok) throw new Error("Sunucu hatası: "+response.status);
- if(data.errors && Object.keys(data.errors).length){
+ if(!response.ok)throw new Error("Sunucu hatası: "+response.status);
+ if(data.errors&&Object.keys(data.errors).length){
   throw new Error(JSON.stringify(data.errors));
  }
  return data;
 }
 
-function avg(values){
- return values.length ? values.reduce((a,b)=>a+b,0)/values.length : 0;
-}
-
-function poisson(lambda,k){
- let p=Math.exp(-lambda);
- for(let i=1;i<=k;i++) p*=lambda/i;
+function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0}
+function poisson(l,k){
+ let p=Math.exp(-l);
+ for(let i=1;i<=k;i++)p*=l/i;
  return p;
 }
-
-function overProbability(lambda,minimum){
+function overProb(l,min){
  let under=0;
- for(let i=0;i<minimum;i++) under+=poisson(lambda,i);
+ for(let i=0;i<min;i++)under+=poisson(l,i);
  return Math.max(0,Math.min(1,1-under));
 }
-
-function pct(value){
- return (value*100).toFixed(1)+"%";
-}
-
-function probabilityHTML(label,value){
+function pct(n){return (n*100).toFixed(1)+"%"}
+function probHTML(label,value){
  const p=Math.max(0,Math.min(1,value));
- return `
- <div class="prob">
-  <div class="probline"><span>${esc(label)}</span><b>${pct(p)}</b></div>
-  <div class="bar"><i style="width:${(p*100).toFixed(1)}%"></i></div>
- </div>`;
+ return `<div class="prob">
+ <div class="probline"><span>${esc(label)}</span><b>${pct(p)}</b></div>
+ <div class="bar"><i style="width:${p*100}%"></i></div></div>`;
 }
 
-/* FİKSTÜR LİSTESİ */
-
+/* FİKSTÜR */
 let allMatches=[];
 
 $("load").addEventListener("click",loadMatches);
+$("league").addEventListener("change",renderMatches);
 
 async function loadMatches(){
  const button=$("load");
  const date=$("date").value;
-
- if(!date){
-  $("status").textContent="Lütfen maç tarihi seç.";
-  return;
- }
-
+ if(!date){$("status").textContent="Lütfen tarih seç.";return}
  button.disabled=true;
  $("status").textContent="Fikstür alınıyor...";
  $("matches").innerHTML="";
-
  try{
-  const data=await api("fixtures?"+queryString({
-   date:date,
-   timezone:"Europe/Istanbul"
+  const data=await api("fixtures?"+qs({
+   date:date,timezone:"Europe/Istanbul"
   }));
-
   allMatches=data.response||[];
   renderMatches();
   $("status").textContent=allMatches.length+" maç bulundu. Fikstür sorgusu tamamlandı.";
- }catch(error){
-  $("status").innerHTML='<span class="error">'+esc(error.message)+'</span>';
+ }catch(e){
+  $("status").innerHTML='<span class="error">'+esc(e.message)+'</span>';
   $("matches").innerHTML='<div class="empty">API bağlantısı kontrol edilmeli.</div>';
- }finally{
-  button.disabled=false;
- }
+ }finally{button.disabled=false}
 }
-
-$("league").addEventListener("change",renderMatches);
 
 function renderMatches(){
  const league=$("league").value;
- const matches=league==="all"
-  ? allMatches
-  : allMatches.filter(m=>String(m.league?.id)===league);
-
- if(!matches.length){
+ const list=league==="all"?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
+ if(!list.length){
   $("matches").innerHTML='<div class="empty">Bu filtrede maç bulunamadı.</div>';
   return;
  }
-
- $("matches").innerHTML=matches.map(m=>{
-  const f=m.fixture||{};
-  const l=m.league||{};
-  const t=m.teams||{};
-  const g=m.goals||{};
-  const time=f.date
-   ? new Date(f.date).toLocaleTimeString("tr-TR",{
-      hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"
-     })
-   : "";
-
-  return `
-  <article class="match">
-   <div class="meta">
-    <span>${esc(l.name)} · ${esc(l.country)}</span>
-    <span>${esc(time)} · ${esc(f.status?.short)}</span>
-   </div>
-   <div class="teams">
-    ${esc(t.home?.name)}
-    <span class="score">${g.home!=null ? " "+g.home+" - "+g.away+" " : " - "}</span>
-    ${esc(t.away?.name)}
-   </div>
+ $("matches").innerHTML=list.map(m=>{
+  const f=m.fixture||{},l=m.league||{},t=m.teams||{},g=m.goals||{};
+  const time=f.date?new Date(f.date).toLocaleTimeString("tr-TR",{
+   hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"
+  }):"";
+  return `<article class="match">
+   <div class="meta"><span>${esc(l.name)} · ${esc(l.country)}</span><span>${esc(time)} · ${esc(f.status?.short)}</span></div>
+   <div class="teams">${esc(t.home?.name)} <span class="score">${g.home!=null?" "+g.home+" - "+g.away+" ":" - "}</span> ${esc(t.away?.name)}</div>
    <div class="row">
     <span class="small">Maç ID: ${esc(f.id)}</span>
     <button class="secondary predBtn"
@@ -238,7 +198,6 @@ function renderMatches(){
      data-away="${esc(t.away?.id)}"
      data-home-name="${esc(t.home?.name)}"
      data-away-name="${esc(t.away?.name)}"
-     data-season="${esc(l.season)}"
      data-date="${esc(f.date?.slice(0,10))}">
      Kendi analizini yap
     </button>
@@ -247,17 +206,15 @@ function renderMatches(){
   </article>`;
  }).join("");
 
- document.querySelectorAll(".predBtn").forEach(button=>{
-  button.addEventListener("click",()=>analyze(button));
+ document.querySelectorAll(".predBtn").forEach(b=>{
+  b.addEventListener("click",()=>analyze(b));
  });
 }
 
-/* TAKIM GEÇMİŞ MAÇLARI */
-
-async function getTeamFixtures(teamId,season,matchDate){
- const key="mam_v2_"+teamId+"_"+season;
+/* GEÇMİŞ MAÇLAR: SEASON PARAMETRESİ BİLEREK KALDIRILDI */
+async function getTeamFixtures(teamId,matchDate){
+ const key="mam_v3_"+teamId;
  const cached=localStorage.getItem(key);
-
  if(cached){
   try{
    const saved=JSON.parse(cached);
@@ -271,49 +228,36 @@ async function getTeamFixtures(teamId,season,matchDate){
  const start=new Date(end);
  start.setDate(start.getDate()-365);
 
- const from=start.toISOString().slice(0,10);
-
- const data=await api("fixtures?"+queryString({
+ const data=await api("fixtures?"+qs({
   team:teamId,
-  season:season,
-  from:from,
+  from:start.toISOString().slice(0,10),
   to:matchDate,
   timezone:"Europe/Istanbul"
  }));
 
  const matches=(data.response||[])
   .filter(m=>["FT","AET","PEN"].includes(m.fixture?.status?.short))
-  .filter(m=>m.goals?.home!==null && m.goals?.away!==null)
+  .filter(m=>m.goals?.home!==null&&m.goals?.away!==null)
   .sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
 
  try{
-  localStorage.setItem(key,JSON.stringify({
-   time:Date.now(),
-   matches:matches
-  }));
+  localStorage.setItem(key,JSON.stringify({time:Date.now(),matches}));
  }catch(e){}
-
  return matches;
 }
 
-/* İÇ SAHA / DEPLASMAN İSTATİSTİĞİ */
-
+/* TAKIM İSTATİSTİKLERİ */
 function teamStats(matches,teamId,venue){
  const all=matches.filter(m=>
-  Number(m.teams.home.id)===Number(teamId) ||
+  Number(m.teams.home.id)===Number(teamId)||
   Number(m.teams.away.id)===Number(teamId)
  );
-
  const venueGames=all.filter(m=>{
   const home=Number(m.teams.home.id)===Number(teamId);
-  return venue==="home" ? home : !home;
+  return venue==="home"?home:!home;
  });
-
- const selected=venueGames.length>=3
-  ? venueGames.slice(0,10)
-  : all.slice(0,10);
-
- const usedVenue=venueGames.length>=3 ? venue : "all";
+ const selected=venueGames.length>=3?venueGames.slice(0,10):all.slice(0,10);
+ const usedVenue=venueGames.length>=3?venue:"all";
 
  const gf=[],ga=[],firstGF=[],firstGA=[],secondGF=[],secondGA=[];
  let wins=0,draws=0,losses=0;
@@ -322,24 +266,18 @@ function teamStats(matches,teamId,venue){
   const isHome=Number(m.teams.home.id)===Number(teamId);
   const scored=Number(isHome?m.goals.home:m.goals.away);
   const conceded=Number(isHome?m.goals.away:m.goals.home);
-
-  if(!Number.isFinite(scored)||!Number.isFinite(conceded)) return;
-
-  gf.push(scored);
-  ga.push(conceded);
-
-  if(scored>conceded) wins++;
-  else if(scored===conceded) draws++;
+  if(!Number.isFinite(scored)||!Number.isFinite(conceded))return;
+  gf.push(scored);ga.push(conceded);
+  if(scored>conceded)wins++;
+  else if(scored===conceded)draws++;
   else losses++;
 
   const half=m.score?.halftime;
-  if(half && half.home!==null && half.away!==null){
+  if(half&&half.home!==null&&half.away!==null){
    const hgf=Number(isHome?half.home:half.away);
    const hga=Number(isHome?half.away:half.home);
-
    if(Number.isFinite(hgf)&&Number.isFinite(hga)){
-    firstGF.push(hgf);
-    firstGA.push(hga);
+    firstGF.push(hgf);firstGA.push(hga);
     secondGF.push(Math.max(0,scored-hgf));
     secondGA.push(Math.max(0,conceded-hga));
    }
@@ -347,134 +285,85 @@ function teamStats(matches,teamId,venue){
  });
 
  return {
-  count:gf.length,
-  venue:usedVenue,
-  gf:avg(gf),
-  ga:avg(ga),
-  firstGF:avg(firstGF),
-  firstGA:avg(firstGA),
-  secondGF:avg(secondGF),
-  secondGA:avg(secondGA),
-  halfCount:firstGF.length,
-  wins:wins,
-  draws:draws,
-  losses:losses,
-  games:selected
+  count:gf.length,venue:usedVenue,gf:avg(gf),ga:avg(ga),
+  firstGF:avg(firstGF),firstGA:avg(firstGA),
+  secondGF:avg(secondGF),secondGA:avg(secondGA),
+  halfCount:firstGF.length,wins,draws,losses
  };
 }
 
-/* SKOR TAHMİNLERİ */
-
-function topScores(homeLambda,awayLambda){
- const scores=[];
-
- for(let h=0;h<=7;h++){
-  for(let a=0;a<=7;a++){
-   scores.push({
-    home:h,
-    away:a,
-    p:poisson(homeLambda,h)*poisson(awayLambda,a)
-   });
-  }
+function topScores(lh,la){
+ const out=[];
+ for(let h=0;h<=7;h++)for(let a=0;a<=7;a++){
+  out.push({h,a,p:poisson(lh,h)*poisson(la,a)});
  }
-
- return scores.sort((a,b)=>b.p-a.p).slice(0,5);
+ return out.sort((x,y)=>y.p-x.p).slice(0,5);
 }
 
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+
 /* ANALİZ */
-
 async function analyze(button){
- if(button.disabled) return;
-
+ if(button.disabled)return;
  button.disabled=true;
  button.textContent="Hesaplanıyor...";
-
- const id=button.dataset.id;
- const target=$("pred-"+id);
-
- target.textContent="Takımların geçmiş maçları inceleniyor...";
+ const target=$("pred-"+button.dataset.id);
+ target.textContent="İlk takımın geçmiş maçları alınıyor...";
 
  try{
   const homeId=Number(button.dataset.home);
   const awayId=Number(button.dataset.away);
-  const season=Number(button.dataset.season);
   const date=button.dataset.date;
+  if(!homeId||!awayId||!date)throw new Error("Maç bilgileri eksik. Fikstürü yeniden yükle.");
 
-  if(!homeId||!awayId||!season||!date){
-   throw new Error("Maç bilgileri eksik. Fikstürü yeniden yükle.");
-  }
-
-  const [homeMatches,awayMatches]=await Promise.all([
-   getTeamFixtures(homeId,season,date),
-   getTeamFixtures(awayId,season,date)
-  ]);
+  const homeMatches=await getTeamFixtures(homeId,date);
+  target.textContent="İkinci takımın geçmiş maçları alınıyor...";
+  await wait(6500);
+  const awayMatches=await getTeamFixtures(awayId,date);
 
   const hs=teamStats(homeMatches,homeId,"home");
   const as=teamStats(awayMatches,awayId,"away");
-
   if(hs.count<3||as.count<3){
-   throw new Error("En az 3 tamamlanmış maç verisi bulunamadı. Bu maç için yeterli veri yok.");
+   throw new Error("En az 3 tamamlanmış geçmiş maç bulunamadı. Ücretsiz API planının tarih erişimi sınırlı olabilir.");
   }
 
   const lh=Math.max(.15,Math.min(4,(hs.gf+as.ga)/2));
   const la=Math.max(.15,Math.min(4,(as.gf+hs.ga)/2));
   const total=lh+la;
-
   let win=0,draw=0,lose=0;
 
-  for(let h=0;h<=10;h++){
-   for(let a=0;a<=10;a++){
-    const p=poisson(lh,h)*poisson(la,a);
-    if(h>a)win+=p;
-    else if(h===a)draw+=p;
-    else lose+=p;
-   }
+  for(let h=0;h<=10;h++)for(let a=0;a<=10;a++){
+   const p=poisson(lh,h)*poisson(la,a);
+   if(h>a)win+=p;else if(h===a)draw+=p;else lose+=p;
   }
 
-  const over15=overProbability(total,2);
-  const over25=overProbability(total,3);
-  const over35=overProbability(total,4);
+  const over15=overProb(total,2);
+  const over25=overProb(total,3);
+  const over35=overProb(total,4);
   const btts=(1-Math.exp(-lh))*(1-Math.exp(-la));
-
-  const doubleHome=win+draw;
-  const doubleAway=lose+draw;
-
-  /* DEVRE TAHMİNLERİ */
   const hasHalf=hs.halfCount>=3&&as.halfCount>=3;
-
-  let firstOver05=null,firstOver15=null;
-  let secondOver05=null,secondOver15=null;
+  let first05=null,first15=null,second05=null,second15=null;
 
   if(hasHalf){
-   const firstLambda=Math.max(.1,
-    (hs.firstGF+as.firstGA+as.firstGF+hs.firstGA)/2
-   );
-   const secondLambda=Math.max(.1,
-    (hs.secondGF+as.secondGA+as.secondGF+hs.secondGA)/2
-   );
-
-   firstOver05=overProbability(firstLambda,1);
-   firstOver15=overProbability(firstLambda,2);
-   secondOver05=overProbability(secondLambda,1);
-   secondOver15=overProbability(secondLambda,2);
+   const firstL=Math.max(.1,(hs.firstGF+as.firstGA+as.firstGF+hs.firstGA)/2);
+   const secondL=Math.max(.1,(hs.secondGF+as.secondGA+as.secondGF+hs.secondGA)/2);
+   first05=overProb(firstL,1);
+   first15=overProb(firstL,2);
+   second05=overProb(secondL,1);
+   second15=overProb(secondL,2);
   }
-
-  const scores=topScores(lh,la);
 
   const homeName=button.dataset.homeName;
   const awayName=button.dataset.awayName;
+  const venue=v=>v==="home"?"iç saha":v==="away"?"deplasman":"son maçlar";
+  const scores=topScores(lh,la);
 
-  const venueName=v=>v==="home"?"iç saha":v==="away"?"deplasman":"son maçlar";
-
-  let html=`
-   <b>📊 KENDİ İSTATİSTİKSEL ANALİZİMİZ</b>
-
+  let html=`<b>📊 KENDİ İSTATİSTİKSEL ANALİZİMİZ</b>
    <div class="section-title">Beklenen gol</div>
    <div class="statgrid">
     <div class="stat"><span>${esc(homeName)}</span><b>${lh.toFixed(2)}</b></div>
     <div class="stat"><span>${esc(awayName)}</span><b>${la.toFixed(2)}</b></div>
    </div>
-
    <div class="section-title">Takım performansı</div>
    <div class="statgrid">
     <div class="stat"><span>${esc(homeName)} gol ortalaması</span><b>${hs.gf.toFixed(2)}</b></div>
@@ -482,62 +371,37 @@ async function analyze(button){
     <div class="stat"><span>${esc(awayName)} gol ortalaması</span><b>${as.gf.toFixed(2)}</b></div>
     <div class="stat"><span>${esc(awayName)} yediği gol</span><b>${as.ga.toFixed(2)}</b></div>
    </div>
-
-   <div class="small">
-    ${esc(homeName)}: ${hs.count} maç (${venueName(hs.venue)}) ·
-    ${esc(awayName)}: ${as.count} maç (${venueName(as.venue)})
-   </div>
-
+   <p class="note">${esc(homeName)}: ${hs.count} maç (${venue(hs.venue)}) · ${esc(awayName)}: ${as.count} maç (${venue(as.venue)})</p>
    <div class="section-title">Maç sonucu olasılıkları</div>
-   ${probabilityHTML("1 - Ev sahibi kazanır",win)}
-   ${probabilityHTML("X - Beraberlik",draw)}
-   ${probabilityHTML("2 - Deplasman kazanır",lose)}
-   ${probabilityHTML("1X - Ev sahibi kaybetmez",doubleHome)}
-   ${probabilityHTML("X2 - Deplasman kaybetmez",doubleAway)}
-
+   ${probHTML("1 - Ev sahibi kazanır",win)}
+   ${probHTML("X - Beraberlik",draw)}
+   ${probHTML("2 - Deplasman kazanır",lose)}
+   ${probHTML("1X - Ev sahibi kaybetmez",win+draw)}
+   ${probHTML("X2 - Deplasman kaybetmez",lose+draw)}
    <div class="section-title">Toplam gol tahminleri</div>
-   ${probabilityHTML("1.5 Üst",over15)}
-   ${probabilityHTML("2.5 Üst",over25)}
-   ${probabilityHTML("3.5 Üst",over35)}
-   ${probabilityHTML("Karşılıklı gol - KG Var",btts)}
-
-   <div class="section-title">İlk yarı / ikinci yarı</div>
-  `;
+   ${probHTML("1.5 Üst",over15)}
+   ${probHTML("2.5 Üst",over25)}
+   ${probHTML("3.5 Üst",over35)}
+   ${probHTML("Karşılıklı gol - KG Var",btts)}
+   <div class="section-title">İlk yarı / ikinci yarı</div>`;
 
   if(hasHalf){
-   html+=`
-    ${probabilityHTML("İlk yarı 0.5 Üst",firstOver05)}
-    ${probabilityHTML("İlk yarı 1.5 Üst",firstOver15)}
-    ${probabilityHTML("İkinci yarı 0.5 Üst",secondOver05)}
-    ${probabilityHTML("İkinci yarı 1.5 Üst",secondOver15)}
-    <p class="note">Devre tahminleri, geçmiş maçların devre skorlarından hesaplandı.</p>
-   `;
+   html+=probHTML("İlk yarı 0.5 Üst",first05);
+   html+=probHTML("İlk yarı 1.5 Üst",first15);
+   html+=probHTML("İkinci yarı 0.5 Üst",second05);
+   html+=probHTML("İkinci yarı 1.5 Üst",second15);
   }else{
-   html+='<p class="note">İlk yarı ve ikinci yarı tahmini için yeterli devre skoru bulunamadı. Bu bölüm hesaplanmadı.</p>';
+   html+='<p class="note">Devre skorları için yeterli geçmiş veri bulunamadı; bu tahminler hesaplanmadı.</p>';
   }
 
   html+='<div class="section-title">En olası 5 skor</div>';
-
   scores.forEach((s,i)=>{
-   html+=`
-    <div class="scoreline">
-     <span>${i+1}. ${s.home} - ${s.away}</span>
-     <b>${pct(s.p)}</b>
-    </div>
-   `;
+   html+=`<div class="scoreline"><span>${i+1}. ${s.h} - ${s.a}</span><b>${pct(s.p)}</b></div>`;
   });
 
-  html+=`
-   <div class="section-title">Model ve veri notu</div>
-   <p class="note">
-    Model, takımların iç saha ve deplasman gol ortalamalarını birleştirerek Poisson olasılıkları üretir.
-    Bu yüzdeler geçmiş verilere dayalı matematiksel tahminlerdir; garanti veya kesin sonuç değildir.
-   </p>
-   <p class="note">
-    H2H ve korner analizi bu sürümde hesaplanmıyor. Gerekli özel veriler alınmadan bu alanlarda tahmin üretilmez.
-   </p>
-  `;
-
+  html+=`<div class="section-title">Veri notu</div>
+   <p class="note">Model, geçmiş gol ortalamalarını Poisson dağılımıyla değerlendirir. Yüzdeler tahmindir; kesin sonuç değildir.</p>
+   <p class="note">H2H ve korner verileri bu sürümde hesaplanmıyor.</p>`;
   target.innerHTML=html;
 
  }catch(error){
