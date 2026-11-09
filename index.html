@@ -224,17 +224,22 @@ async function getTeamFixtures(teamId,matchDate){
   }catch(e){}
  }
 
- const season=2024;
-const start="2024-01-01";
-const end="2024-12-31";
+ const season=Number(String(matchDate).slice(0,4));
 
- const data=await api("fixtures?"+qs({
+if(!Number.isInteger(season)||season<2000){
+  throw new Error("Maç tarihi geçersiz.");
+}
+
+const start=season+"-01-01";
+const end=season+"-12-31";
+
+const data=await api("fixtures?"+qs({
   team:teamId,
   season:season,
   from:start,
-to:end,
+  to:end,
   timezone:"Europe/Istanbul"
- }));
+}));
 
  const matches=(data.response||[])
   .filter(m=>["FT","AET","PEN"].includes(m.fixture?.status?.short))
