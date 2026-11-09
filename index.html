@@ -213,7 +213,7 @@ function renderMatches(){
 
 /* GEÇMİŞ MAÇLAR: SEASON PARAMETRESİ BİLEREK KALDIRILDI */
 async function getTeamFixtures(teamId,matchDate){
- const key="mam_v3_"+teamId;
+ const key="mam_v3_"+teamId+"_"+String(matchDate).slice(0,4);
  const cached=localStorage.getItem(key);
  if(cached){
   try{
