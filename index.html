@@ -224,15 +224,15 @@ async function getTeamFixtures(teamId,matchDate){
   }catch(e){}
  }
 
- const end=new Date(matchDate+"T12:00:00");
- const start=new Date(end);
- start.setDate(start.getDate()-365);
+ const season=2024;
+const start="2024-01-01";
+const end="2024-12-31";
 
  const data=await api("fixtures?"+qs({
   team:teamId,
-  season:new Date(matchDate).getFullYear(),
-  from:start.toISOString().slice(0,10),
-  to:matchDate,
+  season:season,
+  from:start,
+to:end,
   timezone:"Europe/Istanbul"
  }));
 
