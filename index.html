@@ -233,41 +233,50 @@ function renderMatches(){
  });
 }
 
-/* GEÇMİŞ MAÇLAR: SEASON PARAMETRESİ BİLEREK KALDIRILDI */
-async function getTeamFixtures(teamId,matchDate){
- const key="mam_v3_"+teamId+"_"+String(matchDate).slice(0,4);
- const cached=localStorage.getItem(key);
- if(cached){
-  try{
-   const saved=JSON.parse(cached);
-   if(Date.now()-saved.time<CACHE_HOURS*60*60*1000){
-    return saved.matches;
-   }
-  }catch(e){}
- }
+/* GEÇMİŞ MAÇLAR */
+async function getTeamFixtures(teamId, matchDate){
+  const key = "mam_v4_" + teamId + "_" + String(matchDate).slice(0,4);
+  const cached = localStorage.getItem(key);
 
- const season=Number(String(matchDate).slice(0,4));
+  if(cached){
+    try{
+      const saved = JSON.parse(cached);
+      if(Date.now() - saved.time < CACHE_HOURS * 60 * 60 * 1000){
+        return saved.matches;
+      }
+    }catch(e){}
+  }
 
-if(!Number.isInteger(season)||season<2000){
-  throw new Error("Maç tarihi geçersiz.");
+  const season = Number(String(matchDate).slice(0,4));
+
+  if(!Number.isInteger(season) || season < 2000){
+    throw new Error("Maç tarihi geçersiz.");
+  }
+
+  const start = season + "-01-01";
+  const end = season + "-12-31";
+
+  const data = await api("fixtures?" + qs({
+    team: teamId,
+    season: season,
+    from: start,
+    to: end,
+    timezone: "Europe/Istanbul"
+  }));
+
+  const matches = (data.response || [])
+    .filter(m => ["FT","AET","PEN"].includes(m.fixture?.status?.short))
+    .filter(m => new Date(m.fixture.date) < new Date(matchDate))
+    .sort((a,b) => new Date(b.fixture.date) - new Date(a.fixture.date))
+    .slice(0,10);
+
+  localStorage.setItem(key, JSON.stringify({
+    time: Date.now(),
+    matches: matches
+  }));
+
+  return matches;
 }
-
-const start=season+"-01-01";
-const end=season+"-12-31";
-
-const data=await api("fixtures?"+qs({
-  team:teamId,
-  season:season,
-  from:start,
-  to:end,
-  timezone:"Europe/Istanbul"
-}));
-
- const matches=(data.response||[])
-  .filter(m=>["FT","AET","PEN"].includes(m.fixture?.status?.short))
-  .filter(m=>m.goals?.home!==null&&m.goals?.away!==null)
-  .sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
-
  try{
   localStorage.setItem(key,JSON.stringify({time:Date.now(),matches}));
  }catch(e){}
