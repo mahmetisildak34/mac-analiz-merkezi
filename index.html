@@ -260,12 +260,19 @@ async function getTeamFixtures(teamId, matchDate, teamName){
   if(!searchResponse.ok) throw new Error("SportScore takım araması başarısız.");
 
   const searchData = await searchResponse.json();
-  const teams = searchData.teams || [];
-  const found = teams.find(t =>
-String(t.name || "").trim().toLowerCase() === String(teamName).trim().toLowerCase()
+const teams = searchData.teams || [];
+
+const normalizeName = name => String(name || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/ı/g, "i")
+  .trim()
+  .toLowerCase();
+
+const found = teams.find(t =>
+  normalizeName(t.name) === normalizeName(teamName)
 );
-    String(t.name || "").toLowerCase() === String(teamName).toLowerCase()
-  ) ;
+
 
   if(!found || !found.slug){
     throw new Error(teamName + " SportScore'da bulunamadı.");
