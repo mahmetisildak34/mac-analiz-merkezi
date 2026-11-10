@@ -234,8 +234,8 @@ function renderMatches(){
 }
 
 /* GEÇMİŞ MAÇLAR */
-async function getTeamFixtures(teamId, matchDate){
-  const key = "mam_v4_" + teamId + "_" + String(matchDate).slice(0,4);
+async function getTeamFixtures(teamId, matchDate, teamName){
+  const key = "sportscore_v1_" + teamName + "_" + matchDate.slice(0,4);
   const cached = localStorage.getItem(key);
 
   if(cached){
@@ -247,28 +247,66 @@ async function getTeamFixtures(teamId, matchDate){
     }catch(e){}
   }
 
-  const season = Number(String(matchDate).slice(0,4));
+  const query = String(teamName)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .replace(/ı/g,"i")
+    .replace(/İ/g,"I");
 
-  if(!Number.isInteger(season) || season < 2000){
-    throw new Error("Maç tarihi geçersiz.");
+  const searchUrl = "https://sportscore.com/api/v1/search/?q=" +
+    encodeURIComponent(query) + "&sport=football&limit=10";
+
+  const searchResponse = await fetch(searchUrl);
+  if(!searchResponse.ok) throw new Error("SportScore takım araması başarısız.");
+
+  const searchData = await searchResponse.json();
+  const teams = searchData.teams || [];
+  const found = teams.find(t =>
+    String(t.name || "").toLowerCase() === String(teamName).toLowerCase()
+  ) || teams[0];
+
+  if(!found || !found.slug){
+    throw new Error(teamName + " SportScore'da bulunamadı.");
   }
 
-  const start = season + "-01-01";
-  const end = season + "-12-31";
+  const url = "https://sportscore.com/api/widget/team/?sport=football&slug=" +
+    encodeURIComponent(found.slug) + "&limit=50";
 
-  const data = await api("fixtures?" + qs({
-    team: teamId,
-    season: season,
-    from: start,
-    to: end,
-    timezone: "Europe/Istanbul"
-  }));
+  const response = await fetch(url);
+  if(!response.ok) throw new Error("SportScore maç verisi alınamadı.");
 
-  const matches = (data.response || [])
-    .filter(m => ["FT","AET","PEN"].includes(m.fixture?.status?.short))
-    .filter(m => new Date(m.fixture.date) < new Date(matchDate))
-    .sort((a,b) => new Date(b.fixture.date) - new Date(a.fixture.date))
-    .slice(0,10);
+  const data = await response.json();
+  const matches = (data.matches || [])
+    .filter(m => m.status === "finished")
+    .filter(m => m.home_score !== null && m.away_score !== null)
+    .filter(m => new Date(m.time) < new Date(matchDate))
+    .sort((a,b) => new Date(b.time) - new Date(a.time))
+    .slice(0,10)
+    .map(m => {
+     const norm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").toLowerCase();
+const isHome = norm(m.home) === norm(teamName);
+      return {
+        fixture: {
+          date: m.time,
+          status: { short: "FT" }
+        },
+        teams: {
+          home: { id: isHome ? teamId : -1, name: m.home },
+          away: { id: isHome ? -1 : teamId, name: m.away }
+        },
+        goals: {
+          home: Number(m.home_score),
+          away: Number(m.away_score)
+        },
+        score: {
+          halftime: { home: null, away: null }
+        }
+      };
+    });
+
+  if(matches.length < 3){
+    throw new Error(teamName + " için yeterli geçmiş maç bulunamadı.");
+  }
 
   localStorage.setItem(key, JSON.stringify({
     time: Date.now(),
@@ -277,6 +315,7 @@ async function getTeamFixtures(teamId, matchDate){
 
   return matches;
 }
+
 
 
 /* TAKIM İSTATİSTİKLERİ */
@@ -349,10 +388,10 @@ async function analyze(button){
   const date=button.dataset.date;
   if(!homeId||!awayId||!date)throw new Error("Maç bilgileri eksik. Fikstürü yeniden yükle.");
 
-  const homeMatches=await getTeamFixtures(homeId,date);
+  const homeMatches=await getTeamFixtures(homeId,date,button.dataset.homeName);
   target.textContent="İkinci takımın geçmiş maçları alınıyor...";
   await wait(6500);
-  const awayMatches=await getTeamFixtures(awayId,date);
+  const awayMatches=await getTeamFixtures(awayId,date,button.dataset.awayName);
 
   const hs=teamStats(homeMatches,homeId,"home");
   const as=teamStats(awayMatches,awayId,"away");
