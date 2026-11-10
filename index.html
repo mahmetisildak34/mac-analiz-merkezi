@@ -283,7 +283,7 @@ async function getTeamFixtures(teamId, matchDate, teamName){
     .sort((a,b) => new Date(b.time) - new Date(a.time))
     .slice(0,10)
     .map(m => {
-     const norm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").toLowerCase();
+     const norm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[\u0300-\u036f]/g, "")
 const isHome = norm(m.home) === norm(teamName);
       return {
         fixture: {
