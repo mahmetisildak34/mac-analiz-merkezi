@@ -277,11 +277,7 @@ async function getTeamFixtures(teamId, matchDate){
 
   return matches;
 }
- try{
-  localStorage.setItem(key,JSON.stringify({time:Date.now(),matches}));
- }catch(e){}
- return matches;
-}
+
 
 /* TAKIM İSTATİSTİKLERİ */
 function teamStats(matches,teamId,venue){
