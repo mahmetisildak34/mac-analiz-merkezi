@@ -269,9 +269,9 @@ const normalizeName = name => String(name || "")
   .trim()
   .toLowerCase();
 
-const found = teams.find(t =>
-  normalizeName(t.name) === normalizeName(teamName)
-);
+const found = teams
+  .filter(t => normalizeName(t.name) === normalizeName(teamName))
+  .sort((a,b) => Number(!!b.logo) - Number(!!a.logo))[0];
 
 
   if(!found || !found.slug){
