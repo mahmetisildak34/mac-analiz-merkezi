@@ -262,8 +262,10 @@ async function getTeamFixtures(teamId, matchDate, teamName){
   const searchData = await searchResponse.json();
   const teams = searchData.teams || [];
   const found = teams.find(t =>
+String(t.name || "").trim().toLowerCase() === String(teamName).trim().toLowerCase()
+);
     String(t.name || "").toLowerCase() === String(teamName).toLowerCase()
-  ) || teams[0];
+  ) ;
 
   if(!found || !found.slug){
     throw new Error(teamName + " SportScore'da bulunamadı.");
