@@ -311,6 +311,7 @@ function renderMatches(){
      data-away="${esc(t.away?.id)}"
      data-home-name="${esc(t.home?.name)}"
      data-away-name="${esc(t.away?.name)}"
+     data-league="${esc(l.id)}"
      data-date="${esc(f.date?.slice(0,10))}">
      Kendi analizini yap
     </button>
@@ -522,6 +523,24 @@ function optionalMetric(matches,teamId,metric,venue){
  return {count:values.length,average:avg(values)};
 }
 
+async function getPlayerScoringCandidates(teamId,leagueId,matchDate){
+ const year=Number(matchDate.slice(0,4));
+ const month=Number(matchDate.slice(5,7));
+ const season=month<=6?year-1:year;
+ if(!teamId||!leagueId||!season)return [];
+ const data=await api("players?"+qs({team:teamId,league:leagueId,season}));
+ return (data.response||[]).map(item=>{
+  const stat=item.statistics?.[0]||{};
+  const goals=Number(stat.goals?.total||0);
+  const minutes=Number(stat.games?.minutes||0);
+  const appearances=Number(stat.games?.appearences||stat.games?.appearances||0);
+  if(!item.player?.name||minutes<=0||appearances<3)return null;
+  const rate=goals/minutes*70;
+  const scoreChance=1-Math.exp(-rate);
+  return {name:item.player.name,team:stat.team?.name||"",goals,appearances,minutes,scoreChance};
+ }).filter(Boolean).sort((a,b)=>b.scoreChance-a.scoreChance).slice(0,5);
+}
+
 function topScores(lh,la){
  const out=[];
  for(let h=0;h<=7;h++)for(let a=0;a<=7;a++){
@@ -585,6 +604,15 @@ async function analyze(button){
 
   const homeName=button.dataset.homeName;
   const awayName=button.dataset.awayName;
+  const leagueId=button.dataset.league;
+  let homeScorers=[],awayScorers=[],playerDataNote="";
+  try{
+   target.textContent="Oyuncu gol istatistikleri alınıyor...";
+   homeScorers=await getPlayerScoringCandidates(homeId,leagueId,date);
+   awayScorers=await getPlayerScoringCandidates(awayId,leagueId,date);
+  }catch(playerError){
+   playerDataNote=String(playerError.message||playerError);
+  }
   const venue=v=>v==="home"?"iç saha":v==="away"?"deplasman":"son maçlar";
   const scores=topScores(lh,la);
 
@@ -659,6 +687,15 @@ async function analyze(button){
   }else{
    html+='<p class="note">Gerçek isabetli şut verisi yetersiz (her takım için en az 3 maç gerekli). Ortalama gösterilmiyor.</p>';
   }
+
+  html+='<div class="section-title">⚽ Oyuncu gol atar mı?</div>';
+  const playerCards=(players,teamName)=>players.length
+   ? '<p class="note">'+esc(teamName)+'</p>'+players.map(p=>`<div class="scoreline"><span>${esc(p.name)} · ${p.goals} gol / ${p.appearances} maç</span><b>${pct(p.scoreChance)} gol atar</b></div><div class="note">${pct(1-p.scoreChance)} gol atmaz · modelin 70 dakika varsayımı</div>`).join("")
+   : '<p class="note">'+esc(teamName)+': Kullanılabilir oyuncu sezon istatistiği bulunamadı.</p>';
+  html+=playerCards(homeScorers,homeName);
+  html+=playerCards(awayScorers,awayName);
+  if(playerDataNote)html+='<p class="note">Oyuncu verisi notu: '+esc(playerDataNote)+'</p>';
+  html+='<p class="note">Oyuncu olasılığı, API-Football sezon golü/dakika verisinden yaklaşık 70 dakika oynama varsayımıyla hesaplanır. İlk 11 kesinleşmeden ve oyuncunun oynama süresi bilinmeden kesin tahmin değildir.</p>';
 
   html+='<div class="section-title">En olası 5 skor</div>';
   scores.forEach((s,i)=>{
