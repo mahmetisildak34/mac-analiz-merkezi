@@ -325,18 +325,37 @@ async function getTeamFixtures(teamId, matchDate, teamName){
   if(!searchResponse.ok) throw new Error("SportScore takım araması başarısız.");
 
   const searchData = await searchResponse.json();
-const teams = searchData.teams || [];
 
-const normalizeName = name => String(name || "")
-  .normalize("NFD")
-  .replace(/[\u0300-\u036f]/g, "")
-  .replace(/ı/g, "i")
-  .trim()
-  .toLowerCase();
+  const normalizeName = name => String(name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .toLowerCase();
 
-const found = teams
-  .filter(t => normalizeName(t.name) === normalizeName(teamName))
-  .sort((a,b) => Number(!!b.logo) - Number(!!a.logo))[0];
+  // SportScore araması gruplandırılmış sonuç döndürür.
+  // Takım nesnelerini yanıtın tüm iç içe gruplarından topla.
+  const teams = [];
+  const visited = new Set();
+  const collectTeams = value => {
+    if(!value || typeof value !== "object" || visited.has(value)) return;
+    visited.add(value);
+    if(Array.isArray(value)){
+      value.forEach(collectTeams);
+      return;
+    }
+    if(typeof value.name === "string" && typeof value.slug === "string"){
+      teams.push(value);
+    }
+    Object.values(value).forEach(collectTeams);
+  };
+  collectTeams(searchData);
+
+  const wanted = normalizeName(teamName);
+  const found = teams
+    .filter(t => normalizeName(t.name) === wanted)
+    .sort((a,b) => Number(!!b.logo) - Number(!!a.logo))[0];
 
 
   if(!found || !found.slug){
