@@ -359,7 +359,9 @@ async function getTeamFixtures(teamId, matchDate, teamName){
 
 
   if(!found || !found.slug){
-    throw new Error(teamName + " SportScore'da bulunamadı.");
+    const topKeys = Object.keys(searchData || {}).join(", ") || "boş yanıt";
+    const preview = JSON.stringify(searchData).slice(0,500);
+    throw new Error("SportScore arama yanıtında takım bulunamadı. Alanlar: " + topKeys + " | Yanıt: " + preview);
   }
 
   const url = "https://sportscore.com/api/widget/team/?sport=football&slug=" +
