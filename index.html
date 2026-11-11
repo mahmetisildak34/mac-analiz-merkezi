@@ -369,8 +369,8 @@ function renderMatches(){
 }
 
 /* GEÇMİŞ MAÇLAR */
-async async function getTeamFixtures(teamId, matchDate, teamName){
-  const key = "mam_history_v5_" + teamId + "_" + matchDate.slice(0,4);
+async function getTeamFixtures(teamId, matchDate, teamName, leagueId){
+  const key = "mam_history_v6_" + leagueId + "_" + teamId + "_" + matchDate.slice(0,4);
   const cached = localStorage.getItem(key);
 
   if(cached){
@@ -476,6 +476,67 @@ async async function getTeamFixtures(teamId, matchDate, teamName){
     }
   }catch(e){
     console.warn("SportScore geçmiş verisi alınamadı:", teamName, e);
+  }
+
+  // Kaynak 2: Open Matchday — ücretsiz, 75 organizasyonluk CSV arşivi.
+  if(!sportScoreMatches.length){
+    const openMatchdayLeagues = {
+      "39":"ENG_1_premier-league","140":"ESP_1_la-liga","78":"GER_1_bundesliga",
+      "135":"ITA_1_serie-a","61":"FRA_1_ligue-1","2":"UEFA_1_champions-league",
+      "3":"UEFA_1_europa-league","848":"UEFA_1_conference-league",
+      "94":"POR_1_primeira-liga","88":"NED_1_eredivisie","144":"BEL_1_pro-league",
+      "203":"TUR_1_super-lig","179":"SCO_1_premiership","253":"USA_1_mls",
+      "71":"BRA_1_serie-a","128":"ARG_1_liga-profesional","262":"MEX_1_liga-mx",
+      "98":"JPN_1_j1-league","188":"AUS_1_a-league","169":"CHN_1_super-league"
+    };
+    const folder=openMatchdayLeagues[String(leagueId)];
+    if(folder){
+      try{
+        const csvUrl="https://raw.githubusercontent.com/oladeeayo/open-matchday/master/data/"+folder+"/results_2627.csv";
+        const response=await fetch(csvUrl);
+        if(response.ok){
+          const csv=await response.text();
+          const parseCSV=text=>{
+            const rows=[];let row=[],field="",quoted=false;
+            for(let i=0;i<text.length;i++){
+              const c=text[i],next=text[i+1];
+              if(c==='"'&&quoted&&next==='"'){field+='"';i++;}
+              else if(c==='"')quoted=!quoted;
+              else if(c===","&&!quoted){row.push(field);field="";}
+              else if((c==="\\n"||c==="\\r")&&!quoted){
+                if(c==="\\r"&&next==="\\n")i++;
+                row.push(field);if(row.some(v=>v!==""))rows.push(row);
+                row=[];field="";
+              }else field+=c;
+            }
+            if(field!==""||row.length){row.push(field);rows.push(row);}
+            const headers=rows.shift()||[];
+            return rows.map(values=>Object.fromEntries(headers.map((h,i)=>[h,values[i]??""])));
+          };
+          const isTarget=name=>{
+            const candidate=normalizeName(name);
+            return candidate===wanted||candidate.includes(wanted)||wanted.includes(candidate);
+          };
+          const num=v=>v===""||v==null?null:Number(v);
+          const rows=parseCSV(csv).filter(m=>m.date&&m.date<matchDate)
+            .filter(m=>isTarget(m.home)||isTarget(m.away))
+            .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+          sportScoreMatches=rows.map(m=>{
+            const home=isTarget(m.home);
+            return {
+              fixture:{date:m.date+"T12:00:00Z",status:{short:"FT"}},
+              teams:{home:{id:home?teamId:-1,name:m.home},away:{id:home?-1:teamId,name:m.away}},
+              goals:{home:num(m.ft_home),away:num(m.ft_away)},
+              score:{halftime:{home:num(m.ht_home),away:num(m.ht_away)}},
+              statistics:{
+                home:{shots:num(m.home_shots),shotsOnTarget:num(m.home_target),corners:num(m.home_corners)},
+                away:{shots:num(m.away_shots),shotsOnTarget:num(m.away_target),corners:num(m.away_corners)}
+              }
+            };
+          }).filter(m=>m.goals.home!==null&&m.goals.away!==null);
+        }
+      }catch(e){console.warn("Open Matchday verisi alınamadı:",teamName,e);}
+    }
   }
 
   // Kaynak 2: API-Football — fikstürdeki doğrulanmış takım ID'siyle sorgulanır.
@@ -603,10 +664,10 @@ async function analyze(button){
   const date=button.dataset.date;
   if(!homeId||!awayId||!date)throw new Error("Maç bilgileri eksik. Fikstürü yeniden yükle.");
 
-  const homeMatches=await getTeamFixtures(homeId,date,button.dataset.homeName);
+  const homeMatches=await getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league);
   target.textContent="İkinci takımın geçmiş maçları alınıyor...";
   await wait(6500);
-  const awayMatches=await getTeamFixtures(awayId,date,button.dataset.awayName);
+  const awayMatches=await getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league);
 
   const hs=teamStats(homeMatches,homeId,"home");
   const as=teamStats(awayMatches,awayId,"away");
