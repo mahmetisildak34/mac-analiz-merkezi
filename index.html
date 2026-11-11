@@ -370,7 +370,7 @@ function renderMatches(){
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName){
-  const key = "sportscore_v3_" + teamId + "_" + teamName + "_" + matchDate.slice(0,4);
+  const key = "sportscore_v4_" + teamId + "_" + teamName + "_" + matchDate.slice(0,4);
   const cached = localStorage.getItem(key);
 
   if(cached){
@@ -382,32 +382,22 @@ async function getTeamFixtures(teamId, matchDate, teamName){
     }catch(e){}
   }
 
-  const query = String(teamName)
+  const normalizeName = name => String(name || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g,"")
     .replace(/ı/g,"i")
-    .replace(/İ/g,"I");
-
-  const searchUrl = "https://sportscore.com/api/v1/search/?q=" +
-    encodeURIComponent(query) + "&sport=football&limit=10";
-
-  const searchResponse = await fetch(searchUrl);
-  if(!searchResponse.ok) throw new Error("SportScore takım araması başarısız.");
-
-  const searchData = await searchResponse.json();
-
-  const normalizeName = name => String(name || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ı/g, "i")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^a-z0-9]+/g," ")
     .trim()
     .toLowerCase();
 
-  // SportScore araması gruplandırılmış sonuç döndürür.
-  // Takım nesnelerini yanıtın tüm iç içe gruplarından topla.
+  const wanted = normalizeName(teamName);
+  const aliases = {
+    "nautico recife": ["Nautico", "Náutico", "Clube Náutico Capibaribe", "Nautico Capibaribe"]
+  };
+  const queries = [...new Set([teamName, ...(aliases[wanted] || [])])];
   const teams = [];
   const visited = new Set();
+
   const collectTeams = value => {
     if(!value || typeof value !== "object" || visited.has(value)) return;
     visited.add(value);
@@ -420,18 +410,36 @@ async function getTeamFixtures(teamId, matchDate, teamName){
     }
     Object.values(value).forEach(collectTeams);
   };
-  collectTeams(searchData);
 
-  const wanted = normalizeName(teamName);
+  for(const query of queries){
+    const searchUrl = "https://sportscore.com/api/v1/search/?q=" +
+      encodeURIComponent(query) + "&sport=football&limit=20";
+    const searchResponse = await fetch(searchUrl);
+    if(!searchResponse.ok) continue;
+    collectTeams(await searchResponse.json());
+    if(teams.some(t => normalizeName(t.name) === wanted)) break;
+  }
+
+  const scoreTeam = name => {
+    const candidate = normalizeName(name);
+    if(!candidate) return 0;
+    if(candidate === wanted) return 100;
+    const aliasNames = (aliases[wanted] || []).map(normalizeName);
+    if(aliasNames.includes(candidate)) return 95;
+    if(candidate.includes(wanted) || wanted.includes(candidate)) return 80;
+    const wantedTokens = wanted.split(" ").filter(Boolean);
+    const candidateTokens = new Set(candidate.split(" "));
+    const overlap = wantedTokens.filter(token => candidateTokens.has(token)).length;
+    return wantedTokens.length ? overlap / wantedTokens.length * 60 : 0;
+  };
+
   const found = teams
-    .filter(t => normalizeName(t.name) === wanted)
-    .sort((a,b) => Number(!!b.logo) - Number(!!a.logo))[0];
-
+    .map(t => ({team:t, score:scoreTeam(t.name)}))
+    .filter(x => x.score >= 60)
+    .sort((a,b) => b.score-a.score || Number(!!b.team.logo)-Number(!!a.team.logo))[0]?.team;
 
   if(!found || !found.slug){
-    const topKeys = Object.keys(searchData || {}).join(", ") || "boş yanıt";
-    const preview = JSON.stringify(searchData).slice(0,500);
-    throw new Error("SportScore arama yanıtında takım bulunamadı. Alanlar: " + topKeys + " | Yanıt: " + preview);
+    throw new Error(teamName + " SportScore'da bulunamadı (alternatif adlarla da arandı).");
   }
 
   const url = "https://sportscore.com/api/widget/team/?sport=football&slug=" +
@@ -439,8 +447,17 @@ async function getTeamFixtures(teamId, matchDate, teamName){
 
   const response = await fetch(url);
   if(!response.ok) throw new Error("SportScore maç verisi alınamadı.");
-
   const data = await response.json();
+
+  const isTargetTeam = name => {
+    const candidate = normalizeName(name);
+    if(candidate === wanted || candidate.includes(wanted) || wanted.includes(candidate)) return true;
+    return (aliases[wanted] || []).some(alias => {
+      const normalizedAlias = normalizeName(alias);
+      return candidate === normalizedAlias || candidate.includes(normalizedAlias);
+    });
+  };
+
   const matches = (data.matches || [])
     .filter(m => m.status === "finished")
     .filter(m => m.home_score !== null && m.away_score !== null)
@@ -448,124 +465,21 @@ async function getTeamFixtures(teamId, matchDate, teamName){
     .sort((a,b) => new Date(b.time) - new Date(a.time))
     .slice(0,10)
     .map(m => {
-     const norm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").trim().toLowerCase();
-      const isHome = norm(m.home) === norm(teamName);
+      const isHome = isTargetTeam(m.home);
       return {
-        fixture: {
-          date: m.time,
-          status: { short: "FT" }
-        },
+        fixture: { date: m.time, status: { short: "FT" } },
         teams: {
           home: { id: isHome ? teamId : -1, name: m.home },
           away: { id: isHome ? -1 : teamId, name: m.away }
         },
-        goals: {
-          home: Number(m.home_score),
-          away: Number(m.away_score)
-        },
-        score: {
-          halftime: { home: null, away: null }
-        },
-        extraStats: {
-          corners: {
-            home: m.home_corners ?? m.stats?.home?.corners ?? null,
-            away: m.away_corners ?? m.stats?.away?.corners ?? null
-          },
-          shotsOnTarget: {
-            home: m.home_shots_on_target ?? m.stats?.home?.shots_on_target ?? null,
-            away: m.away_shots_on_target ?? m.stats?.away?.shots_on_target ?? null
-          }
-        }
+        goals: { home: m.home_score, away: m.away_score },
+        score: { halftime: null }
       };
     });
 
-  if(matches.length < 3){
-    throw new Error(teamName + " için yeterli geçmiş maç bulunamadı.");
-  }
-
-  localStorage.setItem(key, JSON.stringify({
-    time: Date.now(),
-    matches: matches
-  }));
-
+  localStorage.setItem(key, JSON.stringify({time:Date.now(), matches}));
   return matches;
 }
-
-
-
-/* TAKIM İSTATİSTİKLERİ */
-function teamStats(matches,teamId,venue){
- const all=matches.filter(m=>
-  Number(m.teams.home.id)===Number(teamId)||
-  Number(m.teams.away.id)===Number(teamId)
- );
- const venueGames=all.filter(m=>{
-  const home=Number(m.teams.home.id)===Number(teamId);
-  return venue==="home"?home:!home;
- });
- const selected=venueGames.length>=3?venueGames.slice(0,10):all.slice(0,10);
- const usedVenue=venueGames.length>=3?venue:"all";
-
- const gf=[],ga=[],firstGF=[],firstGA=[],secondGF=[],secondGA=[];
- let firstBothYes=0,firstBothNo=0,secondBothYes=0,secondBothNo=0;
- let wins=0,draws=0,losses=0;
-
- selected.forEach(m=>{
-  const isHome=Number(m.teams.home.id)===Number(teamId);
-  const scored=Number(isHome?m.goals.home:m.goals.away);
-  const conceded=Number(isHome?m.goals.away:m.goals.home);
-  if(!Number.isFinite(scored)||!Number.isFinite(conceded))return;
-  gf.push(scored);ga.push(conceded);
-  if(scored>conceded)wins++;
-  else if(scored===conceded)draws++;
-  else losses++;
-
-  const half=m.score?.halftime;
-  if(half&&half.home!==null&&half.away!==null){
-   const hgf=Number(isHome?half.home:half.away);
-   const hga=Number(isHome?half.away:half.home);
-   if(Number.isFinite(hgf)&&Number.isFinite(hga)){
-    firstGF.push(hgf);firstGA.push(hga);
-    const secondScored=Math.max(0,scored-hgf);
-    const secondConceded=Math.max(0,conceded-hga);
-    secondGF.push(secondScored);
-    secondGA.push(secondConceded);
-    if(hgf>0&&hga>0)firstBothYes++;else firstBothNo++;
-    if(secondScored>0&&secondConceded>0)secondBothYes++;else secondBothNo++;
-   }
-  }
- });
-
- return {
-  count:gf.length,venue:usedVenue,gf:avg(gf),ga:avg(ga),
-  firstGF:avg(firstGF),firstGA:avg(firstGA),
-  secondGF:avg(secondGF),secondGA:avg(secondGA),
-  halfCount:firstGF.length,
-  firstBothYes,firstBothNo,secondBothYes,secondBothNo,
-  firstBothRate:firstGF.length?firstBothYes/firstGF.length:null,
-  secondBothRate:firstGF.length?secondBothYes/firstGF.length:null,
-  wins,draws,losses
- };
-}
-
-// Only calculate additional metrics when both teams have enough real samples.
-function optionalMetric(matches,teamId,metric,venue){
- const rows=matches.filter(m=>{
-  const isHome=Number(m.teams?.home?.id)===Number(teamId);
-  const isAway=Number(m.teams?.away?.id)===Number(teamId);
-  if(!isHome&&!isAway)return false;
-  if(venue==="home"&&!isHome)return false;
-  if(venue==="away"&&!isAway)return false;
-  return true;
- });
- const values=rows.map(m=>{
-  const isHome=Number(m.teams?.home?.id)===Number(teamId);
-  const raw=m.extraStats?.[metric]?.[isHome?"home":"away"];
-  return raw===null||raw===undefined||raw===""?null:Number(raw);
- }).filter(n=>n!==null&&Number.isFinite(n)&&n>=0);
- return {count:values.length,average:avg(values)};
-}
-
 async function getMatchInjuries(fixtureId){
  if(!fixtureId)return {items:[],note:"Maç kimliği eksik."};
  const data=await api("injuries?"+qs({fixture:fixtureId}));
