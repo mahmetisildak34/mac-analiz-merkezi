@@ -582,9 +582,10 @@ async function analyze(button){
 
   const hs=teamStats(homeMatches,homeId,"home");
   const as=teamStats(awayMatches,awayId,"away");
-  if(hs.count<3||as.count<3){
-   throw new Error("En az 3 tamamlanmış geçmiş maç bulunamadı. Ücretsiz API planının tarih erişimi sınırlı olabilir.");
+  if(hs.count<1||as.count<1){
+   throw new Error("Analiz için en az bir doğrulanmış geçmiş maç gerekli. Kaynakta yeterli geçmiş veri bulunamadı.");
   }
+  const lowSample = hs.count<3 || as.count<3;
 
   const lh=Math.max(.15,Math.min(4,(hs.gf+as.ga)/2));
   const la=Math.max(.15,Math.min(4,(as.gf+hs.ga)/2));
@@ -615,6 +616,11 @@ async function analyze(button){
   const homeName=button.dataset.homeName;
   const awayName=button.dataset.awayName;
   const leagueId=button.dataset.league;
+  const outcome = win>=draw && win>=lose
+    ? {label:homeName+" kazanır",chance:win}
+    : draw>=win && draw>=lose
+      ? {label:"Beraberlik",chance:draw}
+      : {label:awayName+" kazanır",chance:lose};
   let homeScorers=[],awayScorers=[],playerDataNote="";
   let injuryReport={items:[],note:"Sakatlık verisi alınamadı."};
   try{
@@ -637,6 +643,12 @@ async function analyze(button){
   const scores=topScores(lh,la);
 
   let html=`<b>📊 KENDİ İSTATİSTİKSEL ANALİZİMİZ</b>
+   <div class="section-title">🏆 Modelin maç sonucu tahmini</div>
+   <div class="statgrid">
+    <div class="stat"><span>En olası sonuç</span><b>${esc(outcome.label)}</b></div>
+    <div class="stat"><span>Model olasılığı</span><b>${pct(outcome.chance)}</b></div>
+   </div>
+   <p class="note">1-X-2 olasılıkları içindeki en yüksek sonuçtur; kesinlik veya garanti değildir.</p>
    <div class="section-title">Beklenen gol</div>
    <div class="statgrid">
     <div class="stat"><span>${esc(homeName)}</span><b>${lh.toFixed(2)}</b></div>
@@ -650,6 +662,7 @@ async function analyze(button){
     <div class="stat"><span>${esc(awayName)} yediği gol</span><b>${as.ga.toFixed(2)}</b></div>
    </div>
    <p class="note">${esc(homeName)}: ${hs.count} maç (${venue(hs.venue)}) · ${esc(awayName)}: ${as.count} maç (${venue(as.venue)})</p>
+   ${lowSample?'<p class="note">⚠️ Uyarı: Takımlardan en az birinde 3 maçtan az geçmiş veri var. Tahmin düşük örneklem nedeniyle daha az güvenilirdir.</p>':''}
    <div class="section-title">Maç sonucu olasılıkları</div>
    ${probHTML("1 - Ev sahibi kazanır",win)}
    ${probHTML("X - Beraberlik",draw)}
