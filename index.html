@@ -463,6 +463,7 @@ function teamStats(matches,teamId,venue){
  const usedVenue=venueGames.length>=3?venue:"all";
 
  const gf=[],ga=[],firstGF=[],firstGA=[],secondGF=[],secondGA=[];
+ let firstBothYes=0,firstBothNo=0,secondBothYes=0,secondBothNo=0;
  let wins=0,draws=0,losses=0;
 
  selected.forEach(m=>{
@@ -481,8 +482,12 @@ function teamStats(matches,teamId,venue){
    const hga=Number(isHome?half.away:half.home);
    if(Number.isFinite(hgf)&&Number.isFinite(hga)){
     firstGF.push(hgf);firstGA.push(hga);
-    secondGF.push(Math.max(0,scored-hgf));
-    secondGA.push(Math.max(0,conceded-hga));
+    const secondScored=Math.max(0,scored-hgf);
+    const secondConceded=Math.max(0,conceded-hga);
+    secondGF.push(secondScored);
+    secondGA.push(secondConceded);
+    if(hgf>0&&hga>0)firstBothYes++;else firstBothNo++;
+    if(secondScored>0&&secondConceded>0)secondBothYes++;else secondBothNo++;
    }
   }
  });
@@ -491,7 +496,11 @@ function teamStats(matches,teamId,venue){
   count:gf.length,venue:usedVenue,gf:avg(gf),ga:avg(ga),
   firstGF:avg(firstGF),firstGA:avg(firstGA),
   secondGF:avg(secondGF),secondGA:avg(secondGA),
-  halfCount:firstGF.length,wins,draws,losses
+  halfCount:firstGF.length,
+  firstBothYes,firstBothNo,secondBothYes,secondBothNo,
+  firstBothRate:firstGF.length?firstBothYes/firstGF.length:null,
+  secondBothRate:firstGF.length?secondBothYes/firstGF.length:null,
+  wins,draws,losses
  };
 }
 
@@ -611,8 +620,16 @@ async function analyze(button){
    html+=probHTML("İlk yarı 1.5 Üst",first15);
    html+=probHTML("İkinci yarı 0.5 Üst",second05);
    html+=probHTML("İkinci yarı 1.5 Üst",second15);
+   const firstBttsYes=(hs.firstBothRate+as.firstBothRate)/2;
+   const secondBttsYes=(hs.secondBothRate+as.secondBothRate)/2;
+   html+='<div class="section-title">🤝 İlk yarı / ikinci yarı karşılıklı gol</div>';
+   html+=probHTML("İlk yarı KG Var",firstBttsYes);
+   html+=probHTML("İlk yarı KG Yok",1-firstBttsYes);
+   html+=probHTML("İkinci yarı KG Var",secondBttsYes);
+   html+=probHTML("İkinci yarı KG Yok",1-secondBttsYes);
+   html+='<p class="note">Bu oranlar takımların geçmiş devre bazlı karşılıklı gol sıklıklarından hesaplanır; iki takımda da en az 3 devre skoru gerekir.</p>';
   }else{
-   html+='<p class="note">Devre skorları için yeterli geçmiş veri bulunamadı; bu tahminler hesaplanmadı.</p>';
+   html+='<p class="note">Devre skorları için yeterli geçmiş veri bulunamadı. İlk yarı ve ikinci yarı karşılıklı gol olasılıkları gerçek veri olmadan gösterilmez.</p>';
   }
 
   const hc=optionalMetric(homeMatches,homeId,"corners","home");
