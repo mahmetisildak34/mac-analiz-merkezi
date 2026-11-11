@@ -183,6 +183,11 @@ function overProb(l,min){
  return Math.max(0,Math.min(1,1-under));
 }
 function pct(n){return (n*100).toFixed(1)+"%"}
+function fairOdds(probability){
+ const p=Number(probability);
+ if(!Number.isFinite(p)||p<=0||p>1)return "Hesaplanamadı";
+ return (1/p).toFixed(2);
+}
 function probHTML(label,value){
  const p=Math.max(0,Math.min(1,value));
  return `<div class="prob">
@@ -761,12 +766,12 @@ async function analyze(button){
 
   html+='<div class="section-title">⚽ Oyuncu gol atar mı?</div>';
   const playerCards=(players,teamName)=>players.length
-   ? '<p class="note">'+esc(teamName)+'</p>'+players.map(p=>`<div class="scoreline"><span>${esc(p.name)} · ${p.goals} gol / ${p.appearances} maç</span><b>${pct(p.scoreChance)} gol atar</b></div><div class="note">${pct(1-p.scoreChance)} gol atmaz · modelin 70 dakika varsayımı</div>`).join("")
+   ? '<p class="note">'+esc(teamName)+'</p>'+players.map(p=>`<div class="scoreline"><span>${esc(p.name)} · ${p.goals} gol / ${p.appearances} maç</span><b>${pct(p.scoreChance)} gol atar</b></div><div class="note">Model adil oranı: <b>${fairOdds(p.scoreChance)}</b> · Gol atmaz: ${pct(1-p.scoreChance)} (adil oran ${fairOdds(1-p.scoreChance)})</div>`).join("")
    : '<p class="note">'+esc(teamName)+': Kullanılabilir oyuncu sezon istatistiği bulunamadı.</p>';
   html+=playerCards(homeScorers,homeName);
   html+=playerCards(awayScorers,awayName);
   if(playerDataNote)html+='<p class="note">Oyuncu verisi notu: '+esc(playerDataNote)+'</p>';
-  html+='<p class="note">Oyuncu olasılığı, API-Football sezon golü/dakika verisinden yaklaşık 70 dakika oynama varsayımıyla hesaplanır. İlk 11 kesinleşmeden ve oyuncunun oynama süresi bilinmeden kesin tahmin değildir.</p>';
+  html+='<p class="note">Oyuncu olasılığı, API-Football sezon golü/dakika verisinden yaklaşık 70 dakika oynama varsayımıyla hesaplanır. Model adil oranı 1 / olasılık formülüdür; bahis şirketi oranı değildir ve şirket marjı içermez. İlk 11 kesinleşmeden ve oyuncunun oynama süresi bilinmeden kesin tahmin değildir.</p>';
 
   html+='<div class="section-title">En olası 5 skor</div>';
   scores.forEach((s,i)=>{
