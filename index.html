@@ -249,7 +249,7 @@ async function loadMatches(){
    allMatches=data.response||[];
   }catch(primaryError){
    const message=String(primaryError.message||primaryError);
-   if(!/rateLimit|Too many requests|plan|date|429/i.test(message)) throw primaryError;
+   if(!/rateLimit|Too many requests|API dakika başına istek kotasını doldurdu|plan|date|429/i.test(message)) throw primaryError;
    $("status").textContent="Ana kaynak sınırına ulaştı. Alternatif fikstür kaynağı deneniyor...";
    allMatches=await footballDataFixtures(date);
    source="Football-data.org (alternatif)";
