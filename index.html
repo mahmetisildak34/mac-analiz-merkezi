@@ -196,6 +196,44 @@ let allMatches=[];
 $("load").addEventListener("click",loadMatches);
 $("league").addEventListener("change",renderMatches);
 
+const FOOTBALL_DATA_LEAGUES={
+ "39":"PL",
+ "140":"PD",
+ "78":"BL1",
+ "135":"SA",
+ "61":"FL1",
+ "2":"CL"
+};
+
+async function footballDataFixtures(date){
+ const selected=$("league").value;
+ const code=FOOTBALL_DATA_LEAGUES[selected];
+ if(selected!=="all" && !code){
+  throw new Error("Seçili lig Football-data.org ücretsiz kapsamına dahil değil. API-Football kotası yenilenince tekrar deneyebiliriz.");
+ }
+ const endpoint=code
+  ? "football-data/competitions/"+code+"/matches?"+qs({dateFrom:date,dateTo:date})
+  : "football-data/matches?"+qs({dateFrom:date,dateTo:date});
+ const data=await api(endpoint);
+ const idMap={"PL":"39","PD":"140","BL1":"78","SA":"135","FL1":"61","CL":"2"};
+ return (data.matches||[]).map(m=>({
+  fixture:{id:m.id,date:m.utcDate,status:{short:m.status}},
+  league:{
+   id:idMap[m.competition?.code]||String(m.competition?.id||""),
+   name:m.competition?.name||"Football-data.org",
+   country:m.area?.name||""
+  },
+  teams:{
+   home:{id:m.homeTeam?.id,name:m.homeTeam?.name},
+   away:{id:m.awayTeam?.id,name:m.awayTeam?.name}
+  },
+  goals:{
+   home:m.score?.fullTime?.home??null,
+   away:m.score?.fullTime?.away??null
+  }
+ }));
+}
+
 async function loadMatches(){
  const button=$("load");
  const date=$("date").value;
@@ -204,15 +242,23 @@ async function loadMatches(){
  $("status").textContent="Fikstür alınıyor...";
  $("matches").innerHTML="";
  try{
-  const data=await api("fixtures?"+qs({
-   date:date,timezone:"Europe/Istanbul"
-  }));
-  allMatches=data.response||[];
+  let source="API-Football";
+  let data;
+  try{
+   data=await api("fixtures?"+qs({date:date,timezone:"Europe/Istanbul"}));
+   allMatches=data.response||[];
+  }catch(primaryError){
+   const message=String(primaryError.message||primaryError);
+   if(!/rateLimit|Too many requests|plan|date|429/i.test(message)) throw primaryError;
+   $("status").textContent="Ana kaynak sınırına ulaştı. Alternatif fikstür kaynağı deneniyor...";
+   allMatches=await footballDataFixtures(date);
+   source="Football-data.org (alternatif)";
+  }
   renderMatches();
-  $("status").textContent=allMatches.length+" maç bulundu. Fikstür sorgusu tamamlandı.";
+  $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+".";
  }catch(e){
   $("status").innerHTML='<span class="error">'+esc(e.message)+'</span>';
-  $("matches").innerHTML='<div class="empty">API bağlantısı kontrol edilmeli.</div>';
+  $("matches").innerHTML='<div class="empty">Fikstür alınamadı. Hata: '+esc(e.message)+'</div>';
  }finally{button.disabled=false}
 }
 
