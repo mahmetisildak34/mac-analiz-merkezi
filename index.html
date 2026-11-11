@@ -421,6 +421,16 @@ async function getTeamFixtures(teamId, matchDate, teamName){
         },
         score: {
           halftime: { home: null, away: null }
+        },
+        extraStats: {
+          corners: {
+            home: m.home_corners ?? m.stats?.home?.corners ?? null,
+            away: m.away_corners ?? m.stats?.away?.corners ?? null
+          },
+          shotsOnTarget: {
+            home: m.home_shots_on_target ?? m.stats?.home?.shots_on_target ?? null,
+            away: m.away_shots_on_target ?? m.stats?.away?.shots_on_target ?? null
+          }
         }
       };
     });
@@ -483,6 +493,24 @@ function teamStats(matches,teamId,venue){
   secondGF:avg(secondGF),secondGA:avg(secondGA),
   halfCount:firstGF.length,wins,draws,losses
  };
+}
+
+// Only calculate additional metrics when both teams have enough real samples.
+function optionalMetric(matches,teamId,metric,venue){
+ const rows=matches.filter(m=>{
+  const isHome=Number(m.teams?.home?.id)===Number(teamId);
+  const isAway=Number(m.teams?.away?.id)===Number(teamId);
+  if(!isHome&&!isAway)return false;
+  if(venue==="home"&&!isHome)return false;
+  if(venue==="away"&&!isAway)return false;
+  return true;
+ });
+ const values=rows.map(m=>{
+  const isHome=Number(m.teams?.home?.id)===Number(teamId);
+  const raw=m.extraStats?.[metric]?.[isHome?"home":"away"];
+  return raw===null||raw===undefined||raw===""?null:Number(raw);
+ }).filter(n=>n!==null&&Number.isFinite(n)&&n>=0);
+ return {count:values.length,average:avg(values)};
 }
 
 function topScores(lh,la){
@@ -587,6 +615,34 @@ async function analyze(button){
    html+='<p class="note">Devre skorları için yeterli geçmiş veri bulunamadı; bu tahminler hesaplanmadı.</p>';
   }
 
+  const hc=optionalMetric(homeMatches,homeId,"corners","home");
+  const ac=optionalMetric(awayMatches,awayId,"corners","away");
+  html+='<div class="section-title">🚩 Korner analizi</div>';
+  if(hc.count>=3&&ac.count>=3){
+   const expectedCorners=hc.average+ac.average;
+   html+='<p class="note">Takımların korner ortalamalarından Poisson yaklaşımı. Lig ve rakip gücü düzeltmesi yapılmamıştır.</p>';
+   html+=`<div class="statgrid">
+    <div class="stat"><span>${esc(homeName)} korner ort.</span><b>${hc.average.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(awayName)} korner ort.</span><b>${ac.average.toFixed(2)}</b></div></div>`;
+   html+=probHTML("8.5 Korner Üst",overProb(expectedCorners,9));
+   html+=probHTML("9.5 Korner Üst",overProb(expectedCorners,10));
+   html+=probHTML("10.5 Korner Üst",overProb(expectedCorners,11));
+  }else{
+   html+='<p class="note">Gerçek korner verisi yetersiz (her takım için en az 3 maç gerekli). Tahmin üretilmedi.</p>';
+  }
+
+  const hShots=optionalMetric(homeMatches,homeId,"shotsOnTarget","home");
+  const aShots=optionalMetric(awayMatches,awayId,"shotsOnTarget","away");
+  html+='<div class="section-title">🎯 İsabetli şut analizi</div>';
+  if(hShots.count>=3&&aShots.count>=3){
+   html+=`<div class="statgrid">
+    <div class="stat"><span>${esc(homeName)} isabetli şut ort.</span><b>${hShots.average.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(awayName)} isabetli şut ort.</span><b>${aShots.average.toFixed(2)}</b></div></div>`;
+   html+='<p class="note">Ortalamalar geçmiş maçlara aittir; garanti veya kesin tahmin değildir.</p>';
+  }else{
+   html+='<p class="note">Gerçek isabetli şut verisi yetersiz (her takım için en az 3 maç gerekli). Ortalama gösterilmiyor.</p>';
+  }
+
   html+='<div class="section-title">En olası 5 skor</div>';
   scores.forEach((s,i)=>{
    html+=`<div class="scoreline"><span>${i+1}. ${s.h} - ${s.a}</span><b>${pct(s.p)}</b></div>`;
@@ -594,7 +650,7 @@ async function analyze(button){
 
   html+=`<div class="section-title">Veri notu</div>
    <p class="note">Model, geçmiş gol ortalamalarını Poisson dağılımıyla değerlendirir. Yüzdeler tahmindir; kesin sonuç değildir.</p>
-   <p class="note">H2H ve korner verileri bu sürümde hesaplanmıyor.</p>`;
+   <p class="note">H2H henüz eklenmedi. Korner ve isabetli şut yalnızca kaynaktan doğrulanabilir istatistik geldiğinde hesaplanır.</p>`;
   target.innerHTML=html;
 
  }catch(error){
