@@ -369,14 +369,14 @@ function renderMatches(){
 }
 
 /* GEÇMİŞ MAÇLAR */
-async function getTeamFixtures(teamId, matchDate, teamName){
-  const key = "sportscore_v4_" + teamId + "_" + teamName + "_" + matchDate.slice(0,4);
+async async function getTeamFixtures(teamId, matchDate, teamName){
+  const key = "mam_history_v5_" + teamId + "_" + matchDate.slice(0,4);
   const cached = localStorage.getItem(key);
 
   if(cached){
     try{
       const saved = JSON.parse(cached);
-      if(Date.now() - saved.time < CACHE_HOURS * 60 * 60 * 1000){
+      if(Date.now() - saved.time < CACHE_HOURS * 60 * 60 * 1000 && Array.isArray(saved.matches)){
         return saved.matches;
       }
     }catch(e){}
@@ -405,80 +405,108 @@ async function getTeamFixtures(teamId, matchDate, teamName){
       value.forEach(collectTeams);
       return;
     }
-    if(typeof value.name === "string" && typeof value.slug === "string"){
-      teams.push(value);
-    }
+    if(typeof value.name === "string" && typeof value.slug === "string") teams.push(value);
     Object.values(value).forEach(collectTeams);
   };
 
-  for(const query of queries){
-    const searchUrl = "https://sportscore.com/api/v1/search/?q=" +
-      encodeURIComponent(query) + "&sport=football&limit=20";
-    const searchResponse = await fetch(searchUrl);
-    if(!searchResponse.ok) continue;
-    collectTeams(await searchResponse.json());
-    if(teams.some(t => normalizeName(t.name) === wanted)) break;
+  // Kaynak 1: SportScore — ücretsiz, API anahtarı gerektirmiyor.
+  let sportScoreMatches = [];
+  try{
+    for(const query of queries){
+      const searchUrl = "https://sportscore.com/api/v1/search/?q=" +
+        encodeURIComponent(query) + "&sport=football&limit=20";
+      const searchResponse = await fetch(searchUrl);
+      if(!searchResponse.ok) continue;
+      collectTeams(await searchResponse.json());
+      if(teams.some(t => normalizeName(t.name) === wanted)) break;
+    }
+
+    const scoreTeam = name => {
+      const candidate = normalizeName(name);
+      if(!candidate) return 0;
+      if(candidate === wanted) return 100;
+      const aliasNames = (aliases[wanted] || []).map(normalizeName);
+      if(aliasNames.includes(candidate)) return 95;
+      if(candidate.includes(wanted) || wanted.includes(candidate)) return 80;
+      const wantedTokens = wanted.split(" ").filter(Boolean);
+      const candidateTokens = new Set(candidate.split(" "));
+      const overlap = wantedTokens.filter(token => candidateTokens.has(token)).length;
+      return wantedTokens.length ? overlap / wantedTokens.length * 60 : 0;
+    };
+
+    const found = teams
+      .map(t => ({team:t, score:scoreTeam(t.name)}))
+      .filter(x => x.score >= 60)
+      .sort((a,b) => b.score-a.score || Number(!!b.team.logo)-Number(!!a.team.logo))[0]?.team;
+
+    if(found?.slug){
+      const url = "https://sportscore.com/api/widget/team/?sport=football&slug=" +
+        encodeURIComponent(found.slug) + "&limit=50";
+      const response = await fetch(url);
+      if(response.ok){
+        const data = await response.json();
+        const isTargetTeam = name => {
+          const candidate = normalizeName(name);
+          return candidate === wanted || candidate.includes(wanted) || wanted.includes(candidate) ||
+            (aliases[wanted] || []).some(alias => candidate === normalizeName(alias) || candidate.includes(normalizeName(alias)));
+        };
+        sportScoreMatches = (data.matches || [])
+          .filter(m => m.status === "finished")
+          .filter(m => m.home_score !== null && m.away_score !== null)
+          .filter(m => new Date(m.time) < new Date(matchDate))
+          .filter(m => isTargetTeam(typeof m.home === "string" ? m.home : m.home?.name) ||
+                       isTargetTeam(typeof m.away === "string" ? m.away : m.away?.name))
+          .sort((a,b) => new Date(b.time) - new Date(a.time))
+          .slice(0,10)
+          .map(m => {
+            const home = typeof m.home === "string" ? m.home : m.home?.name || "";
+            const away = typeof m.away === "string" ? m.away : m.away?.name || "";
+            const isHome = isTargetTeam(home);
+            return {
+              fixture: { date: m.time, status: { short: "FT" } },
+              teams: {
+                home: { id: isHome ? teamId : -1, name: home },
+                away: { id: isHome ? -1 : teamId, name: away }
+              },
+              goals: { home: Number(m.home_score), away: Number(m.away_score) },
+              score: { halftime: null }
+            };
+          });
+      }
+    }
+  }catch(e){
+    console.warn("SportScore geçmiş verisi alınamadı:", teamName, e);
   }
 
-  const scoreTeam = name => {
-    const candidate = normalizeName(name);
-    if(!candidate) return 0;
-    if(candidate === wanted) return 100;
-    const aliasNames = (aliases[wanted] || []).map(normalizeName);
-    if(aliasNames.includes(candidate)) return 95;
-    if(candidate.includes(wanted) || wanted.includes(candidate)) return 80;
-    const wantedTokens = wanted.split(" ").filter(Boolean);
-    const candidateTokens = new Set(candidate.split(" "));
-    const overlap = wantedTokens.filter(token => candidateTokens.has(token)).length;
-    return wantedTokens.length ? overlap / wantedTokens.length * 60 : 0;
-  };
-
-  const found = teams
-    .map(t => ({team:t, score:scoreTeam(t.name)}))
-    .filter(x => x.score >= 60)
-    .sort((a,b) => b.score-a.score || Number(!!b.team.logo)-Number(!!a.team.logo))[0]?.team;
-
-  if(!found || !found.slug){
-    throw new Error(teamName + " SportScore'da bulunamadı (alternatif adlarla da arandı).");
+  // Kaynak 2: API-Football — fikstürdeki doğrulanmış takım ID'siyle sorgulanır.
+  // SportScore takım bulamazsa veya geçmiş maç döndürmezse otomatik devreye girer.
+  if(!sportScoreMatches.length){
+    try{
+      const data = await api("fixtures?"+qs({
+        team:teamId,
+        last:20,
+        status:"FT",
+        timezone:"Europe/Istanbul"
+      }));
+      const cutoff = new Date(matchDate + "T00:00:00");
+      sportScoreMatches = (data.response || [])
+        .filter(m => m.fixture?.date && new Date(m.fixture.date) < cutoff)
+        .filter(m => m.goals?.home !== null && m.goals?.away !== null)
+        .sort((a,b) => new Date(b.fixture.date) - new Date(a.fixture.date))
+        .slice(0,10)
+        .map(m => ({
+          fixture: m.fixture,
+          teams: m.teams,
+          goals: m.goals,
+          score: m.score || {halftime:null}
+        }));
+    }catch(e){
+      console.warn("API-Football yedek geçmiş verisi alınamadı:", teamName, e);
+    }
   }
 
-  const url = "https://sportscore.com/api/widget/team/?sport=football&slug=" +
-    encodeURIComponent(found.slug) + "&limit=50";
-
-  const response = await fetch(url);
-  if(!response.ok) throw new Error("SportScore maç verisi alınamadı.");
-  const data = await response.json();
-
-  const isTargetTeam = name => {
-    const candidate = normalizeName(name);
-    if(candidate === wanted || candidate.includes(wanted) || wanted.includes(candidate)) return true;
-    return (aliases[wanted] || []).some(alias => {
-      const normalizedAlias = normalizeName(alias);
-      return candidate === normalizedAlias || candidate.includes(normalizedAlias);
-    });
-  };
-
-  const matches = (data.matches || [])
-    .filter(m => m.status === "finished")
-    .filter(m => m.home_score !== null && m.away_score !== null)
-    .filter(m => new Date(m.time) < new Date(matchDate))
-    .sort((a,b) => new Date(b.time) - new Date(a.time))
-    .slice(0,10)
-    .map(m => {
-      const isHome = isTargetTeam(m.home);
-      return {
-        fixture: { date: m.time, status: { short: "FT" } },
-        teams: {
-          home: { id: isHome ? teamId : -1, name: m.home },
-          away: { id: isHome ? -1 : teamId, name: m.away }
-        },
-        goals: { home: m.home_score, away: m.away_score },
-        score: { halftime: null }
-      };
-    });
-
-  localStorage.setItem(key, JSON.stringify({time:Date.now(), matches}));
-  return matches;
+  localStorage.setItem(key, JSON.stringify({time:Date.now(), matches:sportScoreMatches}));
+  return sportScoreMatches;
 }
 async function getMatchInjuries(fixtureId){
  if(!fixtureId)return {items:[],note:"Maç kimliği eksik."};
