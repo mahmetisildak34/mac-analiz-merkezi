@@ -85,6 +85,8 @@ API bağlantısı Cloudflare Worker üzerinden yapılır. API anahtarı Cloudfla
 </div>
 </div>
 <button id="load" style="width:100%;margin-top:14px">Günün maçlarını getir</button>
+<button id="loadStandings" class="secondary" style="width:100%;margin-top:10px">Seçili ligin puan durumunu getir</button>
+<div id="standings" class="pred" style="margin-top:12px">Puan durumunu görmek için lig seçip butona bas.</div>
 <div id="status" class="status"></div>
 <div id="matches"><div class="empty">Maçları getirmek için tarih seç.</div></div>
 </section>
@@ -199,7 +201,42 @@ function probHTML(label,value){
 let allMatches=[];
 
 $("load").addEventListener("click",loadMatches);
+$("loadStandings").addEventListener("click",loadStandings);
 $("league").addEventListener("change",renderMatches);
+
+async function loadStandings(){
+ const leagueId=$("league").value;
+ const box=$("standings");
+ if(leagueId==="all"){
+  box.textContent="Önce puan durumunu görmek istediğin ligi seç.";
+  return;
+ }
+ const button=$("loadStandings");
+ button.disabled=true;
+ box.textContent="Puan durumu alınıyor...";
+ try{
+  const year=Number($("date").value.slice(0,4))||new Date().getFullYear();
+  const season=Number($("date").value.slice(5,7))<=6?year-1:year;
+  let rows=[],leagueName="";
+  try{
+   const data=await api("standings?"+qs({league:leagueId,season}));
+   const group=data.response?.[0]?.league?.standings?.[0]||[];
+   rows=group.map(x=>({rank:x.rank,name:x.team?.name,played:x.all?.played,win:x.all?.win,draw:x.all?.draw,lose:x.all?.lose,goals:x.all?.goals?.for,against:x.all?.goals?.against,points:x.points}));
+   leagueName=data.response?.[0]?.league?.name||"Lig puan durumu";
+  }catch(primaryError){
+   const code=FOOTBALL_DATA_LEAGUES[leagueId];
+   if(!code)throw primaryError;
+   const data=await api("football-data/competitions/"+code+"/standings");
+   const table=data.standings?.find(x=>x.type==="TOTAL")?.table||data.standings?.[0]?.table||[];
+   rows=table.map(x=>({rank:x.position,name:x.team?.name,played:x.playedGames,win:x.won,draw:x.draw,lose:x.lost,goals:x.goalsFor,against:x.goalsAgainst,points:x.points}));
+   leagueName=data.competition?.name||"Lig puan durumu";
+  }
+  if(!rows.length)throw new Error("Kaynak bu lig için puan tablosu döndürmedi.");
+  box.innerHTML='<div class="section-title">'+esc(leagueName)+' · Puan Durumu</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>#</th><th style="text-align:left">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.rank)+'</td><td style="text-align:left">'+esc(x.name)+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan. Puan tablosu veri kaynağının güncel cevabıdır.</p>';
+ }catch(e){
+  box.innerHTML='<span class="error">'+esc(e.message||e)+'</span>';
+ }finally{button.disabled=false}
+}
 
 const FOOTBALL_DATA_LEAGUES={
  "39":"PL",
