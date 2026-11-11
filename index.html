@@ -125,11 +125,12 @@ let lastApiCall=0;
 async function api(path){
   const cleanPath=String(path).replace(/^\/+/, "");
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
+  const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings");
   const cacheKey="mam_api_cache_v1_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
 
-  // Aynı fikstür sorgusunu 30 dakika boyunca tekrar API'ye gönderme.
-  if(cached){
+  // Puan durumu kısa süreli tutulur; her açılışta eski 30 dakikalık istemci önbelleği kullanılmaz.
+  if(cached&&!isStandings){
     try{
       const saved=JSON.parse(cached);
       if(saved.time && Date.now()-saved.time < 30*60*1000){
