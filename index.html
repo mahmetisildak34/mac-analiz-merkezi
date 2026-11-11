@@ -127,7 +127,8 @@ async function api(path){
 
     lastApiCall=Date.now();
 
-    const url=WORKER.replace(/\/$/,"")+"/api/"+path.replace(/^\+/,"");
+    const cleanPath=String(path).replace(/^\/+/, "");
+    const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
     const response=await fetch(url);
 
     let data;
@@ -235,7 +236,7 @@ function renderMatches(){
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName){
-  const key = "sportscore_v2_" + teamName + "_" + matchDate.slice(0,4);
+  const key = "sportscore_v3_" + teamId + "_" + teamName + "_" + matchDate.slice(0,4);
   const cached = localStorage.getItem(key);
 
   if(cached){
@@ -292,8 +293,8 @@ const found = teams
     .sort((a,b) => new Date(b.time) - new Date(a.time))
     .slice(0,10)
     .map(m => {
-     const norm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[\u0300-\u036f]/g, "")
-const isHome = norm(m.home) === norm(teamName);
+     const norm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").trim().toLowerCase();
+      const isHome = norm(m.home) === norm(teamName);
       return {
         fixture: {
           date: m.time,
