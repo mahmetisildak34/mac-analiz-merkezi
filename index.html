@@ -121,14 +121,26 @@ let apiQueue=Promise.resolve();
 let lastApiCall=0;
 
 async function api(path){
+  const cleanPath=String(path).replace(/^\/+/, "");
+  const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
+  const cacheKey="mam_api_cache_v1_"+cleanPath;
+  const cached=localStorage.getItem(cacheKey);
+
+  // Aynı fikstür sorgusunu 30 dakika boyunca tekrar API'ye gönderme.
+  if(cached){
+    try{
+      const saved=JSON.parse(cached);
+      if(saved.time && Date.now()-saved.time < 30*60*1000){
+        return saved.data;
+      }
+    }catch(e){}
+  }
+
   const run=apiQueue.then(async()=>{
     const delay=Math.max(0,12000-(Date.now()-lastApiCall));
     if(delay) await new Promise(resolve=>setTimeout(resolve,delay));
 
     lastApiCall=Date.now();
-
-    const cleanPath=String(path).replace(/^\/+/, "");
-    const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
     const response=await fetch(url);
 
     let data;
@@ -138,14 +150,20 @@ async function api(path){
       throw new Error("Sunucudan okunabilir yanıt alınamadı.");
     }
 
-    if(!response.ok){
-      throw new Error("Sunucu hatası: "+response.status);
+    const errorText=JSON.stringify(data.errors||data.error||data);
+    if(!response.ok || (data.errors&&Object.keys(data.errors).length)){
+      if(/rate.?limit|too many requests/i.test(errorText)){
+        throw new Error("API dakika başına istek kotasını doldurdu. Yeni istek göndermiyoruz; kota sıfırlanınca tekrar deneyin.");
+      }
+      if(/plan|date/i.test(errorText)){
+        throw new Error("Seçilen tarih mevcut API-Football planınızda desteklenmiyor.");
+      }
+      throw new Error("API hatası ("+response.status+"): "+errorText);
     }
 
-    if(data.errors&&Object.keys(data.errors).length){
-      throw new Error(JSON.stringify(data.errors));
-    }
-
+    try{
+      localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));
+    }catch(e){}
     return data;
   });
 
