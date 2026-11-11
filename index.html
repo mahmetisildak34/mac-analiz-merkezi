@@ -85,6 +85,7 @@ API bağlantısı Cloudflare Worker üzerinden yapılır. API anahtarı Cloudfla
 </div>
 </div>
 <button id="load" style="width:100%;margin-top:14px">Günün maçlarını getir</button>
+<button id="loadLive" class="secondary" style="width:100%;margin-top:10px">Canlı maçları getir / yenile</button>
 <button id="loadStandings" class="secondary" style="width:100%;margin-top:10px">Seçili ligin puan durumunu getir</button>
 <div id="standings" class="pred" style="margin-top:12px">Puan durumunu görmek için lig seçip butona bas.</div>
 <div id="status" class="status"></div>
@@ -92,7 +93,7 @@ API bağlantısı Cloudflare Worker üzerinden yapılır. API anahtarı Cloudfla
 </section>
 
 <div class="footer">
-Veri kaynağı: API-FOOTBALL. Takım istatistikleri 12 saat önbelleğe alınır. Analiz sırasında takım geçmişi sorguları sırayla yapılır. Tahminler istatistiksel olasılıktır; kesin sonuç veya garanti değildir.
+Veri kaynağı: API-FOOTBALL. Geçmiş takım verileri önbelleğe alınır. Canlı skorlar yenileme düğmesiyle güncellenir. Analiz sırasında takım geçmişi sorguları sırayla yapılır. Tahminler istatistiksel olasılıktır; kesin sonuç veya garanti değildir.
 </div>
 </main>
 
@@ -126,11 +127,12 @@ async function api(path){
   const cleanPath=String(path).replace(/^\/+/, "");
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings");
+  const isLive=cleanPath.includes("live=all");
   const cacheKey="mam_api_cache_v1_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
 
   // Puan durumu kısa süreli tutulur; her açılışta eski 30 dakikalık istemci önbelleği kullanılmaz.
-  if(cached&&!isStandings){
+  if(cached&&!isStandings&&!isLive){
     try{
       const saved=JSON.parse(cached);
       if(saved.time && Date.now()-saved.time < 30*60*1000){
@@ -202,6 +204,7 @@ function probHTML(label,value){
 let allMatches=[];
 
 $("load").addEventListener("click",loadMatches);
+$("loadLive").addEventListener("click",loadLiveMatches);
 $("loadStandings").addEventListener("click",loadStandings);
 $("league").addEventListener("change",renderMatches);
 
@@ -331,6 +334,23 @@ async function loadMatches(){
  }finally{button.disabled=false}
 }
 
+async function loadLiveMatches(){
+ const button=$("loadLive");
+ button.disabled=true;
+ $("status").textContent="Canlı maçlar API-Football üzerinden kontrol ediliyor...";
+ try{
+  const data=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
+  const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
+  allMatches=(data.response||[]).filter(m=>liveStatuses.has(String(m.fixture?.status?.short||"")));
+  renderMatches();
+  $("status").textContent=allMatches.length
+   ? allMatches.length+" canlı maç bulundu. Skorları güncellemek için bu düğmeye tekrar bas."
+   : "Şu anda API-Football canlı akışında devam eden maç bulunamadı.";
+ }catch(e){
+  $("status").innerHTML='<span class="error">Canlı maçlar alınamadı: '+esc(e.message)+'</span>';
+ }finally{button.disabled=false}
+}
+
 function renderMatches(){
  const league=$("league").value;
  const list=league==="all"?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
@@ -340,11 +360,15 @@ function renderMatches(){
  }
  $("matches").innerHTML=list.map(m=>{
   const f=m.fixture||{},l=m.league||{},t=m.teams||{},g=m.goals||{};
+  const statusCode=String(f.status?.short||"");
+  const statusNames={"NS":"Başlamadı","TBD":"Saat bekleniyor","1H":"1. yarı","HT":"Devre arası","2H":"2. yarı","ET":"Uzatmalar","BT":"Uzatma arası","P":"Penaltılar","SUSP":"Durduruldu","INT":"Kesildi","LIVE":"Canlı","FT":"Bitti","AET":"Uzatmalarda bitti","PEN":"Penaltılarla bitti","PST":"Ertelendi","CANC":"İptal","ABD":"Yarıda kaldı","AWD":"Hükmen","WO":"Hükmen"};
+  const statusLabel=statusNames[statusCode]||statusCode||"Durum bilinmiyor";
+  const isLiveStatus=["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(statusCode);
   const time=f.date?new Date(f.date).toLocaleTimeString("tr-TR",{
    hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"
   }):"";
   return `<article class="match">
-   <div class="meta"><span>${esc(l.name)} · ${esc(l.country)}</span><span>${esc(time)} · ${esc(f.status?.short)}</span></div>
+   <div class="meta"><span>${esc(l.name)} · ${esc(l.country)}</span><span>${esc(time)} · ${isLiveStatus?"🔴 ":""}${esc(statusLabel)}</span></div>
    <div class="teams">${esc(t.home?.name)} <span class="score">${g.home!=null?" "+g.home+" - "+g.away+" ":" - "}</span> ${esc(t.away?.name)}</div>
    <div class="row">
     <span class="small">Maç ID: ${esc(f.id)}</span>
