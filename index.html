@@ -523,22 +523,63 @@ function optionalMetric(matches,teamId,metric,venue){
  return {count:values.length,average:avg(values)};
 }
 
-async function getPlayerScoringCandidates(teamId,leagueId,matchDate){
+async function getPlayerScoringCandidates(teamId,leagueId,matchDate,fixtureId){
  const year=Number(matchDate.slice(0,4));
  const month=Number(matchDate.slice(5,7));
  const season=month<=6?year-1:year;
- if(!teamId||!leagueId||!season)return [];
- const data=await api("players?"+qs({team:teamId,league:leagueId,season}));
- return (data.response||[]).map(item=>{
-  const stat=item.statistics?.[0]||{};
-  const goals=Number(stat.goals?.total||0);
-  const minutes=Number(stat.games?.minutes||0);
-  const appearances=Number(stat.games?.appearences||stat.games?.appearances||0);
-  if(!item.player?.name||minutes<=0||appearances<3)return null;
-  const rate=goals/minutes*70;
-  const scoreChance=1-Math.exp(-rate);
-  return {name:item.player.name,team:stat.team?.name||"",goals,appearances,minutes,scoreChance};
- }).filter(Boolean).sort((a,b)=>b.scoreChance-a.scoreChance).slice(0,5);
+ if(!teamId||!leagueId||!season)return {players:[],note:"Lig veya takım bilgisi eksik."};
+
+ // First use the official match lineup when available; otherwise verify the current squad.
+ let eligibleIds=null,source="";
+ if(fixtureId){
+  try{
+   const lineupData=await api("fixtures/lineups?"+qs({fixture:fixtureId}));
+   const lineup=(lineupData.response||[]).find(t=>Number(t.team?.id)===Number(teamId));
+   if(lineup){
+    const listed=[...(lineup.startXI||[]),...(lineup.substitutes||[])];
+    eligibleIds=new Set(listed.map(x=>Number(x.player?.id)).filter(Boolean));
+    source="Maç kadrosu";
+   }
+  }catch(e){}
+ }
+ if(!eligibleIds){
+  try{
+   const squadData=await api("players/squads?"+qs({team:teamId}));
+   const squad=squadData.response?.[0]?.players||[];
+   if(squad.length){
+    eligibleIds=new Set(squad.map(p=>Number(p.id)).filter(Boolean));
+    source="Güncel takım kadrosu (maç kadrosu kesin değil)";
+   }
+  }catch(e){}
+ }
+ if(!eligibleIds||!eligibleIds.size){
+  return {players:[],note:"Güncel kadro doğrulanamadı. Eski kadro oyuncuları gösterilmiyor."};
+ }
+
+ // API-Football player results are paginated. Limit to three pages to conserve quota.
+ const candidates=[];
+ let totalPages=1;
+ for(let page=1;page<=Math.min(3,totalPages);page++){
+  const data=await api("players?"+qs({team:teamId,league:leagueId,season,page}));
+  totalPages=Number(data.paging?.total||1);
+  for(const item of data.response||[]){
+   if(!eligibleIds.has(Number(item.player?.id)))continue;
+   const stat=(item.statistics||[]).find(x=>Number(x.team?.id)===Number(teamId))||item.statistics?.[0]||{};
+   const goals=Number(stat.goals?.total||0);
+   const minutes=Number(stat.games?.minutes||0);
+   const appearances=Number(stat.games?.appearences||stat.games?.appearances||0);
+   if(!item.player?.name||minutes<=0||appearances<3)continue;
+   const rate=goals/minutes*70;
+   candidates.push({
+    name:item.player.name,goals,appearances,minutes,
+    scoreChance:1-Math.exp(-rate)
+   });
+  }
+ }
+ return {
+  players:candidates.sort((a,b)=>b.scoreChance-a.scoreChance).slice(0,5),
+  note:source+(totalPages>3?" · İstatistik taraması ilk 3 sayfayla sınırlı":"")
+ };
 }
 
 function topScores(lh,la){
@@ -608,8 +649,11 @@ async function analyze(button){
   let homeScorers=[],awayScorers=[],playerDataNote="";
   try{
    target.textContent="Oyuncu gol istatistikleri alınıyor...";
-   homeScorers=await getPlayerScoringCandidates(homeId,leagueId,date);
-   awayScorers=await getPlayerScoringCandidates(awayId,leagueId,date);
+   const homePlayerData=await getPlayerScoringCandidates(homeId,leagueId,date,button.dataset.id);
+   const awayPlayerData=await getPlayerScoringCandidates(awayId,leagueId,date,button.dataset.id);
+   homeScorers=homePlayerData.players;
+   awayScorers=awayPlayerData.players;
+   playerDataNote=homeName+": "+homePlayerData.note+" · "+awayName+": "+awayPlayerData.note;
   }catch(playerError){
    playerDataNote=String(playerError.message||playerError);
   }
