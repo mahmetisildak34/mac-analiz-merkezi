@@ -241,24 +241,50 @@ async function loadMatches(){
  button.disabled=true;
  $("status").textContent="Fikstür alınıyor...";
  $("matches").innerHTML="";
+ const fixtureCacheKey="mam_fixture_cache_v1_"+date;
+ const previousMatches=allMatches.slice();
  try{
   let source="API-Football";
-  let data;
   try{
-   data=await api("fixtures?"+qs({date:date,timezone:"Europe/Istanbul"}));
-   allMatches=data.response||[];
+   const data=await api("fixtures?"+qs({date:date,timezone:"Europe/Istanbul"}));
+   const freshMatches=data.response||[];
+   allMatches=freshMatches;
+   if(freshMatches.length){
+    try{
+     localStorage.setItem(fixtureCacheKey,JSON.stringify({time:Date.now(),matches:freshMatches}));
+    }catch(e){}
+   }
   }catch(primaryError){
    const message=String(primaryError.message||primaryError);
    if(!/rateLimit|Too many requests|API dakika başına istek kotasını doldurdu|plan|date|429/i.test(message)) throw primaryError;
-   $("status").textContent="Ana kaynak sınırına ulaştı. Alternatif fikstür kaynağı deneniyor...";
-   allMatches=await footballDataFixtures(date);
-   source="Football-data.org (alternatif)";
+
+   let saved=null;
+   try{
+    saved=JSON.parse(localStorage.getItem(fixtureCacheKey)||"null");
+   }catch(e){}
+   if(saved&&Array.isArray(saved.matches)&&saved.matches.length){
+    allMatches=saved.matches;
+    source="Önbellekteki API-Football fikstürü";
+   }else{
+    $("status").textContent="API-Football kotası dolu. Alternatif kaynak deneniyor...";
+    const alternative=await footballDataFixtures(date);
+    if(!alternative.length){
+     allMatches=previousMatches;
+     throw new Error("API-Football kotası dolu; Football-data.org bu tarih için maç döndürmedi. Önceki fikstür korunuyor. Kota yenilenince tekrar dene.");
+    }
+    allMatches=alternative;
+    source="Football-data.org (alternatif)";
+   }
   }
   renderMatches();
-  $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+".";
+  if(!allMatches.length){
+   $("status").textContent="Bu tarih için maç bulunamadı. Kaynak: "+source+".";
+  }else{
+   $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+".";
+  }
  }catch(e){
   $("status").innerHTML='<span class="error">'+esc(e.message)+'</span>';
-  $("matches").innerHTML='<div class="empty">Fikstür alınamadı. Hata: '+esc(e.message)+'</div>';
+  if(!allMatches.length) $("matches").innerHTML='<div class="empty">Fikstür alınamadı. Hata: '+esc(e.message)+'</div>';
  }finally{button.disabled=false}
 }
 
