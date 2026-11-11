@@ -122,7 +122,7 @@ let lastApiCall=0;
 
 async function api(path){
   const run=apiQueue.then(async()=>{
-    const delay=Math.max(0,8000-(Date.now()-lastApiCall));
+    const delay=Math.max(0,12000-(Date.now()-lastApiCall));
     if(delay) await new Promise(resolve=>setTimeout(resolve,delay));
 
     lastApiCall=Date.now();
