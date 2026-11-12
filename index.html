@@ -351,6 +351,12 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 @media(max-width:560px){.match-versus{grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr);gap:5px}.team-logo{width:36px;height:36px}.team-block strong{font-size:12px}.match-clock{font-size:15px}.match-actions .small{font-size:10px}.match-actions button{font-size:11px!important;padding:8px 10px!important}}
 
 
+
+/* TEAM CRESTS + SAFE FALLBACK */
+.team-logo{display:block;width:42px;height:42px;object-fit:contain}
+.team-placeholder{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#e9f7ed;border:1px solid #d6efdd;color:#168344;font-size:12px;font-weight:900;letter-spacing:-.4px}
+@media(max-width:560px){.team-logo,.team-placeholder{width:36px;height:36px}}
+
 </style>
 </head>
 <body>
@@ -677,8 +683,8 @@ async function espnFixtures(date){
     fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||date+"T12:00:00Z",status:{short:statusShort}},
     league:{id:leagueId,name:league.name,country:league.country},
     teams:{
-     home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||""},
-     away:{id:teamId(away.team?.id),name:away.team?.displayName||away.team?.name||""}
+     home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||home.team?.logos?.[0]?.url||""},
+     away:{id:teamId(away.team?.id),name:away.team?.displayName||away.team?.name||"",logo:away.team?.logo||away.team?.logos?.[0]?.href||away.team?.logos?.[0]?.url||""}
     },
     goals:{home:toGoals(home.score),away:toGoals(away.score)}
    };
@@ -785,6 +791,15 @@ async function loadLiveMatches(){
  }finally{button.disabled=false}
 }
 
+function teamBadge(team){
+ const name=String(team?.name||"Takım");
+ const initials=name.trim().split(/\s+/).slice(0,2).map(part=>part[0]||"").join("").toUpperCase();
+ const logo=team?.logo;
+ return logo
+  ? '<img class="team-logo" src="'+esc(logo)+'" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span class="team-placeholder" style="display:none">'+esc(initials)+'</span>'
+  : '<span class="team-placeholder">'+esc(initials)+'</span>';
+}
+
 function renderMatches(){
  const league=$("league").value;
  const list=league==="all"?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
@@ -804,9 +819,9 @@ function renderMatches(){
   return `<article class="match match-modern">
    <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(time)} <i>${esc(statusLabel)}</i></span></div>
    <div class="match-versus">
-    <div class="team-block"><img class="team-logo" src="${esc(t.home?.logo||"")}" alt="" loading="lazy"><strong>${esc(t.home?.name)}</strong></div>
+    <div class="team-block">${teamBadge(t.home)}<strong>${esc(t.home?.name)}</strong></div>
     <div class="match-center"><span class="match-clock">${g.home!=null?esc(g.home)+" – "+esc(g.away):esc(time||"VS")}</span><small>${statusCode==="NS"?"Karşılaşma":esc(statusLabel)}</small></div>
-    <div class="team-block"><img class="team-logo" src="${esc(t.away?.logo||"")}" alt="" loading="lazy"><strong>${esc(t.away?.name)}</strong></div>
+    <div class="team-block">${teamBadge(t.away)}<strong>${esc(t.away?.name)}</strong></div>
    </div>
    <div class="match-actions">
     <span class="small">Maç ön analizi</span>
