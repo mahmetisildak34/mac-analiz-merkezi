@@ -661,13 +661,14 @@ async function api(path){
    const isPrimaryApi=!isArchive&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
   const cacheKey="mam_api_cache_v2_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
+  let cachedEntry=null;
+  try{cachedEntry=JSON.parse(cached||"null");}catch(e){cachedEntry=null;}
 
-  if(cached&&!isStandings&&!isLive&&(!isLiveStats||isEspnSummary)&&!isLineupRequest){
-    try{
-      const saved=JSON.parse(cached);
-      const cacheAge=isEspnSummary?5*60*1000:30*60*1000;
-      if(saved.time&&Date.now()-saved.time<cacheAge)return saved.data;
-    }catch(e){}
+  // Canlı istatistikleri de kısa süreli önbellekten sun: aynı maç tekrar açıldığında
+  // gereksiz API-Football isteği gönderilmesin. Hata halinde son başarılı veri korunur.
+  if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLive&&!isLineupRequest){
+    const cacheAge=isLiveStats?(isEspnSummary?60*1000:60*1000):(isEspnSummary?5*60*1000:30*60*1000);
+    if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
   }
 
   const request=async()=>{
@@ -685,6 +686,10 @@ async function api(path){
     try{
       response=await fetch(url,{signal:controller.signal,headers:{Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||"")}});
     }catch(networkError){
+      // Ağ veya sağlayıcı hatasında en fazla 10 dakikalık son başarılı canlı istatistiği kullan.
+      if(isLiveStats&&cachedEntry?.time&&cachedEntry.data&&Date.now()-cachedEntry.time<10*60*1000){
+        return cachedEntry.data;
+      }
       if(controller.signal.aborted){
         throw new Error((isPrimaryApi?"API-Football":"Yedek kaynak")+" isteği 15 saniyede yanıt vermedi (zaman aşımı).");
       }
@@ -698,6 +703,10 @@ async function api(path){
 
     const errorText=JSON.stringify(data.errors||data.error||data);
     if(!response.ok||(data.errors&&Object.keys(data.errors).length)){
+      // 429/kota hatasında boş ekran yerine en fazla 10 dakikalık son başarılı veri.
+      if(isLiveStats&&cachedEntry?.time&&cachedEntry.data&&Date.now()-cachedEntry.time<10*60*1000){
+        return cachedEntry.data;
+      }
       if(/rate.?limit|too many requests|request limit|requests limit|quota/i.test(errorText)){
         const provider=isPrimaryApi?"API-Football":cleanPath.startsWith("espn/")?"ESPN":"Football-data.org";
         throw new Error("Too many requests: "+provider+" istek sınırına ulaşıldı. Bir süre sonra tekrar dene; diğer kaynaklar kullanılabilir.");
