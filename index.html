@@ -2283,12 +2283,12 @@ renderCoupon();
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
-  const key="mam_history_v23_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v24_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached){
     try{
       const saved=JSON.parse(cached);
-      if(Date.now()-saved.time<CACHE_HOURS*60*60*1000&&Array.isArray(saved.matches)&&saved.matches.length)return saved.matches;
+      if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<(saved.matches.length>=5?CACHE_HOURS*60*60*1000:10*60*1000))return saved.matches;
     }catch(e){}
   }
 
@@ -2415,33 +2415,40 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   const folder=leagues[String(leagueId)];
   if(folder){
-    const path="data/"+folder+"/results_2627.csv";
-    const urls=[
-      "https://raw.githubusercontent.com/oladeeayo/open-matchday/master/"+path,
-      "https://cdn.jsdelivr.net/gh/oladeeayo/open-matchday@master/"+path
-    ];
-    let csv=null;
-    for(const url of urls){
-      const controller=new AbortController();
-      const timer=setTimeout(()=>controller.abort(),12000);
-      try{
-        const response=await fetch(url,{signal:controller.signal,cache:"no-store"});
-        if(!response.ok)throw new Error("Geçmiş veri dosyası HTTP "+response.status);
-        csv=await response.text();
-        if(!csv||!csv.includes("ft_home")||!csv.includes("ft_away"))throw new Error("Geçmiş veri CSV başlıkları geçersiz.");
-        break;
-      }catch(e){sourceError=String(e.message||e);}
-      finally{clearTimeout(timer);}
-    }
-    if(csv){
-      const rows=parseCSV(csv);
-      for(const row of rows){
+    // Sadece güncel sezon değil, önceki iki sezon da taranır.
+    const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
+    const seasonStart=matchMonth>=7?matchYear:matchYear-1;
+    const seasons=[seasonStart,seasonStart-1,seasonStart-2];
+    for(const year of seasons){
+      const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
+      const path="data/"+folder+"/results_"+seasonCode+".csv";
+      const urls=[
+        "https://raw.githubusercontent.com/oladeeayo/open-matchday/master/"+path,
+        "https://cdn.jsdelivr.net/gh/oladeeayo/open-matchday@master/"+path
+      ];
+      let csvText=null;
+      for(const url of urls){
+        const controller=new AbortController();
+        const timer=setTimeout(()=>controller.abort(),10000);
+        try{
+          const response=await fetch(url,{signal:controller.signal,cache:"no-store"});
+          if(!response.ok)throw new Error("CSV HTTP "+response.status);
+          const body=await response.text();
+          if(!body||!body.includes("ft_home")||!body.includes("ft_away"))throw new Error("CSV başlıkları geçersiz");
+          csvText=body;break;
+        }catch(e){sourceError=String(e.message||e);}
+        finally{clearTimeout(timer);}
+      }
+      if(!csvText)continue;
+      for(const row of parseCSV(csvText)){
         const hm=isTarget(row.home),am=isTarget(row.away);
         if(hm===am||!row.date||row.date>=matchDate)continue;
         const gh=num(row.ft_home),ga=num(row.ft_away);
         if(gh===null||ga===null)continue;
-        output.push({
+        addMatch({
+          mamSource:"open-matchday",
           fixture:{date:row.date+"T12:00:00Z",status:{short:"FT"}},
+          league:{name:folder.replaceAll("_"," ")},
           teams:{home:{id:hm?Number(teamId):-1,name:row.home},away:{id:am?Number(teamId):-1,name:row.away}},
           goals:{home:gh,away:ga},
           score:{halftime:{home:num(row.ht_home),away:num(row.ht_away)}},
@@ -2452,9 +2459,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         });
       }
     }
-    if(!output.length&&!sourceError)sourceError="Dosya açıldı ancak "+teamName+" için "+matchDate+" öncesinde eşleşen tamamlanmış maç bulunamadı.";
-  }else{
-    sourceError="Bu lig için Open Matchday arşiv eşlemesi henüz tanımlı değil (lig kodu: "+leagueId+").";
   }
 
   // SportScore: uluslararası takımlar dahil takım arşivini genişletmek için
@@ -2524,6 +2528,90 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       }else if(!output.length){
         sourceError+=" SportScore takım aramasında eşleşme bulunamadı.";
       }
+    }catch(e){sourceError+=" SportScore: "+String(e.message||e);}
+  }
+
+  // SportScore resmi arama + takım fikstürü uç noktaları.
+  // Arama yanıtı gruplu gelebilir; takım nesnelerini JSON ağacının tamamında bul.
+  if(output.length<20){
+    try{
+      const searchResponse=await fetch("https://sportscore.com/api/v1/search/?"+qs({q:teamName,sport:"football",limit:20}),{
+        headers:{Accept:"application/json"},cache:"no-store"
+      });
+      if(!searchResponse.ok)throw new Error("SportScore arama HTTP "+searchResponse.status);
+      const searchData=await searchResponse.json();
+      const walk=(node,visit,depth=0,seenNodes=new Set())=>{
+        if(!node||typeof node!=="object"||depth>8||seenNodes.has(node))return;
+        seenNodes.add(node);
+        if(!Array.isArray(node))visit(node);
+        if(Array.isArray(node)){for(const child of node)walk(child,visit,depth+1,seenNodes);}
+        else for(const value of Object.values(node))if(value&&typeof value==="object")walk(value,visit,depth+1,seenNodes);
+      };
+      const candidates=[];
+      walk(searchData,item=>{
+        const name=item.name||item.display_name||item.displayName||item.title||item.team?.name||"";
+        const type=String(item.type||item.entity_type||item.kind||"").toLowerCase();
+        if(name&&(item.slug||item.team_slug||item.url||item.team?.slug)&&(!type||type.includes("team")||item.team))candidates.push(item);
+      });
+      const teamRow=candidates.find(item=>normalize(item.name||item.display_name||item.displayName||item.title||item.team?.name)===wanted)
+        ||candidates.find(item=>isTarget(item.name||item.display_name||item.displayName||item.title||item.team?.name));
+      const slugFromUrl=value=>{
+        const match=String(value||"").match(/\/(?:teams?|football\/teams?)\/([^/?#]+)/i);
+        return match?match[1]:"";
+      };
+      const teamSlug=teamRow?.slug||teamRow?.team_slug||teamRow?.team?.slug||slugFromUrl(teamRow?.url)||normalize(teamName).replace(/\s+/g,"-");
+      const scheduleResponse=await fetch("https://sportscore.com/api/widget/team/?"+qs({sport:"football",slug:teamSlug,limit:30}),{
+        headers:{Accept:"application/json"},cache:"no-store"
+      });
+      if(!scheduleResponse.ok)throw new Error("SportScore takım fikstürü HTTP "+scheduleResponse.status+" ("+teamSlug+")");
+      const scheduleData=await scheduleResponse.json();
+      const scheduleRows=[];
+      walk(scheduleData,item=>{
+        const home=item.home??item.home_team??item.teams?.home??item.homeTeam;
+        const away=item.away??item.away_team??item.teams?.away??item.awayTeam;
+        const date=item.time||item.date||item.kickoff||item.start_time||item.fixture?.date||item.utcDate||"";
+        if(home!==undefined&&away!==undefined&&date)scheduleRows.push(item);
+      });
+      const nameOf=value=>typeof value==="string"?value:(value?.name||value?.display_name||value?.displayName||value?.team_name||value?.shortName||"");
+      const scorePair=value=>{
+        if(value&&typeof value==="object")return [value.home??value.h??value.home_score,value.away??value.a??value.away_score];
+        const match=String(value??"").match(/(\d+)\s*[-–:]\s*(\d+)/);
+        return match?[match[1],match[2]]:[null,null];
+      };
+      for(const item of scheduleRows){
+        const homeObj=item.home??item.home_team??item.teams?.home??item.homeTeam;
+        const awayObj=item.away??item.away_team??item.teams?.away??item.awayTeam;
+        const homeName=nameOf(homeObj),awayName=nameOf(awayObj);
+        const dateValue=item.time||item.date||item.kickoff||item.start_time||item.fixture?.date||item.utcDate||"";
+        const date=String(dateValue).slice(0,10);
+        if(!date||date>=matchDate||!homeName||!awayName)continue;
+        const statusValue=item.status?.type?.name||item.status?.name||item.status||item.status_text||item.fixture?.status?.short||"";
+        const status=String(statusValue).toLowerCase();
+        const score=item.score??item.scores??item.result??{};
+        const pair=scorePair(score);
+        let homeScore=item.home_score??item.goals?.home??item.scores?.home??homeObj?.score??pair[0];
+        let awayScore=item.away_score??item.goals?.away??item.scores?.away??awayObj?.score??pair[1];
+        if(typeof homeScore==="object")homeScore=homeScore.value??homeScore.displayValue;
+        if(typeof awayScore==="object")awayScore=awayScore.value??awayScore.displayValue;
+        const gh=num(homeScore),ga=num(awayScore);
+        if(gh===null||ga===null)continue;
+        if(status&&!["finished","ft","aet","pen","full time","completed","post","after extra time","after penalties"].some(x=>status.includes(x)))continue;
+        const hm=isTarget(homeName),am=isTarget(awayName);
+        if(hm===am)continue;
+        const ht=item.halftime_score||item.half_time_score||item.halfTimeScore||item.score?.halftime||item.scores?.halftime||null;
+        const htPair=scorePair(ht);
+        const comp=item.competition?.name||item.league?.name||item.tournament?.name||item.competition_name||item.league_name||"";
+        addMatch({
+          mamSource:"sportscore",
+          fixture:{id:item.id||item.match_id||item.slug||"",date:dateValue,status:{short:"FT"}},
+          league:{name:comp},
+          teams:{home:{id:hm?Number(teamId):-1,name:hm?teamName:homeName},away:{id:am?Number(teamId):-1,name:am?teamName:awayName}},
+          goals:{home:gh,away:ga},
+          score:htPair[0]!==null&&htPair[1]!==null?{halftime:{home:num(htPair[0]),away:num(htPair[1])}}:null,
+          statistics:item.statistics||null
+        });
+      }
+      if(!scheduleRows.length&&!output.length)sourceError+=" SportScore takım fikstürü maç listesi döndürmedi.";
     }catch(e){sourceError+=" SportScore: "+String(e.message||e);}
   }
 
