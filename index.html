@@ -1067,7 +1067,7 @@ async function loadLiveStats(button){
   let homeTeam,awayTeam,statsRows=[],sourceLabel,payload=null;
   if(source==="espn"){
    if(!/^\d+$/.test(fixtureId)||!leagueSlug)throw new Error("ESPN maç bilgisi eksik.");
-   const payload=await api("espn/"+leagueSlug+"/summary?"+qs({event:fixtureId}));
+   payload=await api("espn/"+leagueSlug+"/summary?"+qs({event:fixtureId}));
    const teams=Array.isArray(payload.boxscore?.teams)?payload.boxscore.teams:[];
    const home=teams.find(x=>x.homeAway==="home"),away=teams.find(x=>x.homeAway==="away");
    if(!home||!away)throw new Error("ESPN bu maç için henüz takım istatistiği paylaşmıyor.");
@@ -1182,7 +1182,7 @@ async function loadLiveStats(button){
   // Sağlayıcının gerçek xG verisi varsa onu kullan; yoksa yalnızca şut sayılarına dayalı kaba model tahmini üret.
   if(source!=="espn"){
    const xgTypes=["expected_goals","expected goals","xg"];
-   const teamsForXg=Array.isArray(payload.response)?payload.response:[];
+   const teamsForXg=Array.isArray(payload?.response)?payload.response:[];
    const realXg=teamsForXg.slice(0,2).map(team=>(team.statistics||[]).find(x=>xgTypes.includes(String(x.type||"").toLowerCase()))?.value);
    if(realXg.some(v=>v!==null&&v!==undefined&&v!=="")){
     statsRows.push(["Gerçek xG",...realXg.map(v=>v??"—")]);
