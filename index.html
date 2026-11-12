@@ -587,6 +587,19 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const n=Number(value);return Number.isFinite(n)?n:null;
   };
 
+  // Önce ESPN takım geçmişini Cloudflare KV'ye aktar; ardından arşivden oku.
+  // Bu, ilk analizde takımın geçmişini bir kez doldurur ve sonraki analizleri hızlandırır.
+  if(String(sourceFixtureId||"").startsWith("espn-")){
+    try{
+      const slug=ESPN_LEAGUES[String(leagueId)]?.slug;
+      if(slug){
+        await api("archive/espn-backfill?"+qs({league:slug,teamId:String(teamId),teamName:teamName}));
+      }
+    }catch(e){
+      sourceError="ESPN geçmişini arşive aktarma: "+String(e.message||e);
+    }
+  }
+
   // 1) Cloudflare KV arşivi: takım adına göre saklanan gerçek geçmiş maçlar.
   // ESPN ve API-Football takım ID'leri farklı olabileceğinden hedef takımın ID'sini
   // yalnızca doğrulanmış takım adı eşleşmesinde yeniden bağlıyoruz.
