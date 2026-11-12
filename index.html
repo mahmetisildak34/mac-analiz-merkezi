@@ -583,7 +583,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId){
           fixture: m.fixture,
           teams: m.teams,
           goals: m.goals,
-          score: m.score || {halftime:null}
+          score: m.score || {halftime:null},
+          statistics: m.statistics || null
         }));
     }catch(e){
       console.warn("API-Football yedek geçmiş verisi alınamadı:", teamName, e);
@@ -593,6 +594,118 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId){
   localStorage.setItem(key, JSON.stringify({time:Date.now(), matches:sportScoreMatches}));
   return sportScoreMatches;
 }
+/* TAKIM İSTATİSTİKLERİ */
+function teamStats(matches, teamId, venue){
+ const valid = (Array.isArray(matches) ? matches : []).filter(m => {
+  const homeId = Number(m.teams?.home?.id);
+  const awayId = Number(m.teams?.away?.id);
+  const isHome = homeId === Number(teamId);
+  const isAway = awayId === Number(teamId);
+  if(!isHome && !isAway) return false;
+  if(venue === "home" && !isHome) return false;
+  if(venue === "away" && !isAway) return false;
+  return Number.isFinite(Number(m.goals?.home)) &&
+         Number.isFinite(Number(m.goals?.away)) &&
+         m.goals?.home !== null && m.goals?.away !== null;
+ });
+
+ let gf=0, ga=0, firstGF=0, firstGA=0, secondGF=0, secondGA=0;
+ let halfCount=0, firstBoth=0, secondBoth=0;
+
+ for(const m of valid){
+  const isHome = Number(m.teams?.home?.id) === Number(teamId);
+  const scored = Number(isHome ? m.goals.home : m.goals.away);
+  const conceded = Number(isHome ? m.goals.away : m.goals.home);
+  gf += scored;
+  ga += conceded;
+
+  const ht = m.score?.halftime;
+  const htHome = ht?.home;
+  const htAway = ht?.away;
+  if(htHome !== null && htHome !== undefined && htAway !== null && htAway !== undefined &&
+     Number.isFinite(Number(htHome)) && Number.isFinite(Number(htAway))){
+   const ownHalf = Number(isHome ? htHome : htAway);
+   const oppHalf = Number(isHome ? htAway : htHome);
+   const ownSecond = scored - ownHalf;
+   const oppSecond = conceded - oppHalf;
+   if(ownSecond >= 0 && oppSecond >= 0){
+    halfCount++;
+    firstGF += ownHalf;
+    firstGA += oppHalf;
+    secondGF += ownSecond;
+    secondGA += oppSecond;
+    if(ownHalf > 0 && oppHalf > 0) firstBoth++;
+    if(ownSecond > 0 && oppSecond > 0) secondBoth++;
+   }
+  }
+ }
+
+ const count = valid.length || 1;
+ const halfDenominator = halfCount || 1;
+ return {
+  count: valid.length,
+  gf: gf / count,
+  ga: ga / count,
+  venue,
+  halfCount,
+  firstGF: firstGF / halfDenominator,
+  firstGA: firstGA / halfDenominator,
+  secondGF: secondGF / halfDenominator,
+  secondGA: secondGA / halfDenominator,
+  firstBothRate: firstBoth / halfDenominator,
+  secondBothRate: secondBoth / halfDenominator
+ };
+}
+
+function optionalMetric(matches, teamId, metric, venue){
+ const aliases = {
+  corners: ["corners"],
+  shotsOnTarget: ["shotsOnTarget", "shots on target", "Shots on Goal"],
+  shots: ["shots", "Total Shots"]
+ };
+ const wanted = aliases[metric] || [metric];
+ const values = [];
+
+ for(const m of (Array.isArray(matches) ? matches : [])){
+  const homeId = Number(m.teams?.home?.id);
+  const awayId = Number(m.teams?.away?.id);
+  const isHome = homeId === Number(teamId);
+  const isAway = awayId === Number(teamId);
+  if(!isHome && !isAway) continue;
+  if(venue === "home" && !isHome) continue;
+  if(venue === "away" && !isAway) continue;
+
+  const side = isHome ? "home" : "away";
+  let value = null;
+  const nested = m.statistics?.[side];
+  if(nested && typeof nested === "object"){
+   for(const key of wanted){
+    if(nested[key] !== undefined && nested[key] !== null && nested[key] !== ""){
+     value = Number(nested[key]); break;
+    }
+   }
+  }
+
+  if(value === null && Array.isArray(m.statistics)){
+   const teamStatsRow = m.statistics.find(x => Number(x.team?.id) === Number(teamId));
+   for(const stat of (teamStatsRow?.statistics || [])){
+    if(wanted.some(key => String(stat.type).toLowerCase() === key.toLowerCase())){
+     const parsed = Number(String(stat.value ?? "").replace("%",""));
+     if(stat.value !== null && stat.value !== "" && Number.isFinite(parsed)) value = parsed;
+     break;
+    }
+   }
+  }
+
+  if(value !== null && Number.isFinite(value)) values.push(value);
+ }
+
+ return {
+  count: values.length,
+  average: values.length ? values.reduce((sum,n)=>sum+n,0)/values.length : 0
+ };
+}
+
 async function getMatchInjuries(fixtureId){
  if(!fixtureId)return {items:[],note:"Maç kimliği eksik."};
  const data=await api("injuries?"+qs({fixture:fixtureId}));
