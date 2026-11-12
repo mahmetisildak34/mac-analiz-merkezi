@@ -1009,7 +1009,14 @@ async function loadLiveStats(button){
     const map={};
     for(const stat of (team.statistics||[])){
      const label=labelFor(stat.name||stat.label);
-     if(label)map[label]=stat.displayValue??stat.value??"—";
+     if(label){
+      let value=stat.displayValue??stat.value??"—";
+      if(label==="Topla oynama"&&value!=="—"){
+       const numeric=Number(String(value).replace("%","").replace(",",".").trim());
+       if(Number.isFinite(numeric))value=numeric.toLocaleString("tr-TR",{maximumFractionDigits:1})+"%";
+      }
+      map[label]=value;
+     }
     }
     return map;
    };
