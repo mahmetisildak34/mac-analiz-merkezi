@@ -1902,7 +1902,7 @@ function makeMamDetailTab(article){
  const livePanel=article.querySelector(".liveStats");
  const lineupButton=article.querySelector(".lineupBtn");
  const lineupPanel=article.querySelector(".lineup-panel");
- const prediction=article.querySelector(".pred");
+ const prediction=article.querySelector(".pred:not(.liveStats)");
  const preview=article.querySelector(".analysis-preview");
  const tabs=document.createElement("div");tabs.className="match-detail-tabs";
  const panes=document.createElement("div");
