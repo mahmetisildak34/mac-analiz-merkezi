@@ -2846,6 +2846,28 @@ async function analyze(button){
   const venue=v=>v==="home"?"iç saha":v==="away"?"deplasman":"son maçlar";
   const scores=topScores(lh,la);
 
+  // Maç önü için ev sahibi iç saha, konuk takım deplasman örneklemini ayrı göster.
+  const metricCell=(teamId,matches,metric,side)=>{
+    const m=optionalMetric(matches,teamId,metric,side);
+    return m.count>=3?m.average.toFixed(2)+" <small>("+m.count+" maç)</small>":"Veri yetersiz ("+m.count+"/3)";
+  };
+  const venueCard=(name,stats,matches,id,side)=>{
+    const valid=stats.count>=3;
+    const record=valid?stats.wins+"G "+stats.draws+"B "+stats.losses+"M":"Veri yetersiz ("+stats.count+"/3)";
+    const goals=valid?stats.gf.toFixed(2)+" / "+stats.ga.toFixed(2):"Veri yetersiz";
+    return '<div class="stat"><span>'+esc(name)+' · '+(side==="home"?"İç saha":"Deplasman")+'</span>'+
+      '<p class="note">Son '+stats.count+' doğrulanmış maç · '+record+'</p>'+
+      '<p class="note">Attığı / yediği gol: '+goals+'</p>'+
+      '<p class="note">Korner: '+metricCell(id,matches,"corners",side)+'</p>'+
+      '<p class="note">Şut: '+metricCell(id,matches,"shots",side)+'</p>'+
+      '<p class="note">İsabetli şut: '+metricCell(id,matches,"shotsOnTarget",side)+'</p>'+
+      '<p class="note">Sarı kart: '+metricCell(id,matches,"yellowCards",side)+'</p>'+
+      '<p class="note">Kırmızı kart: '+metricCell(id,matches,"redCards",side)+'</p></div>';
+  };
+  const venueComparison='<div class="section-title">🏟️ Ev / deplasman performansı</div>'+
+    '<div class="statgrid">'+venueCard(homeName,homeVenue,homeMatches,homeId,"home")+
+    venueCard(awayName,awayVenue,awayMatches,awayId,"away")+'</div>'+
+    '<p class="note">Her istatistik yalnızca mevcut doğrulanmış kayıtlardan hesaplanır. Örneklem 3 maçın altındaysa ortalama gösterilmez. Maç sonucu tahmini ayrı modeldir.</p>';
   let html=`<b>📊 KENDİ İSTATİSTİKSEL ANALİZİMİZ</b>
    <div class="section-title">🏆 Modelin maç sonucu tahmini</div>
    <div class="statgrid">
@@ -2907,6 +2929,7 @@ async function analyze(button){
 
   const hc=optionalMetric(homeMatches,homeId,"corners","home");
   const ac=optionalMetric(awayMatches,awayId,"corners","away");
+  html+=venueComparison;
   html+='<div class="section-title">🚩 Korner analizi</div>';
   if(hc.count>=3&&ac.count>=3){
    const expectedCorners=hc.average+ac.average;
