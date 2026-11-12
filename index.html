@@ -732,6 +732,31 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 .mam-section-count{color:#8faeb8;font-size:11px;white-space:nowrap}
 .mam-section-back{min-height:38px;padding:8px 11px!important;background:#173541!important;color:#e8f8f2!important;border:1px solid rgba(130,175,193,.2)!important;box-shadow:none!important;font-size:12px!important}
 .mam-screen-live .mam-home-intro,.mam-screen-upcoming .mam-home-intro{display:none!important}
+.mam-standings-screen{margin:18px 0 24px}
+.mam-standings-intro{padding:8px 3px 15px}
+.mam-standings-intro>span{font-size:10px;font-weight:900;letter-spacing:1.5px;color:#149b66}
+.mam-standings-intro h2{font-size:27px;letter-spacing:-.7px;margin:7px 0;color:#17252f}
+.mam-standings-intro p{font-size:13px;color:#778694;margin:0}
+.mam-standings-leagues{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0 16px}
+.mam-standings-leagues button{min-height:54px;padding:10px 12px;text-align:left;border:1px solid #dfe8e4;background:#fff;color:#263a35;box-shadow:0 3px 12px rgba(18,55,39,.045);font-size:13px}
+.mam-standings-leagues button.active{background:linear-gradient(135deg,#e4f8ed,#d4f4e3)!important;border:1px solid #18a65a!important;color:#087c3b!important;box-shadow:0 0 0 2px rgba(24,166,90,.09)!important}
+.mam-standings-card{background:#fff;border:1px solid #e2e9e5;border-radius:19px;padding:14px;box-shadow:0 6px 20px rgba(20,45,34,.05)}
+.mam-standings-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.mam-standings-card-head small{font-size:10px;font-weight:800;letter-spacing:.8px;color:#149b66}
+.mam-standings-card-head h3{font-size:17px;margin:4px 0 0;color:#1a2b24}
+.mam-standings-card-head button{min-height:36px;padding:7px 10px;font-size:11px}
+.mam-standings-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+.mam-standings-table th{padding:10px 6px;text-align:center;color:#78868f;background:#f5f8f6;font-size:10px}
+.mam-standings-table th:nth-child(2),.mam-standings-table td:nth-child(2){text-align:left}
+.mam-standings-table td{padding:11px 6px;text-align:center;border-bottom:1px solid #edf1ee;color:#405047}
+.mam-standings-table td:nth-child(2){font-weight:750;color:#1d3028;max-width:145px;overflow:hidden;text-overflow:ellipsis}
+.mam-standings-table tr:last-child td{border-bottom:0}
+.mam-standings-table td:first-child{color:#149b66;font-weight:900}
+.mam-screen-standings .mam-home-intro,.mam-screen-standings>.panel,.mam-screen-standings .footer{display:none!important}
+.mam-screen-standings #mamStandingsScreen{display:block!important}
+.mam-screen-standings .mam-section-header{display:flex}
+@media(max-width:390px){.mam-standings-leagues{gap:7px}.mam-standings-leagues button{font-size:12px;padding:9px}}
+
 .mam-screen-live>.panel:first-of-type,.mam-screen-upcoming>.panel:first-of-type{display:none!important}
 .mam-screen-live #date,.mam-screen-live #mamDateStrip,.mam-screen-live #load,.mam-screen-live #loadStandings,.mam-screen-live #standings,.mam-screen-live #couponToggle,.mam-screen-live #couponPanel{display:none!important}
 .mam-screen-live .panel:has(#matches)>.row,.mam-screen-live .panel:has(#matches)>.mam-date-strip{display:none!important}
@@ -785,6 +810,13 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 <button type="button" class="mam-search-trigger" id="mamSearchToggle" aria-label="Maç listesine git">⌕</button>
 </div>
 <div class="mam-section-header" id="mamSectionHeader" hidden><button type="button" class="mam-section-back" id="mamSectionBack">← Ana sayfa</button><div class="mam-section-title"><small id="mamSectionEyebrow">CANLI TAKİP</small><strong id="mamSectionTitle">Canlı Maçlar</strong></div><span class="mam-section-count" id="mamSectionCount"></span><button type="button" class="mam-section-back" id="mamSectionRefresh">↻ Yenile</button></div>
+<section id="mamStandingsScreen" class="mam-standings-screen" hidden>
+ <div class="mam-standings-intro"><span>🏆 LİG MERKEZİ</span><h2>Puan Durumu</h2><p>Takım sıralamalarını liglere göre ayrı ayrı incele.</p></div>
+ <div class="mam-standings-leagues" id="mamStandingsLeagues" aria-label="Puan durumu lig seçimi">
+  <button type="button" data-standing-league="203">🇹🇷 Süper Lig</button><button type="button" data-standing-league="39">🏴 Premier League</button><button type="button" data-standing-league="140">🇪🇸 La Liga</button><button type="button" data-standing-league="78">🇩🇪 Bundesliga</button><button type="button" data-standing-league="135">🇮🇹 Serie A</button><button type="button" data-standing-league="61">🇫🇷 Ligue 1</button><button type="button" data-standing-league="2">🏆 Şampiyonlar Ligi</button>
+ </div>
+ <div class="mam-standings-card"><div class="mam-standings-card-head"><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Bir lig seç</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan durumunu görmek için yukarıdan bir lig seç.</div></div></div>
+</section>
 <div class="mam-home-intro">
 <div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
 <h1>Futbolun nabzı burada.</h1>
@@ -832,8 +864,8 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 </div>
 <button id="load" style="width:100%;margin-top:8px">Seçili günün maçlarını getir</button>
 <button id="loadLive" style="width:100%;margin-top:10px">Canlı maçları getir / yenile</button>
-<button id="loadStandings" style="width:100%;margin-top:10px">Seçili ligin puan durumunu getir</button>
-<div id="standings" class="pred" style="margin-top:12px">Puan durumunu görmek için lig seçip butona bas.</div>
+<button id="loadStandings" hidden type="button" aria-hidden="true" tabindex="-1">Puan durumu</button>
+<div id="standings" hidden aria-hidden="true"></div>
 <div id="status" class="status"></div>
 <button type="button" id="couponToggle" class="secondary" style="width:100%;margin-top:12px" aria-expanded="false" aria-controls="couponPanel">🎟️ Kupon oluşturucuyu aç</button>
 
@@ -1043,19 +1075,18 @@ $("loadStandings").addEventListener("click",loadStandings);
 
 $("league").addEventListener("change",renderMatches);
 
+let selectedStandingsLeague="";
 async function loadStandings(){
- const leagueId=$("league").value;
- const box=$("standings");
- if(leagueId==="all"){
-  box.textContent="Önce puan durumunu görmek istediğin ligi seç.";
-  return;
- }
- const button=$("loadStandings");
+ const leagueId=selectedStandingsLeague;
+ const box=$("mamStandingsTable");
+ if(!leagueId){box.innerHTML='<div class="empty">Önce yukarıdan bir lig seç.</div>';return;}
+ const button=$("mamStandingsRefresh");
  button.disabled=true;
- box.textContent="Puan durumu alınıyor...";
+ box.innerHTML='<div class="empty">Puan durumu alınıyor...</div>';
+ const now=new Date(),year=now.getFullYear(),season=now.getMonth()<=5?year-1:year;
+ $("mamStandingsSeason").textContent=season+" / "+(season+1);
+ $("mamStandingsLeagueTitle").textContent=({"203":"Süper Lig","39":"Premier League","140":"La Liga","78":"Bundesliga","135":"Serie A","61":"Ligue 1","2":"Şampiyonlar Ligi"})[leagueId]||"Lig puan durumu";
  try{
-  const year=Number($("date").value.slice(0,4))||new Date().getFullYear();
-  const season=Number($("date").value.slice(5,7))<=6?year-1:year;
   let rows=[],leagueName="";
   try{
    const data=await api("standings?"+qs({league:leagueId,season}));
@@ -1071,9 +1102,10 @@ async function loadStandings(){
    leagueName=data.competition?.name||"Lig puan durumu";
   }
   if(!rows.length)throw new Error("Kaynak bu lig için puan tablosu döndürmedi.");
-  box.innerHTML='<div class="section-title">'+esc(leagueName)+' · Puan Durumu</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>#</th><th style="text-align:left">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.rank)+'</td><td style="text-align:left">'+esc(x.name)+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan. Puan tablosu veri kaynağının güncel cevabıdır.</p>';
+  $("mamStandingsLeagueTitle").textContent=leagueName;
+  box.innerHTML='<div style="overflow-x:auto"><table class="mam-standings-table"><thead><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.rank)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan. Güncel veri sağlayıcısından alınır.</p>';
  }catch(e){
-  box.innerHTML='<span class="error">'+esc(e.message||e)+'</span>';
+  box.innerHTML='<div class="error">'+esc(e.message||e)+'</div>';
  }finally{button.disabled=false}
 }
 
@@ -1858,10 +1890,11 @@ let mamScreenMode="home";
 function setMamScreen(mode){
  mamScreenMode=mode;
  const main=document.querySelector("main");
- main.classList.remove("mam-screen-home","mam-screen-live","mam-screen-upcoming");
+ main.classList.remove("mam-screen-home","mam-screen-live","mam-screen-upcoming","mam-screen-standings");
  main.classList.add("mam-screen-"+mode);
+ const standingsScreen=$("mamStandingsScreen");if(standingsScreen)standingsScreen.hidden=mode!=="standings";
  const header=$("mamSectionHeader");
- if(header){header.hidden=mode==="home";$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":"Başlamayan Maçlar";}
+ if(header){header.hidden=mode==="home";$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="standings"?"LİG MERKEZİ":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="standings"?"Puan Durumu":"Başlamayan Maçlar";}
  const intro=document.querySelector(".mam-home-intro");if(intro)intro.hidden=mode!=="home";
  const sourcePanel=document.querySelector("main>.panel");if(sourcePanel)sourcePanel.hidden=mode!=="home";
  const filterRow=$("date")?.closest(".row");if(filterRow)filterRow.hidden=mode==="live";
@@ -2779,12 +2812,18 @@ async function analyze(button){
   if(action==="live"){setMamScreen("live");await loadLiveMatches();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="upcoming"){setMamScreen("upcoming");await loadMatches();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="fixtures"){setMamScreen("home");await loadMatches();$("date")?.scrollIntoView({behavior:"smooth",block:"center"});}
-  if(action==="standings"){setMamScreen("home");$("standings")?.classList.add("mam-standings-visible");$("loadStandings")?.click();setTimeout(()=>$("standings")?.scrollIntoView({behavior:"smooth",block:"center"}),250);}
+  if(action==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için yukarıdan bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});}
   if(action==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
  }));
  $("mamSectionBack")?.addEventListener("click",async()=>{setMamScreen("home");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});});
- $("mamSectionRefresh")?.addEventListener("click",async()=>{if(mamScreenMode==="live")await loadLiveMatches();else if(mamScreenMode==="upcoming")await loadMatches();});
+ $("mamSectionRefresh")?.addEventListener("click",async()=>{if(mamScreenMode==="live")await loadLiveMatches();else if(mamScreenMode==="upcoming")await loadMatches();else if(mamScreenMode==="standings")await loadStandings();});
+ $("mamStandingsLeagues")?.querySelectorAll("[data-standing-league]").forEach(button=>button.addEventListener("click",async()=>{
+  selectedStandingsLeague=button.dataset.standingLeague;
+  $("mamStandingsLeagues").querySelectorAll("[data-standing-league]").forEach(item=>item.classList.toggle("active",item===button));
+  await loadStandings();
+ }));
+ $("mamStandingsRefresh")?.addEventListener("click",loadStandings);
  const dateInput=$("date"),strip=$("mamDateStrip");
  if(!dateInput||!strip)return;
  const localDate=(offset)=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
