@@ -1193,11 +1193,31 @@ async function loadLineups(button){
   let leagueSlug=String(button.dataset.espnLeague||"");
   if(!leagueSlug){
    const leagueName=String(button.dataset.leagueName||"").toLowerCase();
-   if(leagueName.includes("nations league"))leagueSlug="uefa.nations";
+   const country=String(button.dataset.country||"").toLowerCase();
+   if(leagueName.includes("women")&&leagueName.includes("champions"))leagueSlug="uefa.wchampions";
+   else if(leagueName.includes("nations league"))leagueSlug="uefa.nations";
    else if(leagueName.includes("champions league"))leagueSlug="uefa.champions";
-   else if(leagueName.includes("europa league"))leagueSlug="uefa.europa";
    else if(leagueName.includes("conference league"))leagueSlug="uefa.europa.conf";
+   else if(leagueName.includes("europa league"))leagueSlug="uefa.europa";
    else if(leagueName.includes("friendly"))leagueSlug="fifa.friendly";
+   else if(leagueName.includes("premier league")&&country.includes("england"))leagueSlug="eng.1";
+   else if(leagueName.includes("championship")&&country.includes("england"))leagueSlug="eng.2";
+   else if(leagueName.includes("la liga"))leagueSlug="esp.1";
+   else if(leagueName.includes("bundesliga"))leagueSlug="ger.1";
+   else if(leagueName.includes("serie a")&&country.includes("italy"))leagueSlug="ita.1";
+   else if(leagueName.includes("serie b")&&country.includes("italy"))leagueSlug="ita.2";
+   else if(leagueName.includes("ligue 1"))leagueSlug="fra.1";
+   else if(leagueName.includes("ligue 2"))leagueSlug="fra.2";
+   else if(leagueName.includes("eredivisie"))leagueSlug="ned.1";
+   else if(leagueName.includes("primeira liga")||leagueName.includes("liga portugal"))leagueSlug="por.1";
+   else if(leagueName.includes("super lig")&&country.includes("turkey"))leagueSlug="tur.1";
+   else if(leagueName.includes("pro league")&&country.includes("belgium"))leagueSlug="bel.1";
+   else if(leagueName.includes("premiership")&&country.includes("scotland"))leagueSlug="sco.1";
+   else if(leagueName.includes("mls")||leagueName.includes("major league soccer"))leagueSlug="usa.1";
+   else if(leagueName.includes("liga mx"))leagueSlug="mex.1";
+   else if(leagueName.includes("serie a")&&country.includes("brazil"))leagueSlug="bra.1";
+   else if(leagueName.includes("serie b")&&country.includes("brazil"))leagueSlug="bra.2";
+   else if(leagueName.includes("primera division")&&country.includes("argentina"))leagueSlug="arg.1";
   }
   if(isEspn){
    const match=fixtureId.match(/^espn-[a-z0-9.]+-(\d+)$/),eventId=match?.[1],leagueSlug=String(button.dataset.espnLeague||"");
@@ -1263,9 +1283,13 @@ async function loadLineups(button){
     }
     const homeId=String(button.dataset.home||"");
     teams.sort((a,b)=>Number(String(b.team?.id)===homeId)-Number(String(a.team?.id)===homeId));
+    if(teams.length<2||!teams.some(team=>(team.startXI||[]).length>0)){
+     throw new Error("API-Football bu maç için ilk 11 verisi döndürmedi; yedek kaynak deneniyor.");
+    }
    }catch(primaryLineupError){
     const rateLimited=/rate.?limit|too many requests|request limit|requests limit|quota/i.test(String(primaryLineupError.message||primaryLineupError));
-    if(!rateLimited||!leagueSlug)throw primaryLineupError;
+    const noPrimaryLineup=/ilk 11 verisi döndürmedi|lineup|squad/i.test(String(primaryLineupError.message||primaryLineupError));
+    if((!rateLimited&&!noPrimaryLineup)||!leagueSlug)throw primaryLineupError;
     const matchDate=String(button.dataset.date||"").replace(/-/g,"").slice(0,8);
     if(!/^\d{8}$/.test(matchDate))throw primaryLineupError;
     const scoreboard=await api("espn/"+leagueSlug+"/scoreboard?"+qs({dates:matchDate,limit:500}));
@@ -1395,7 +1419,7 @@ function renderMatches(){
    </div>
 
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9.]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9.]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
-   <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
+   <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
