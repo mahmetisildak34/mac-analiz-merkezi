@@ -998,7 +998,7 @@ async function api(path){
     }
 
     const controller=new AbortController();
-    const timeoutId=setTimeout(()=>controller.abort(),15000);
+    const timeoutId=setTimeout(()=>controller.abort(),cleanPath.startsWith("archive/backfill-all?")?60000:15000);
     let response;
     try{
       response=await fetch(url,{signal:controller.signal,headers:{Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||"")}});
@@ -2394,10 +2394,29 @@ renderCoupon();
 // Ortak lig/sezon arşivi: aynı CSV dosyası aynı cihazda tüm maç analizlerinde tekrar kullanılır.
 const MAM_LEAGUE_ARCHIVE_PROMISES=new Map();
 const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
+let MAM_SUPERLIG_BACKFILL_PROMISE=null;
+async function ensureSuperLigArchive(){
+  if(localStorage.getItem("mam_superlig_archive_v1")==="ok")return;
+  if(!MAM_SUPERLIG_BACKFILL_PROMISE){
+    MAM_SUPERLIG_BACKFILL_PROMISE=(async()=>{
+      const result=await api("archive/backfill-all?batch=2");
+      const turkey=(result.results||[]).find(x=>x.league==="tur.1");
+      if(!turkey?.ok||!(Number(turkey.teams)>0)){
+        throw new Error(turkey?.error||"Süper Lig arşivi doğrulanamadı.");
+      }
+      localStorage.setItem("mam_superlig_archive_v1","ok");
+      return result;
+    })().finally(()=>{MAM_SUPERLIG_BACKFILL_PROMISE=null;});
+  }
+  return MAM_SUPERLIG_BACKFILL_PROMISE;
+}
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
-  const key="mam_history_v31_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  if(String(leagueId)==="203"){
+    try{await ensureSuperLigArchive();}catch(e){/* CSV and ESPN remain available if bulk archive is unavailable. */}
+  }
+  const key="mam_history_v32_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2450,7 +2469,31 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     "north macedonia":["macedonia"],
     "cape verde":["cabo verde"],
     "iran":["ir iran"],
-    "ir iran":["iran"]
+    "ir iran":["iran"],
+    // Süper Lig 2026/27: provider and archive spellings for all 18 clubs.
+    "alanyaspor":["corendon alanyaspor"],
+    "amedspor":["amed sportif faaliyetler","amed sporti̇f faaliyetler"],
+    "amed sportif faaliyetler":["amedspor"],
+    "besiktas":["besiktas jk","besiktas a s"],
+    "caykur rizespor":["rizespor","caykur rize"],
+    "corum":["corum fk","arca corum fk","corum belediyespor"],
+    "corum fk":["corum","arca corum fk"],
+    "erzurumspor":["erzurumspor fk","bb erzurumspor"],
+    "erzurumspor fk":["erzurumspor","bb erzurumspor"],
+    "eyupspor":["eyupspor fk","ikas eyupspor"],
+    "fenerbahce":["fenerbahce a s","fenerbahce sk"],
+    "galatasaray":["galatasaray a s","galatasaray sk"],
+    "gaziantep":["gaziantep fk","gaziantep futbol kulubu"],
+    "gaziantep fk":["gaziantep","gaziantep futbol kulubu"],
+    "genclerbirligi":["genclerbirligi sk"],
+    "goztepe":["goztepe a s","goztepe sk"],
+    "istanbul basaksehir":["basaksehir","istanbul basaksehir fk","ibfk"],
+    "kasimpasa":["kasimpasa sk"],
+    "kocaelispor":["kocaeli spor"],
+    "konyaspor":["tum osan konyaspor","tumos an konyaspor","tumosankonyaspor","tümosan konyaspor"],
+    "tumosan konyaspor":["konyaspor"],
+    "samsunspor":["samsunspor a s"],
+    "trabzonspor":["trabzonspor a s","trabzonspor fk"]
   };
   const wanted=normalize(teamName);
   const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize)]);
@@ -2469,8 +2512,29 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     if(!d||d>=matchDate)return;
     const id=[d,hm?"target-home":"target-away",gh,ga].join("|");
     if(seen.has(id))return;
-    seen.add(id);output.push(m);
+    seen.add(id);
+    // Normalize the target club to the fixture provider's ID so statistics
+    // calculated from CSV/ESPN/KV archives all attach to the same team.
+    const normalizedMatch={...m,teams:{
+      home:{...m.teams.home,id:hm?Number(teamId):-1},
+      away:{...m.teams.away,id:am?Number(teamId):-1}
+    }};
+    output.push(normalizedMatch);
   };
+
+  // Load the shared Cloudflare KV history for every Süper Lig club.
+  // The bulk backfill is shared by all teams; aliases cover provider naming variants.
+  if(String(leagueId)==="203"){
+    const archiveNames=[teamName,...(aliases[wanted]||[])];
+    const archiveResults=await Promise.allSettled(
+      [...new Set(archiveNames)].map(name=>api("archive/team?name="+encodeURIComponent(name)))
+    );
+    for(const item of archiveResults){
+      if(item.status!=="fulfilled")continue;
+      const rows=Array.isArray(item.value?.response)?item.value.response:[];
+      for(const match of rows)addMatch(match);
+    }
+  }
 
   const leagues={
     "39":"ENG_1_premier-league","140":"ESP_1_la-liga","78":"GER_1_bundesliga",
