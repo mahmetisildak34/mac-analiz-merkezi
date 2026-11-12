@@ -808,7 +808,7 @@ function optionalMetric(matches, teamId, metric, venue){
 async function getMatchInjuries(fixtureId){
  if(!fixtureId)return {items:[],note:"Maç kimliği eksik."};
  // ESPN event IDs are strings, not API-Football fixture integers.
- if(!/^\\d+$/.test(String(fixtureId))){
+ if(!/^[0-9]+$/.test(String(fixtureId))){
   return {items:[],note:"Bu fikstür ESPN kaynağından geldi. API-Football sakatlık sorgusu için geçerli maç ID'si bulunmadığından hatalı istek gönderilmedi."};
  }
  const data=await api("injuries?"+qs({fixture:fixtureId}));
@@ -823,7 +823,7 @@ async function getMatchInjuries(fixtureId){
 
 async function getPlayerScoringCandidates(teamId,leagueId,matchDate,fixtureId){
  // ESPN team/event IDs are not API-Football IDs. Do not send them to API-Football squad/lineup/player endpoints.
- if(fixtureId&&!/^\\d+$/.test(String(fixtureId))){
+ if(fixtureId&&!/^[0-9]+$/.test(String(fixtureId))){
   return {players:[],note:"Oyuncu gol istatistiği bu ESPN fikstüründe API-Football takım/maç kimlikleri eşleştirilmediği için atlandı."};
  }
  const year=Number(matchDate.slice(0,4));
