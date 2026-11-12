@@ -923,6 +923,27 @@ async function getPlayerScoringCandidates(teamId,leagueId,matchDate,fixtureId){
  };
 }
 
+function teamForm(matches,teamId){
+ const rows=(Array.isArray(matches)?matches:[]).filter(m=>{
+  const h=Number(m.teams?.home?.id)===Number(teamId),a=Number(m.teams?.away?.id)===Number(teamId);
+  return (h||a)&&m.goals?.home!=null&&m.goals?.away!=null;
+ }).sort((a,b)=>new Date(b.fixture?.date)-new Date(a.fixture?.date)).slice(0,10);
+ return rows.map(m=>{
+  const home=Number(m.teams?.home?.id)===Number(teamId);
+  const gf=Number(home?m.goals.home:m.goals.away),ga=Number(home?m.goals.away:m.goals.home);
+  return {result:gf>ga?"G":gf<ga?"M":"B",gf,ga,date:m.fixture?.date};
+ });
+}
+function h2hMatches(homeMatches,awayMatches,homeName,awayName){
+ const norm=s=>String(s||"").normalize("NFD").toLowerCase().replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim().replace(/\\s+/g," ");
+ const h=norm(homeName),a=norm(awayName),seen=new Set();
+ return [...(homeMatches||[]),...(awayMatches||[])].filter(m=>{
+  const x=norm(m.teams?.home?.name),y=norm(m.teams?.away?.name);
+  if(!((x===h&&y===a)||(x===a&&y===h)))return false;
+  const key=[m.fixture?.date,x,y,m.goals?.home,m.goals?.away].join("|");
+  if(seen.has(key))return false;seen.add(key);return true;
+ }).sort((x,y)=>new Date(y.fixture?.date)-new Date(x.fixture?.date)).slice(0,10);
+}
 function topScores(lh,la){
  const out=[];
  for(let h=0;h<=7;h++)for(let a=0;a<=7;a++){
@@ -1019,6 +1040,13 @@ async function analyze(button){
   }catch(playerError){
    playerDataNote=String(playerError.message||playerError);
   }
+  const homeForm=teamForm(homeMatches,homeId);
+  const awayForm=teamForm(awayMatches,awayId);
+  const h2h=h2hMatches(homeMatches,awayMatches,homeName,awayName);
+  const formHTML=(name,form)=>'<div class="stat"><span>'+esc(name)+' · Son '+form.length+' maç</span><b style="font-size:15px;letter-spacing:3px">'+(form.length?form.map(x=>x.result).join(" "):"Veri yok")+'</b><small class="small">G: Galibiyet · B: Beraberlik · M: Mağlubiyet</small></div>';
+  const h2hHTML=h2h.length?h2h.map(m=>'<div class="scoreline"><span>'+esc(new Date(m.fixture.date).toLocaleDateString("tr-TR"))+' · '+esc(m.teams.home.name)+' - '+esc(m.teams.away.name)+'</span><b>'+esc(m.goals.home)+' - '+esc(m.goals.away)+'</b></div>').join(""):'<p class="note">Bu iki takım arasında arşivde doğrulanmış geçmiş karşılaşma bulunamadı.</p>';
+  const hasCornerData=optionalMetric(homeMatches,homeId,"corners","all").count+optionalMetric(awayMatches,awayId,"corners","all").count>0;
+
   const venue=v=>v==="home"?"iç saha":v==="away"?"deplasman":"son maçlar";
   const scores=topScores(lh,la);
 
@@ -1042,6 +1070,12 @@ async function analyze(button){
     <div class="stat"><span>${esc(awayName)} yediği gol</span><b>${as.ga.toFixed(2)}</b></div>
    </div>
    <p class="note">${esc(homeName)}: ${hs.count}/${sampleTarget} maç (${venue(hs.venue)}) · ${esc(awayName)}: ${as.count}/${sampleTarget} maç (${venue(as.venue)})</p>
+   <div class="section-title">📈 Son maç formu</div>
+   <div class="statgrid">${formHTML(homeName,homeForm)}${formHTML(awayName,awayForm)}</div>
+   <div class="section-title">🤝 İkili rekabet (H2H)</div>
+   ${h2hHTML}
+   <div class="section-title">🚩 Korner verisi</div>
+   <p class="note">${hasCornerData?"Arşivde korner istatistiği bulunan maçlar kullanılabilir.":"Bu veri kaynağında geçmiş korner sayıları bulunmadığından korner tahmini üretilmedi."}</p>
    <div class="section-title">🧪 Veri yeterliliği</div>
    <div class="statgrid">
     <div class="stat"><span>Veri kapsamı</span><b>${Math.round(sampleCoverage*100)}%</b></div>
