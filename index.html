@@ -494,7 +494,7 @@ function renderMatches(){
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
-  const key="mam_history_v17_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v18_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached){
     try{
@@ -655,7 +655,41 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     sourceError="Bu lig için Open Matchday arşiv eşlemesi henüz tanımlı değil (lig kodu: "+leagueId+").";
   }
 
-  // ESPN event/team IDs are not API-Football IDs. Never mix the providers' identifiers.
+  // ESPN fixtures carry ESPN team IDs, not API-Football IDs. Use the
+  // matching ESPN team's own schedule endpoint to retrieve completed history.
+  // This also fills gaps when the CSV/KV archive contains fewer than 20 matches.
+  if(String(sourceFixtureId||'').startsWith('espn-')&&/^\\d+$/.test(String(teamId))&&output.length<20){
+    try{
+      const schedule=await api('espn/'+leagueId+'/teams/'+teamId+'/schedule');
+      const events=Array.isArray(schedule.events)?schedule.events:[];
+      for(const event of events){
+        const competition=event.competitions?.[0];
+        const competitors=competition?.competitors||[];
+        const home=competitors.find(x=>x.homeAway==='home');
+        const away=competitors.find(x=>x.homeAway==='away');
+        if(!home||!away)continue;
+        const state=String(competition.status?.type?.state||event.status?.type?.state||'').toLowerCase();
+        const completed=competition.status?.type?.completed===true||event.status?.type?.completed===true||state==='post';
+        if(!completed)continue;
+        const homeScore=Number(home.score),awayScore=Number(away.score);
+        if(!Number.isFinite(homeScore)||!Number.isFinite(awayScore))continue;
+        const homeId=Number(home.team?.id),awayId=Number(away.team?.id);
+        const homeIsTarget=homeId===Number(teamId),awayIsTarget=awayId===Number(teamId);
+        if(homeIsTarget===awayIsTarget)continue;
+        const homeName=homeIsTarget?teamName:(home.team?.displayName||home.team?.name||home.team?.shortDisplayName||'');
+        const awayName=awayIsTarget?teamName:(away.team?.displayName||away.team?.name||away.team?.shortDisplayName||'');
+        addMatch({
+          fixture:{id:event.id,date:event.date||competition.date,status:{short:'FT'}},
+          league:{id:leagueId,name:event.season?.name||''},
+          teams:{home:{id:homeId,name:homeName},away:{id:awayId,name:awayName}},
+          goals:{home:homeScore,away:awayScore},score:null,statistics:null
+        });
+      }
+      if(!events.length)sourceError+=' ESPN takım fikstürü boş döndü.';
+    }catch(e){sourceError+=' ESPN takım geçmişi: '+String(e.message||e);}
+  }
+
+  // API-Football fixture IDs can only be queried with API-Football team IDs.
   if(!output.length&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))){
     try{
       const data=await api("fixtures?"+qs({team:teamId,last:20,status:"FT",timezone:"Europe/Istanbul"}));
