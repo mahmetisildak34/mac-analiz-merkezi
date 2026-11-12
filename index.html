@@ -405,6 +405,10 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
  background:linear-gradient(135deg,#087f3d,#16a653)!important;
  color:#fff!important;border-color:#087f3d
 }
+.league-option-name{display:flex;align-items:center;gap:11px;min-width:0}
+.league-option-icon,.league-current-icon{display:inline-grid;place-items:center;flex:0 0 25px;width:25px;height:25px;font-size:19px;line-height:1}
+.league-current-icon{margin-right:2px}
+.league-check{font-size:18px;font-weight:900}
 .league-option:active{filter:brightness(.97)}
 @media(max-width:500px){.league-menu{max-height: min(55vh,360px)}}
 
@@ -653,17 +657,19 @@ $("loadStandings").addEventListener("click",loadStandings);
 (function initLeaguePicker(){
  const select=$("league"),trigger=$("leagueTrigger"),menu=$("leagueMenu"),current=$("leagueCurrent");
  if(!select||!trigger||!menu||!current)return;
+ const leagueIcons={"all":"🏆","39":"🏴","203":"🇹🇷","140":"🇪🇸","78":"🇩🇪","135":"🇮🇹","61":"🇫🇷","2":"🏆"};
+ function leagueIcon(value){return leagueIcons[String(value)]||"⚽"}
  function syncLeaguePicker(){
   const selected=select.options[select.selectedIndex];
-  current.textContent="🏆 "+(selected?selected.text:"Tüm ligler");
+  current.innerHTML='<span class="league-current-icon" aria-hidden="true">'+leagueIcon(select.value)+'</span><span>'+esc(selected?selected.text:"Tüm ligler")+'</span>';
   menu.querySelectorAll("[data-league-value]").forEach(item=>{
    const active=item.dataset.leagueValue===select.value;
    item.setAttribute("aria-selected",active?"true":"false");
-   item.innerHTML="<span>"+esc(item.dataset.leagueLabel)+"</span>"+(active?"<span aria-hidden=\"true\">✓</span>":"");
+   item.innerHTML='<span class="league-option-name"><span class="league-option-icon" aria-hidden="true">'+leagueIcon(item.dataset.leagueValue)+'</span><span>'+esc(item.dataset.leagueLabel)+'</span></span>'+(active?'<span class="league-check" aria-hidden="true">✓</span>':"");
   });
  }
  menu.innerHTML=Array.from(select.options).map(option=>
-  '<button type="button" class="league-option" role="option" data-league-value="'+esc(option.value)+'" data-league-label="'+esc(option.text)+'" aria-selected="false"><span>'+esc(option.text)+'</span></button>'
+  '<button type="button" class="league-option" role="option" data-league-value="'+esc(option.value)+'" data-league-label="'+esc(option.text)+'" aria-selected="false"><span class="league-option-name"><span class="league-option-icon" aria-hidden="true">'+leagueIcon(option.value)+'</span><span>'+esc(option.text)+'</span></span></button>'
  ).join("");
  function closeMenu(){menu.hidden=true;trigger.setAttribute("aria-expanded","false")}
  trigger.addEventListener("click",()=>{
