@@ -478,7 +478,6 @@ function renderMatches(){
      data-home-name="${esc(t.home?.name)}"
      data-away-name="${esc(t.away?.name)}"
      data-league="${esc(l.id)}"
-     data-league-name="${esc(l.name)}"
      data-date="${esc(f.date?.slice(0,10))}">
      Kendi analizini yap
     </button>
@@ -492,112 +491,9 @@ function renderMatches(){
  });
 }
 
-/* MİLLİ TAKIM GEÇMİŞİ — kulüp ligi arşivinden bağımsız ESPN kaynağı */
-async function getESPNNationalHistory(teamId,teamName,matchDate,leagueId,leagueName){
- const cacheKey="mam_national_history_v4_"+String(teamName).toLowerCase()+"_"+matchDate.slice(0,4);
- try{
-  const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");
-  if(saved&&saved.time&&Date.now()-saved.time<CACHE_HOURS*60*60*1000&&Array.isArray(saved.matches)&&saved.matches.length)return saved.matches;
- }catch(e){}
- const normalize=value=>String(value||"").normalize("NFD").toLowerCase()
-  .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
-  .replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim()
-  .replace(/\s+/g," ");
- const aliases={
-  "turkiye":["turkey","türkiye"],"turkey":["turkiye","türkiye"],
-  "belgium":["belgie","belgique"],"czechia":["czech republic"],
-  "north macedonia":["macedonia"],"ivory coast":["cote d ivoire"],
-  "usa":["united states","united states of america"],"united states":["usa","united states of america"],
-  "south korea":["korea republic","korea"],"iran":["iran islamic republic"],
-  "russia":["russian federation"],"new zealand":["aotearoa"]
- };
- const wanted=normalize(teamName);
- const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize)]);
- const matchesName=name=>accepted.has(normalize(name));
- const comp=String(leagueName||"").toLowerCase();
- let preferred=String(leagueId)==="5"||comp.includes("nations league")
-  ?["uefa.nations","fifa.friendly","fifa.worldq"]
-  :comp.includes("africa cup")||comp.includes("caf")
-   ?["caf.nations_qual","caf.nations","fifa.worldq.caf","fifa.friendly"]
-   :comp.includes("world cup")||comp.includes("qualification")||comp.includes("qualifier")
-    ?["fifa.worldq","fifa.friendly","uefa.nations"]
-    :comp.includes("u23")||comp.includes("u-23")
-     ?["caf.u23","fifa.u23","fifa.friendly"]
-     :["fifa.friendly","fifa.worldq","uefa.nations"];
- preferred=[...new Set(preferred)];
- const output=[],seen=new Set(),diagnostics=[];
- for(const slug of preferred){
-  try{
-   const teamsData=await api("espn/"+slug+"/teams?limit=500");
-   const candidates=[];
-   const walk=(node,depth=0)=>{
-    if(!node||typeof node!=="object"||depth>10)return;
-    if(Array.isArray(node)){node.forEach(x=>walk(x,depth+1));return;}
-    if(node.team&&typeof node.team==="object"){
-     const t=node.team;
-     if(t.id&&(t.displayName||t.name))candidates.push(t);
-    }
-    if(node.id&&(node.displayName||node.name)&&(node.abbreviation||node.uid||node.links||node.type))candidates.push(node);
-    Object.values(node).forEach(v=>walk(v,depth+1));
-   };
-   walk(teamsData);
-   const teamMap=new Map(candidates.map(t=>[String(t.id),t]));
-   const espnTeam=[...teamMap.values()].find(t=>
-    matchesName(t.displayName||t.name)||matchesName(t.shortDisplayName)||matchesName(t.abbreviation)
-   );
-   if(!espnTeam){diagnostics.push(slug+": takım listesinde yok");continue;}
-   const scheduleData=await api("espn/"+slug+"/teams/"+encodeURIComponent(espnTeam.id)+"/schedule");
-   const events=Array.isArray(scheduleData.events)?scheduleData.events:
-    Array.isArray(scheduleData.schedule)?scheduleData.schedule:
-    Array.isArray(scheduleData.items)?scheduleData.items:[];
-   let added=0;
-   for(const event of events){
-    const competition=(event.competitions||[])[0]||event;
-    const competitors=competition.competitors||[];
-    const home=competitors.find(x=>x.homeAway==="home")||competitors[0];
-    const away=competitors.find(x=>x.homeAway==="away")||competitors[1];
-    if(!home||!away)continue;
-    const state=String(event.status?.type?.state||competition.status?.type?.state||"").toLowerCase();
-    const completed=event.status?.type?.completed===true||competition.status?.type?.completed===true||state==="post";
-    if(!completed)continue;
-    const date=String(event.date||competition.date||"").slice(0,10);
-    if(!date||date>=matchDate)continue;
-    const homeName=home.team?.displayName||home.team?.name||home.displayName||home.name||"";
-    const awayName=away.team?.displayName||away.team?.name||away.displayName||away.name||"";
-    const isHome=matchesName(homeName),isAway=matchesName(awayName);
-    if(isHome===isAway)continue;
-    const homeScoreText=String(home.score??"").replace(/[^0-9-]/g,"");
-    const awayScoreText=String(away.score??"").replace(/[^0-9-]/g,"");
-    if(!homeScoreText||!awayScoreText)continue;
-    const homeGoals=Number(homeScoreText),awayGoals=Number(awayScoreText);
-    if(!Number.isFinite(homeGoals)||!Number.isFinite(awayGoals))continue;
-    const id=[date,normalize(homeName),normalize(awayName),homeGoals,awayGoals].join("|");
-    if(seen.has(id))continue;
-    seen.add(id);
-    output.push({
-     fixture:{id:"espn-national-"+(event.id||id),date:date+"T12:00:00Z",status:{short:"FT"}},
-     teams:{home:{id:isHome?Number(teamId):-1,name:homeName},away:{id:isAway?Number(teamId):-1,name:awayName}},
-     goals:{home:homeGoals,away:awayGoals},
-     score:{halftime:{home:null,away:null}},
-     statistics:{}
-    });
-    added++;
-   }
-   diagnostics.push(slug+": "+added+" geçmiş maç");
-  }catch(e){
-   diagnostics.push(slug+": "+String(e.message||e));
-  }
- }
- output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
- const result=output.slice(0,20);
- if(!result.length)throw new Error(teamName+" için ESPN geçmiş fikstüründe tamamlanmış maç bulunamadı. Denenen kaynaklar: "+diagnostics.join(" | "));
- try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:result}));}catch(e){}
- return result;
-}
-
 /* GEÇMİŞ MAÇLAR */
-async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, leagueName){
-  const key=(String(leagueId)==="39"?"mam_history_v16_":"mam_history_v19_")+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
+  const key="mam_history_v16_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached){
     try{
@@ -658,34 +554,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     seen.add(id);output.push(m);
   };
 
-  // Önce Cloudflare KV günlük arşivini kullan. API-Football ve Football-data
-  // kimlikleri farklı olabileceği için hedef takımın ID'sini burada eşleştir.
-  try{
-    const archive=await api("archive/team?"+qs({name:teamName}));
-    const archived=Array.isArray(archive.response)?archive.response:[];
-    for(const item of archived){
-      const homeName=item.teams?.home?.name||"";
-      const awayName=item.teams?.away?.name||"";
-      const homeTarget=isTarget(homeName),awayTarget=isTarget(awayName);
-      if(homeTarget===awayTarget)continue;
-      const date=String(item.fixture?.date||"").slice(0,10);
-      if(!date||date>=matchDate)continue;
-      const gh=item.goals?.home,ga=item.goals?.away;
-      if(gh===null||gh===undefined||ga===null||ga===undefined)continue;
-      const normalized={
-        ...item,
-        fixture:{...item.fixture,date:item.fixture.date,status:item.fixture.status||{short:"FT"}},
-        teams:{
-          home:{...item.teams.home,id:homeTarget?Number(teamId):-1},
-          away:{...item.teams.away,id:awayTarget?Number(teamId):-1}
-        }
-      };
-      addMatch(normalized);
-    }
-  }catch(archiveError){
-    sourceError="Cloudflare KV arşivi: "+String(archiveError.message||archiveError);
-  }
-
   const leagues={
     "39":"ENG_1_premier-league","140":"ESP_1_la-liga","78":"GER_1_bundesliga",
     "135":"ITA_1_serie-a","61":"FRA_1_ligue-1","2":"UEFA_1_champions-league",
@@ -719,14 +587,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   };
 
   const folder=leagues[String(leagueId)];
-  const nationalKey=(String(leagueId)+" "+String(leagueName||"")).toLowerCase();
-  const isNationalCompetition=["5","10"].includes(String(leagueId))||/(?:fifa|international)[_ .-]?friendlies?|uefa[_ .-]?nations(?:[_ .-]?league)?|nations[_ .-]?league|world[_ .-]?cup|qualification|qualifier|africa[_ .-]?cup|u23|u-23/.test(nationalKey);
-  if(isNationalCompetition){
-    try{
-      const nationalMatches=await getESPNNationalHistory(teamId,teamName,matchDate,leagueId,leagueName);
-      output.push(...nationalMatches);
-    }catch(e){sourceError="ESPN milli takım geçmişi: "+String(e.message||e);}
-  }else if(folder){
+  if(folder){
     const path="data/"+folder+"/results_2627.csv";
     const urls=[
       new URL("./"+path,window.location.href).href,
@@ -765,32 +626,20 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       }
     }
     if(!output.length&&!sourceError)sourceError="Dosya açıldı ancak "+teamName+" için "+matchDate+" öncesinde eşleşen tamamlanmış maç bulunamadı.";
-  }else if(!isNationalCompetition){
+  }else{
     sourceError="Bu lig için Open Matchday arşiv eşlemesi henüz tanımlı değil (lig kodu: "+leagueId+").";
   }
 
-  // Provider IDs are not interchangeable. Resolve the team by name in API-Football
-  // before requesting its recent completed fixtures; never pass an ESPN team ID here.
-  if(!output.length&&!isNationalCompetition){
+  // ESPN event/team IDs are not API-Football IDs. Never mix the providers' identifiers.
+  if(!output.length&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))){
     try{
-      const apiSearchName=String(teamName||"")
-        .replace(/[ıİ]/g,"i").replace(/[ğĞ]/g,"g").replace(/[üÜ]/g,"u")
-        .replace(/[şŞ]/g,"s").replace(/[öÖ]/g,"o").replace(/[çÇ]/g,"c")
-        .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-        .replace(/[^a-zA-Z0-9 ]/g," ").replace(/\s+/g," ").trim();
-      const search=await api("teams?"+qs({search:apiSearchName}));
-      const candidates=(search.response||[]).map(x=>x.team).filter(Boolean);
-      const exact=candidates.find(t=>normalize(t.name)===wanted);
-      const team=exact||candidates[0];
-      if(!team?.id)throw new Error("API-Football takım aramasında eşleşme bulunamadı.");
-      const data=await api("fixtures?"+qs({team:team.id,last:20,status:"FT",timezone:"Europe/Istanbul"}));
+      const data=await api("fixtures?"+qs({team:teamId,last:20,status:"FT",timezone:"Europe/Istanbul"}));
       const cutoff=new Date(matchDate+"T00:00:00");
       for(const m of data.response||[]){
         if(!m.fixture?.date||new Date(m.fixture.date)>=cutoff)continue;
         addMatch(m);
       }
-      if(!output.length)sourceError+=" API-Football ("+team.name+"): geçmiş tarih/plan kısıtı nedeniyle tamamlanmış maç bulunamadı.";
-    }catch(e){sourceError+=" API-Football takım adına göre arama: "+String(e.message||e);}
+    }catch(e){sourceError+=" API-Football: "+String(e.message||e);}
   }
 
   output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
@@ -990,27 +839,6 @@ async function getPlayerScoringCandidates(teamId,leagueId,matchDate,fixtureId){
  };
 }
 
-function teamForm(matches,teamId){
- const rows=(Array.isArray(matches)?matches:[]).filter(m=>{
-  const h=Number(m.teams?.home?.id)===Number(teamId),a=Number(m.teams?.away?.id)===Number(teamId);
-  return (h||a)&&m.goals?.home!=null&&m.goals?.away!=null;
- }).sort((a,b)=>new Date(b.fixture?.date)-new Date(a.fixture?.date)).slice(0,10);
- return rows.map(m=>{
-  const home=Number(m.teams?.home?.id)===Number(teamId);
-  const gf=Number(home?m.goals.home:m.goals.away),ga=Number(home?m.goals.away:m.goals.home);
-  return {result:gf>ga?"G":gf<ga?"M":"B",gf,ga,date:m.fixture?.date};
- });
-}
-function h2hMatches(homeMatches,awayMatches,homeName,awayName){
- const norm=s=>String(s||"").normalize("NFD").toLowerCase().replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim().replace(/\\s+/g," ");
- const h=norm(homeName),a=norm(awayName),seen=new Set();
- return [...(homeMatches||[]),...(awayMatches||[])].filter(m=>{
-  const x=norm(m.teams?.home?.name),y=norm(m.teams?.away?.name);
-  if(!((x===h&&y===a)||(x===a&&y===h)))return false;
-  const key=[m.fixture?.date,x,y,m.goals?.home,m.goals?.away].join("|");
-  if(seen.has(key))return false;seen.add(key);return true;
- }).sort((x,y)=>new Date(y.fixture?.date)-new Date(x.fixture?.date)).slice(0,10);
-}
 function topScores(lh,la){
  const out=[];
  for(let h=0;h<=7;h++)for(let a=0;a<=7;a++){
@@ -1035,28 +863,17 @@ async function analyze(button){
   const date=button.dataset.date;
   if(!homeId||!awayId||!date)throw new Error("Maç bilgileri eksik. Fikstürü yeniden yükle.");
 
-  const homeMatches=await getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id,button.dataset.leagueName);
+  const homeMatches=await getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id);
   target.textContent="İkinci takımın geçmiş maçları alınıyor...";
   await wait(250);
-  const awayMatches=await getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id,button.dataset.leagueName);
+  const awayMatches=await getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id);
 
-  const nationalMatch=["5","10"].includes(String(button.dataset.league))||/(nations league|international friendly|world cup|qualification|qualifier|africa cup|u23|u-23)/i.test(button.dataset.leagueName||"");
-  const hs=teamStats(homeMatches,homeId,nationalMatch?"all":"home");
-  const as=teamStats(awayMatches,awayId,nationalMatch?"all":"away");
-  const isPremierLeague=String(button.dataset.league)==="39";
-  const minimumHistory=isPremierLeague?1:3;
-  if(hs.count<minimumHistory||as.count<minimumHistory){
-   throw new Error("Analiz durduruldu: doğrulanmış geçmiş veri yetersiz. "+button.dataset.homeName+": "+hs.count+" maç; "+button.dataset.awayName+": "+as.count+" maç. "+(isPremierLeague?"Premier League mevcut çalışma düzeni korunuyor.":"Bu ligde tahmin üretmek için her takımda en az 3 doğrulanmış geçmiş maç gerekiyor. Veri kaynağı/eşleşmesi tamamlanmalı."));
+  const hs=teamStats(homeMatches,homeId,"home");
+  const as=teamStats(awayMatches,awayId,"away");
+  if(hs.count<1||as.count<1){
+   throw new Error("Geçmiş veri yetersiz. "+button.dataset.homeName+": "+hs.count+" maç; "+button.dataset.awayName+": "+as.count+" maç. Kaynak eşleşmesini kontrol et.");
   }
-  const lowSample = isPremierLeague ? (hs.count<3 || as.count<3) : (hs.count<5 || as.count<5);
-  const sampleTarget=20;
-  const sampleCoverage=Math.min(1,hs.count/sampleTarget,as.count/sampleTarget);
-  const dataGrade=sampleCoverage>=0.9&&hs.halfCount>=10&&as.halfCount>=10
-    ?"Güçlü veri kapsamı"
-    :sampleCoverage>=0.5
-      ?"Orta veri kapsamı"
-      :"Sınırlı veri kapsamı";
-  const dataGradeNote="Bu etiket veri miktarını gösterir; modelin kazanma başarısını veya bahis güvenini garanti etmez.";
+  const lowSample = hs.count<3 || as.count<3;
 
   const lh=Math.max(.15,Math.min(4,(hs.gf+as.ga)/2));
   const la=Math.max(.15,Math.min(4,(as.gf+hs.ga)/2));
@@ -1110,13 +927,6 @@ async function analyze(button){
   }catch(playerError){
    playerDataNote=String(playerError.message||playerError);
   }
-  const homeForm=teamForm(homeMatches,homeId);
-  const awayForm=teamForm(awayMatches,awayId);
-  const h2h=h2hMatches(homeMatches,awayMatches,homeName,awayName);
-  const formHTML=(name,form)=>'<div class="stat"><span>'+esc(name)+' · Son '+form.length+' maç</span><b style="font-size:15px;letter-spacing:3px">'+(form.length?form.map(x=>x.result).join(" "):"Veri yok")+'</b><small class="small">G: Galibiyet · B: Beraberlik · M: Mağlubiyet</small></div>';
-  const h2hHTML=h2h.length?h2h.map(m=>'<div class="scoreline"><span>'+esc(new Date(m.fixture.date).toLocaleDateString("tr-TR"))+' · '+esc(m.teams.home.name)+' - '+esc(m.teams.away.name)+'</span><b>'+esc(m.goals.home)+' - '+esc(m.goals.away)+'</b></div>').join(""):'<p class="note">Bu iki takım arasında arşivde doğrulanmış geçmiş karşılaşma bulunamadı.</p>';
-  const hasCornerData=optionalMetric(homeMatches,homeId,"corners","all").count+optionalMetric(awayMatches,awayId,"corners","all").count>0;
-
   const venue=v=>v==="home"?"iç saha":v==="away"?"deplasman":"son maçlar";
   const scores=topScores(lh,la);
 
@@ -1139,20 +949,7 @@ async function analyze(button){
     <div class="stat"><span>${esc(awayName)} gol ortalaması</span><b>${as.gf.toFixed(2)}</b></div>
     <div class="stat"><span>${esc(awayName)} yediği gol</span><b>${as.ga.toFixed(2)}</b></div>
    </div>
-   <p class="note">${esc(homeName)}: ${hs.count}/${sampleTarget} maç (${venue(hs.venue)}) · ${esc(awayName)}: ${as.count}/${sampleTarget} maç (${venue(as.venue)})</p>
-   <div class="section-title">📈 Son maç formu</div>
-   <div class="statgrid">${formHTML(homeName,homeForm)}${formHTML(awayName,awayForm)}</div>
-   <div class="section-title">🤝 İkili rekabet (H2H)</div>
-   ${h2hHTML}
-   <div class="section-title">🚩 Korner verisi</div>
-   <p class="note">${hasCornerData?"Arşivde korner istatistiği bulunan maçlar kullanılabilir.":"Bu veri kaynağında geçmiş korner sayıları bulunmadığından korner tahmini üretilmedi."}</p>
-   <div class="section-title">🧪 Veri yeterliliği</div>
-   <div class="statgrid">
-    <div class="stat"><span>Veri kapsamı</span><b>${Math.round(sampleCoverage*100)}%</b></div>
-    <div class="stat"><span>Değerlendirme</span><b>${dataGrade}</b></div>
-    <div class="stat"><span>İlk yarı skoru</span><b>${hs.halfCount} / ${as.halfCount}</b></div>
-   </div>
-   <p class="note">${dataGradeNote} 20 maçın altında kalan örneklem, daha temkinli yorumlanmalıdır.</p>
+   <p class="note">${esc(homeName)}: ${hs.count} maç (${venue(hs.venue)}) · ${esc(awayName)}: ${as.count} maç (${venue(as.venue)})</p>
    ${lowSample?'<p class="note">⚠️ Uyarı: Takımlardan en az birinde 3 maçtan az geçmiş veri var. Tahmin düşük örneklem nedeniyle daha az güvenilirdir.</p>':''}
    <div class="section-title">Maç sonucu olasılıkları</div>
    ${probHTML("1 - Ev sahibi kazanır",win)}
