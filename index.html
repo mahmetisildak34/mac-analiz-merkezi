@@ -1434,33 +1434,34 @@ async function loadLiveStats(button){
   if(source==="espn"){
    if(!/^\d+$/.test(fixtureId)||!leagueSlug)throw new Error("ESPN maç bilgisi eksik.");
    payload=await api("espn/"+leagueSlug+"/summary?"+qs({event:fixtureId}));
-   const teams=Array.isArray(payload.boxscore?.teams)?payload.boxscore.teams:[];
-   const home=teams.find(x=>x.homeAway==="home"),away=teams.find(x=>x.homeAway==="away");
-   if(!home||!away)throw new Error("ESPN bu maç için henüz takım istatistiği paylaşmıyor.");
-   homeTeam=home.team?.displayName||"Ev sahibi";
-   awayTeam=away.team?.displayName||"Deplasman";
    const normalize=value=>String(value||"").toLowerCase().replace(/[^a-z0-9]/g,"");
    const labelFor=name=>{
     const k=normalize(name);
     if(k==="xg"||k.includes("expectedgoals")||k.includes("expectedgoal"))return "Gerçek xG";
     if(k.includes("possession"))return "Topla oynama";
-    if(k.includes("shotsontarget")||k.includes("shotsongoal"))return "İsabetli şut";
-    if(k.includes("shotsofftarget")||k.includes("shotsoffgoal"))return "İsabetsiz şut";
-    if(k.includes("totalshots")||k==="shots")return "Toplam şut";
-    if(k.includes("blockedshots"))return "Engellenen şut";
+    if(k.includes("shotsontarget")||k.includes("shotsongoal")||k==="ontarget")return "İsabetli şut";
+    if(k.includes("shotsofftarget")||k.includes("shotsoffgoal")||k==="offtarget")return "İsabetsiz şut";
+    if(k.includes("totalshots")||k==="shots"||k==="totalshot")return "Toplam şut";
+    if(k.includes("blockedshots")||k==="shotsblocked")return "Engellenen şut";
     if(k.includes("corner"))return "Korner";
     if(k.includes("foul"))return "Faul";
     if(k.includes("offside"))return "Ofsayt";
-    if(k.includes("yellowcard"))return "Sarı kart";
+    if(k.includes("yellowcard")||k==="cardsgiven")return "Sarı kart";
     if(k.includes("redcard"))return "Kırmızı kart";
     if(k.includes("save"))return "Kurtarış";
     if(k.includes("pass"))return "Pas";
     return null;
    };
+   const candidates=[
+    ...(Array.isArray(payload.boxscore?.teams)?payload.boxscore.teams:[]),
+    ...(Array.isArray(payload.header?.competitions?.[0]?.competitors)?payload.header.competitions[0].competitors:[]),
+    ...(Array.isArray(payload.competitions?.[0]?.competitors)?payload.competitions[0].competitors:[])
+   ];
+   let home=candidates.find(x=>x.homeAway==="home"),away=candidates.find(x=>x.homeAway==="away");
    const mapStats=team=>{
     const map={};
-    for(const stat of (team.statistics||[])){
-     const label=labelFor(stat.name||stat.label);
+    for(const stat of (team?.statistics||[])){
+     const label=labelFor(stat.name||stat.label||stat.abbreviation);
      if(label){
       let value=stat.displayValue??stat.value??"—";
       if(label==="Topla oynama"&&value!=="—"){
@@ -1472,9 +1473,24 @@ async function loadLiveStats(button){
     }
     return map;
    };
-   const h=mapStats(home),a=mapStats(away);
+   let h=mapStats(home),a=mapStats(away);
+   // Bazı ESPN futbol karşılaşmalarında istatistikler summary yerine scoreboard event'inde bulunur.
+   if(!Object.keys(h).length&&!Object.keys(a).length){
+    const date=String(button.dataset.liveDate||"").replace(/-/g,"").slice(0,8);
+    if(/^\d{8}$/.test(date)){
+     const board=await api("espn/"+leagueSlug+"/scoreboard?"+qs({dates:date,limit:500}));
+     const event=(board.events||[]).find(ev=>String(ev.id)===fixtureId);
+     const competitors=event?.competitions?.[0]?.competitors||[];
+     home=competitors.find(x=>x.homeAway==="home")||home;
+     away=competitors.find(x=>x.homeAway==="away")||away;
+     h=mapStats(home);a=mapStats(away);
+    }
+   }
+   homeTeam=home?.team?.displayName||button.dataset.liveHomeName||"Ev sahibi";
+   awayTeam=away?.team?.displayName||button.dataset.liveAwayName||"Deplasman";
    const labels=[...new Set([...Object.keys(h),...Object.keys(a)])];
    statsRows=labels.map(label=>[label,h[label]??"—",a[label]??"—"]);
+   if(!statsRows.length)throw new Error("ESPN bu maç için henüz canlı takım istatistiği yayınlamıyor. Skor ve dakika akışı ayrı kaynaktan geliyor.");
    sourceLabel=payload?._mamStale?"ESPN · son başarılı kayıt":"ESPN";
   }else{
    if(!/^\d+$/.test(fixtureId))throw new Error("API-Football maç kimliği geçersiz.");
