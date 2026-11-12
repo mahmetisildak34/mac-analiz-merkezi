@@ -1142,6 +1142,15 @@ async function loadLineups(button){
  panel.innerHTML='<div class="lineup-empty">Gerçek kadro bilgileri yükleniyor…</div>';button.disabled=true;
  try{
   let teams=[],playerRows=[],isEspn=fixtureId.startsWith("espn-");
+  let leagueSlug=String(button.dataset.espnLeague||"");
+  if(!leagueSlug){
+   const leagueName=String(button.dataset.leagueName||"").toLowerCase();
+   if(leagueName.includes("nations league"))leagueSlug="uefa.nations";
+   else if(leagueName.includes("champions league"))leagueSlug="uefa.champions";
+   else if(leagueName.includes("europa league"))leagueSlug="uefa.europa";
+   else if(leagueName.includes("conference league"))leagueSlug="uefa.europa.conf";
+   else if(leagueName.includes("friendly"))leagueSlug="fifa.friendly";
+  }
   if(isEspn){
    const match=fixtureId.match(/^espn-[a-z0-9.]+-(\d+)$/),eventId=match?.[1],leagueSlug=String(button.dataset.espnLeague||"");
    if(!eventId||!leagueSlug)throw new Error("ESPN maç kimliği veya lig bilgisi eksik.");
@@ -1186,15 +1195,59 @@ async function loadLineups(button){
    teams.sort((a,b)=>Number(b.team.name.toLowerCase()===homeName)-Number(a.team.name.toLowerCase()===homeName));
   }else{
    if(!/^\d+$/.test(fixtureId))throw new Error("Bu maç için tanınan bir veri kaynağı bulunamadı.");
-   const payload=await api("fixtures?"+qs({id:fixtureId})),fixture=(payload.response||[])[0]||{};
-   teams=Array.isArray(fixture.lineups)?fixture.lineups:[];
-   playerRows=Array.isArray(fixture.players)?fixture.players:[];
-   if(!teams.length){const lineups=await api("fixtures/lineups?"+qs({fixture:fixtureId}));teams=lineups.response||[];}
-   if(!playerRows.length&&!["NS","TBD","PST"].includes(String(fixture.fixture?.status?.short||""))){
-    try{const playerData=await api("fixtures/players?"+qs({fixture:fixtureId}));playerRows=playerData.response||[];}catch(e){}
+   try{
+    const payload=await api("fixtures?"+qs({id:fixtureId})),fixture=(payload.response||[])[0]||{};
+    teams=Array.isArray(fixture.lineups)?fixture.lineups:[];
+    playerRows=Array.isArray(fixture.players)?fixture.players:[];
+    if(!teams.length){const lineups=await api("fixtures/lineups?"+qs({fixture:fixtureId}));teams=lineups.response||[];}
+    if(!playerRows.length&&!["NS","TBD","PST"].includes(String(fixture.fixture?.status?.short||""))){
+     try{const playerData=await api("fixtures/players?"+qs({fixture:fixtureId}));playerRows=playerData.response||[];}catch(e){}
+    }
+    const homeId=String(button.dataset.home||"");
+    teams.sort((a,b)=>Number(String(b.team?.id)===homeId)-Number(String(a.team?.id)===homeId));
+   }catch(primaryLineupError){
+    const rateLimited=/rate.?limit|too many requests|request limit|requests limit|quota/i.test(String(primaryLineupError.message||primaryLineupError));
+    if(!rateLimited||!leagueSlug)throw primaryLineupError;
+    const matchDate=String(button.dataset.date||"").replace(/-/g,"").slice(0,8);
+    if(!/^\d{8}$/.test(matchDate))throw primaryLineupError;
+    const scoreboard=await api("espn/"+leagueSlug+"/scoreboard?"+qs({dates:matchDate,limit:500}));
+    const cleanName=name=>String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+    const equivalent=(a,b)=>{
+     const x=cleanName(a),y=cleanName(b);
+     if(x===y)return true;
+     const aliases={turkiye:["turkey"],turkey:["turkiye"],belcika:["belgium"],belgium:["belcika"],czechia:["czechrepublic"],czechrepublic:["czechia"]};
+     return (aliases[x]||[]).includes(y)||(aliases[y]||[]).includes(x);
+    };
+    const homeName=String(button.dataset.homeName||""),awayName=String(button.dataset.awayName||"");
+    const event=(scoreboard.events||[]).find(item=>{
+     const competitors=(item.competitions||[])[0]?.competitors||[];
+     const home=competitors.find(x=>x.homeAway==="home"),away=competitors.find(x=>x.homeAway==="away");
+     return home&&away&&equivalent(home.team?.displayName||home.team?.name,homeName)&&equivalent(away.team?.displayName||away.team?.name,awayName);
+    });
+    if(!event?.id)throw new Error("API-Football kotası dolu. ESPN'de bu tarih ve takımlarla eşleşen maç bulunamadı; yanlış kadro göstermemek için durduruldu.");
+    const summary=await api("espn/"+leagueSlug+"/summary?"+qs({event:String(event.id)}));
+    const rosters=Array.isArray(summary.rosters)?summary.rosters:[];
+    const forms=Array.isArray(summary.boxscore?.form)?summary.boxscore.form:[];
+    const competitors=summary.header?.competitions?.[0]?.competitors||[];
+    teams=rosters.map(roster=>{
+     const rosterId=String(roster.team?.id||"");
+     const formTeam=forms.find(x=>String(x.team?.id||"")===rosterId)?.team;
+     const competitor=competitors.find(x=>String(x.team?.id||"")===rosterId)?.team;
+     const teamInfo=roster.team||formTeam||competitor||{};
+     const entries=Array.isArray(roster.roster)?roster.roster:[];
+     const players=entry=>{
+      const athlete=entry.athlete||{},pos=entry.position||athlete.position||{};
+      const position=String(pos.abbreviation||pos.name||"").toUpperCase();
+      const row=/^(GK|G|GOALKEEPER)$/.test(position)?1:/^(D|DF|DEF|DEFENDER|CB|LB|RB|WB)$/.test(position)?2:/^(M|MF|MID|MIDFIELDER|DM|CM|AM)$/.test(position)?3:/^(F|FW|FWD|FORWARD|ST|CF|LW|RW)$/.test(position)?4:3;
+      return {player:{id:athlete.id,source:"espn",name:athlete.displayName||athlete.fullName||athlete.shortName||"Oyuncu",number:athlete.jersey||entry.jersey||"",photo:athlete.headshot?.href||athlete.headshot||"",grid:row+":"+String(entry.formationPlace||"")}};
+     };
+     const starters=entries.filter(x=>x.starter===true).map(players),substitutes=entries.filter(x=>x.starter!==true).map(players);
+     return {team:{id:rosterId,name:teamInfo.displayName||teamInfo.name||""},formation:roster.formation||forms.find(x=>String(x.team?.id||"")===rosterId)?.formation||"",startXI:starters,substitutes};
+    }).filter(team=>team.team.name&&(team.startXI.length||team.substitutes.length));
+    if(!teams.some(team=>equivalent(team.team.name,homeName)))throw new Error("ESPN kadrosu bulundu ancak ev sahibi takım eşleşmesi doğrulanamadı.");
+    teams.sort((a,b)=>Number(equivalent(b.team.name,homeName))-Number(equivalent(a.team.name,homeName)));
+    isEspn=true;
    }
-   const homeId=String(button.dataset.home||"");
-   teams.sort((a,b)=>Number(String(b.team?.id)===homeId)-Number(String(a.team?.id)===homeId));
   }
   if(!teams.length){
    panel.innerHTML='<div class="lineup-empty"><b>Resmî kadro henüz açıklanmadı veya veri sağlayıcı paylaşmıyor.</b><br>Bir süre sonra tekrar kontrol edebilirsin.</div>';
@@ -1255,7 +1308,7 @@ function renderMatches(){
    </div>
 
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9.]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9.]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
-   <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-date="${esc(f.date?.slice(0,10))}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
+   <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-date="${esc(f.date?.slice(0,10))}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
