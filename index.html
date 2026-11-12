@@ -494,7 +494,7 @@ function renderMatches(){
 
 /* MİLLİ TAKIM GEÇMİŞİ — kulüp ligi arşivinden bağımsız ESPN kaynağı */
 async function getESPNNationalHistory(teamId,teamName,matchDate,leagueId,leagueName){
- const cacheKey="mam_national_history_v3_"+String(teamName).toLowerCase()+"_"+matchDate.slice(0,4);
+ const cacheKey="mam_national_history_v4_"+String(teamName).toLowerCase()+"_"+matchDate.slice(0,4);
  try{
   const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");
   if(saved&&saved.time&&Date.now()-saved.time<CACHE_HOURS*60*60*1000&&Array.isArray(saved.matches)&&saved.matches.length)return saved.matches;
@@ -770,12 +770,17 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // Provider IDs are not interchangeable. Resolve the team by name in API-Football
   // before requesting its recent completed fixtures; never pass an ESPN team ID here.
-  if(!output.length){
+  if(!output.length&&!isNationalCompetition){
     try{
-      const search=await api("teams?"+qs({search:teamName}));
+      const apiSearchName=String(teamName||"")
+        .replace(/[ıİ]/g,"i").replace(/[ğĞ]/g,"g").replace(/[üÜ]/g,"u")
+        .replace(/[şŞ]/g,"s").replace(/[öÖ]/g,"o").replace(/[çÇ]/g,"c")
+        .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+        .replace(/[^a-zA-Z0-9 ]/g," ").replace(/\s+/g," ").trim();
+      const search=await api("teams?"+qs({search:apiSearchName}));
       const candidates=(search.response||[]).map(x=>x.team).filter(Boolean);
       const exact=candidates.find(t=>normalize(t.name)===wanted);
-      const team=candidates.find(t=>normalize(t.name)===wanted)||candidates[0];
+      const team=exact||candidates[0];
       if(!team?.id)throw new Error("API-Football takım aramasında eşleşme bulunamadı.");
       const data=await api("fixtures?"+qs({team:team.id,last:20,status:"FT",timezone:"Europe/Istanbul"}));
       const cutoff=new Date(matchDate+"T00:00:00");
@@ -783,7 +788,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         if(!m.fixture?.date||new Date(m.fixture.date)>=cutoff)continue;
         addMatch(m);
       }
-      if(!output.length)sourceError+=" API-Football ("+team.name+"): son 20 fikstürde tarih öncesi tamamlanmış maç bulunamadı.";
+      if(!output.length)sourceError+=" API-Football ("+team.name+"): geçmiş tarih/plan kısıtı nedeniyle tamamlanmış maç bulunamadı.";
     }catch(e){sourceError+=" API-Football takım adına göre arama: "+String(e.message||e);}
   }
 
