@@ -368,6 +368,31 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .analysis-card .scoreline b{color:#168344}
 @media(max-width:560px){.analysis-card{margin:12px 0;padding:15px 13px 13px;border-radius:16px}.analysis-card .section-title{font-size:14px;margin-bottom:12px}.analysis-card .stat{padding:11px}.analysis-card .stat b{font-size:19px}.analysis-card .prob{margin:12px 0 14px}}
 
+
+/* FIX: expanded analysis must switch from preview flex row to stacked blocks */
+#matches .analysis-preview:has(.analysis-card){
+ display:block!important;width:100%;min-width:0;box-sizing:border-box;
+ align-items:initial!important;overflow:visible;
+}
+#matches .analysis-preview:has(.analysis-card)>.analysis-card{
+ display:block!important;width:100%;max-width:100%;min-width:0;
+ margin:12px 0!important;box-sizing:border-box;
+}
+#matches .analysis-preview:has(.analysis-card) .statgrid{
+ display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ width:100%;min-width:0;
+}
+#matches .analysis-preview:has(.analysis-card) .stat,
+#matches .analysis-preview:has(.analysis-card) .prob,
+#matches .analysis-preview:has(.analysis-card) .scoreline{min-width:0;max-width:100%;box-sizing:border-box}
+#matches .analysis-preview:has(.analysis-card) .section-title{display:flex!important;white-space:normal}
+#matches .analysis-preview:has(.analysis-card) .probline{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#matches .analysis-preview:has(.analysis-card) .probline span{min-width:0;overflow-wrap:anywhere}
+@media(max-width:560px){
+ #matches .analysis-preview:has(.analysis-card) .statgrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #matches .analysis-preview:has(.analysis-card) .stat b{overflow-wrap:anywhere}
+}
+
 </style>
 </head>
 <body>
