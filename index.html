@@ -570,6 +570,7 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .match:not(.in-detail) .team-block strong{font-size:14px}
 .match:not(.in-detail) .match-clock{font-size:21px}
 .match-detail-overlay{position:fixed;inset:0;z-index:100100;background:#080f19;display:flex;flex-direction:column;overflow:auto;padding:calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 18px)}
+.match-detail-overlay[hidden]{display:none!important}
 .match-detail-top{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:12px;padding:8px 2px 13px;background:#080f19;color:#fff}
 .match-detail-top strong{font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .match-detail-close{width:42px;min-height:42px;padding:0;border-radius:50%;background:#1d2b3d;color:#fff;box-shadow:none;font-size:21px}
@@ -1869,16 +1870,19 @@ function ensureMamDetailOverlay(){
  return mamDetailOverlay;
 }
 function closeMamMatchDetail(){
- if(!mamActiveMatch||!mamActivePlaceholder)return;
- mamActivePlaceholder.parentNode.insertBefore(mamActiveMatch,mamActivePlaceholder);
- mamActivePlaceholder.remove();
- mamActiveMatch.classList.remove("in-detail");
+ if(!mamActiveMatch)return;
+ const article=mamActiveMatch,placeholder=mamActivePlaceholder;
+ if(placeholder?.parentNode){placeholder.parentNode.insertBefore(article,placeholder);placeholder.remove();}
+ else{$("matches")?.appendChild(article);}
+ article.classList.remove("in-detail");
  mamActiveMatch=null;mamActivePlaceholder=null;
  if(mamDetailOverlay){mamDetailOverlay.hidden=true;mamDetailOverlay.querySelector(".match-detail-body").innerHTML="";}
  document.body.style.overflow="";
+ if(history.state?.mamMatchDetail)history.back();
 }
 function openMamMatchDetail(article){
  if(!article||mamActiveMatch)return;
+ makeMamDetailTab(article);
  const overlay=ensureMamDetailOverlay(),body=overlay.querySelector(".match-detail-body");
  mamActivePlaceholder=document.createComment("match-card-position");
  article.parentNode.insertBefore(mamActivePlaceholder,article);
@@ -1889,7 +1893,8 @@ function openMamMatchDetail(article){
  const away=article.querySelector(".team-block:last-child strong")?.textContent||"Deplasman";
  overlay.querySelector(".match-detail-top strong").textContent=home+" – "+away;
  overlay.hidden=false;document.body.style.overflow="hidden";
- const first=article.querySelector(".match-detail-tab");
+ try{history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
+ const first=article.querySelector('.match-detail-tab[data-pane="analysis"]')||article.querySelector(".match-detail-tab");
  if(first)first.click();
 }
 function makeMamDetailTab(article){
@@ -1987,6 +1992,7 @@ async function loadMamMatchForm(button){
  }finally{button.disabled=false;}
 }
 document.addEventListener("keydown",event=>{if(event.key==="Escape"&&mamActiveMatch)closeMamMatchDetail();});
+window.addEventListener("popstate",()=>{if(mamActiveMatch)closeMamMatchDetail();});
 
 let mamScreenMode="home";
 function setMamScreen(mode){
