@@ -2418,7 +2418,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   if(String(leagueId)==="203"){
     try{await ensureSuperLigArchive();}catch(e){/* CSV and ESPN remain available if bulk archive is unavailable. */}
   }
-  const key="mam_history_v32_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v33_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
