@@ -305,11 +305,8 @@ async function espnFixtures(date){
  if(!targets.length)return [];
  const espnDate=String(date).replace(/-/g,"");
  const results=await Promise.allSettled(targets.map(async([leagueId,league])=>{
-  const url="https://site.api.espn.com/apis/site/v2/sports/soccer/"+
-   league.slug+"/scoreboard?dates="+encodeURIComponent(espnDate)+"&limit=500";
-  const response=await fetch(url,{headers:{Accept:"application/json"}});
-  if(!response.ok)throw new Error(league.name+" ESPN HTTP "+response.status);
-  const payload=await response.json();
+  // ESPN isteği tarayıcıdan doğrudan değil, CORS izinli Cloudflare Worker üzerinden gider.
+  const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:espnDate,limit:500}));
   const events=Array.isArray(payload.events)?payload.events:[];
   return events.map(event=>{
    const competition=(event.competitions||[])[0]||{};
@@ -343,8 +340,8 @@ async function espnFixtures(date){
  }));
  const matches=results.flatMap(result=>result.status==="fulfilled"?result.value:[]);
  const failures=results.filter(result=>result.status==="rejected");
- if(!matches.length&&failures.length===targets.length){
-  throw new Error("ESPN maç verisi alınamadı: "+failures.map(x=>String(x.reason?.message||x.reason)).join("; "));
+ if(!matches.length&&failures.length){
+  throw new Error("ESPN sonuçları: "+failures.map((x,index)=>targets[index]?.[1]?.name+": "+String(x.reason?.message||x.reason)).join(" | "));
  }
  return matches.sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
 }
@@ -373,24 +370,28 @@ async function loadMatches(){
    $("status").textContent="API-Football kotası/tarih erişimi kullanılamıyor. ESPN büyük lig fikstürleri deneniyor...";
    let alternative=[];
    let alternativeSource="";
+   let espnFailure="ESPN bu tarih için maç döndürmedi.";
+   let footballDataFailure="Football-data.org bu tarih için maç döndürmedi.";
    try{
     alternative=await espnFixtures(date);
     if(alternative.length)alternativeSource="ESPN";
    }catch(espnError){
+    espnFailure=String(espnError.message||espnError);
     console.warn("ESPN fikstürü alınamadı:",espnError);
    }
    if(!alternative.length){
-    $("status").textContent="ESPN'de maç bulunamadı. Football-data.org yedek kaynağı deneniyor...";
+    $("status").textContent="ESPN sonuç vermedi. Football-data.org yedek kaynağı deneniyor...";
     try{
      alternative=await footballDataFixtures(date);
      if(alternative.length)alternativeSource="Football-data.org";
     }catch(fallbackError){
+     footballDataFailure=String(fallbackError.message||fallbackError);
      console.warn("Football-data.org fikstürü alınamadı:",fallbackError);
     }
    }
    if(!alternative.length){
     allMatches=previousMatches;
-    throw new Error("API-Football kotası dolu. ESPN ve Football-data.org bu tarih/lig için maç döndürmedi. Önceki fikstür korunuyor.");
+    throw new Error("API-Football kotası dolu. "+espnFailure+" | "+footballDataFailure+" Önceki fikstür korunuyor.");
    }
    allMatches=alternative;
    source=alternativeSource+" (yedek kaynak)";
