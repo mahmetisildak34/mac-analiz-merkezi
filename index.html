@@ -688,7 +688,7 @@ async function api(path){
     }catch(networkError){
       // Ağ veya sağlayıcı hatasında en fazla 10 dakikalık son başarılı canlı istatistiği kullan.
       if(isLiveStats&&cachedEntry?.time&&cachedEntry.data&&Date.now()-cachedEntry.time<10*60*1000){
-        return cachedEntry.data;
+        return Object.assign({},cachedEntry.data,{_mamStale:true,_mamCachedAt:cachedEntry.time});
       }
       if(controller.signal.aborted){
         throw new Error((isPrimaryApi?"API-Football":"Yedek kaynak")+" isteği 15 saniyede yanıt vermedi (zaman aşımı).");
@@ -705,7 +705,7 @@ async function api(path){
     if(!response.ok||(data.errors&&Object.keys(data.errors).length)){
       // 429/kota hatasında boş ekran yerine en fazla 10 dakikalık son başarılı veri.
       if(isLiveStats&&cachedEntry?.time&&cachedEntry.data&&Date.now()-cachedEntry.time<10*60*1000){
-        return cachedEntry.data;
+        return Object.assign({},cachedEntry.data,{_mamStale:true,_mamCachedAt:cachedEntry.time});
       }
       if(/rate.?limit|too many requests|request limit|requests limit|quota/i.test(errorText)){
         const provider=isPrimaryApi?"API-Football":cleanPath.startsWith("espn/")?"ESPN":"Football-data.org";
@@ -1118,7 +1118,7 @@ async function loadLiveStats(button){
    const h=mapStats(home),a=mapStats(away);
    const labels=[...new Set([...Object.keys(h),...Object.keys(a)])];
    statsRows=labels.map(label=>[label,h[label]??"—",a[label]??"—"]);
-   sourceLabel="ESPN";
+   sourceLabel=payload?._mamStale?"ESPN · son başarılı kayıt":"ESPN";
   }else{
    if(!/^\d+$/.test(fixtureId))throw new Error("API-Football maç kimliği geçersiz.");
    let teams=[];
@@ -1136,7 +1136,7 @@ async function loadLiveStats(button){
      const vals=teams.slice(0,2).map(team=>(team.statistics||[]).find(x=>String(x.type||"").toLowerCase()===key.toLowerCase())?.value);
      return vals.every(v=>v===null||v===undefined||v==="")?null:[label,vals[0]??"—",vals[1]??"—"];
     }).filter(Boolean);
-    sourceLabel="API-Football";
+    sourceLabel=payload?._mamStale?"API-Football · son başarılı kayıt":"API-Football";
    }else{
     const leagueId=String(button.dataset.liveLeagueId||"");
     let slug=String(button.dataset.liveLeague||ESPN_LEAGUES[leagueId]?.slug||"");
