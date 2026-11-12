@@ -1128,9 +1128,21 @@ async function loadStandings(){
     leagueName=data.competition?.name||"Lig puan durumu";
     if(!rows.length)throw new Error("Football-data.org puan tablosu döndürmedi.");
    }catch(secondaryError){
-    const espnLeague=({"203":"tur.1"})[leagueId];
-    if(!espnLeague)throw secondaryError;
-    const url="https://site.api.espn.com/apis/v2/sports/soccer/"+espnLeague+"/standings?season="+season;
+    const espnLeague=({
+     "203":"tur.1","204":"tur.2",
+     "39":"eng.1","40":"eng.2","45":"eng.fa","48":"eng.league_cup",
+     "140":"esp.1","141":"esp.2","143":"esp.copa_del_rey",
+     "78":"ger.1","79":"ger.2","81":"ger.dfb_pokal",
+     "135":"ita.1","136":"ita.2","137":"ita.coppa_italia",
+     "61":"fra.1","62":"fra.2","66":"fra.coupe_de_france",
+     "88":"ned.1","94":"por.1","144":"bel.1","179":"sco.1",
+     "2":"uefa.champions","3":"uefa.europa","848":"uefa.europa.conf",
+     "1":"fifa.world","4":"uefa.euro","5":"uefa.nations",
+     "9":"conmebol.copa_america","6":"caf.nations",
+     "15":"fifa.cwc","307":"ksa.1","253":"usa.1",
+     "71":"bra.1","128":"arg.1"
+    })[leagueId];
+    if(!espnLeague)throw new Error("Bu organizasyon için etkin bir yedek puan tablosu kaynağı bulunamadı. API-Football: "+(primaryError.message||primaryError)+" | Football-data.org: "+(secondaryError.message||secondaryError));
     const data=await api("espn/"+espnLeague+"/standings?"+qs({season}));
     const entries=[];
     const collect=node=>{
@@ -1143,7 +1155,7 @@ async function loadStandings(){
      if(node.groups)collect(node.groups);
     };
     collect(data);
-    if(!entries.length)throw new Error("ESPN Süper Lig tablosu boş döndü.");
+    if(!entries.length)throw new Error("ESPN yedek kaynağı "+(standingCompetitionNames[leagueId]||"seçilen lig")+" için puan tablosu döndürmedi. Organizasyon sezonunda henüz puan tablosu oluşmamış olabilir.");
     const stat=(entry,names)=>{
      const found=entry.stats.find(x=>names.includes(String(x.name||x.abbreviation||"").toLowerCase()));
      return found?.value??found?.displayValue??0;
