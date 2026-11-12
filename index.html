@@ -597,7 +597,7 @@ async function getESPNNationalHistory(teamId,teamName,matchDate,leagueId,leagueN
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, leagueName){
-  const key=(String(leagueId)==="39"?"mam_history_v16_":"mam_history_v17_")+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key=(String(leagueId)==="39"?"mam_history_v16_":"mam_history_v18_")+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached){
     try{
@@ -642,6 +642,36 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize)]);
   const isTarget=name=>accepted.has(normalize(name));
   const output=[];
+  const seen=new Set();
+  let sourceError="";
+
+  // Önce Cloudflare KV günlük arşivini kullan. API-Football ve Football-data
+  // kimlikleri farklı olabileceği için hedef takımın ID'sini burada eşleştir.
+  try{
+    const archive=await api("archive/team?"+qs({name:teamName}));
+    const archived=Array.isArray(archive.response)?archive.response:[];
+    for(const item of archived){
+      const homeName=item.teams?.home?.name||"";
+      const awayName=item.teams?.away?.name||"";
+      const homeTarget=isTarget(homeName),awayTarget=isTarget(awayName);
+      if(homeTarget===awayTarget)continue;
+      const date=String(item.fixture?.date||"").slice(0,10);
+      if(!date||date>=matchDate)continue;
+      const gh=item.goals?.home,ga=item.goals?.away;
+      if(gh===null||gh===undefined||ga===null||ga===undefined)continue;
+      const normalized={
+        ...item,
+        fixture:{...item.fixture,date:item.fixture.date,status:item.fixture.status||{short:"FT"}},
+        teams:{
+          home:{...item.teams.home,id:homeTarget?Number(teamId):-1},
+          away:{...item.teams.away,id:awayTarget?Number(teamId):-1}
+        }
+      };
+      addMatch(normalized);
+    }
+  }catch(archiveError){
+    sourceError="Cloudflare KV arşivi: "+String(archiveError.message||archiveError);
+  }
   const seen=new Set();
   let sourceError="";
 
