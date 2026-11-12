@@ -1117,8 +1117,10 @@ function teamBadge(team){
 function lineupRatingClass(value){const n=Number(value);return Number.isFinite(n)&&n>=7.5?"good":Number.isFinite(n)&&n<6.5?"low":"";}
 function lineupPlayerCard(entry,ratingMap){
  const p=entry?.player||entry||{},id=Number(p.id),rating=ratingMap.get(String(id));
- const photo=p.photo||(id>0?"https://media.api-sports.io/football/players/"+id+".png":"");
- const image=photo?'<img src="'+esc(photo)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':"";
+ const isEspn=p.source==="espn";
+ const photo=p.photo||(isEspn&&id>0?"https://a.espncdn.com/i/headshots/soccer/players/full/"+id+".png":!isEspn&&id>0?"https://media.api-sports.io/football/players/"+id+".png":"");
+ const fallback=isEspn&&id>0?"https://a.espncdn.com/i/headshots/soccer/players/full/"+id+".png":"";
+ const image=photo?'<img src="'+esc(photo)+'" data-fallback="'+esc(fallback)+'" alt="'+esc(p.name||"Oyuncu")+'" loading="lazy" onerror="if(this.dataset.fallback&&this.src!==this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback=\'\';}else{this.style.display=\'none\';}">':"";
  const ratingHtml=rating!==undefined&&rating!==null&&rating!==""?'<span class="player-rating '+lineupRatingClass(rating)+'">'+esc(Number(rating).toFixed(1))+'</span>':'<span class="player-rating">—</span>';
  return '<div class="lineup-player">'+image+'<span class="shirt">'+esc(p.number??"")+'</span><span class="player-name" title="'+esc(p.name||"Oyuncu")+'">'+esc(p.name||"Oyuncu")+'</span>'+ratingHtml+'</div>';
 }
@@ -1157,7 +1159,7 @@ async function loadLineups(button){
      const position=String(pos.abbreviation||pos.name||"").toUpperCase();
      const row=/^(GK|G|GOALKEEPER)$/.test(position)?1:/^(D|DF|DEF|DEFENDER|CB|LB|RB|WB)$/.test(position)?2:/^(M|MF|MID|MIDFIELDER|DM|CM|AM)$/.test(position)?3:/^(F|FW|FWD|FORWARD|ST|W)$/.test(position)?4:3;
      const headshot=athlete.headshot?.href||athlete.headshot||"";
-     return {player:{id:athlete.id,name:athlete.displayName||athlete.fullName||athlete.shortName||"Oyuncu",number:athlete.jersey||entry.jersey||"",photo:headshot,grid:row+":"+String(entry.formationPlace||"")}};
+     return {player:{id:athlete.id,source:"espn",name:athlete.displayName||athlete.fullName||athlete.shortName||"Oyuncu",number:athlete.jersey||entry.jersey||"",photo:headshot,grid:row+":"+String(entry.formationPlace||"")}};
     };
     const starters=entries.filter(x=>x.starter===true).map(normalizePlayer);
     const substitutes=entries.filter(x=>x.starter!==true).map(normalizePlayer);
