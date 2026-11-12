@@ -660,7 +660,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // This also fills gaps when the CSV/KV archive contains fewer than 20 matches.
   if(String(sourceFixtureId||'').startsWith('espn-')&&/^\\d+$/.test(String(teamId))&&output.length<20){
     try{
-      const schedule=await api('espn/'+leagueId+'/teams/'+teamId+'/schedule');
+      const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)]?.slug||String(leagueId);
+      const schedule=await api('espn/'+espnLeagueSlug+'/teams/'+teamId+'/schedule');
       const events=Array.isArray(schedule.events)?schedule.events:[];
       for(const event of events){
         const competition=event.competitions?.[0];
