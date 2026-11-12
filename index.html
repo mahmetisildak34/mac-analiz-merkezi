@@ -612,7 +612,8 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .mam-history-match small{display:block;color:#829ca6;font-size:10px}
 .mam-history-score{text-align:center;white-space:nowrap;font-weight:850;color:#f1faf6;font-size:13px}
 .mam-history-score small{display:block;color:#8ea9b1;font-size:10px;font-weight:500}
-.mam-history-row .mam-form-result{justify-self:end}
+.mam-history-stats{display:block;margin-top:3px;color:var(--muted,#91a8b3);font-size:10px;line-height:1.35}
+ .mam-history-row .mam-form-result{justify-self:end}
 .mam-history-more{margin-top:10px;border-top:1px solid rgba(130,175,193,.14);padding-top:8px}
 .mam-history-more summary{color:#52ddb6;font-size:12px;font-weight:800;cursor:pointer;padding:7px 0}
 .mam-history-panel[hidden]{display:none!important}
@@ -2051,7 +2052,34 @@ async function loadMamMatchForm(button,forceRefresh=false){
    const date=m.fixture?.date?new Date(m.fixture.date).toLocaleDateString("tr-TR",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—";
    const competition=m.league?.name||m.competition?.name||m.tournament?.name||"Karşılaşma";
    const ht=m.score?.halftime,htText=ht&&ht.home!==null&&ht.home!==undefined&&ht.away!==null&&ht.away!==undefined?String(ht.home)+"–"+String(ht.away):"";
-   return '<div class="mam-history-row"><span class="mam-history-date">'+date+'</span><span class="mam-history-match"><small>'+esc(competition)+' · '+(side==="home"?"İç saha":"Deplasman")+'</small>'+esc(h.name||"Ev sahibi")+' – '+esc(a.name||"Deplasman")+'</span><span class="mam-history-score">'+(htText?'<small>İY '+esc(htText)+'</small>':"")+'<b>'+gh+' – '+ga+'</b></span><span class="mam-form-result '+cls+'">'+result+'</span></div>';
+   const statsFor=which=>{
+    const nested=m.statistics?.[which];
+    if(nested&&typeof nested==="object")return nested;
+    if(Array.isArray(m.statistics)){
+     const team=which==="home"?h:a;
+     const row=m.statistics.find(x=>String(x.team?.name||"").toLowerCase()===String(team.name||"").toLowerCase());
+     const out={};
+     for(const stat of (row?.statistics||[])){
+      const key=String(stat.type||"").toLowerCase(),val=stat.value;
+      if(val===null||val===undefined||val==="")continue;
+      if(key.includes("corner"))out.corners=val;
+      else if(key==="total shots")out.shots=val;
+      else if(key==="shots on goal"||key==="shots on target")out.shotsOnTarget=val;
+      else if(key==="yellow cards")out.yellowCards=val;
+      else if(key==="red cards")out.redCards=val;
+     }
+     return out;
+    }
+    return {};
+   };
+   const hs=statsFor("home"),as=statsFor("away"),parts=[];
+   if(hs.shots!==undefined&&as.shots!==undefined)parts.push("Şut "+hs.shots+"–"+as.shots);
+   if(hs.shotsOnTarget!==undefined&&as.shotsOnTarget!==undefined)parts.push("İsabetli "+hs.shotsOnTarget+"–"+as.shotsOnTarget);
+   if(hs.corners!==undefined&&as.corners!==undefined)parts.push("Korner "+hs.corners+"–"+as.corners);
+   if(hs.yellowCards!==undefined&&as.yellowCards!==undefined)parts.push("Sarı "+hs.yellowCards+"–"+as.yellowCards);
+   if(hs.redCards!==undefined&&as.redCards!==undefined&&(Number(hs.redCards)>0||Number(as.redCards)>0))parts.push("Kırmızı "+hs.redCards+"–"+as.redCards);
+   const statsLine=parts.length?'<small class="mam-history-stats">'+parts.join(" · ")+'</small>':"";
+   return '<div class="mam-history-row"><span class="mam-history-date">'+date+'</span><span class="mam-history-match"><small>'+esc(competition)+' · '+(side==="home"?"İç saha":"Deplasman")+'</small>'+esc(h.name||"Ev sahibi")+' – '+esc(a.name||"Deplasman")+statsLine+'</span><span class="mam-history-score">'+(htText?'<small>İY '+esc(htText)+'</small>':"")+'<b>'+gh+' – '+ga+'</b></span><span class="mam-form-result '+cls+'">'+result+'</span></div>';
   }).join("");
   const renderTeam=(name,teamId,matches)=>{
    const ordered=sorted(matches),last=ordered.slice(0,10),summary=summarize(ordered,teamId,name),home=summarize(ordered,teamId,name,"home"),away=summarize(ordered,teamId,name,"away");
@@ -2719,7 +2747,7 @@ function teamStats(matches, teamId, venue){
 
 function optionalMetric(matches, teamId, metric, venue){
  const aliases = {
-  corners: ["corners"],
+  corners: ["corners", "corner kicks"],
   shotsOnTarget: ["shotsOnTarget", "shots on target", "Shots on Goal"],
   shots: ["shots", "Total Shots"],
   yellowCards: ["yellowCards", "yellow cards", "Yellow Cards"],
@@ -2938,6 +2966,25 @@ async function analyze(button){
   }else{
    html+='<p class="note">Gerçek isabetli şut verisi yetersiz (her takım için en az 3 maç gerekli). Ortalama gösterilmiyor.</p>';
   }
+
+  const hTotalShots=optionalMetric(homeMatches,homeId,"shots","home");
+  const aTotalShots=optionalMetric(awayMatches,awayId,"shots","away");
+  html+='<div class="section-title">🥅 Toplam şut analizi</div>';
+  if(hTotalShots.count>=3&&aTotalShots.count>=3){
+   html+='<div class="statgrid"><div class="stat"><span>'+esc(homeName)+' şut ort.</span><b>'+hTotalShots.average.toFixed(2)+'</b></div><div class="stat"><span>'+esc(awayName)+' şut ort.</span><b>'+aTotalShots.average.toFixed(2)+'</b></div></div>';
+  }else html+='<p class="note">Toplam şut için doğrulanmış geçmiş veri yetersiz (her takımda en az 3 maç gerekli).</p>';
+
+  const hYellow=optionalMetric(homeMatches,homeId,"yellowCards","home");
+  const aYellow=optionalMetric(awayMatches,awayId,"yellowCards","away");
+  const hRed=optionalMetric(homeMatches,homeId,"redCards","home");
+  const aRed=optionalMetric(awayMatches,awayId,"redCards","away");
+  html+='<div class="section-title">🟨 Kart analizi</div>';
+  if(hYellow.count>=3&&aYellow.count>=3){
+   html+='<div class="statgrid"><div class="stat"><span>'+esc(homeName)+' sarı kart ort.</span><b>'+hYellow.average.toFixed(2)+'</b></div><div class="stat"><span>'+esc(awayName)+' sarı kart ort.</span><b>'+aYellow.average.toFixed(2)+'</b></div></div>';
+  }else html+='<p class="note">Sarı kart için doğrulanmış geçmiş veri yetersiz (her takımda en az 3 maç gerekli).</p>';
+  if(hRed.count>=3&&aRed.count>=3){
+   html+='<div class="statgrid"><div class="stat"><span>'+esc(homeName)+' kırmızı kart ort.</span><b>'+hRed.average.toFixed(2)+'</b></div><div class="stat"><span>'+esc(awayName)+' kırmızı kart ort.</span><b>'+aRed.average.toFixed(2)+'</b></div></div>';
+  }else html+='<p class="note">Kırmızı kart için doğrulanmış geçmiş veri yetersiz (her takımda en az 3 maç gerekli).</p>';
 
   html+='<div class="section-title">En olası 5 skor</div>';
   scores.forEach((s,i)=>{
