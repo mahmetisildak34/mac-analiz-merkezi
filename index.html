@@ -983,7 +983,8 @@ async function api(path){
 
   // Canlı istatistikleri de kısa süreli önbellekten sun: aynı maç tekrar açıldığında
   // gereksiz API-Football isteği gönderilmesin. Hata halinde son başarılı veri korunur.
-  if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLive&&!isLineupRequest){
+  const isArchiveBackfill=cleanPath.startsWith("archive/backfill-all?");
+  if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLive&&!isLineupRequest&&!isArchiveBackfill){
     const cacheAge=isLiveStats?(isEspnSummary?60*1000:60*1000):(isEspnSummary?5*60*1000:30*60*1000);
     if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
   }
@@ -1034,7 +1035,7 @@ async function api(path){
       throw new Error("API hatası ("+response.status+"): "+errorText);
     }
 
-    if(!isLineupRequest){try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));}catch(e){}}
+    if(!isLineupRequest&&!isArchiveBackfill){try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));}catch(e){}}
     return data;
   };
 
@@ -2401,8 +2402,9 @@ async function ensureSuperLigArchive(){
     MAM_SUPERLIG_BACKFILL_PROMISE=(async()=>{
       const result=await api("archive/backfill-all?batch=2");
       const turkey=(result.results||[]).find(x=>x.league==="tur.1");
-      if(!turkey?.ok||!(Number(turkey.teams)>0)){
-        throw new Error(turkey?.error||"Süper Lig arşivi doğrulanamadı.");
+      // Accept a useful partial backfill, but do not mark a nearly empty archive complete.
+      if(!turkey||Number(turkey.teams)<15||Number(turkey.completedMatches)<40){
+        throw new Error(turkey?.error||"Süper Lig arşivi yeterli takım/maç kapsamına ulaşmadı.");
       }
       localStorage.setItem("mam_superlig_archive_v1","ok");
       return result;
