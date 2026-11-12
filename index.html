@@ -434,7 +434,7 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 
 <div class="panel coupon-panel" id="couponPanel">
  <div class="coupon-title"><strong>🎟️ Kupon oluşturucu</strong><span class="coupon-count" id="couponCount">0 seçim</span></div>
- <p class="hint">Maç kartlarından seçim ekle. Oranları kendin gir; toplam oran ve olası dönüş otomatik hesaplanır. API isteği gönderilmez.</p>
+ <p class="hint">Maç kartından seçimini ekle; oranı kupon satırındaki kutuya yaz. Misli, toplam oran ve olası dönüş otomatik hesaplanır.</p>
  <div id="couponItems"><div class="coupon-empty">Henüz kupona maç eklemedin.</div></div>
  <div class="coupon-add-row">
   <div><label for="couponStake">Misli / tutar (₺)</label><input id="couponStake" type="number" min="0" step="0.01" value="20" inputmode="decimal"></div>
@@ -883,7 +883,7 @@ function renderMatches(){
      <option>1 - Ev sahibi</option><option>X - Beraberlik</option><option>2 - Deplasman</option>
      <option>1.5 Üst</option><option>2.5 Üst</option><option>3.5 Üst</option><option>KG Var</option><option>KG Yok</option>
     </select></div>
-    <div><label>Oran</label><input class="coupon-odds" type="number" min="1.01" step="0.01" placeholder="1.85" inputmode="decimal"></div>
+    <div><label>Oran</label><input class="coupon-odds" type="number" min="1.01" step="0.01" placeholder="İsteğe bağlı" inputmode="decimal"></div>
    </div>
    <button class="coupon-add secondary" type="button" data-id="${esc(f.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-date="${esc(f.date?.slice(0,10))}">＋ Kupona ekle</button>
 
@@ -949,11 +949,16 @@ function renderCoupon(){
  $("couponReturn").textContent=ok?(stake*total).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" ₺":"—";
 }
 function addCouponSelection(button){
- const card=button.closest(".match"),market=card.querySelector(".coupon-market"),input=card.querySelector(".coupon-odds"),odds=Number(input.value);
- if(!Number.isFinite(odds)||odds<=1){$("status").textContent="Kupona eklemek için 1.00'dan büyük geçerli bir oran gir.";input.focus();return;}
- const item={id:button.dataset.id,home:button.dataset.homeName,away:button.dataset.awayName,date:button.dataset.date,market:market.value,odds:Number(odds.toFixed(2))};
- const i=couponItems.findIndex(x=>String(x.id)===String(item.id)&&x.market===item.market);if(i>=0)couponItems[i]=item;else couponItems.push(item);
- saveCoupon();$("status").textContent="Seçim kupona eklendi. Yeni API isteği gönderilmedi.";
+ const card=button.closest(".match"),market=card.querySelector(".coupon-market"),input=card.querySelector(".coupon-odds");
+ const raw=input?input.value.trim():"",odds=raw===""?null:Number(raw);
+ if(odds!==null&&(!Number.isFinite(odds)||odds<=1)){
+  $("status").textContent="Oran gireceksen 1.00'dan büyük olmalı.";input.focus();return;
+ }
+ const item={id:button.dataset.id,home:button.dataset.homeName,away:button.dataset.awayName,date:button.dataset.date,market:market.value,odds:odds===null?null:Number(odds.toFixed(2))};
+ const i=couponItems.findIndex(x=>String(x.id)===String(item.id)&&x.market===item.market);
+ if(i>=0)couponItems[i]=item;else couponItems.push(item);
+ saveCoupon();
+ $("status").textContent="Maç kupona eklendi. Oranı artık kupon listesindeki Oran kutusuna girebilirsin.";
 }
 $("couponStake").addEventListener("input",renderCoupon);
 $("couponClear").addEventListener("click",()=>{couponItems=[];saveCoupon();$("status").textContent="Kupon temizlendi.";});
