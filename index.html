@@ -1313,8 +1313,14 @@ function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 
 /* ===== ANALYSIS SECTIONS · CARD LAYOUT ===== */
 function wrapAnalysisSections(markup){
- const re=/<div class="section-title">[\\s\\S]*?<\\/div>/g;
- const heads=[...markup.matchAll(re)];
+ const heads=[];
+ let pos=0;
+ while((pos=markup.indexOf('<div class="section-title">',pos))!==-1){
+  const close=markup.indexOf("</div>",pos);
+  if(close<0)break;
+  heads.push({index:pos,end:close+6});
+  pos=close+6;
+ }
  if(!heads.length)return markup;
  let result=markup.slice(0,heads[0].index);
  for(let i=0;i<heads.length;i++){
