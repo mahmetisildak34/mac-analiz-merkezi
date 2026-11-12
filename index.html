@@ -148,7 +148,19 @@ async function api(path){
       lastApiCall=Date.now();
     }
 
-    const response=await fetch(url);
+    const controller=new AbortController();
+    const timeoutId=setTimeout(()=>controller.abort(),15000);
+    let response;
+    try{
+      response=await fetch(url,{signal:controller.signal});
+    }catch(networkError){
+      if(controller.signal.aborted){
+        throw new Error((isPrimaryApi?"API-Football":"Yedek kaynak")+" isteği 15 saniyede yanıt vermedi (zaman aşımı).");
+      }
+      throw new Error((isPrimaryApi?"API-Football":"Yedek kaynak")+" bağlantı hatası: "+String(networkError.message||networkError));
+    }finally{
+      clearTimeout(timeoutId);
+    }
     let data;
     try{data=await response.json();}
     catch(e){throw new Error("Sunucudan okunabilir yanıt alınamadı.");}
