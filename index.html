@@ -991,6 +991,7 @@ async function loadLiveStats(button){
    const normalize=value=>String(value||"").toLowerCase().replace(/[^a-z0-9]/g,"");
    const labelFor=name=>{
     const k=normalize(name);
+    if(k==="xg"||k.includes("expectedgoals")||k.includes("expectedgoal"))return "Gerçek xG";
     if(k.includes("possession"))return "Topla oynama";
     if(k.includes("shotsontarget")||k.includes("shotsongoal"))return "İsabetli şut";
     if(k.includes("shotsofftarget")||k.includes("shotsoffgoal"))return "İsabetsiz şut";
@@ -1038,8 +1039,30 @@ async function loadLiveStats(button){
    }).filter(Boolean);
    sourceLabel="API-Football";
   }
+  // Sağlayıcının gerçek xG verisi varsa onu kullan; yoksa yalnızca şut sayılarına dayalı kaba model tahmini üret.
+  if(source!=="espn"){
+   const xgTypes=["expected_goals","expected goals","xg"];
+   const teamsForXg=Array.isArray(payload.response)?payload.response:[];
+   const realXg=teamsForXg.slice(0,2).map(team=>(team.statistics||[]).find(x=>xgTypes.includes(String(x.type||"").toLowerCase()))?.value);
+   if(realXg.some(v=>v!==null&&v!==undefined&&v!=="")){
+    statsRows.push(["Gerçek xG",...realXg.map(v=>v??"—")]);
+   }
+  }
+  const hasRealXg=statsRows.some(row=>row[0]==="Gerçek xG");
+  if(!hasRealXg){
+   const numericStat=(label,index)=>{
+    const row=statsRows.find(x=>x[0]===label);
+    if(!row)return 0;
+    const n=Number(String(row[index+1]??"").replace("%","").replace(",",".").trim());
+    return Number.isFinite(n)?n:0;
+   };
+   const estimate=index=>(numericStat("İsabetli şut",index)*0.28+numericStat("İsabetsiz şut",index)*0.045+numericStat("Engellenen şut",index)*0.07).toFixed(2);
+   if(["İsabetli şut","İsabetsiz şut","Engellenen şut"].some(label=>statsRows.some(x=>x[0]===label))){
+    statsRows.push(["Model xG (yaklaşık)",estimate(0),estimate(1)]);
+   }
+  }
   const rows=statsRows.map(([label,left,right])=>'<div class="probline" style="padding:7px 0;border-bottom:1px solid var(--line)"><b>'+esc(left)+'</b><span>'+esc(label)+'</span><b>'+esc(right)+'</b></div>').join("");
-  panel.innerHTML='<div style="font-weight:800;margin-bottom:8px">📊 Canlı maç istatistikleri</div><div class="probline" style="padding:7px 0"><b>'+esc(homeTeam)+'</b><span>İstatistik</span><b>'+esc(awayTeam)+'</b></div>'+(rows||'<div class="small">Kaynak henüz istatistik paylaşmadı.</div>')+'<div class="small" style="margin-top:9px">Kaynak: '+sourceLabel+'. Veriler talep üzerine yenilenir.</div>';
+  panel.innerHTML='<div style="font-weight:800;margin-bottom:8px">📊 Canlı maç istatistikleri</div><div class="probline" style="padding:7px 0"><b>'+esc(homeTeam)+'</b><span>İstatistik</span><b>'+esc(awayTeam)+'</b></div>'+(rows||'<div class="small">Kaynak henüz istatistik paylaşmadı.</div>')+'<div class="small" style="margin-top:9px">Kaynak: '+sourceLabel+'. Veriler talep üzerine yenilenir.'+(!hasRealXg?' Model xG; şut sayılarına dayalı yaklaşık göstergedir, sağlayıcının gerçek xG verisi değildir.':' Gerçek xG sağlayıcıdan alınmıştır.')+'</div>';
  }catch(error){panel.innerHTML='<span class="error">'+esc(error.message||error)+'</span>';}
  finally{button.disabled=false;button.textContent="İstatistikleri gizle";}
 }
