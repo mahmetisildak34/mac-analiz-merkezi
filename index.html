@@ -434,7 +434,7 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 
 <div class="panel coupon-panel" id="couponPanel">
  <div class="coupon-title"><strong>🎟️ Kupon oluşturucu</strong><span class="coupon-count" id="couponCount">0 seçim</span></div>
- <p class="hint">Maç kartından seçimini ekle; oranı kupon satırındaki kutuya yaz. Misli, toplam oran ve olası dönüş otomatik hesaplanır.</p>
+ <p class="hint">Kuponunu bu panelin içinden oluştur. Maç kartları yalnızca fikstür ve analiz içindir.</p>
  <div id="couponItems"><div class="coupon-empty">Henüz kupona maç eklemedin.</div></div>
  <div class="coupon-add-row">
   <div><label for="couponStake">Misli / tutar (₺)</label><input id="couponStake" type="number" min="0" step="0.01" value="20" inputmode="decimal"></div>
@@ -878,24 +878,12 @@ function renderMatches(){
     <button class="predBtn" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-league="${esc(l.id)}" data-date="${esc(f.date?.slice(0,10))}">✦ Maçı analiz et</button>
    </div>
 
-   <div class="coupon-add-row">
-    <div><label>Kupon marketi</label><select class="coupon-market">
-     <option>1 - Ev sahibi</option><option>X - Beraberlik</option><option>2 - Deplasman</option>
-     <option>1.5 Üst</option><option>2.5 Üst</option><option>3.5 Üst</option><option>KG Var</option><option>KG Yok</option>
-    </select></div>
-    <div><label>Oran</label><input class="coupon-odds" type="number" min="1.01" step="0.01" placeholder="İsteğe bağlı" inputmode="decimal"></div>
-   </div>
-   <button class="coupon-add secondary" type="button" data-id="${esc(f.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-date="${esc(f.date?.slice(0,10))}">＋ Kupona ekle</button>
-
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
  }).join("");
 
  document.querySelectorAll(".predBtn").forEach(b=>{
   b.addEventListener("click",()=>analyze(b));
- });
- document.querySelectorAll(".coupon-add").forEach(b=>{
-  b.addEventListener("click",()=>addCouponSelection(b));
  });
 }
 
