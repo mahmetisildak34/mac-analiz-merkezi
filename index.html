@@ -800,7 +800,7 @@ const ESPN_LEAGUES={
 
 async function getEspnMatchStats(leagueId,eventId){
  const league=ESPN_LEAGUES[String(leagueId)];
- if(!league?.slug||!/^\\d+$/.test(String(eventId)))return null;
+ if(!league?.slug||!/^\d+$/.test(String(eventId)))return null;
  const data=await api("espn/"+league.slug+"/summary?"+qs({event:String(eventId)}));
  const teams=Array.isArray(data.boxscore?.teams)?data.boxscore.teams:[];
  if(teams.length<2)return null;
@@ -972,7 +972,7 @@ async function loadLiveMatches(){
 async function loadLiveStats(button){
  const fixtureId=String(button.dataset.liveId||"");
  const panel=document.getElementById("live-stats-"+fixtureId);
- if(!panel||!/^\\d+$/.test(fixtureId))return;
+ if(!panel||!/^\d+$/.test(fixtureId))return;
  if(!panel.hidden){panel.hidden=true;button.textContent="📊 Canlı istatistikler";return;}
  panel.hidden=false;panel.innerHTML='<div class="small">Canlı istatistikler alınıyor…</div>';
  button.disabled=true;
@@ -1349,7 +1349,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   if(String(sourceFixtureId||"").startsWith("espn-")){
     const slug=ESPN_LEAGUES[String(leagueId)]?.slug;
     if(slug){
-      const candidates=result.filter(m=>String(m.fixture?.id||"").match(/^\\d+$/)&&!m.statistics).slice(0,8);
+      const candidates=result.filter(m=>String(m.fixture?.id||"").match(/^\d+$/)&&!m.statistics).slice(0,8);
       const enriched=await Promise.all(candidates.map(async match=>{
         try{
           const stats=await getEspnMatchStats(leagueId,match.fixture.id);
