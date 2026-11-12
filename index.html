@@ -354,6 +354,12 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 
 
 
+/* TAKIM SEÇİMLİ KADRO GÖRÜNÜMÜ */
+.lineup-team-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.lineup-team-tab{min-width:0;padding:12px 8px;border:1px solid #dce8df!important;border-radius:12px!important;background:#fff!important;color:#28563b!important;font-size:14px!important;font-weight:850!important;box-shadow:none!important;overflow-wrap:anywhere}
+.lineup-team-tab.active{background:#168447!important;border-color:#168447!important;color:#fff!important}
+.lineup-selected-team>.lineup-team{margin-top:4px}
+
 /* TEAM CRESTS + SAFE FALLBACK */
 .team-logo{display:block;width:42px;height:42px;object-fit:contain}
 .team-placeholder{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#e9f7ed;border:1px solid #d6efdd;color:#168344;font-size:12px;font-weight:900;letter-spacing:-.4px}
@@ -1256,19 +1262,35 @@ async function loadLineups(button){
   const ratingMap=new Map();
   for(const team of playerRows)for(const item of team.players||[]){const id=String(item.player?.id||""),rating=item.statistics?.[0]?.games?.rating;if(id&&rating!==undefined&&rating!==null)ratingMap.set(id,rating);}
   const hasStarters=teams.some(team=>(team.startXI||[]).length>0);
+  const teamTabs=teams.map((team,index)=>'<button type="button" class="lineup-team-tab'+(index===0?' active':'')+'" data-lineup-team="'+index+'" aria-pressed="'+(index===0?'true':'false')+'">'+esc(team.team?.name||"Takım")+'</button>').join("");
   panel.innerHTML='<div class="lineup-head"><strong>⚽ '+(isEspn?"ESPN maç kadrosu":"Resmî maç kadrosu")+'</strong><span class="lineup-formation">'+(hasStarters?"İlk 11":"Kadro listesi")+'</span></div>'+
-   teams.map((team,index)=>lineupTeamHTML(team,ratingMap,index)).join("")+
+   '<div class="lineup-team-tabs" role="group" aria-label="Takım kadrosunu seç">'+teamTabs+'</div>'+
+   '<div class="lineup-selected-team"></div>'+
    '<div class="lineup-note">Kaynak: '+(isEspn?"ESPN":"API-Football")+'. Oyuncu puanları yalnızca kaynakta mevcut olduğunda gösterilir.</div>';
-  panel.querySelectorAll(".lineup-bench-toggle").forEach(benchButton=>{
-   benchButton.addEventListener("click",()=>{
-    const bench=document.getElementById(benchButton.dataset.benchTarget);
-    if(!bench)return;
-    const opening=bench.hidden;
-    bench.hidden=!opening;
-    benchButton.setAttribute("aria-expanded",String(opening));
-    benchButton.textContent=opening?"Yedekleri gizle":"Yedekleri göster ("+bench.querySelectorAll(".lineup-bench-item").length+")";
+  const selectedTeamPanel=panel.querySelector(".lineup-selected-team");
+  const showTeam=index=>{
+   const safeIndex=Math.max(0,Math.min(teams.length-1,Number(index)||0));
+   selectedTeamPanel.innerHTML=lineupTeamHTML(teams[safeIndex],ratingMap,safeIndex);
+   panel.querySelectorAll(".lineup-team-tab").forEach(tab=>{
+    const active=Number(tab.dataset.lineupTeam)===safeIndex;
+    tab.classList.toggle("active",active);
+    tab.setAttribute("aria-pressed",String(active));
    });
+   selectedTeamPanel.querySelectorAll(".lineup-bench-toggle").forEach(benchButton=>{
+    benchButton.addEventListener("click",()=>{
+     const bench=document.getElementById(benchButton.dataset.benchTarget);
+     if(!bench)return;
+     const opening=bench.hidden;
+     bench.hidden=!opening;
+     benchButton.setAttribute("aria-expanded",String(opening));
+     benchButton.textContent=opening?"Yedekleri gizle":"Yedekler";
+    });
+   });
+  };
+  panel.querySelectorAll(".lineup-team-tab").forEach(tab=>{
+   tab.addEventListener("click",()=>showTeam(tab.dataset.lineupTeam));
   });
+  showTeam(0);
   panel.dataset.loaded="true";
  }catch(error){
   panel.innerHTML='<div class="lineup-empty">Kadro verisi alınamadı: '+esc(error.message||error)+'</div>';
