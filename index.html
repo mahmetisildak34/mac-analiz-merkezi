@@ -2403,7 +2403,7 @@ async function ensureSuperLigArchive(){
       const result=await api("archive/backfill-all?batch=2");
       const turkey=(result.results||[]).find(x=>x.league==="tur.1");
       // Accept a useful partial backfill, but do not mark a nearly empty archive complete.
-      if(!turkey||Number(turkey.teams)<15||Number(turkey.completedMatches)<40){
+      if(!turkey||Number(turkey.teams)<18||Number(turkey.completedMatches)<40){
         throw new Error(turkey?.error||"Süper Lig arşivi yeterli takım/maç kapsamına ulaşmadı.");
       }
       localStorage.setItem("mam_superlig_archive_v1","ok");
