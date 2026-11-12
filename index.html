@@ -1495,9 +1495,20 @@ function renderMatches(){
    hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"
   }):"";
   const elapsed=f.status?.elapsed;
-  const liveMinute=isLiveStatus
-   ? (elapsed!==null&&elapsed!==undefined&&elapsed!==""?String(elapsed)+"'":String(f.status?.displayClock||""))
-   : "";
+  let liveMinute="";
+  if(isLiveStatus){
+   if(elapsed!==null&&elapsed!==undefined&&elapsed!==""){
+    liveMinute=String(elapsed)+"'";
+   }else if(f.status?.displayClock){
+    liveMinute=String(f.status.displayClock);
+   }else if(f.date){
+    // Sağlayıcı dakika göndermiyorsa başlama saatinden yaklaşık dakika hesapla.
+    const sinceKickoff=Math.floor((Date.now()-new Date(f.date).getTime())/60000);
+    if(Number.isFinite(sinceKickoff)&&sinceKickoff>=0&&sinceKickoff<=130){
+     liveMinute="~"+sinceKickoff+"'";
+    }
+   }
+  }
   const displayedTime=isLiveStatus?(liveMinute||"Canlı"):time;
   return `<article class="match match-modern">
    <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span></div>
