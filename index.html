@@ -310,6 +310,34 @@ const ESPN_LEAGUES={
  "fifa_friendly":{slug:"fifa.friendly",name:"International Friendlies",country:"World"}
 };
 
+async function getEspnMatchStats(leagueId,eventId){
+ const league=ESPN_LEAGUES[String(leagueId)];
+ if(!league?.slug||!/^\\d+$/.test(String(eventId)))return null;
+ const data=await api("espn/"+league.slug+"/summary?"+qs({event:String(eventId)}));
+ const teams=Array.isArray(data.boxscore?.teams)?data.boxscore.teams:[];
+ if(teams.length<2)return null;
+ const normalizeStat=value=>String(value||"").toLowerCase().replace(/[^a-z]/g,"");
+ const readStats=team=>{
+  const result={};
+  for(const stat of (team.statistics||[])){
+   const key=normalizeStat(stat.name||stat.abbreviation);
+   const raw=stat.displayValue??stat.value;
+   const number=Number(String(raw??"").replace(/,/g,""));
+   if(!Number.isFinite(number))continue;
+   if(/corner/.test(key))result.corners=number;
+   else if(/shotsontarget|shotsongoal|ontarget/.test(key))result.shotsOnTarget=number;
+   else if(/totalshots|shots$/.test(key))result.shots=number;
+   else if(/yellowcard/.test(key))result.yellowCards=number;
+   else if(/redcard/.test(key))result.redCards=number;
+  }
+  return result;
+ };
+ const home=teams.find(x=>x.homeAway==="home");
+ const away=teams.find(x=>x.homeAway==="away");
+ if(!home||!away)return null;
+ return {home:readStats(home),away:readStats(away)};
+}
+
 async function espnFixtures(date){
  const selected=$("league").value;
  const targets=selected==="all"
@@ -719,6 +747,21 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
   const result=output.slice(0,20);
+  // ESPN maç özetlerinden gerçek korner, şut ve kart istatistiklerini tamamla.
+  // Yalnızca en yeni 8 maç sorgulanır; Worker yanıtları ve analiz sonuçları önbelleğe alınır.
+  if(String(sourceFixtureId||"").startsWith("espn-")){
+    const slug=ESPN_LEAGUES[String(leagueId)]?.slug;
+    if(slug){
+      const candidates=result.filter(m=>String(m.fixture?.id||"").match(/^\\d+$/)&&!m.statistics).slice(0,8);
+      const enriched=await Promise.all(candidates.map(async match=>{
+        try{
+          const stats=await getEspnMatchStats(leagueId,match.fixture.id);
+          if(stats)match.statistics=stats;
+        }catch(e){/* Eksik istatistik varsa gol analizi yine çalışır. */}
+        return match;
+      }));
+    }
+  }
   try{localStorage.setItem(key,JSON.stringify({time:Date.now(),matches:result}));}catch(e){}
   if(!result.length)throw new Error(teamName+" geçmiş verisi alınamadı. Lig kodu: "+leagueId+". Kaynak: "+(sourceError||"Eşleşen tamamlanmış maç yok."));
   return result;
@@ -835,11 +878,37 @@ function optionalMetric(matches, teamId, metric, venue){
  };
 }
 
-async function getMatchInjuries(fixtureId){
+async function getMatchInjuries(fixtureId,leagueId){
  if(!fixtureId)return {items:[],note:"Maç kimliği eksik."};
- // ESPN event IDs are strings, not API-Football fixture integers.
+ // ESPN maç özeti mevcutsa önce ESPN'in kendi eksik/kadro bölümünü kullan.
+ const espnMatch=String(fixtureId).match(/^espn-([a-zA-Z0-9._-]+)-(\\d+)$/);
+ if(espnMatch){
+  try{
+   const data=await api("espn/"+espnMatch[1]+"/summary?"+qs({event:espnMatch[2]}));
+   const raw=Array.isArray(data.injuries)?data.injuries:[];
+   const items=[];
+   const visit=(node,teamName="")=>{
+    if(!node||typeof node!=="object")return;
+    const team=node.team?.displayName||node.team?.name||node.displayName||teamName;
+    const athlete=node.athlete||node.player||node;
+    if((athlete.displayName||athlete.fullName||athlete.name)&&
+       (node.status||node.type||node.details||node.description||node.athlete)){
+     items.push({team,name:athlete.displayName||athlete.fullName||athlete.name,
+      reason:node.details||node.description||node.status||"Durum açıklanmamış",
+      type:node.status||node.type||"Eksik"});
+    }
+    if(Array.isArray(node.items))node.items.forEach(x=>visit(x,team));
+    if(Array.isArray(node.injuries))node.injuries.forEach(x=>visit(x,team));
+   };
+   raw.forEach(x=>visit(x));
+   const unique=[...new Map(items.map(x=>[x.team+"|"+x.name,x])).values()];
+   return {items:unique,note:unique.length?"ESPN maç özeti · doğrulanmış eksik kayıtları.":"ESPN maç özetinde doğrulanmış sakat/eksik kaydı bulunamadı."};
+  }catch(e){
+   return {items:[],note:"ESPN maç özeti eksik verisi alınamadı: "+String(e.message||e)};
+  }
+ }
  if(!/^[0-9]+$/.test(String(fixtureId))){
-  return {items:[],note:"Bu fikstür ESPN kaynağından geldi. API-Football sakatlık sorgusu için geçerli maç ID'si bulunmadığından hatalı istek gönderilmedi."};
+  return {items:[],note:"Bu fikstür için desteklenen maç kimliği bulunamadı."};
  }
  const data=await api("injuries?"+qs({fixture:fixtureId}));
  const items=(data.response||[]).map(x=>({
@@ -988,7 +1057,7 @@ async function analyze(button){
   let injuryReport={items:[],note:"Sakatlık verisi alınamadı."};
   try{
    target.textContent="Sakatlık ve cezalı oyuncu bilgileri kontrol ediliyor...";
-   injuryReport=await getMatchInjuries(button.dataset.id);
+   injuryReport=await getMatchInjuries(button.dataset.id,button.dataset.league);
   }catch(injuryError){
    injuryReport.note="Sakatlık/eksik bilgisi alınamadı: "+String(injuryError.message||injuryError);
   }
