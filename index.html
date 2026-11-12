@@ -600,6 +600,53 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .mam-form-result.win{background:#174c3b;color:#8df0c4}.mam-form-result.draw{background:#4c421c;color:#ffe18a}.mam-form-result.loss{background:#542b35;color:#ffadb7}
 @media(min-width:760px){.match-detail-overlay{align-items:center}.match-detail-body{max-height:none}}
 
+ 
+/* ===== MAM FOOTBALL APP SHELL · NOV 2026 ===== */
+main{max-width:980px;padding-top:12px}
+.mam-appbar{position:sticky;top:0;z-index:30;min-height:68px;margin:0 -2px 18px;padding:10px 12px;border-radius:17px;background:rgba(10,18,30,.94);border:1px solid rgba(150,180,215,.13);box-shadow:0 9px 28px rgba(0,0,0,.28);backdrop-filter:blur(18px)}
+.mam-menu-trigger{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;width:43px;height:43px;min-height:43px;border-radius:12px;background:#182535;border:1px solid rgba(255,255,255,.08);box-shadow:none}
+.mam-menu-trigger span{display:block;width:22px;height:2px;border-radius:2px;background:#f4f7fb}
+.mam-brand{display:flex;align-items:center;justify-content:center;gap:8px;font-size:clamp(12px,3.4vw,17px);font-weight:950;letter-spacing:.35px;color:#f7f9fc}
+.mam-brand-ball{font-size:19px}
+.mam-search-trigger{width:43px;height:43px;min-height:43px;padding:0;border-radius:12px;background:transparent;color:#f5f8fc;border:1px solid rgba(255,255,255,.12);box-shadow:none;font-size:27px;line-height:1}
+.mam-home-intro{padding:6px 4px 16px}
+.mam-home-intro>div{font-size:10px;font-weight:900;letter-spacing:1.15px;color:#a9bbce}
+.mam-live-pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff4d5e;box-shadow:0 0 0 4px rgba(255,77,94,.12);margin-right:6px}
+.mam-home-intro h1{margin:10px 0 6px;font-size:clamp(26px,6vw,34px);letter-spacing:-1px}
+.mam-home-intro p{margin:0;max-width:680px;color:#9eafc4;font-size:13px;line-height:1.55}
+.mam-drawer{width:min(86vw,330px);background:#111820;border-right:1px solid rgba(255,255,255,.1);padding:calc(env(safe-area-inset-top) + 18px) 13px calc(env(safe-area-inset-bottom) + 20px)}
+.mam-drawer-head{padding:5px 3px 17px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:18px}
+.mam-drawer-brand{display:flex;align-items:center;gap:10px}.mam-drawer-brand>span{font-size:25px}.mam-drawer-brand strong{display:block;color:#fff;font-size:16px}.mam-drawer-brand small{display:block;color:#7f91a5;font-size:9px;letter-spacing:1px;margin-top:3px}
+.mam-drawer-close{border-radius:50%;width:38px;min-height:38px;background:#26313d;color:#fff}
+.mam-nav-caption{margin:17px 10px 7px;color:#7f91a5;font-size:10px;font-weight:900;letter-spacing:1.4px}
+.mam-nav-item{position:relative;min-height:58px;margin:5px 0;padding:10px 12px;border-radius:12px;background:#1a232d;border:1px solid rgba(255,255,255,.045);color:#f5f7fa}
+.mam-nav-item span:first-child{width:27px;font-size:21px;color:#42ddb5}
+.mam-nav-item span:nth-child(2){flex:1;font-size:14px;font-weight:800}
+.mam-nav-item small{font-size:10px;color:#8e9eaf}
+.mam-nav-live{position:absolute;right:2px;top:4px;color:#ff6975;font-size:9px;letter-spacing:.7px}
+.mam-drawer-foot{margin:22px 8px 8px;padding-top:15px;border-top:1px solid rgba(255,255,255,.09);font-size:10px;line-height:1.55;color:#8191a3}
+.mam-league-group{margin:13px 0 17px;padding:0 10px 8px;border-radius:16px;background:#111a25;border:1px solid rgba(150,177,211,.13);overflow:hidden}
+.mam-league-heading{display:flex;align-items:center;gap:8px;min-height:43px;margin:0 -10px 8px;padding:0 12px;background:#1c2937;color:#eaf1f8}
+.mam-league-globe{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#263c4b;color:#63d9bd;font-size:18px}
+.mam-league-heading strong{font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mam-league-heading small{font-size:10px;color:#94a6b8;white-space:nowrap}
+.mam-league-count{margin-left:auto;font-size:9px;font-weight:900;letter-spacing:.5px;color:#43d9b5;white-space:nowrap}
+.mam-league-group .match{margin:8px 0;padding:12px 9px;border-radius:12px;background:#19232e;border:1px solid rgba(255,255,255,.045);box-shadow:none}
+.mam-league-group .match-head{align-items:center}
+.mam-league-group .match-versus{padding:6px 0 2px}
+.mam-league-group .match-actions{margin-top:9px}
+#matches{scroll-margin-top:90px}
+#standings{scroll-margin-top:90px}
+@media(max-width:500px){
+ main{padding:8px 9px calc(40px + env(safe-area-inset-bottom))}
+ .mam-appbar{margin:0 0 15px;border-radius:14px;padding:9px}
+ .mam-home-intro{padding:2px 5px 12px}
+ .mam-league-group{padding-left:8px;padding-right:8px}
+ .mam-league-heading{margin-left:-8px;margin-right:-8px;padding:0 9px}
+ .mam-league-heading strong{font-size:11px}
+ .mam-league-group .match{padding:11px 8px}
+}
+
 </style>
 </head>
 <body>
@@ -617,23 +664,27 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 <main>
 <div id="mamDrawerBackdrop" class="mam-drawer-backdrop" hidden></div>
 <nav id="mamDrawer" class="mam-drawer" aria-label="Ana menü" aria-hidden="true">
- <div class="mam-drawer-head"><strong>⚽ Maç Analiz Merkezi</strong><button type="button" id="mamMenuClose" class="mam-drawer-close">✕</button></div>
- <button type="button" class="mam-nav-item" data-mam-nav="live"><span>🔴</span><span>Canlı sonuçlar<small>Devam eden maçlar ve dakika</small></span></button>
- <button type="button" class="mam-nav-item" data-mam-nav="fixtures"><span>📅</span><span>Gelecek maçlar<small>Tarihe göre fikstür</small></span></button>
- <button type="button" class="mam-nav-item" data-mam-nav="standings"><span>🏆</span><span>Puan durumu<small>Seçilen ligin sıralaması</small></span></button>
- <button type="button" class="mam-nav-item" data-mam-nav="coupon"><span>🎟️</span><span>Kupon oluşturucu<small>Analizlerinden seçim oluştur</small></span></button>
- <button type="button" class="mam-nav-item" data-mam-nav="analysis"><span>📊</span><span>Maç analiz merkezi<small>İstatistik, kadro ve tahminler</small></span></button>
- <p class="hint" style="margin:18px 4px 0">Menüdeki bölümler mevcut maç verisi ve analiz ekranlarına bağlanır.</p>
+ <div class="mam-drawer-head"><div class="mam-drawer-brand"><span>⚽</span><div><strong>Maç Analiz Merkezi</strong><small>FUTBOL · VERİ · TAHMİN</small></div></div><button type="button" id="mamMenuClose" class="mam-drawer-close" aria-label="Menüyü kapat">✕</button></div>
+ <div class="mam-nav-caption">FUTBOL</div>
+ <button type="button" class="mam-nav-item" data-mam-nav="live"><span>◉</span><span>Canlı sonuçlar<small>Devam eden maçlar ve dakika</small><b class="mam-nav-live">CANLI</b></span></button>
+ <button type="button" class="mam-nav-item" data-mam-nav="fixtures"><span>▦</span><span>Gelecek maçlar<small>Tarihe göre fikstür</small></span></button>
+ <button type="button" class="mam-nav-item" data-mam-nav="standings"><span>🏆</span><span>Puan durumu<small>Lig sıralamaları</small></span></button>
+ <div class="mam-nav-caption">ANALİZ ARAÇLARI</div>
+ <button type="button" class="mam-nav-item" data-mam-nav="coupon"><span>🎟</span><span>Kupon oluşturucu<small>Analizlerinden seçim oluştur</small></span></button>
+ <button type="button" class="mam-nav-item" data-mam-nav="analysis"><span>▥</span><span>Maç analiz merkezi<small>İstatistik, kadro ve tahminler</small></span></button>
+ <div class="mam-drawer-foot">Maç verileri farklı sağlayıcılardan alınır. Tahminler kesinlik veya garanti içermez.</div>
 </nav>
 
-<div class="top">
-<button type="button" class="mam-menu-trigger" id="mamMenuToggle" aria-label="Menüyü aç" aria-expanded="false">☰</button>
-<div class="mam-brand">⚽ MAÇ ANALİZ MERKEZİ</div>
-<span class="tag">ANALİZ MOTORU</span>
+<div class="top mam-appbar">
+<button type="button" class="mam-menu-trigger" id="mamMenuToggle" aria-label="Ana menüyü aç" aria-expanded="false"><span></span><span></span><span></span></button>
+<div class="mam-brand"><span class="mam-brand-ball">⚽</span><span>MAÇ ANALİZ MERKEZİ</span></div>
+<button type="button" class="mam-search-trigger" id="mamSearchToggle" aria-label="Maç listesine git">⌕</button>
 </div>
-
-<h1>Günün maçlarını incele</h1>
-<p class="sub">Fikstür, son maç performansı, iç saha ve deplasman istatistikleri, Poisson gol modeli ve maç olasılıkları.</p>
+<div class="mam-home-intro">
+<div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
+<h1>Futbolun nabzı burada.</h1>
+<p>Canlı maçları takip et, gelecek karşılaşmaları incele ve kendi analiz motorumuzla detaylara gir.</p>
+</div>
 
 <section class="panel">
 <div class="hint">
@@ -1705,7 +1756,10 @@ function renderMatches(){
   $("matches").innerHTML='<div class="empty">Bu filtrede maç bulunamadı.</div>';
   return;
  }
- $("matches").innerHTML=list.map(m=>{
+ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{};const key=String(league.id??league.name??"other");if(!map.has(key))map.set(key,[]);map.get(key).push(match);return map;},new Map()).entries()];
+ $("matches").innerHTML=groupedMatches.map(([groupKey,group])=>{
+  const league=group[0]?.league||{};
+  return '<section class="mam-league-group"><div class="mam-league-heading"><span class="mam-league-globe">◎</span><strong>'+esc(league.name||"Diğer maçlar")+'</strong><small>'+esc(league.country||"")+'</small><span class="mam-league-count">'+group.length+' MAÇ</span></div>'+group.map(m=>{
   const f=m.fixture||{},l=m.league||{},t=m.teams||{},g=m.goals||{};
   const statusCode=String(f.status?.short||"");
   const statusNames={"NS":"Başlamadı","TBD":"Saat bekleniyor","1H":"1. yarı","HT":"Devre arası","2H":"2. yarı","ET":"Uzatmalar","BT":"Uzatma arası","P":"Penaltılar","SUSP":"Durduruldu","INT":"Kesildi","LIVE":"Canlı","FT":"Bitti","AET":"Uzatmalarda bitti","PEN":"Penaltılarla bitti","PST":"Ertelendi","CANC":"İptal","ABD":"Yarıda kaldı","AWD":"Hükmen","WO":"Hükmen"};
@@ -1751,6 +1805,7 @@ function renderMatches(){
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
+ }).join("")+'</section>';
  }).join("");
 
  document.querySelectorAll(".predBtn").forEach(b=>{
@@ -2591,6 +2646,7 @@ async function analyze(button){
  const open=()=>{backdrop.hidden=false;drawer.classList.add("open");drawer.setAttribute("aria-hidden","false");toggle.setAttribute("aria-expanded","true");document.body.style.overflow="hidden";};
  const shut=()=>{drawer.classList.remove("open");drawer.setAttribute("aria-hidden","true");toggle.setAttribute("aria-expanded","false");document.body.style.overflow="";backdrop.hidden=true;};
  toggle.addEventListener("click",open);close.addEventListener("click",shut);backdrop.addEventListener("click",shut);
+ $("mamSearchToggle")?.addEventListener("click",()=>{$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});});
  drawer.querySelectorAll("[data-mam-nav]").forEach(button=>button.addEventListener("click",()=>{
   const action=button.dataset.mamNav;shut();
   if(action==="live"){$("loadLive")?.click();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
