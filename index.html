@@ -514,6 +514,26 @@ async function getESPNNationalHistory(teamId,teamName,matchDate,leagueId,leagueN
  const wanted=normalize(teamName);
  const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize)]);
  const matchesName=name=>accepted.has(normalize(name));
+ try{
+  const archived=await api("archive/team?name="+encodeURIComponent(teamName));
+  const archiveMatches=(archived.response||[]).map(m=>{
+   const homeMatch=matchesName(m.teams?.home?.name),awayMatch=matchesName(m.teams?.away?.name);
+   return {
+    ...m,
+    teams:{
+     ...m.teams,
+     home:{...m.teams?.home,id:homeMatch?Number(teamId):-1},
+     away:{...m.teams?.away,id:awayMatch?Number(teamId):-1}
+    }
+   };
+  }).filter(m=>{
+   const d=String(m.fixture?.date||"").slice(0,10);
+   return d&&d<matchDate&&(matchesName(m.teams?.home?.name)!==matchesName(m.teams?.away?.name));
+  }).sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date)).slice(0,20);
+  if(archiveMatches.length)return archiveMatches;
+ }catch(archiveError){
+  console.warn("Cloudflare daily archive not available yet:",archiveError);
+ }
  const comp=String(leagueName||"").toLowerCase();
  const preferred=String(leagueId)==="5"||comp.includes("nations league")?["uefa.nations","fifa.friendly"]:
   comp.includes("africa cup")||comp.includes("caf")?["caf.nations_qual","caf.nations","fifa.worldq.caf"]:
