@@ -1299,6 +1299,29 @@ async function getEspnMatchStats(leagueId,eventId){
  return {home:readStats(home),away:readStats(away)};
 }
 
+async function getApiFootballMatchStats(fixtureId){
+ if(!new RegExp("^\\d+$").test(String(fixtureId||"")))return null;
+ const data=await api("fixtures/statistics?"+qs({fixture:fixtureId}));
+ const rows=Array.isArray(data.response)?data.response:[];
+ if(rows.length<2)return null;
+ const readStats=row=>{
+  const result={};
+  for(const stat of (row.statistics||[])){
+   const key=String(stat.type||"").toLowerCase().replace(/[^a-z]/g,"");
+   const raw=stat.value;
+   const number=Number(String(raw??"").replace(/,/g,"").replace("%",""));
+   if(raw===null||raw===undefined||raw===""||!Number.isFinite(number))continue;
+   if(/corner/.test(key))result.corners=number;
+   else if(/shotsongoal|shotsontarget/.test(key))result.shotsOnTarget=number;
+   else if(/totalshots/.test(key))result.shots=number;
+   else if(/yellowcards?/.test(key))result.yellowCards=number;
+   else if(/redcards?/.test(key))result.redCards=number;
+  }
+  return result;
+ };
+ return {home:readStats(rows[0]),away:readStats(rows[1])};
+}
+
 async function espnFixtures(date,includeAllLeagues=false){
  const selected=$("league").value;
  const targets=(includeAllLeagues||selected==="all")
@@ -2342,7 +2365,7 @@ renderCoupon();
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
-  const key="mam_history_v26_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v27_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2611,13 +2634,16 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
   const result=output.slice(0,20);
-  // Yalnızca ESPN'den doğrulanmış geçmiş maçların özet istatistiklerini tamamla.
-  const candidates=result.filter(m=>m.mamSource==="espn"&&/^\d+$/.test(String(m.fixture?.id||""))&&!m.statistics).slice(0,8);
+  // Son geçmiş maçların gerçek istatistiklerini doğru sağlayıcıdan tamamla.
+  // İstek sayısını sınırlı tutuyoruz; bulunan sonuçlar yerel önbelleğe alınır.
+  const candidates=result.filter(m=>!m.statistics&&new RegExp("^\\d+$").test(String(m.fixture?.id||""))).slice(0,8);
   await Promise.all(candidates.map(async match=>{
     try{
-      const stats=await getEspnMatchStats(leagueId,match.fixture.id);
+      const stats=match.mamSource==="espn"
+        ? await getEspnMatchStats(leagueId,match.fixture.id)
+        : await getApiFootballMatchStats(match.fixture.id);
       if(stats)match.statistics=stats;
-    }catch(e){/* Eksik istatistik varsa gol analizi yine çalışır. */}
+    }catch(e){/* İstatistik yoksa skor ve form geçmişi korunur. */}
   }));
   try{localStorage.setItem(key,JSON.stringify({time:Date.now(),matches:result}));}catch(e){}
   if(!result.length)throw new Error(teamName+" geçmiş verisi alınamadı. Lig kodu: "+leagueId+". Kaynak: "+(sourceError||"Eşleşen tamamlanmış maç yok."));
@@ -2695,7 +2721,9 @@ function optionalMetric(matches, teamId, metric, venue){
  const aliases = {
   corners: ["corners"],
   shotsOnTarget: ["shotsOnTarget", "shots on target", "Shots on Goal"],
-  shots: ["shots", "Total Shots"]
+  shots: ["shots", "Total Shots"],
+  yellowCards: ["yellowCards", "yellow cards", "Yellow Cards"],
+  redCards: ["redCards", "red cards", "Red Cards"]
  };
  const wanted = aliases[metric] || [metric];
  const values = [];
@@ -2738,48 +2766,6 @@ function optionalMetric(matches, teamId, metric, venue){
   count: values.length,
   average: values.length ? values.reduce((sum,n)=>sum+n,0)/values.length : 0
  };
-}
-
-async function getMatchInjuries(fixtureId,leagueId){
- if(!fixtureId)return {items:[],note:"Maç kimliği eksik."};
- // ESPN maç özeti mevcutsa önce ESPN'in kendi eksik/kadro bölümünü kullan.
- const espnMatch=String(fixtureId).match(/^espn-([a-zA-Z0-9._-]+)-(\\d+)$/);
- if(espnMatch){
-  try{
-   const data=await api("espn/"+espnMatch[1]+"/summary?"+qs({event:espnMatch[2]}));
-   const raw=Array.isArray(data.injuries)?data.injuries:[];
-   const items=[];
-   const visit=(node,teamName="")=>{
-    if(!node||typeof node!=="object")return;
-    const team=node.team?.displayName||node.team?.name||node.displayName||teamName;
-    const athlete=node.athlete||node.player||node;
-    if((athlete.displayName||athlete.fullName||athlete.name)&&
-       (node.status||node.type||node.details||node.description||node.athlete)){
-     items.push({team,name:athlete.displayName||athlete.fullName||athlete.name,
-      reason:node.details||node.description||node.status||"Durum açıklanmamış",
-      type:node.status||node.type||"Eksik"});
-    }
-    if(Array.isArray(node.items))node.items.forEach(x=>visit(x,team));
-    if(Array.isArray(node.injuries))node.injuries.forEach(x=>visit(x,team));
-   };
-   raw.forEach(x=>visit(x));
-   const unique=[...new Map(items.map(x=>[x.team+"|"+x.name,x])).values()];
-   return {items:unique,note:unique.length?"ESPN maç özeti · doğrulanmış eksik kayıtları.":"ESPN maç özetinde doğrulanmış sakat/eksik kaydı bulunamadı."};
-  }catch(e){
-   return {items:[],note:"ESPN maç özeti eksik verisi alınamadı: "+String(e.message||e)};
-  }
- }
- if(!/^[0-9]+$/.test(String(fixtureId))){
-  return {items:[],note:"Bu fikstür için desteklenen maç kimliği bulunamadı."};
- }
- const data=await api("injuries?"+qs({fixture:fixtureId}));
- const items=(data.response||[]).map(x=>({
-  team:x.team?.name||"",
-  name:x.player?.name||"Bilinmeyen oyuncu",
-  reason:x.player?.reason||"Durum açıklanmamış",
-  type:x.player?.type||"Durum belirtilmemiş"
- }));
- return {items,note:items.length?"API-Football maç sakatlık/eksik listesi.":"Bu maç için kaynakta doğrulanmış sakat/eksik kaydı bulunamadı."};
 }
 
 function topScores(lh,la){
@@ -2863,13 +2849,6 @@ async function analyze(button){
     : draw>=win && draw>=lose
       ? {label:"Beraberlik",chance:draw}
       : {label:awayName+" kazanır",chance:lose};
-  let injuryReport={items:[],note:"Sakatlık verisi alınamadı."};
-  try{
-   target.textContent="Sakatlık ve cezalı oyuncu bilgileri kontrol ediliyor...";
-   injuryReport=await getMatchInjuries(button.dataset.id,button.dataset.league);
-  }catch(injuryError){
-   injuryReport.note="Sakatlık/eksik bilgisi alınamadı: "+String(injuryError.message||injuryError);
-  }
   const venue=v=>v==="home"?"iç saha":v==="away"?"deplasman":"son maçlar";
   const scores=topScores(lh,la);
 
@@ -2959,14 +2938,6 @@ async function analyze(button){
   }else{
    html+='<p class="note">Gerçek isabetli şut verisi yetersiz (her takım için en az 3 maç gerekli). Ortalama gösterilmiyor.</p>';
   }
-
-  html+='<div class="section-title">🚑 Maç önü kadro ve eksikler raporu</div>';
-  if(injuryReport.items.length){
-   html+=injuryReport.items.map(p=>`<div class="scoreline"><span>${esc(p.name)} · ${esc(p.team)}</span><b>${esc(p.type)}</b></div><p class="note">${esc(p.reason)}</p>`).join("");
-  }else{
-   html+='<p class="note">'+esc(injuryReport.note)+'</p>';
-  }
-  html+='<p class="note">Bu liste yalnızca veri sağlayıcısının bu maça bağladığı eksik kayıtlarını gösterir. Listede oyuncu olmaması, tüm futbolcuların kesin oynayacağı anlamına gelmez. İlk 11 ve maç kadrosu açıklanmadan kesin kadro yorumu yapılmaz.</p>';
 
   html+='<div class="section-title">En olası 5 skor</div>';
   scores.forEach((s,i)=>{
