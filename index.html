@@ -431,8 +431,9 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 <button id="loadStandings" class="secondary" style="width:100%;margin-top:10px">Seçili ligin puan durumunu getir</button>
 <div id="standings" class="pred" style="margin-top:12px">Puan durumunu görmek için lig seçip butona bas.</div>
 <div id="status" class="status"></div>
+<button type="button" id="couponToggle" class="secondary" style="width:100%;margin-top:12px" aria-expanded="false" aria-controls="couponPanel">🎟️ Kupon oluşturucuyu aç</button>
 
-<div class="panel coupon-panel" id="couponPanel">
+<div class="panel coupon-panel" id="couponPanel" hidden>
  <div class="coupon-title"><strong>🎟️ Kupon oluşturucu</strong><span class="coupon-count" id="couponCount">0 seçim</span></div>
  <p class="hint">Kuponunu bu panelin içinden oluştur. Maç kartları yalnızca fikstür ve analiz içindir.</p>
  <div id="couponItems"><div class="coupon-empty">Henüz kupona maç eklemedin.</div></div>
@@ -448,6 +449,7 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
  <p class="note" id="couponSuggestionStatus">Öneri oluşturmak için önce maçları analiz et. Sistem yalnızca analiz edilmiş maçları kullanır.</p>
  <div class="coupon-actions"><button class="secondary" type="button" id="couponClear">Kuponu temizle</button></div>
  <p class="note">Oranları her seçim için sen girebilirsin. Olasılıklar model tahminidir; bahis oranı veya kazanç garantisi değildir. Kupon bu cihazda saklanır.</p>
+<div class="coupon-actions"><button type="button" class="secondary" id="couponClose">Kupon alanını kapat</button></div>
 </div>
 
 <div id="matches"><div class="empty">Maçları getirmek için tarih seç.</div></div>
@@ -948,6 +950,15 @@ function addCouponSelection(button){
  saveCoupon();
  $("status").textContent="Maç kupona eklendi. Oranı artık kupon listesindeki Oran kutusuna girebilirsin.";
 }
+const couponPanel=$("couponPanel"),couponToggle=$("couponToggle");
+function setCouponOpen(open){
+ couponPanel.hidden=!open;
+ couponToggle.setAttribute("aria-expanded",String(open));
+ couponToggle.textContent=open?"🎟️ Kupon oluşturucuyu kapat":"🎟️ Kupon oluşturucuyu aç";
+ if(open)couponPanel.scrollIntoView({behavior:"smooth",block:"start"});
+}
+couponToggle.addEventListener("click",()=>setCouponOpen(couponPanel.hidden));
+$("couponClose").addEventListener("click",()=>setCouponOpen(false));
 $("couponStake").addEventListener("input",renderCoupon);
 $("couponClear").addEventListener("click",()=>{couponItems=[];saveCoupon();$("status").textContent="Kupon temizlendi.";});
 $("couponBuildSafe").addEventListener("click",()=>buildSuggestedCoupon("safe"));
