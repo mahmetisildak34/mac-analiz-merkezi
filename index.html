@@ -156,7 +156,7 @@ async function api(path){
     const errorText=JSON.stringify(data.errors||data.error||data);
     if(!response.ok||(data.errors&&Object.keys(data.errors).length)){
       if(/rate.?limit|too many requests|request limit|requests limit|quota/i.test(errorText)){
-        throw new Error("API dakikalık istek kotası dolu. ESPN ve Football-data.org yedek kaynakları kullanılacak.");
+        throw new Error("Too many requests: API dakikalık istek kotası dolu. ESPN ve Football-data.org yedek kaynakları kullanılacak.");
       }
       if(/plan|date/i.test(errorText)){
         throw new Error("Seçilen tarih mevcut API-Football planınızda desteklenmiyor.");
