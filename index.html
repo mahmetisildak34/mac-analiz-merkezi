@@ -824,6 +824,7 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 <section id="mamStandingsScreen" class="mam-standings-screen" hidden>
  <div class="mam-standings-intro"><span>🏆 LİG MERKEZİ</span><h2>Puan Durumu</h2><p>Türkiye ligleri, Avrupa kupaları ve dünyanın önde gelen organizasyonları tek yerde.</p></div>
  <label class="mam-standings-search"><span>⌕</span><input id="mamStandingsSearch" type="search" placeholder="Lig veya turnuva ara..." autocomplete="off"></label>
+ <div class="mam-standings-card" id="mamStandingsCard"><div class="mam-standings-card-head"><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Bir lig veya turnuva seç</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosunu görmek için yukarıdan bir lig seç.</div></div></div>
  <div class="mam-standings-group"><h3>⭐ Popüler Ligler</h3><div class="mam-standings-leagues" id="mamStandingsPopular"></div></div>
  <div class="mam-standings-group"><h3>🇹🇷 Türkiye</h3><div class="mam-standings-leagues" id="mamStandingsTurkey"></div></div>
  <div class="mam-standings-group"><h3>🌍 Avrupa'nın Büyük Ligleri</h3><div class="mam-standings-leagues" id="mamStandingsEurope"></div></div>
@@ -831,8 +832,7 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
  <div class="mam-standings-group"><h3>🌐 Diğer Ülkeler ve Uluslararası Turnuvalar</h3><div class="mam-standings-leagues" id="mamStandingsWorld"></div></div>
  <div class="mam-standings-group"><h3>🌍 Tüm desteklenen ligler ve kupalar</h3><p class="mam-standings-footnote">Veri sağlayıcısının güncel sezon için sunduğu tüm organizasyonları getir.</p><button type="button" class="secondary" id="mamLoadAllLeagues">Tüm ligleri yükle</button><div class="mam-standings-leagues" id="mamStandingsAll" style="margin-top:10px"></div></div>
  <p class="mam-standings-footnote">Liste, veri sağlayıcılarımızın desteklediği organizasyonlara göre genişletilir. Eleme usulü kupalarda puan tablosu bulunmayabilir; grup aşaması varsa grup tablosu gösterilir.</p>
- <div class="mam-standings-card"><div class="mam-standings-card-head"><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Bir lig veya turnuva seç</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosunu görmek için yukarıdan bir lig seç.</div></div></div>
-</section>
+ </section>
 <div class="mam-home-intro">
 <div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
 <h1>Futbolun nabzı burada.</h1>
@@ -2944,6 +2944,7 @@ async function analyze(button){
   selectedStandingsLeague=button.dataset.standingLeague;
   document.querySelectorAll("#mamStandingsScreen [data-standing-league]").forEach(item=>item.classList.toggle("active",item.dataset.standingLeague===selectedStandingsLeague));
   await loadStandings();
+  $("mamStandingsCard")?.scrollIntoView({behavior:"smooth",block:"start"});
  });
  $("mamStandingsRefresh")?.addEventListener("click",loadStandings);
  const dateInput=$("date"),strip=$("mamDateStrip");
