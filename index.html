@@ -1139,7 +1139,7 @@ async function loadLiveStats(button){
     if(!slug)throw new Error("API-Football kotası dolu ve bu lig için ESPN istatistik eşleştirmesi tanımlı değil.");
     const clean=v=>String(v||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
     const date=String(button.dataset.liveDate||"").replace(/-/g,"").slice(0,8);
-    if(!/^\\d{8}$/.test(date))throw new Error("ESPN yedek istatistiği için maç tarihi eksik.");
+    if(!/^\d{8}$/.test(date))throw new Error("ESPN yedek istatistiği için maç tarihi eksik.");
     const board=await api("espn/"+slug+"/scoreboard?"+qs({dates:date,limit:500}));
     const homeName=clean(button.dataset.liveHomeName),awayName=clean(button.dataset.liveAwayName);
     const event=(board.events||[]).find(ev=>{
