@@ -1133,7 +1133,7 @@ async function loadLiveStats(button){
     let slug=String(button.dataset.liveLeague||ESPN_LEAGUES[leagueId]?.slug||"");
     const leagueName=String(button.dataset.liveLeagueName||"").toLowerCase();
     if(!slug){
-     const map=[[/premier league/,"eng.1"],[/la liga/,"esp.1"],[/bundesliga/,"ger.1"],[/serie a/,"ita.1"],[/ligue 1/,"fra.1"],[/champions league/,"uefa.champions"],[/europa league/,"uefa.europa"],[/conference league/,"uefa.europa.conf"],[/nations league/,"uefa.nations"],[/argentina/,"arg.1"],[/eredivisie/,"ned.1"],[/super lig/,"tur.1"]];
+     const map=[[/copa del rey/,"esp.copa_del_rey"],[/copa de la reina/,"esp.copa_de_la_reina"],[/premier league/,"eng.1"],[/la liga/,"esp.1"],[/bundesliga/,"ger.1"],[/serie a/,"ita.1"],[/ligue 1/,"fra.1"],[/champions league/,"uefa.champions"],[/europa league/,"uefa.europa"],[/conference league/,"uefa.europa.conf"],[/nations league/,"uefa.nations"],[/argentina/,"arg.1"],[/eredivisie/,"ned.1"],[/super lig/,"tur.1"]];
      slug=map.find(([re])=>re.test(leagueName))?.[1]||"";
     }
     if(!slug)throw new Error("API-Football kotası dolu ve bu lig için ESPN istatistik eşleştirmesi tanımlı değil.");
