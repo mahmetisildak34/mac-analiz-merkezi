@@ -475,6 +475,9 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .lineup-player .player-rating.good{background:#baf0cc;color:#087b38}
 .lineup-player .player-rating.low{background:#ffe0d8;color:#a63b27}
 .lineup-bench{margin-top:12px}
+.lineup-bench-toggle{width:100%;min-height:40px;padding:9px 12px;border:1px solid #dce7df;border-radius:10px;background:#fff;color:#176b35;font-size:12px;font-weight:850;text-align:center}
+.lineup-bench-content{padding:9px 0 2px}
+.lineup-bench-content[hidden]{display:none}
 .lineup-bench-title{font-size:12px;font-weight:850;color:#1d6d3c;margin-bottom:6px}
 .lineup-bench-list{display:flex;flex-wrap:wrap;gap:6px}
 .lineup-bench-item{padding:6px 8px;border:1px solid #e1e9e3;border-radius:8px;background:#fff;color:#34463a;font-size:10px}
@@ -1116,13 +1119,14 @@ function lineupPlayerCard(entry,ratingMap){
  const ratingHtml=rating!==undefined&&rating!==null&&rating!==""?'<span class="player-rating '+lineupRatingClass(rating)+'">'+esc(Number(rating).toFixed(1))+'</span>':'<span class="player-rating">—</span>';
  return '<div class="lineup-player">'+image+'<span class="shirt">'+esc(p.number??"")+'</span><span class="player-name" title="'+esc(p.name||"Oyuncu")+'">'+esc(p.name||"Oyuncu")+'</span>'+ratingHtml+'</div>';
 }
-function lineupTeamHTML(team,ratingMap){
+function lineupTeamHTML(team,ratingMap,index){
  const starters=Array.isArray(team.startXI)?team.startXI:[],subs=Array.isArray(team.substitutes)?team.substitutes:[];
  const rows=new Map();
  starters.forEach((entry,index)=>{const m=String(entry.player?.grid||"").match(/^(\d+):(\d+)$/);const row=m?Number(m[1]):Math.ceil((index+1)/4);if(!rows.has(row))rows.set(row,[]);rows.get(row).push(entry);});
  const rowHtml=[...rows.entries()].sort((a,b)=>a[0]-b[0]).map(([,players])=>'<div class="lineup-row">'+players.map(p=>lineupPlayerCard(p,ratingMap)).join("")+'</div>').join("");
  const coach=team.coach||{},coachHtml=coach.name?'<div class="lineup-coach">Teknik direktör: <b>'+esc(coach.name)+'</b></div>':"";
- const benchHtml=subs.length?'<div class="lineup-bench"><div class="lineup-bench-title">Yedekler ('+subs.length+')</div><div class="lineup-bench-list">'+subs.map(entry=>{const p=entry.player||entry;return '<span class="lineup-bench-item">'+esc(p.number??"")+' '+esc(p.name||"Oyuncu")+'</span>';}).join("")+'</div></div>':'<div class="lineup-note">Yedek listesi kaynakta bulunmuyor.</div>';
+ const benchId="lineup-bench-"+index;
+ const benchHtml=subs.length?'<div class="lineup-bench"><button type="button" class="lineup-bench-toggle" data-bench-target="'+benchId+'" aria-expanded="false">Yedekleri göster ('+subs.length+')</button><div class="lineup-bench-content" id="'+benchId+'" hidden><div class="lineup-bench-title">Yedek oyuncular</div><div class="lineup-bench-list">'+subs.map(entry=>{const p=entry.player||entry;return '<span class="lineup-bench-item">'+esc(p.number??"")+' '+esc(p.name||"Oyuncu")+'</span>';}).join("")+'</div></div></div>':'<div class="lineup-note">Yedek listesi kaynakta bulunmuyor.</div>';
  return '<section class="lineup-team"><div class="lineup-team-title"><span>'+esc(team.team?.name||"Takım")+'</span><small>'+starters.length+' ilk 11</small></div>'+coachHtml+'<div class="lineup-pitch"><div class="lineup-rows">'+(rowHtml||'<div class="lineup-empty">Saha dizilişi henüz paylaşılmadı.</div>')+'</div></div>'+benchHtml+'</section>';
 }
 async function loadLineups(button){
@@ -1178,8 +1182,18 @@ async function loadLineups(button){
   for(const team of playerRows)for(const item of team.players||[]){const id=String(item.player?.id||""),rating=item.statistics?.[0]?.games?.rating;if(id&&rating!==undefined&&rating!==null)ratingMap.set(id,rating);}
   const hasStarters=teams.some(team=>(team.startXI||[]).length>0);
   panel.innerHTML='<div class="lineup-head"><strong>⚽ '+(isEspn?"ESPN maç kadrosu":"Resmî maç kadrosu")+'</strong><span class="lineup-formation">'+(hasStarters?"İlk 11":"Kadro listesi")+'</span></div>'+
-   teams.map(team=>'<div class="lineup-head"><strong>'+esc(team.team?.name||"Takım")+'</strong><span class="lineup-formation">'+esc(team.formation||"Diziliş bilgisi yok")+'</span></div>'+lineupTeamHTML(team,ratingMap)).join("")+
+   teams.map((team,index)=>'<div class="lineup-head"><strong>'+esc(team.team?.name||"Takım")+'</strong><span class="lineup-formation">'+esc(team.formation||"Diziliş bilgisi yok")+'</span></div>'+lineupTeamHTML(team,ratingMap,index)).join("")+
    '<div class="lineup-note">Kaynak: '+(isEspn?"ESPN":"API-Football")+'. Oyuncu puanları yalnızca kaynakta mevcut olduğunda gösterilir.</div>';
+  panel.querySelectorAll(".lineup-bench-toggle").forEach(benchButton=>{
+   benchButton.addEventListener("click",()=>{
+    const bench=document.getElementById(benchButton.dataset.benchTarget);
+    if(!bench)return;
+    const opening=bench.hidden;
+    bench.hidden=!opening;
+    benchButton.setAttribute("aria-expanded",String(opening));
+    benchButton.textContent=opening?"Yedekleri gizle":"Yedekleri göster ("+bench.querySelectorAll(".lineup-bench-item").length+")";
+   });
+  });
   panel.dataset.loaded="true";
  }catch(error){
   panel.innerHTML='<div class="lineup-empty">Kadro verisi alınamadı: '+esc(error.message||error)+'</div>';
