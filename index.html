@@ -925,7 +925,7 @@ let lastApiCall=0;
 async function api(path){
   const cleanPath=String(path).replace(/^\/+/, "");
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
-  const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings");
+  const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings")||/^espn\/[a-zA-Z0-9._-]+\/standings\?/.test(cleanPath);
   const isLive=cleanPath.includes("live=all");
   const isEspnSummary=/^espn\/[^/]+\/summary\?/.test(cleanPath);
   const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||isEspnSummary;
@@ -1106,9 +1106,7 @@ async function loadStandings(){
     const espnLeague=({"203":"tur.1"})[leagueId];
     if(!espnLeague)throw secondaryError;
     const url="https://site.api.espn.com/apis/v2/sports/soccer/"+espnLeague+"/standings?season="+season;
-    const response=await fetch(url,{headers:{Accept:"application/json"}});
-    if(!response.ok)throw new Error("ESPN puan tablosu alınamadı (HTTP "+response.status+").");
-    const data=await response.json();
+    const data=await api("espn/"+espnLeague+"/standings?"+qs({season}));
     const entries=[];
     const collect=node=>{
      if(!node||typeof node!=="object")return;
