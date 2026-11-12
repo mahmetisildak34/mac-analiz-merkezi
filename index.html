@@ -549,8 +549,10 @@ async function getESPNNationalHistory(teamId,teamName,matchDate){
   const awayName=away.team?.displayName||away.team?.name||away.displayName||away.name||"";
   const isHome=matchesName(homeName),isAway=matchesName(awayName);
   if(isHome===isAway)continue;
-  const homeGoals=Number(String(home.score??"").replace(/[^0-9-]/g,""));
-  const awayGoals=Number(String(away.score??"").replace(/[^0-9-]/g,""));
+  const homeScoreText=String(home.score??"").replace(/[^0-9-]/g,"");
+  const awayScoreText=String(away.score??"").replace(/[^0-9-]/g,"");
+  if(!homeScoreText||!awayScoreText)continue;
+  const homeGoals=Number(homeScoreText),awayGoals=Number(awayScoreText);
   if(!Number.isFinite(homeGoals)||!Number.isFinite(awayGoals))continue;
   const id=[date,normalize(homeName),normalize(awayName),homeGoals,awayGoals].join("|");
   if(seen.has(id))continue;
