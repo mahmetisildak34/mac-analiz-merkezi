@@ -573,7 +573,7 @@ async function api(path){
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings");
   const isLive=cleanPath.includes("live=all");
-  const isLiveStats=cleanPath.startsWith("fixtures/statistics?");
+  const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||/^espn\/[^/]+\/summary\?/.test(cleanPath);
   const isArchive=cleanPath.startsWith("archive/");
    const isPrimaryApi=!isArchive&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
   const cacheKey="mam_api_cache_v2_"+cleanPath;
@@ -971,23 +971,68 @@ async function loadLiveMatches(){
 
 async function loadLiveStats(button){
  const fixtureId=String(button.dataset.liveId||"");
- const panel=document.getElementById("live-stats-"+fixtureId);
- if(!panel||!/^\d+$/.test(fixtureId))return;
+ const source=String(button.dataset.liveSource||"api");
+ const leagueSlug=String(button.dataset.liveLeague||"");
+ const panel=document.getElementById(button.dataset.livePanel||("live-stats-"+fixtureId));
+ if(!panel||!fixtureId)return;
  if(!panel.hidden){panel.hidden=true;button.textContent="📊 Canlı istatistikler";return;}
  panel.hidden=false;panel.innerHTML='<div class="small">Canlı istatistikler alınıyor…</div>';
  button.disabled=true;
  try{
-  const payload=await api("fixtures/statistics?"+qs({fixture:fixtureId}));
-  const teams=Array.isArray(payload.response)?payload.response:[];
-  if(!teams.length)throw new Error("Bu maç için henüz istatistik verisi yok.");
-  const keys=[["Ball Possession","Topla oynama"],["Total Shots","Toplam şut"],["Shots on Goal","İsabetli şut"],["Shots off Goal","İsabetsiz şut"],["Blocked Shots","Engellenen şut"],["Corner Kicks","Korner"],["Fouls","Faul"],["Offsides","Ofsayt"],["Yellow Cards","Sarı kart"],["Red Cards","Kırmızı kart"],["Goalkeeper Saves","Kurtarış"],["Total passes","Pas"],["Passes accurate","İsabetli pas"]];
-  const value=v=>v===null||v===undefined||v===""?"—":String(v);
-  const rows=keys.map(([key,label])=>{
-   const vals=teams.slice(0,2).map(team=>(team.statistics||[]).find(x=>String(x.type||"").toLowerCase()===key.toLowerCase())?.value);
-   if(vals.every(v=>v===null||v===undefined||v===""))return "";
-   return '<div class="probline" style="padding:7px 0;border-bottom:1px solid var(--line)"><b>'+esc(value(vals[0]))+'</b><span>'+esc(label)+'</span><b>'+esc(value(vals[1]))+'</b></div>';
-  }).filter(Boolean).join("");
-  panel.innerHTML='<div style="font-weight:800;margin-bottom:8px">📊 Canlı maç istatistikleri</div><div class="probline" style="padding:7px 0"><b>'+esc(teams[0]?.team?.name||"Ev sahibi")+'</b><span>İstatistik</span><b>'+esc(teams[1]?.team?.name||"Deplasman")+'</b></div>'+(rows||'<div class="small">Kaynak henüz istatistik paylaşmadı.</div>')+'<div class="small" style="margin-top:9px">Kaynak: API-Football. Veriler talep üzerine yenilenir.</div>';
+  let homeTeam,awayTeam,statsRows=[],sourceLabel;
+  if(source==="espn"){
+   if(!/^\d+$/.test(fixtureId)||!leagueSlug)throw new Error("ESPN maç bilgisi eksik.");
+   const payload=await api("espn/"+leagueSlug+"/summary?"+qs({event:fixtureId}));
+   const teams=Array.isArray(payload.boxscore?.teams)?payload.boxscore.teams:[];
+   const home=teams.find(x=>x.homeAway==="home"),away=teams.find(x=>x.homeAway==="away");
+   if(!home||!away)throw new Error("ESPN bu maç için henüz takım istatistiği paylaşmıyor.");
+   homeTeam=home.team?.displayName||"Ev sahibi";
+   awayTeam=away.team?.displayName||"Deplasman";
+   const normalize=value=>String(value||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+   const labelFor=name=>{
+    const k=normalize(name);
+    if(k.includes("possession"))return "Topla oynama";
+    if(k.includes("shotsontarget")||k.includes("shotsongoal"))return "İsabetli şut";
+    if(k.includes("shotsofftarget")||k.includes("shotsoffgoal"))return "İsabetsiz şut";
+    if(k.includes("totalshots")||k==="shots")return "Toplam şut";
+    if(k.includes("blockedshots"))return "Engellenen şut";
+    if(k.includes("corner"))return "Korner";
+    if(k.includes("foul"))return "Faul";
+    if(k.includes("offside"))return "Ofsayt";
+    if(k.includes("yellowcard"))return "Sarı kart";
+    if(k.includes("redcard"))return "Kırmızı kart";
+    if(k.includes("save"))return "Kurtarış";
+    if(k.includes("pass"))return "Pas";
+    return null;
+   };
+   const mapStats=team=>{
+    const map={};
+    for(const stat of (team.statistics||[])){
+     const label=labelFor(stat.name||stat.label);
+     if(label)map[label]=stat.displayValue??stat.value??"—";
+    }
+    return map;
+   };
+   const h=mapStats(home),a=mapStats(away);
+   const labels=[...new Set([...Object.keys(h),...Object.keys(a)])];
+   statsRows=labels.map(label=>[label,h[label]??"—",a[label]??"—"]);
+   sourceLabel="ESPN";
+  }else{
+   if(!/^\d+$/.test(fixtureId))throw new Error("API-Football maç kimliği geçersiz.");
+   const payload=await api("fixtures/statistics?"+qs({fixture:fixtureId}));
+   const teams=Array.isArray(payload.response)?payload.response:[];
+   if(!teams.length)throw new Error("Bu maç için henüz istatistik verisi yok.");
+   homeTeam=teams[0]?.team?.name||"Ev sahibi";
+   awayTeam=teams[1]?.team?.name||"Deplasman";
+   const keys=[["Ball Possession","Topla oynama"],["Total Shots","Toplam şut"],["Shots on Goal","İsabetli şut"],["Shots off Goal","İsabetsiz şut"],["Blocked Shots","Engellenen şut"],["Corner Kicks","Korner"],["Fouls","Faul"],["Offsides","Ofsayt"],["Yellow Cards","Sarı kart"],["Red Cards","Kırmızı kart"],["Goalkeeper Saves","Kurtarış"],["Total passes","Pas"],["Passes accurate","İsabetli pas"]];
+   statsRows=keys.map(([key,label])=>{
+    const vals=teams.slice(0,2).map(team=>(team.statistics||[]).find(x=>String(x.type||"").toLowerCase()===key.toLowerCase())?.value);
+    return vals.every(v=>v===null||v===undefined||v==="")?null:[label,vals[0]??"—",vals[1]??"—"];
+   }).filter(Boolean);
+   sourceLabel="API-Football";
+  }
+  const rows=statsRows.map(([label,left,right])=>'<div class="probline" style="padding:7px 0;border-bottom:1px solid var(--line)"><b>'+esc(left)+'</b><span>'+esc(label)+'</span><b>'+esc(right)+'</b></div>').join("");
+  panel.innerHTML='<div style="font-weight:800;margin-bottom:8px">📊 Canlı maç istatistikleri</div><div class="probline" style="padding:7px 0"><b>'+esc(homeTeam)+'</b><span>İstatistik</span><b>'+esc(awayTeam)+'</b></div>'+(rows||'<div class="small">Kaynak henüz istatistik paylaşmadı.</div>')+'<div class="small" style="margin-top:9px">Kaynak: '+sourceLabel+'. Veriler talep üzerine yenilenir.</div>';
  }catch(error){panel.innerHTML='<span class="error">'+esc(error.message||error)+'</span>';}
  finally{button.disabled=false;button.textContent="İstatistikleri gizle";}
 }
@@ -1029,7 +1074,7 @@ function renderMatches(){
     <button class="predBtn" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-league="${esc(l.id)}" data-date="${esc(f.date?.slice(0,10))}">✦ Maçı analiz et</button>
    </div>
 
-   ${isLiveStatus&&/^\d+$/.test(String(f.id||""))?'<button type="button" class="liveStatsBtn secondary" data-live-id="'+esc(f.id)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(f.id)+'" hidden></div>':""}
+   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9.]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9.]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
  }).join("");
