@@ -2397,7 +2397,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
-  const key="mam_history_v29_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v30_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2467,7 +2467,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     if(gh===null||ga===null||gh===undefined||ga===undefined)return;
     const d=String(m.fixture?.date||"").slice(0,10);
     if(!d||d>=matchDate)return;
-    const id=[d,normalize(h),normalize(a),gh,ga].join("|");
+    const id=[d,hm?"target-home":"target-away",gh,ga].join("|");
     if(seen.has(id))return;
     seen.add(id);output.push(m);
   };
