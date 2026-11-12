@@ -671,7 +671,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         const state=String(competition.status?.type?.state||event.status?.type?.state||'').toLowerCase();
         const completed=competition.status?.type?.completed===true||event.status?.type?.completed===true||state==='post';
         if(!completed)continue;
-        const homeScore=Number(home.score),awayScore=Number(away.score);
+        const scoreValue=value=>Number(value&&typeof value==="object"?(value.value??value.displayValue):value);
+        const homeScore=scoreValue(home.score),awayScore=scoreValue(away.score);
         if(!Number.isFinite(homeScore)||!Number.isFinite(awayScore))continue;
         const homeId=Number(home.team?.id),awayId=Number(away.team?.id);
         const homeIsTarget=homeId===Number(teamId),awayIsTarget=awayId===Number(teamId);
