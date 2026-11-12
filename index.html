@@ -813,8 +813,70 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 }
 
 </style>
+
+<style id="mam-welcome-intro-style">
+#mamWelcomeIntro{position:fixed;inset:0;z-index:100001;display:grid;place-items:center;overflow:hidden;padding:26px 20px;background:radial-gradient(ellipse at 50% 35%,#193b55 0%,#091a2c 42%,#030912 100%);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;transition:opacity .7s ease,visibility .7s ease}
+#mamWelcomeIntro.mam-intro-hide{opacity:0;visibility:hidden;pointer-events:none}
+#mamWelcomeIntro:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 9%,rgba(255,255,255,.035) 9.2% 9.4%,transparent 9.6% 18%),linear-gradient(180deg,transparent 48%,rgba(35,220,150,.13));transform:perspective(400px) rotateX(12deg) scale(1.3);animation:mamLights 4s ease-in-out infinite alternate}
+.mam-intro-lights{position:absolute;top:10%;left:-10%;width:120%;height:24%;background:radial-gradient(ellipse,rgba(255,255,255,.9),transparent 58%);filter:blur(22px);opacity:.55;animation:mamFlash 3s infinite}
+.mam-intro-player{position:relative;width:160px;height:250px;margin:0 auto 22px;animation:mamWalk 2.4s ease-in-out infinite}
+.mam-intro-head{position:absolute;top:0;left:59px;width:43px;height:48px;border-radius:48% 48% 42% 42%;background:linear-gradient(90deg,#111923,#39424c,#111923);box-shadow:0 0 25px #8ab7d0}
+.mam-intro-body{position:absolute;top:43px;left:28px;width:105px;height:145px;border-radius:28px 28px 12px 12px;background:linear-gradient(90deg,#d7dce0,#fff 45%,#aab4bd);clip-path:polygon(18% 0,82% 0,100% 100%,0 100%)}
+.mam-intro-body:after{content:"RONALDO\\A 7";white-space:pre;position:absolute;inset:36px 0 auto;text-align:center;color:#1b2631;font-size:23px;font-weight:950;letter-spacing:2px;line-height:1.8}
+.mam-intro-leg{position:absolute;top:178px;width:35px;height:72px;background:linear-gradient(90deg,#101722,#303b47);border-radius:0 0 10px 10px}
+.mam-intro-leg.left{left:47px;transform:rotate(4deg)}.mam-intro-leg.right{right:39px;transform:rotate(-5deg)}
+.mam-intro-content{position:relative;z-index:2;text-align:center;width:min(100%,520px);animation:mamRise 1s both}
+.mam-intro-kicker{color:#5cf3bd;font-size:11px;font-weight:900;letter-spacing:4px}
+.mam-intro-title{font-size:clamp(29px,8vw,48px);font-weight:1000;letter-spacing:-1.6px;line-height:1.02;margin:10px 0;text-shadow:0 4px 28px rgba(49,255,179,.3)}
+.mam-intro-title span{color:#51efb8}
+.mam-intro-welcome{font-size:clamp(19px,5vw,27px);font-weight:850;margin:18px 0 8px}
+.mam-intro-line{font-size:13px;line-height:1.6;color:#b8c8d8;margin:0 auto 24px;max-width:340px}
+#mamIntroStart{min-width:220px;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:15px 24px;background:linear-gradient(110deg,#75ffd0,#16c98b);color:#03251b;font-size:15px;font-weight:950;box-shadow:0 0 32px rgba(48,240,174,.35)}
+#mamIntroSkip{display:block;margin:13px auto 0;background:transparent;border:0;color:#a9bacb;font-size:12px;padding:8px}
+@keyframes mamWalk{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-7px) scale(1.025)}}
+@keyframes mamRise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes mamLights{from{opacity:.35}to{opacity:.9}}
+@keyframes mamFlash{0%,100%{opacity:.25}50%{opacity:.75}}
+@media(prefers-reduced-motion:reduce){#mamWelcomeIntro *{animation:none!important}}
+</style>
 </head>
 <body>
+
+<div id="mamWelcomeIntro" role="dialog" aria-label="Maç Analiz Merkezi hoş geldiniz">
+ <div class="mam-intro-lights"></div>
+ <div class="mam-intro-content">
+  <div class="mam-intro-kicker">FUTBOL · VERİ · TAHMİN</div>
+  <div class="mam-intro-player" aria-hidden="true"><div class="mam-intro-head"></div><div class="mam-intro-body"></div><div class="mam-intro-leg left"></div><div class="mam-intro-leg right"></div></div>
+  <div class="mam-intro-title">MAÇ ANALİZ<br><span>MERKEZİ</span></div>
+  <div class="mam-intro-welcome">HOŞ GELDİNİZ!</div>
+  <p class="mam-intro-line">Futbolun heyecanına hazır olun. Veriler konuşur, gerçek analiz başlar.</p>
+  <button type="button" id="mamIntroStart">▶ BAŞLAT</button>
+  <button type="button" id="mamIntroSkip">Sesi kapat ve devam et</button>
+ </div>
+</div>
+<script>
+(function(){
+ const overlay=document.getElementById("mamWelcomeIntro");
+ if(!overlay)return;
+ const doneKey="mam_intro_seen_v1";
+ if(sessionStorage.getItem(doneKey)==="1"){overlay.remove();return;}
+ function finish(){sessionStorage.setItem(doneKey,"1");overlay.classList.add("mam-intro-hide");setTimeout(()=>overlay.remove(),750);}
+ function speak(){
+  try{
+   if(!("speechSynthesis" in window))return;
+   window.speechSynthesis.cancel();
+   const u=new SpeechSynthesisUtterance("Futbolun heyecanına hazır mısınız? Maç Analiz Merkezi'ne hoş geldiniz! Veriler konuşur, gerçek analiz başlar.");
+   u.lang="tr-TR";u.rate=.86;u.pitch=.78;u.volume=1;
+   const voices=window.speechSynthesis.getVoices();
+   const tr=voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith("tr"));
+   if(tr)u.voice=tr;
+   window.speechSynthesis.speak(u);
+  }catch(e){}
+ }
+ document.getElementById("mamIntroStart").addEventListener("click",()=>{speak();setTimeout(finish,6000);});
+ document.getElementById("mamIntroSkip").addEventListener("click",()=>{try{window.speechSynthesis.cancel();}catch(e){}finish();});
+})();
+</script>
 <div id="mamAuthGate" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:22px;background:#07111f">
  <form id="mamAuthForm" style="width:min(100%,380px);padding:24px;border:1px solid #30445f;border-radius:20px;background:#101d30;color:#f4f8ff;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
   <div style="font-size:12px;letter-spacing:1px;color:#35e0b5;font-weight:800">MRTYLT • GÜVENLİ GİRİŞ</div>
