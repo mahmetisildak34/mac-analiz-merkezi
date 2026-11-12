@@ -536,6 +536,22 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .lineup-note{margin-top:9px;color:#738078;font-size:10px;line-height:1.5}
 @media(max-width:420px){.lineup-player img{width:32px;height:32px}.lineup-player .player-name{font-size:9px}.lineup-rows{gap:11px}.lineup-pitch{padding:10px 4px}}
 
+
+/* MAM APP NAV + FIXTURE DATE STRIP */
+.top{display:flex;align-items:center;gap:12px}
+.mam-menu-trigger{flex:0 0 44px;width:44px;min-height:44px;padding:0;border-radius:13px;background:#172b40;color:#f5fbff;border:1px solid rgba(150,180,215,.22);font-size:24px;box-shadow:none}
+.mam-brand{flex:1;font-size:13px;font-weight:950;letter-spacing:.45px}
+.mam-drawer-backdrop{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.62);backdrop-filter:blur(3px)}
+.mam-drawer{position:fixed;z-index:100001;inset:0 auto 0 0;width:min(86vw,340px);padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 20px);overflow:auto;background:#101b2b;border-right:1px solid rgba(150,180,215,.2);box-shadow:20px 0 60px rgba(0,0,0,.35);transform:translateX(-105%);transition:transform .22s ease}
+.mam-drawer.open{transform:translateX(0)}
+.mam-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0 18px;border-bottom:1px solid rgba(150,180,215,.17);margin-bottom:14px}
+.mam-drawer-head strong{font-size:17px}.mam-drawer-close{width:40px;min-height:40px;padding:0;background:#24364c;color:#fff;box-shadow:none}
+.mam-nav-item{display:flex;align-items:center;gap:13px;width:100%;min-height:54px;margin:7px 0;padding:12px 14px;text-align:left;background:#17263a;border:1px solid rgba(150,180,215,.13);color:#f4f8ff;box-shadow:none}
+.mam-nav-item span:first-child{width:25px;text-align:center;font-size:20px}.mam-nav-item small{display:block;color:#9eb0c7;font-size:10px;font-weight:600;margin-top:2px}
+.mam-date-strip{display:flex;gap:8px;overflow-x:auto;padding:7px 1px 12px;margin-top:5px;scrollbar-width:none}.mam-date-strip::-webkit-scrollbar{display:none}
+.mam-date-chip{flex:0 0 auto;min-width:72px;min-height:55px;padding:7px 10px;background:#13253a;color:#d9e6f6;border:1px solid rgba(150,180,215,.16);box-shadow:none;border-radius:13px;font-size:11px}
+.mam-date-chip b{display:block;font-size:13px;margin-top:3px}.mam-date-chip.active{background:linear-gradient(135deg,#35e0b5,#22b995);color:#05251f;border-color:transparent}
+@media(max-width:500px){.mam-brand{font-size:12px}.top .tag{font-size:9px;padding:7px 9px}}
 </style>
 </head>
 <body>
@@ -551,8 +567,20 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 </div>
 
 <main>
+<div id="mamDrawerBackdrop" class="mam-drawer-backdrop" hidden></div>
+<nav id="mamDrawer" class="mam-drawer" aria-label="Ana menü" aria-hidden="true">
+ <div class="mam-drawer-head"><strong>⚽ Maç Analiz Merkezi</strong><button type="button" id="mamMenuClose" class="mam-drawer-close">✕</button></div>
+ <button type="button" class="mam-nav-item" data-mam-nav="live"><span>🔴</span><span>Canlı sonuçlar<small>Devam eden maçlar ve dakika</small></span></button>
+ <button type="button" class="mam-nav-item" data-mam-nav="fixtures"><span>📅</span><span>Gelecek maçlar<small>Tarihe göre fikstür</small></span></button>
+ <button type="button" class="mam-nav-item" data-mam-nav="standings"><span>🏆</span><span>Puan durumu<small>Seçilen ligin sıralaması</small></span></button>
+ <button type="button" class="mam-nav-item" data-mam-nav="coupon"><span>🎟️</span><span>Kupon oluşturucu<small>Analizlerinden seçim oluştur</small></span></button>
+ <button type="button" class="mam-nav-item" data-mam-nav="analysis"><span>📊</span><span>Maç analiz merkezi<small>İstatistik, kadro ve tahminler</small></span></button>
+ <p class="hint" style="margin:18px 4px 0">Menüdeki bölümler mevcut maç verisi ve analiz ekranlarına bağlanır.</p>
+</nav>
+
 <div class="top">
-<div style="font-weight:900;letter-spacing:.4px">⚽ MAÇ ANALİZ MERKEZİ</div>
+<button type="button" class="mam-menu-trigger" id="mamMenuToggle" aria-label="Menüyü aç" aria-expanded="false">☰</button>
+<div class="mam-brand">⚽ MAÇ ANALİZ MERKEZİ</div>
 <span class="tag">ANALİZ MOTORU</span>
 </div>
 
@@ -589,7 +617,16 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 <div id="leagueMenu" class="league-menu" role="listbox" aria-labelledby="leagueLabel" hidden></div>
 </div>
 </div>
-<button id="load" style="width:100%;margin-top:14px">Günün maçlarını getir</button>
+<div class="mam-date-strip" id="mamDateStrip" aria-label="Hızlı tarih seçimi">
+ <button type="button" class="mam-date-chip" data-day-offset="0">Bugün<b></b></button>
+ <button type="button" class="mam-date-chip" data-day-offset="1">Yarın<b></b></button>
+ <button type="button" class="mam-date-chip" data-day-offset="2">+2 gün<b></b></button>
+ <button type="button" class="mam-date-chip" data-day-offset="3">+3 gün<b></b></button>
+ <button type="button" class="mam-date-chip" data-day-offset="4">+4 gün<b></b></button>
+ <button type="button" class="mam-date-chip" data-day-offset="5">+5 gün<b></b></button>
+ <button type="button" class="mam-date-chip" data-day-offset="6">+6 gün<b></b></button>
+</div>
+<button id="load" style="width:100%;margin-top:8px">Seçili günün maçlarını getir</button>
 <button id="loadLive" style="width:100%;margin-top:10px">Canlı maçları getir / yenile</button>
 <button id="loadStandings" style="width:100%;margin-top:10px">Seçili ligin puan durumunu getir</button>
 <div id="standings" class="pred" style="margin-top:12px">Puan durumunu görmek için lig seçip butona bas.</div>
@@ -2361,6 +2398,33 @@ async function analyze(button){
   button.textContent="Analizi yenile";
  }
 }
+
+// Navigation drawer and quick fixture dates
+(function initMamNavigation(){
+ const drawer=$("mamDrawer"),backdrop=$("mamDrawerBackdrop"),toggle=$("mamMenuToggle"),close=$("mamMenuClose");
+ if(!drawer||!backdrop||!toggle||!close)return;
+ const open=()=>{backdrop.hidden=false;drawer.classList.add("open");drawer.setAttribute("aria-hidden","false");toggle.setAttribute("aria-expanded","true");document.body.style.overflow="hidden";};
+ const shut=()=>{drawer.classList.remove("open");drawer.setAttribute("aria-hidden","true");toggle.setAttribute("aria-expanded","false");document.body.style.overflow="";backdrop.hidden=true;};
+ toggle.addEventListener("click",open);close.addEventListener("click",shut);backdrop.addEventListener("click",shut);
+ drawer.querySelectorAll("[data-mam-nav]").forEach(button=>button.addEventListener("click",()=>{
+  const action=button.dataset.mamNav;shut();
+  if(action==="live"){$("loadLive")?.click();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
+  if(action==="fixtures"){$("date")?.scrollIntoView({behavior:"smooth",block:"center"});$("load")?.click();}
+  if(action==="standings"){$("standings")?.scrollIntoView({behavior:"smooth",block:"center"});$("loadStandings")?.click();}
+  if(action==="coupon"){$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
+  if(action==="analysis")$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});
+ }));
+ const dateInput=$("date"),strip=$("mamDateStrip");
+ if(!dateInput||!strip)return;
+ const localDate=(offset)=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+ const label=(offset)=>{const d=new Date(localDate(offset)+"T12:00:00");return d.toLocaleDateString("tr-TR",{weekday:"short",day:"2-digit",month:"2-digit"});};
+ strip.querySelectorAll("[data-day-offset]").forEach(chip=>{
+  const offset=Number(chip.dataset.dayOffset);chip.querySelector("b").textContent=label(offset);
+  chip.addEventListener("click",()=>{dateInput.value=localDate(offset);strip.querySelectorAll(".mam-date-chip").forEach(x=>x.classList.toggle("active",x===chip));$("load")?.click();});
+ });
+ const sync=()=>{strip.querySelectorAll(".mam-date-chip").forEach(chip=>chip.classList.toggle("active",dateInput.value===localDate(Number(chip.dataset.dayOffset))));};
+ dateInput.addEventListener("change",sync);sync();
+})();
 </script>
 <a href="https://sportscore.com/" rel="dofollow">Powered by SportScore</a>
 <script>
