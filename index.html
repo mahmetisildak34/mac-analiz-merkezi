@@ -1025,7 +1025,7 @@ function renderMatches(){
     <div class="team-block">${teamBadge(t.away)}<strong>${esc(t.away?.name)}</strong></div>
    </div>
    <div class="match-actions">
-    <span class="small">Maç ön analizi</span>
+    <span class="small">${isLiveStatus?"🔴 Canlı maç":"Maç ön analizi"}</span>
     <button class="predBtn" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-league="${esc(l.id)}" data-date="${esc(f.date?.slice(0,10))}">✦ Maçı analiz et</button>
    </div>
 
