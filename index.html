@@ -371,6 +371,43 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 #league option{background:#fff;color:#17212b}
 #league:focus{border-color:#087f3c!important;box-shadow:0 0 0 3px rgba(25,166,83,.18)!important}
 
+ 
+/* ÖZEL YEŞİL LİG SEÇİCİ */
+.league-picker{position:relative;min-width:0}
+.league-native{display:none!important}
+.league-trigger{
+ width:100%;min-height:52px;padding:12px 15px;
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ border:1.5px solid #19a653;border-radius:14px;
+ background:linear-gradient(135deg,#18b957,#07843c)!important;
+ color:#fff!important;font-size:15px;font-weight:850;
+ box-shadow:0 7px 19px rgba(12,150,68,.2)!important;
+ text-align:left
+}
+.league-chevron{font-size:22px;line-height:1;transition:transform .18s}
+.league-trigger[aria-expanded="true"] .league-chevron{transform:rotate(180deg)}
+.league-menu{
+ position:absolute;z-index:50;top:calc(100% + 8px);left:0;right:0;
+ padding:7px;border:1.5px solid #20a85a;border-radius:16px;
+ background:linear-gradient(160deg,#f3fff6,#dff7e7);
+ box-shadow:0 16px 35px rgba(0,65,30,.22);
+ max-height: min( min(360px, 55vh), 420px);overflow-y:auto
+}
+.league-menu[hidden]{display:none}
+.league-option{
+ width:100%;min-height:43px;padding:10px 12px;margin:2px 0;
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ border:1px solid transparent;border-radius:11px;
+ background:rgba(255,255,255,.78)!important;color:#173526!important;
+ box-shadow:none!important;text-align:left;font-size:14px;font-weight:750
+}
+.league-option[aria-selected="true"]{
+ background:linear-gradient(135deg,#087f3d,#16a653)!important;
+ color:#fff!important;border-color:#087f3d
+}
+.league-option:active{filter:brightness(.97)}
+@media(max-width:500px){.league-menu{max-height: min(55vh,360px)}}
+
 /* TEAM CREST FALLBACK: initials are always visible */
 .team-crest{position:relative;width:44px;height:44px;display:grid;place-items:center;flex:0 0 44px}
 .team-placeholder{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:#e9f7ed;border:1px solid #d6efdd;color:#168344;font-size:13px;font-weight:900;letter-spacing:-.4px}
@@ -438,9 +475,9 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 <label for="date">Maç tarihi</label>
 <input id="date" type="date">
 </div>
-<div>
-<label for="league">Lig filtresi</label>
-<select id="league">
+<div class="league-picker">
+<label id="leagueLabel" for="leagueTrigger">Lig filtresi</label>
+<select id="league" class="league-native" aria-hidden="true" tabindex="-1">
 <option value="all">Tüm ligler</option>
 <option value="39">Premier League</option>
 <option value="203">Süper Lig</option>
@@ -450,6 +487,10 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 <option value="61">Ligue 1</option>
 <option value="2">Şampiyonlar Ligi</option>
 </select>
+<button type="button" id="leagueTrigger" class="league-trigger" aria-labelledby="leagueLabel leagueCurrent" aria-expanded="false" aria-controls="leagueMenu">
+<span id="leagueCurrent">🏆 Tüm ligler</span><span class="league-chevron" aria-hidden="true">⌄</span>
+</button>
+<div id="leagueMenu" class="league-menu" role="listbox" aria-labelledby="leagueLabel" hidden></div>
 </div>
 </div>
 <button id="load" style="width:100%;margin-top:14px">Günün maçlarını getir</button>
@@ -607,6 +648,46 @@ let allMatches=[];
 $("load").addEventListener("click",loadMatches);
 $("loadLive").addEventListener("click",loadLiveMatches);
 $("loadStandings").addEventListener("click",loadStandings);
+
+// Özel lig menüsü; mevcut #league değeri ve filtreleme mantığı korunur.
+(function initLeaguePicker(){
+ const select=$("league"),trigger=$("leagueTrigger"),menu=$("leagueMenu"),current=$("leagueCurrent");
+ if(!select||!trigger||!menu||!current)return;
+ function syncLeaguePicker(){
+  const selected=select.options[select.selectedIndex];
+  current.textContent="🏆 "+(selected?selected.text:"Tüm ligler");
+  menu.querySelectorAll("[data-league-value]").forEach(item=>{
+   const active=item.dataset.leagueValue===select.value;
+   item.setAttribute("aria-selected",active?"true":"false");
+   item.innerHTML="<span>"+esc(item.dataset.leagueLabel)+"</span>"+(active?"<span aria-hidden=\"true\">✓</span>":"");
+  });
+ }
+ menu.innerHTML=Array.from(select.options).map(option=>
+  '<button type="button" class="league-option" role="option" data-league-value="'+esc(option.value)+'" data-league-label="'+esc(option.text)+'" aria-selected="false"><span>'+esc(option.text)+'</span></button>'
+ ).join("");
+ function closeMenu(){menu.hidden=true;trigger.setAttribute("aria-expanded","false")}
+ trigger.addEventListener("click",()=>{
+  const opening=menu.hidden;
+  menu.hidden=!opening;
+  trigger.setAttribute("aria-expanded",opening?"true":"false");
+ });
+ menu.addEventListener("click",event=>{
+  const option=event.target.closest("[data-league-value]");
+  if(!option)return;
+  select.value=option.dataset.leagueValue;
+  select.dispatchEvent(new Event("change",{bubbles:true}));
+  syncLeaguePicker();closeMenu();trigger.focus();
+ });
+ document.addEventListener("click",event=>{
+  if(!event.target.closest(".league-picker"))closeMenu();
+ });
+ document.addEventListener("keydown",event=>{
+  if(event.key==="Escape"&&!menu.hidden){closeMenu();trigger.focus()}
+ });
+ select.addEventListener("change",syncLeaguePicker);
+ syncLeaguePicker();
+})();
+
 $("league").addEventListener("change",renderMatches);
 
 async function loadStandings(){
