@@ -1064,7 +1064,7 @@ async function loadLiveStats(button){
  panel.hidden=false;panel.innerHTML='<div class="small">Canlı istatistikler alınıyor…</div>';
  button.disabled=true;
  try{
-  let homeTeam,awayTeam,statsRows=[],sourceLabel;
+  let homeTeam,awayTeam,statsRows=[],sourceLabel,payload=null;
   if(source==="espn"){
    if(!/^\d+$/.test(fixtureId)||!leagueSlug)throw new Error("ESPN maç bilgisi eksik.");
    const payload=await api("espn/"+leagueSlug+"/summary?"+qs({event:fixtureId}));
@@ -1112,7 +1112,7 @@ async function loadLiveStats(button){
    sourceLabel="ESPN";
   }else{
    if(!/^\d+$/.test(fixtureId))throw new Error("API-Football maç kimliği geçersiz.");
-   let payload=null,teams=[];
+   let teams=[];
    try{
     payload=await api("fixtures/statistics?"+qs({fixture:fixtureId}));
     teams=Array.isArray(payload.response)?payload.response:[];
