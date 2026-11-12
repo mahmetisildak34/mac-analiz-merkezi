@@ -2511,7 +2511,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     // Eski seri istek düzeni iPhone'da uzun süre "geçmiş maçlar alınıyor" ekranında kalabiliyordu.
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const seasonStart=matchMonth>=7?matchYear:matchYear-1;
-    const seasons=[seasonStart,seasonStart-1,seasonStart-2];
+    const seasons=[seasonStart]; // Bu CSV deposunda yalnızca aktif sezon dosyaları yayımlanıyor.
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
       const archiveKey="mam_league_csv_v1_"+folder+"_"+seasonCode;
@@ -2602,7 +2602,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // ESPN yedek geçmişi: fikstür API-Football'dan gelse bile maç tarihindeki
   // ESPN skor tablosundan takımın ESPN ID'sini bul ve takım takvimini oku.
-  if(output.length<5&&ESPN_LEAGUES[String(leagueId)]?.slug){
+  if(output.length<10&&ESPN_LEAGUES[String(leagueId)]?.slug){
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)].slug;
       let espnTeamId="";
@@ -2623,34 +2623,46 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         }
       }
       if(espnTeamId){
-        // KV kotası dolu olabileceğinden ESPN fikstürü doğrudan okunur; arşive yazılmaz.
-        const schedule=await api("espn/"+espnLeagueSlug+"/teams/"+espnTeamId+"/schedule");
-        for(const event of (Array.isArray(schedule.events)?schedule.events:[])){
-          const competition=event.competitions?.[0],competitors=competition?.competitors||[];
-          const home=competitors.find(x=>x.homeAway==="home"),away=competitors.find(x=>x.homeAway==="away");
-          if(!home||!away)continue;
-          const state=String(competition.status?.type?.state||event.status?.type?.state||"").toLowerCase();
-          if(!(competition.status?.type?.completed===true||event.status?.type?.completed===true||state==="post"))continue;
-          const scoreValue=value=>Number(value&&typeof value==="object"?(value.value??value.displayValue):value);
-          const homeScore=scoreValue(home.score),awayScore=scoreValue(away.score);
-          if(!Number.isFinite(homeScore)||!Number.isFinite(awayScore))continue;
-          const homeNames=[home.team?.displayName,home.team?.name,home.team?.shortDisplayName,home.team?.abbreviation].filter(Boolean);
-          const awayNames=[away.team?.displayName,away.team?.name,away.team?.shortDisplayName,away.team?.abbreviation].filter(Boolean);
-          const homeIsTarget=Number(home.team?.id)===Number(espnTeamId)||homeNames.some(isTarget);
-          const awayIsTarget=Number(away.team?.id)===Number(espnTeamId)||awayNames.some(isTarget);
-          if(homeIsTarget===awayIsTarget)continue;
-          const homeName=homeIsTarget?teamName:(home.team?.displayName||home.team?.name||home.team?.shortDisplayName||"");
-          const awayName=awayIsTarget?teamName:(away.team?.displayName||away.team?.name||away.team?.shortDisplayName||"");
-          addMatch({
-            mamSource:"espn",
-            fixture:{id:event.id,date:event.date||competition.date,status:{short:"FT"}},
-            league:{id:leagueId,name:event.season?.name||espnLeagueSlug},
-            teams:{
-              home:{id:homeIsTarget?Number(teamId):(Number(home.team?.id)||-1),name:homeName},
-              away:{id:awayIsTarget?Number(teamId):(Number(away.team?.id)||-1),name:awayName}
-            },
-            goals:{home:homeScore,away:awayScore},score:null,statistics:null
-          });
+        // Mevcut sezon CSV'sinde 10'dan az maç varsa ESPN'den son üç sezonu tamamla.
+        const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
+        const seasonStart=matchMonth>=7?matchYear:matchYear-1;
+        const scheduleYears=[seasonStart,seasonStart-1,seasonStart-2];
+        const scheduleResults=await Promise.allSettled(scheduleYears.map(season=>
+          api("espn/"+espnLeagueSlug+"/teams/"+espnTeamId+"/schedule?"+qs({season}))
+        ));
+        for(const scheduleResult of scheduleResults){
+          if(scheduleResult.status!=="fulfilled"){
+            sourceError+=" ESPN sezon takvimi alınamadı.";
+            continue;
+          }
+          const schedule=scheduleResult.value;
+          for(const event of (Array.isArray(schedule.events)?schedule.events:[])){
+            const competition=event.competitions?.[0],competitors=competition?.competitors||[];
+            const home=competitors.find(x=>x.homeAway==="home"),away=competitors.find(x=>x.homeAway==="away");
+            if(!home||!away)continue;
+            const state=String(competition.status?.type?.state||event.status?.type?.state||"").toLowerCase();
+            if(!(competition.status?.type?.completed===true||event.status?.type?.completed===true||state==="post"))continue;
+            const scoreValue=value=>Number(value&&typeof value==="object"?(value.value??value.displayValue):value);
+            const homeScore=scoreValue(home.score),awayScore=scoreValue(away.score);
+            if(!Number.isFinite(homeScore)||!Number.isFinite(awayScore))continue;
+            const homeNames=[home.team?.displayName,home.team?.name,home.team?.shortDisplayName,home.team?.abbreviation].filter(Boolean);
+            const awayNames=[away.team?.displayName,away.team?.name,away.team?.shortDisplayName,away.team?.abbreviation].filter(Boolean);
+            const homeIsTarget=Number(home.team?.id)===Number(espnTeamId)||homeNames.some(isTarget);
+            const awayIsTarget=Number(away.team?.id)===Number(espnTeamId)||awayNames.some(isTarget);
+            if(homeIsTarget===awayIsTarget)continue;
+            const homeName=homeIsTarget?teamName:(home.team?.displayName||home.team?.name||home.team?.shortDisplayName||"");
+            const awayName=awayIsTarget?teamName:(away.team?.displayName||away.team?.name||away.team?.shortDisplayName||"");
+            addMatch({
+              mamSource:"espn",
+              fixture:{id:event.id,date:event.date||competition.date,status:{short:"FT"}},
+              league:{id:leagueId,name:event.season?.name||espnLeagueSlug},
+              teams:{
+                home:{id:homeIsTarget?Number(teamId):(Number(home.team?.id)||-1),name:homeName},
+                away:{id:awayIsTarget?Number(teamId):(Number(away.team?.id)||-1),name:awayName}
+              },
+              goals:{home:homeScore,away:awayScore},score:null,statistics:null
+            });
+          }
         }
       }else if(!output.length){
         sourceError+=" ESPN skor tablosunda "+teamName+" için takım eşleşmesi bulunamadı.";
