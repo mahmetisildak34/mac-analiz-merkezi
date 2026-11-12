@@ -1,0 +1,1049 @@
+
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<title>Maç Analiz Merkezi</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#141f31;--muted:#9eacc2;--line:#26354b;--accent:#38d6b0;--warn:#ffca70}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#101b2d,#0b1220 45%);color:#f4f7fb;font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:760px;margin:auto;padding:22px 16px 50px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tag{font-size:12px;color:#061a18;background:var(--accent);font-weight:800;border-radius:99px;padding:7px 10px}
+h1{font-size:25px;margin:18px 0 6px}
+.sub{color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 18px}
+.panel{background:rgba(20,31,49,.96);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0}
+label{display:block;color:#c5d0df;font-size:13px;margin:10px 0 6px}
+input,select{width:100%;background:#0c1524;border:1px solid #34445d;border-radius:11px;color:#fff;padding:13px;font-size:16px}
+button{border:0;border-radius:12px;background:var(--accent);color:#06221d;font-size:15px;font-weight:800;padding:13px 15px;cursor:pointer}
+button.secondary{background:#26364d;color:#eaf2fc}
+button:disabled{opacity:.55;cursor:wait}
+.row{display:flex;gap:9px;align-items:center}
+.row>*{flex:1;min-width:0}
+.hint{font-size:12px;color:var(--muted);line-height:1.45;margin-top:9px}
+.status{font-size:13px;color:var(--warn);min-height:18px;margin-top:10px}
+.match{background:#101a2a;border:1px solid var(--line);border-radius:15px;padding:14px;margin:10px 0}
+.meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.teams{font-weight:800;font-size:16px;margin:12px 0}
+.score{color:var(--muted);font-size:13px}
+.pred{border-top:1px solid var(--line);margin-top:12px;padding-top:11px;font-size:13px;line-height:1.65;color:#dce6f3}
+.small{font-size:12px;color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:25px 10px}
+.footer{font-size:12px;color:var(--muted);line-height:1.5;margin-top:18px}
+.statgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.stat{background:#0c1524;border:1px solid var(--line);border-radius:11px;padding:11px}
+.stat span{display:block;color:var(--muted);font-size:12px}
+.stat b{display:block;font-size:19px;margin-top:5px}
+.section-title{color:var(--accent);font-weight:800;margin:19px 0 8px}
+.prob{margin:9px 0}
+.probline{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.bar{height:7px;background:#293b58;border-radius:10px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.scoreline{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.note{font-size:12px;color:var(--muted);line-height:1.5}
+.error{color:#ff9999}
+@media(max-width:500px){.statgrid{grid-template-columns:1fr}.row{gap:7px}.row button{font-size:13px;padding:11px 8px}}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+<div style="font-weight:900;letter-spacing:.4px">⚽ MAÇ ANALİZ MERKEZİ</div>
+<span class="tag">ANALİZ MOTORU</span>
+</div>
+
+<h1>Günün maçlarını incele</h1>
+<p class="sub">Fikstür, son maç performansı, iç saha ve deplasman istatistikleri, Poisson gol modeli ve maç olasılıkları.</p>
+
+<section class="panel">
+<div class="hint">
+Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu olursa büyük ligler için ESPN yedek kaynağı, ardından Football-data.org denenir. API anahtarları Cloudflare Worker tarafında saklanır.
+</div>
+</section>
+
+<section class="panel">
+<div class="row">
+<div>
+<label for="date">Maç tarihi</label>
+<input id="date" type="date">
+</div>
+<div>
+<label for="league">Lig filtresi</label>
+<select id="league">
+<option value="all">Tüm ligler</option>
+<option value="39">Premier League</option>
+<option value="203">Süper Lig</option>
+<option value="140">La Liga</option>
+<option value="78">Bundesliga</option>
+<option value="135">Serie A</option>
+<option value="61">Ligue 1</option>
+<option value="2">Şampiyonlar Ligi</option>
+</select>
+</div>
+</div>
+<button id="load" style="width:100%;margin-top:14px">Günün maçlarını getir</button>
+<button id="loadLive" class="secondary" style="width:100%;margin-top:10px">Canlı maçları getir / yenile</button>
+<button id="loadStandings" class="secondary" style="width:100%;margin-top:10px">Seçili ligin puan durumunu getir</button>
+<div id="standings" class="pred" style="margin-top:12px">Puan durumunu görmek için lig seçip butona bas.</div>
+<div id="status" class="status"></div>
+<div id="matches"><div class="empty">Maçları getirmek için tarih seç.</div></div>
+</section>
+
+<div class="footer">
+Veri kaynakları: API-Football, ESPN ve Football-data.org. Geçmiş takım verileri SportScore ve Open Matchday kaynaklarından alınmaya çalışılır ve önbelleğe alınır. Canlı skorlar yenileme düğmesiyle güncellenir. Analiz sırasında takım geçmişi sorguları sırayla yapılır. Tahminler istatistiksel olasılıktır; kesin sonuç veya garanti değildir.
+</div>
+</main>
+
+<script>
+"use strict";
+
+const $=id=>document.getElementById(id);
+const WORKER="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+const CACHE_HOURS=12;
+const today=new Date();
+$("date").value=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+
+function esc(value){
+ return String(value??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ })[c]);
+}
+
+function qs(values){
+ const p=new URLSearchParams();
+ Object.entries(values).forEach(([k,v])=>{
+  if(v!==undefined&&v!==null&&v!=="")p.set(k,v);
+ });
+ return p.toString();
+}
+
+let apiQueue=Promise.resolve();
+let lastApiCall=0;
+
+async function api(path){
+  const cleanPath=String(path).replace(/^\/+/, "");
+  const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
+  const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings");
+  const isLive=cleanPath.includes("live=all");
+  const isPrimaryApi=!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
+  const cacheKey="mam_api_cache_v2_"+cleanPath;
+  const cached=localStorage.getItem(cacheKey);
+
+  if(cached&&!isStandings&&!isLive){
+    try{
+      const saved=JSON.parse(cached);
+      if(saved.time&&Date.now()-saved.time<30*60*1000)return saved.data;
+    }catch(e){}
+  }
+
+  const request=async()=>{
+    // Only API-Football is subject to this conservative rate limit.
+    // ESPN and Football-data.org fallback calls must not wait in this queue.
+    if(isPrimaryApi){
+      const delay=Math.max(0,12000-(Date.now()-lastApiCall));
+      if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
+      lastApiCall=Date.now();
+    }
+
+    const controller=new AbortController();
+    const timeoutId=setTimeout(()=>controller.abort(),15000);
+    let response;
+    try{
+      response=await fetch(url,{signal:controller.signal});
+    }catch(networkError){
+      if(controller.signal.aborted){
+        throw new Error((isPrimaryApi?"API-Football":"Yedek kaynak")+" isteği 15 saniyede yanıt vermedi (zaman aşımı).");
+      }
+      throw new Error((isPrimaryApi?"API-Football":"Yedek kaynak")+" bağlantı hatası: "+String(networkError.message||networkError));
+    }finally{
+      clearTimeout(timeoutId);
+    }
+    let data;
+    try{data=await response.json();}
+    catch(e){throw new Error("Sunucudan okunabilir yanıt alınamadı.");}
+
+    const errorText=JSON.stringify(data.errors||data.error||data);
+    if(!response.ok||(data.errors&&Object.keys(data.errors).length)){
+      if(/rate.?limit|too many requests|request limit|requests limit|quota/i.test(errorText)){
+        throw new Error("Too many requests: API dakikalık istek kotası dolu. ESPN ve Football-data.org yedek kaynakları kullanılacak.");
+      }
+      if(/plan|date/i.test(errorText)){
+        throw new Error("Seçilen tarih mevcut API-Football planınızda desteklenmiyor.");
+      }
+      throw new Error("API hatası ("+response.status+"): "+errorText);
+    }
+
+    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));}catch(e){}
+    return data;
+  };
+
+  if(!isPrimaryApi)return request();
+
+  const run=apiQueue.then(request);
+  apiQueue=run.catch(()=>{});
+  return run;
+}
+
+function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0}
+function poisson(l,k){
+ let p=Math.exp(-l);
+ for(let i=1;i<=k;i++)p*=l/i;
+ return p;
+}
+function overProb(l,min){
+ let under=0;
+ for(let i=0;i<min;i++)under+=poisson(l,i);
+ return Math.max(0,Math.min(1,1-under));
+}
+function pct(n){return (n*100).toFixed(1)+"%"}
+function fairOdds(probability){
+ const p=Number(probability);
+ if(!Number.isFinite(p)||p<=0||p>1)return "Hesaplanamadı";
+ return (1/p).toFixed(2);
+}
+function probHTML(label,value){
+ const p=Math.max(0,Math.min(1,value));
+ return `<div class="prob">
+ <div class="probline"><span>${esc(label)}</span><b>${pct(p)}</b></div>
+ <div class="bar"><i style="width:${p*100}%"></i></div></div>`;
+}
+
+/* FİKSTÜR */
+let allMatches=[];
+
+$("load").addEventListener("click",loadMatches);
+$("loadLive").addEventListener("click",loadLiveMatches);
+$("loadStandings").addEventListener("click",loadStandings);
+$("league").addEventListener("change",renderMatches);
+
+async function loadStandings(){
+ const leagueId=$("league").value;
+ const box=$("standings");
+ if(leagueId==="all"){
+  box.textContent="Önce puan durumunu görmek istediğin ligi seç.";
+  return;
+ }
+ const button=$("loadStandings");
+ button.disabled=true;
+ box.textContent="Puan durumu alınıyor...";
+ try{
+  const year=Number($("date").value.slice(0,4))||new Date().getFullYear();
+  const season=Number($("date").value.slice(5,7))<=6?year-1:year;
+  let rows=[],leagueName="";
+  try{
+   const data=await api("standings?"+qs({league:leagueId,season}));
+   const group=data.response?.[0]?.league?.standings?.[0]||[];
+   rows=group.map(x=>({rank:x.rank,name:x.team?.name,played:x.all?.played,win:x.all?.win,draw:x.all?.draw,lose:x.all?.lose,goals:x.all?.goals?.for,against:x.all?.goals?.against,points:x.points}));
+   leagueName=data.response?.[0]?.league?.name||"Lig puan durumu";
+  }catch(primaryError){
+   const code=FOOTBALL_DATA_LEAGUES[leagueId];
+   if(!code)throw primaryError;
+   const data=await api("football-data/competitions/"+code+"/standings");
+   const table=data.standings?.find(x=>x.type==="TOTAL")?.table||data.standings?.[0]?.table||[];
+   rows=table.map(x=>({rank:x.position,name:x.team?.name,played:x.playedGames,win:x.won,draw:x.draw,lose:x.lost,goals:x.goalsFor,against:x.goalsAgainst,points:x.points}));
+   leagueName=data.competition?.name||"Lig puan durumu";
+  }
+  if(!rows.length)throw new Error("Kaynak bu lig için puan tablosu döndürmedi.");
+  box.innerHTML='<div class="section-title">'+esc(leagueName)+' · Puan Durumu</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>#</th><th style="text-align:left">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.rank)+'</td><td style="text-align:left">'+esc(x.name)+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan. Puan tablosu veri kaynağının güncel cevabıdır.</p>';
+ }catch(e){
+  box.innerHTML='<span class="error">'+esc(e.message||e)+'</span>';
+ }finally{button.disabled=false}
+}
+
+const FOOTBALL_DATA_LEAGUES={
+ "39":"PL",
+ "140":"PD",
+ "78":"BL1",
+ "135":"SA",
+ "61":"FL1",
+ "2":"CL"
+};
+
+async function footballDataFixtures(date){
+ const selected=$("league").value;
+ const code=FOOTBALL_DATA_LEAGUES[selected];
+ if(selected!=="all" && !code){
+  throw new Error("Seçili lig Football-data.org ücretsiz kapsamına dahil değil. API-Football kotası yenilenince tekrar deneyebiliriz.");
+ }
+ // football-data.org v4 dateFrom/dateTo filtreleri iki sınır tarihini de kapsar.
+ const dateFilters={dateFrom:date,dateTo:date};
+ const endpoint=code
+  ? "football-data/competitions/"+code+"/matches?"+qs(dateFilters)
+  : "football-data/matches?"+qs(dateFilters);
+ const data=await api(endpoint);
+ const idMap={"PL":"39","PD":"140","BL1":"78","SA":"135","FL1":"61","CL":"2"};
+ return (data.matches||[]).map(m=>({
+  fixture:{id:m.id,date:m.utcDate,status:{short:m.status}},
+  league:{
+   id:idMap[m.competition?.code]||String(m.competition?.id||""),
+   name:m.competition?.name||"Football-data.org",
+   country:m.area?.name||""
+  },
+  teams:{
+   home:{id:m.homeTeam?.id,name:m.homeTeam?.name},
+   away:{id:m.awayTeam?.id,name:m.awayTeam?.name}
+  },
+  goals:{
+   home:m.score?.fullTime?.home??null,
+   away:m.score?.fullTime?.away??null
+  }
+ }));
+}
+
+const ESPN_LEAGUES={
+ "39":{slug:"eng.1",name:"Premier League",country:"England"},
+ "140":{slug:"esp.1",name:"La Liga",country:"Spain"},
+ "78":{slug:"ger.1",name:"Bundesliga",country:"Germany"},
+ "135":{slug:"ita.1",name:"Serie A",country:"Italy"},
+ "61":{slug:"fra.1",name:"Ligue 1",country:"France"},
+ "2":{slug:"uefa.champions",name:"UEFA Champions League",country:"Europe"},
+ "esp_copa":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
+ "uefa_nations":{slug:"uefa.nations",name:"UEFA Nations League",country:"Europe"},
+ "uefa_women":{slug:"uefa.wchampions",name:"UEFA Women's Champions League",country:"Europe"},
+ "uefa_europa":{slug:"uefa.europa",name:"UEFA Europa League",country:"Europe"},
+ "uefa_conference":{slug:"uefa.europa.conf",name:"UEFA Conference League",country:"Europe"},
+ "fifa_friendly":{slug:"fifa.friendly",name:"International Friendlies",country:"World"}
+};
+
+async function espnFixtures(date){
+ const selected=$("league").value;
+ const targets=selected==="all"
+  ? Object.entries(ESPN_LEAGUES)
+  : (ESPN_LEAGUES[selected]?[[selected,ESPN_LEAGUES[selected]]]:[]);
+ if(!targets.length)return [];
+ const espnDate=String(date).replace(/-/g,"");
+ const results=await Promise.allSettled(targets.map(async([leagueId,league])=>{
+  // ESPN isteği tarayıcıdan doğrudan değil, CORS izinli Cloudflare Worker üzerinden gider.
+  const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:espnDate,limit:500}));
+  const events=Array.isArray(payload.events)?payload.events:[];
+  return events.map(event=>{
+   const competition=(event.competitions||[])[0]||{};
+   const competitors=competition.competitors||[];
+   const home=competitors.find(team=>team.homeAway==="home")||{};
+   const away=competitors.find(team=>team.homeAway==="away")||{};
+   const state=String(event.status?.type?.state||"").toLowerCase();
+   const completed=event.status?.type?.completed===true||state==="post";
+   const live=state==="in"||/in progress|halftime|live/i.test(event.status?.type?.detail||"");
+   const statusShort=completed?"FT":live?"LIVE":"NS";
+   const toGoals=value=>{
+    if(value===null||value===undefined||value==="")return null;
+    const parsed=Number(value);
+    return Number.isFinite(parsed)?parsed:null;
+   };
+   const teamId=value=>{
+    const n=Number(value);
+    if(Number.isFinite(n)&&n!==0)return n;
+    return -1;
+   };
+   return {
+    fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||date+"T12:00:00Z",status:{short:statusShort}},
+    league:{id:leagueId,name:league.name,country:league.country},
+    teams:{
+     home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||""},
+     away:{id:teamId(away.team?.id),name:away.team?.displayName||away.team?.name||""}
+    },
+    goals:{home:toGoals(home.score),away:toGoals(away.score)}
+   };
+  }).filter(match=>match.teams.home.name&&match.teams.away.name);
+ }));
+ const matches=results.flatMap(result=>result.status==="fulfilled"?result.value:[]);
+ const failures=results.filter(result=>result.status==="rejected");
+ if(!matches.length&&failures.length){
+  throw new Error("ESPN sonuçları: "+failures.map((x,index)=>targets[index]?.[1]?.name+": "+String(x.reason?.message||x.reason)).join(" | "));
+ }
+ return matches.sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
+}
+
+async function loadMatches(){
+ const button=$("load");
+ const date=$("date").value;
+ if(!date){$("status").textContent="Lütfen tarih seç.";return}
+ button.disabled=true;
+ $("status").textContent="Fikstür alınıyor...";
+ $("matches").innerHTML="";
+ const fixtureCacheKey="mam_fixture_cache_v2_"+date+"_"+$("league").value;
+ const previousMatches=allMatches.slice();
+ try{
+  let source="API-Football";
+  try{
+   const data=await api("fixtures?"+qs({date:date,timezone:"Europe/Istanbul"}));
+   const freshMatches=data.response||[];
+   allMatches=freshMatches;
+   if(freshMatches.length){
+    try{localStorage.setItem(fixtureCacheKey,JSON.stringify({time:Date.now(),matches:freshMatches}));}catch(e){}
+   }
+  }catch(primaryError){
+   const message=String(primaryError.message||primaryError);
+   if(!/rate.?limit|Too many requests|API dakika başına istek kotasını doldurdu|plan|date|429|quota/i.test(message))throw primaryError;
+   $("status").textContent="API-Football kotası/tarih erişimi kullanılamıyor. ESPN büyük lig fikstürleri deneniyor...";
+   let alternative=[];
+   let alternativeSource="";
+   let espnFailure="ESPN bu tarih için maç döndürmedi.";
+   let footballDataFailure="Football-data.org bu tarih için maç döndürmedi.";
+   try{
+    alternative=await espnFixtures(date);
+    if(alternative.length)alternativeSource="ESPN";
+   }catch(espnError){
+    espnFailure=String(espnError.message||espnError);
+    console.warn("ESPN fikstürü alınamadı:",espnError);
+   }
+   if(!alternative.length){
+    $("status").textContent="ESPN sonuç vermedi. Football-data.org yedek kaynağı deneniyor...";
+    try{
+     alternative=await footballDataFixtures(date);
+     if(alternative.length)alternativeSource="Football-data.org";
+    }catch(fallbackError){
+     footballDataFailure=String(fallbackError.message||fallbackError);
+     console.warn("Football-data.org fikstürü alınamadı:",fallbackError);
+    }
+   }
+   if(!alternative.length){
+    allMatches=previousMatches;
+    throw new Error("API-Football kotası dolu. "+espnFailure+" | "+footballDataFailure+" Önceki fikstür korunuyor.");
+   }
+   allMatches=alternative;
+   source=alternativeSource+" (yedek kaynak)";
+  }
+  renderMatches();
+  if(!allMatches.length){
+   $("status").textContent="Bu tarih için maç bulunamadı. Kaynak: "+source+".";
+  }else{
+   $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+".";
+  }
+ }catch(e){
+  $("status").innerHTML='<span class="error">'+esc(e.message)+'</span>';
+  if(!allMatches.length)$("matches").innerHTML='<div class="empty">Fikstür alınamadı. Hata: '+esc(e.message)+'</div>';
+ }finally{button.disabled=false}
+}
+
+async function loadLiveMatches(){
+ const button=$("loadLive");
+ button.disabled=true;
+ $("status").textContent="Canlı maçlar kontrol ediliyor...";
+ const previousMatches=allMatches.slice();
+ try{
+  const data=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
+  const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
+  allMatches=(data.response||[]).filter(m=>liveStatuses.has(String(m.fixture?.status?.short||"")));
+  renderMatches();
+  $("status").textContent=allMatches.length
+   ? allMatches.length+" canlı maç bulundu. Skorları güncellemek için bu düğmeye tekrar bas."
+   : "Şu anda API-Football canlı akışında devam eden maç bulunamadı.";
+ }catch(primaryError){
+  try{
+   $("status").textContent="API-Football canlı akışı kullanılamıyor. ESPN canlı maçları deneniyor...";
+   const date=$("date").value||new Date().toISOString().slice(0,10);
+   const fallback=await espnFixtures(date);
+   allMatches=fallback.filter(m=>String(m.fixture?.status?.short||"")==="LIVE");
+   renderMatches();
+   $("status").textContent=allMatches.length
+    ? allMatches.length+" canlı maç bulundu. Kaynak: ESPN."
+    : "ESPN yedek kaynağında şu an canlı maç bulunamadı.";
+  }catch(fallbackError){
+   allMatches=previousMatches;
+   renderMatches();
+   $("status").innerHTML='<span class="error">Canlı maçlar alınamadı. API-Football: '+esc(primaryError.message||primaryError)+' | ESPN: '+esc(fallbackError.message||fallbackError)+'</span>';
+  }
+ }finally{button.disabled=false}
+}
+
+function renderMatches(){
+ const league=$("league").value;
+ const list=league==="all"?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
+ if(!list.length){
+  $("matches").innerHTML='<div class="empty">Bu filtrede maç bulunamadı.</div>';
+  return;
+ }
+ $("matches").innerHTML=list.map(m=>{
+  const f=m.fixture||{},l=m.league||{},t=m.teams||{},g=m.goals||{};
+  const statusCode=String(f.status?.short||"");
+  const statusNames={"NS":"Başlamadı","TBD":"Saat bekleniyor","1H":"1. yarı","HT":"Devre arası","2H":"2. yarı","ET":"Uzatmalar","BT":"Uzatma arası","P":"Penaltılar","SUSP":"Durduruldu","INT":"Kesildi","LIVE":"Canlı","FT":"Bitti","AET":"Uzatmalarda bitti","PEN":"Penaltılarla bitti","PST":"Ertelendi","CANC":"İptal","ABD":"Yarıda kaldı","AWD":"Hükmen","WO":"Hükmen"};
+  const statusLabel=statusNames[statusCode]||statusCode||"Durum bilinmiyor";
+  const isLiveStatus=["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(statusCode);
+  const time=f.date?new Date(f.date).toLocaleTimeString("tr-TR",{
+   hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"
+  }):"";
+  return `<article class="match">
+   <div class="meta"><span>${esc(l.name)} · ${esc(l.country)}</span><span>${esc(time)} · ${isLiveStatus?"🔴 ":""}${esc(statusLabel)}</span></div>
+   <div class="teams">${esc(t.home?.name)} <span class="score">${g.home!=null?" "+g.home+" - "+g.away+" ":" - "}</span> ${esc(t.away?.name)}</div>
+   <div class="row">
+    <span class="small">Maç ID: ${esc(f.id)}</span>
+    <button class="secondary predBtn"
+     data-id="${esc(f.id)}"
+     data-home="${esc(t.home?.id)}"
+     data-away="${esc(t.away?.id)}"
+     data-home-name="${esc(t.home?.name)}"
+     data-away-name="${esc(t.away?.name)}"
+     data-league="${esc(l.id)}"
+     data-date="${esc(f.date?.slice(0,10))}">
+     Kendi analizini yap
+    </button>
+   </div>
+   <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
+  </article>`;
+ }).join("");
+
+ document.querySelectorAll(".predBtn").forEach(b=>{
+  b.addEventListener("click",()=>analyze(b));
+ });
+}
+
+/* GEÇMİŞ MAÇLAR */
+async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
+  const key="mam_history_v16_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const cached=localStorage.getItem(key);
+  if(cached){
+    try{
+      const saved=JSON.parse(cached);
+      if(Date.now()-saved.time<CACHE_HOURS*60*60*1000&&Array.isArray(saved.matches)&&saved.matches.length)return saved.matches;
+    }catch(e){}
+  }
+
+  const normalize=name=>String(name||"").normalize("NFD").toLowerCase()
+    .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
+    .replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim()
+    .replace(/\b(football club|fc|cf|afc)\b/g,"").replace(/\s+/g," ").trim();
+  const aliases={
+    "manchester city":["man city","m city","manchester city fc","man city fc"],
+    "man city":["manchester city","m city","manchester city fc"],
+    "manchester united":["man utd","man united","manchester united fc"],
+    "man utd":["manchester united","man united","man utd fc"],
+    "nottingham forest":["nottm forest","nott m forest","nott forest","nott'm forest","nottingham forest fc"],
+    "nottm forest":["nottingham forest","nott forest","nott m forest"],
+    "tottenham hotspur":["tottenham","spurs","tottenham hotspur fc"],
+    "tottenham":["tottenham hotspur","spurs"],
+    "afc bournemouth":["bournemouth","bournemouth afc"],
+    "bournemouth":["afc bournemouth"],
+    "paris saint germain":["psg","paris sg","paris saint germain fc"],
+    "atletico madrid":["atletico","atl madrid","atletico de madrid"],
+    "internazionale":["inter","inter milan"],
+    "inter":["internazionale","inter milan"],
+    "bayern munich":["bayern"],
+    "wolves":["wolverhampton","wolverhampton wanderers"],
+    "west ham":["west ham united"],
+    "brighton and hove albion":["brighton","brighton hove albion"],
+    "newcastle united":["newcastle"],
+    "leicester city":["leicester"],
+    "ipswich town":["ipswich"],
+    "leeds united":["leeds","leeds utd"],
+    "leeds":["leeds united","leeds utd"],
+    "coventry city":["coventry"],
+    "coventry":["coventry city"],
+    "nottingham":["nottingham forest","nottm forest"]
+  };
+  const wanted=normalize(teamName);
+  const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize)]);
+  const isTarget=name=>accepted.has(normalize(name));
+  const output=[];
+  const seen=new Set();
+  let sourceError="";
+
+  const addMatch=m=>{
+    const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
+    const hm=isTarget(h),am=isTarget(a);
+    if(hm===am)return;
+    const gh=m.goals?.home,ga=m.goals?.away;
+    if(gh===null||ga===null||gh===undefined||ga===undefined)return;
+    const d=String(m.fixture?.date||"").slice(0,10);
+    if(!d||d>=matchDate)return;
+    const id=[d,normalize(h),normalize(a),gh,ga].join("|");
+    if(seen.has(id))return;
+    seen.add(id);output.push(m);
+  };
+
+  const leagues={
+    "39":"ENG_1_premier-league","140":"ESP_1_la-liga","78":"GER_1_bundesliga",
+    "135":"ITA_1_serie-a","61":"FRA_1_ligue-1","2":"UEFA_1_champions-league",
+    "3":"UEFA_1_europa-league","848":"UEFA_1_conference-league",
+    "94":"POR_1_primeira-liga","88":"NED_1_eredivisie","144":"BEL_1_pro-league",
+    "203":"TUR_1_super-lig","179":"SCO_1_premiership","253":"USA_1_mls",
+    "71":"BRA_1_serie-a","128":"ARG_1_liga-profesional","262":"MEX_1_liga-mx",
+    "98":"JPN_1_j1-league","188":"AUS_1_a-league","169":"CHN_1_super-league"
+  };
+
+  const parseCSV=text=>{
+    const rows=[];let row=[],field="",quoted=false;
+    for(let i=0;i<text.length;i++){
+      const ch=text[i],next=text[i+1];
+      if(ch==='"'&&quoted&&next==='"'){field+='"';i++;}
+      else if(ch==='"')quoted=!quoted;
+      else if(ch===","&&!quoted){row.push(field);field="";}
+      else if((ch==="\n"||ch==="\r")&&!quoted){
+        if(ch==="\r"&&next==="\n")i++;
+        row.push(field);if(row.some(v=>v!==""))rows.push(row);
+        row=[];field="";
+      }else field+=ch;
+    }
+    if(field!==""||row.length){row.push(field);rows.push(row);}
+    const headers=(rows.shift()||[]).map(h=>h.replace(/^\uFEFF/,"").trim());
+    return rows.map(values=>Object.fromEntries(headers.map((h,i)=>[h,(values[i]??"").trim()])));
+  };
+  const num=value=>{
+    if(value===undefined||value===null||String(value).trim()==="")return null;
+    const n=Number(value);return Number.isFinite(n)?n:null;
+  };
+
+  const folder=leagues[String(leagueId)];
+  if(folder){
+    const path="data/"+folder+"/results_2627.csv";
+    const urls=[
+      new URL("./"+path,window.location.href).href,
+      "https://raw.githubusercontent.com/mahmetisildak34/mac-analiz-merkezi/main/"+path
+    ];
+    let csv=null;
+    for(const url of urls){
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),12000);
+      try{
+        const response=await fetch(url,{signal:controller.signal,cache:"no-store"});
+        if(!response.ok)throw new Error("Geçmiş veri dosyası HTTP "+response.status);
+        csv=await response.text();
+        if(!csv||!csv.includes("ft_home")||!csv.includes("ft_away"))throw new Error("Geçmiş veri CSV başlıkları geçersiz.");
+        break;
+      }catch(e){sourceError=String(e.message||e);}
+      finally{clearTimeout(timer);}
+    }
+    if(csv){
+      const rows=parseCSV(csv);
+      for(const row of rows){
+        const hm=isTarget(row.home),am=isTarget(row.away);
+        if(hm===am||!row.date||row.date>=matchDate)continue;
+        const gh=num(row.ft_home),ga=num(row.ft_away);
+        if(gh===null||ga===null)continue;
+        output.push({
+          fixture:{date:row.date+"T12:00:00Z",status:{short:"FT"}},
+          teams:{home:{id:hm?Number(teamId):-1,name:row.home},away:{id:am?Number(teamId):-1,name:row.away}},
+          goals:{home:gh,away:ga},
+          score:{halftime:{home:num(row.ht_home),away:num(row.ht_away)}},
+          statistics:{
+            home:{shots:num(row.home_shots),shotsOnTarget:num(row.home_target),corners:num(row.home_corners)},
+            away:{shots:num(row.away_shots),shotsOnTarget:num(row.away_target),corners:num(row.away_corners)}
+          }
+        });
+      }
+    }
+    if(!output.length&&!sourceError)sourceError="Dosya açıldı ancak "+teamName+" için "+matchDate+" öncesinde eşleşen tamamlanmış maç bulunamadı.";
+  }else{
+    sourceError="Bu lig için Open Matchday arşiv eşlemesi henüz tanımlı değil (lig kodu: "+leagueId+").";
+  }
+
+  // ESPN event/team IDs are not API-Football IDs. Never mix the providers' identifiers.
+  if(!output.length&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))){
+    try{
+      const data=await api("fixtures?"+qs({team:teamId,last:20,status:"FT",timezone:"Europe/Istanbul"}));
+      const cutoff=new Date(matchDate+"T00:00:00");
+      for(const m of data.response||[]){
+        if(!m.fixture?.date||new Date(m.fixture.date)>=cutoff)continue;
+        addMatch(m);
+      }
+    }catch(e){sourceError+=" API-Football: "+String(e.message||e);}
+  }
+
+  output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
+  const result=output.slice(0,20);
+  try{localStorage.setItem(key,JSON.stringify({time:Date.now(),matches:result}));}catch(e){}
+  if(!result.length)throw new Error(teamName+" geçmiş verisi alınamadı. Lig kodu: "+leagueId+". Kaynak: "+(sourceError||"Eşleşen tamamlanmış maç yok."));
+  return result;
+}
+/* TAKIM İSTATİSTİKLERİ */
+function teamStats(matches, teamId, venue){
+ const valid = (Array.isArray(matches) ? matches : []).filter(m => {
+  const homeId = Number(m.teams?.home?.id);
+  const awayId = Number(m.teams?.away?.id);
+  const isHome = homeId === Number(teamId);
+  const isAway = awayId === Number(teamId);
+  if(!isHome && !isAway) return false;
+  if(venue === "home" && !isHome) return false;
+  if(venue === "away" && !isAway) return false;
+  return Number.isFinite(Number(m.goals?.home)) &&
+         Number.isFinite(Number(m.goals?.away)) &&
+         m.goals?.home !== null && m.goals?.away !== null;
+ });
+
+ let gf=0, ga=0, firstGF=0, firstGA=0, secondGF=0, secondGA=0;
+ let halfCount=0, firstBoth=0, secondBoth=0;
+
+ for(const m of valid){
+  const isHome = Number(m.teams?.home?.id) === Number(teamId);
+  const scored = Number(isHome ? m.goals.home : m.goals.away);
+  const conceded = Number(isHome ? m.goals.away : m.goals.home);
+  gf += scored;
+  ga += conceded;
+
+  const ht = m.score?.halftime;
+  const htHome = ht?.home;
+  const htAway = ht?.away;
+  if(htHome !== null && htHome !== undefined && htAway !== null && htAway !== undefined &&
+     Number.isFinite(Number(htHome)) && Number.isFinite(Number(htAway))){
+   const ownHalf = Number(isHome ? htHome : htAway);
+   const oppHalf = Number(isHome ? htAway : htHome);
+   const ownSecond = scored - ownHalf;
+   const oppSecond = conceded - oppHalf;
+   if(ownSecond >= 0 && oppSecond >= 0){
+    halfCount++;
+    firstGF += ownHalf;
+    firstGA += oppHalf;
+    secondGF += ownSecond;
+    secondGA += oppSecond;
+    if(ownHalf > 0 && oppHalf > 0) firstBoth++;
+    if(ownSecond > 0 && oppSecond > 0) secondBoth++;
+   }
+  }
+ }
+
+ const count = valid.length || 1;
+ const halfDenominator = halfCount || 1;
+ return {
+  count: valid.length,
+  gf: gf / count,
+  ga: ga / count,
+  venue,
+  halfCount,
+  firstGF: firstGF / halfDenominator,
+  firstGA: firstGA / halfDenominator,
+  secondGF: secondGF / halfDenominator,
+  secondGA: secondGA / halfDenominator,
+  firstBothRate: firstBoth / halfDenominator,
+  secondBothRate: secondBoth / halfDenominator
+ };
+}
+
+function optionalMetric(matches, teamId, metric, venue){
+ const aliases = {
+  corners: ["corners"],
+  shotsOnTarget: ["shotsOnTarget", "shots on target", "Shots on Goal"],
+  shots: ["shots", "Total Shots"]
+ };
+ const wanted = aliases[metric] || [metric];
+ const values = [];
+
+ for(const m of (Array.isArray(matches) ? matches : [])){
+  const homeId = Number(m.teams?.home?.id);
+  const awayId = Number(m.teams?.away?.id);
+  const isHome = homeId === Number(teamId);
+  const isAway = awayId === Number(teamId);
+  if(!isHome && !isAway) continue;
+  if(venue === "home" && !isHome) continue;
+  if(venue === "away" && !isAway) continue;
+
+  const side = isHome ? "home" : "away";
+  let value = null;
+  const nested = m.statistics?.[side];
+  if(nested && typeof nested === "object"){
+   for(const key of wanted){
+    if(nested[key] !== undefined && nested[key] !== null && nested[key] !== ""){
+     value = Number(nested[key]); break;
+    }
+   }
+  }
+
+  if(value === null && Array.isArray(m.statistics)){
+   const teamStatsRow = m.statistics.find(x => Number(x.team?.id) === Number(teamId));
+   for(const stat of (teamStatsRow?.statistics || [])){
+    if(wanted.some(key => String(stat.type).toLowerCase() === key.toLowerCase())){
+     const parsed = Number(String(stat.value ?? "").replace("%",""));
+     if(stat.value !== null && stat.value !== "" && Number.isFinite(parsed)) value = parsed;
+     break;
+    }
+   }
+  }
+
+  if(value !== null && Number.isFinite(value)) values.push(value);
+ }
+
+ return {
+  count: values.length,
+  average: values.length ? values.reduce((sum,n)=>sum+n,0)/values.length : 0
+ };
+}
+
+async function getMatchInjuries(fixtureId){
+ if(!fixtureId)return {items:[],note:"Maç kimliği eksik."};
+ // ESPN event IDs are strings, not API-Football fixture integers.
+ if(!/^[0-9]+$/.test(String(fixtureId))){
+  return {items:[],note:"Bu fikstür ESPN kaynağından geldi. API-Football sakatlık sorgusu için geçerli maç ID'si bulunmadığından hatalı istek gönderilmedi."};
+ }
+ const data=await api("injuries?"+qs({fixture:fixtureId}));
+ const items=(data.response||[]).map(x=>({
+  team:x.team?.name||"",
+  name:x.player?.name||"Bilinmeyen oyuncu",
+  reason:x.player?.reason||"Durum açıklanmamış",
+  type:x.player?.type||"Durum belirtilmemiş"
+ }));
+ return {items,note:items.length?"API-Football maç sakatlık/eksik listesi.":"Bu maç için kaynakta doğrulanmış sakat/eksik kaydı bulunamadı."};
+}
+
+async function getPlayerScoringCandidates(teamId,leagueId,matchDate,fixtureId){
+ // ESPN team/event IDs are not API-Football IDs. Do not send them to API-Football squad/lineup/player endpoints.
+ if(fixtureId&&!/^[0-9]+$/.test(String(fixtureId))){
+  return {players:[],note:"Oyuncu gol istatistiği bu ESPN fikstüründe API-Football takım/maç kimlikleri eşleştirilmediği için atlandı."};
+ }
+ const year=Number(matchDate.slice(0,4));
+ const month=Number(matchDate.slice(5,7));
+ const season=month<=6?year-1:year;
+ if(!teamId||!leagueId||!season)return {players:[],note:"Lig veya takım bilgisi eksik."};
+
+ // First use the official match lineup when available; otherwise verify the current squad.
+ let eligibleIds=null,source="";
+ if(fixtureId){
+  try{
+   const lineupData=await api("fixtures/lineups?"+qs({fixture:fixtureId}));
+   const lineup=(lineupData.response||[]).find(t=>Number(t.team?.id)===Number(teamId));
+   if(lineup){
+    const listed=[...(lineup.startXI||[]),...(lineup.substitutes||[])];
+    eligibleIds=new Set(listed.map(x=>Number(x.player?.id)).filter(Boolean));
+    source="Maç kadrosu";
+   }
+  }catch(e){}
+ }
+ if(!eligibleIds){
+  try{
+   const squadData=await api("players/squads?"+qs({team:teamId}));
+   const squad=squadData.response?.[0]?.players||[];
+   if(squad.length){
+    eligibleIds=new Set(squad.map(p=>Number(p.id)).filter(Boolean));
+    source="Güncel takım kadrosu (maç kadrosu kesin değil)";
+   }
+  }catch(e){}
+ }
+ if(!eligibleIds||!eligibleIds.size){
+  return {players:[],note:"Güncel kadro doğrulanamadı. Eski kadro oyuncuları gösterilmiyor."};
+ }
+
+ // API-Football player results are paginated. Limit to three pages to conserve quota.
+ const candidates=[];
+ let totalPages=1;
+ for(let page=1;page<=Math.min(3,totalPages);page++){
+  const data=await api("players?"+qs({team:teamId,league:leagueId,season,page}));
+  totalPages=Number(data.paging?.total||1);
+  for(const item of data.response||[]){
+   if(!eligibleIds.has(Number(item.player?.id)))continue;
+   const stat=(item.statistics||[]).find(x=>Number(x.team?.id)===Number(teamId))||item.statistics?.[0]||{};
+   const goals=Number(stat.goals?.total||0);
+   const minutes=Number(stat.games?.minutes||0);
+   const appearances=Number(stat.games?.appearences||stat.games?.appearances||0);
+   if(!item.player?.name||minutes<=0||appearances<3)continue;
+   const rate=goals/minutes*70;
+   candidates.push({
+    name:item.player.name,goals,appearances,minutes,
+    scoreChance:1-Math.exp(-rate)
+   });
+  }
+ }
+ return {
+  players:candidates.sort((a,b)=>b.scoreChance-a.scoreChance).slice(0,5),
+  note:source+(totalPages>3?" · İstatistik taraması ilk 3 sayfayla sınırlı":"")
+ };
+}
+
+function topScores(lh,la){
+ const out=[];
+ for(let h=0;h<=7;h++)for(let a=0;a<=7;a++){
+  out.push({h,a,p:poisson(lh,h)*poisson(la,a)});
+ }
+ return out.sort((x,y)=>y.p-x.p).slice(0,5);
+}
+
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+
+/* ANALİZ */
+async function analyze(button){
+ if(button.disabled)return;
+ button.disabled=true;
+ button.textContent="Hesaplanıyor...";
+ const target=$("pred-"+button.dataset.id);
+ target.textContent="İlk takımın geçmiş maçları alınıyor...";
+
+ try{
+  const homeId=Number(button.dataset.home);
+  const awayId=Number(button.dataset.away);
+  const date=button.dataset.date;
+  if(!homeId||!awayId||!date)throw new Error("Maç bilgileri eksik. Fikstürü yeniden yükle.");
+
+  const homeMatches=await getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id);
+  target.textContent="İkinci takımın geçmiş maçları alınıyor...";
+  await wait(250);
+  const awayMatches=await getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id);
+
+  const hs=teamStats(homeMatches,homeId,"home");
+  const as=teamStats(awayMatches,awayId,"away");
+  if(hs.count<1||as.count<1){
+   throw new Error("Geçmiş veri yetersiz. "+button.dataset.homeName+": "+hs.count+" maç; "+button.dataset.awayName+": "+as.count+" maç. Kaynak eşleşmesini kontrol et.");
+  }
+  const lowSample = hs.count<3 || as.count<3;
+
+  const lh=Math.max(.15,Math.min(4,(hs.gf+as.ga)/2));
+  const la=Math.max(.15,Math.min(4,(as.gf+hs.ga)/2));
+  const total=lh+la;
+  let win=0,draw=0,lose=0;
+
+  for(let h=0;h<=10;h++)for(let a=0;a<=10;a++){
+   const p=poisson(lh,h)*poisson(la,a);
+   if(h>a)win+=p;else if(h===a)draw+=p;else lose+=p;
+  }
+
+  const over15=overProb(total,2);
+  const over25=overProb(total,3);
+  const over35=overProb(total,4);
+  const btts=(1-Math.exp(-lh))*(1-Math.exp(-la));
+  const hasHalf=hs.halfCount>=3&&as.halfCount>=3;
+  let first05=null,first15=null,second05=null,second15=null;
+
+  if(hasHalf){
+   const firstL=Math.max(.1,(hs.firstGF+as.firstGA+as.firstGF+hs.firstGA)/2);
+   const secondL=Math.max(.1,(hs.secondGF+as.secondGA+as.secondGF+hs.secondGA)/2);
+   first05=overProb(firstL,1);
+   first15=overProb(firstL,2);
+   second05=overProb(secondL,1);
+   second15=overProb(secondL,2);
+  }
+
+  const homeName=button.dataset.homeName;
+  const awayName=button.dataset.awayName;
+  const leagueId=button.dataset.league;
+  const outcome = win>=draw && win>=lose
+    ? {label:homeName+" kazanır",chance:win}
+    : draw>=win && draw>=lose
+      ? {label:"Beraberlik",chance:draw}
+      : {label:awayName+" kazanır",chance:lose};
+  let homeScorers=[],awayScorers=[],playerDataNote="";
+  let injuryReport={items:[],note:"Sakatlık verisi alınamadı."};
+  try{
+   target.textContent="Sakatlık ve cezalı oyuncu bilgileri kontrol ediliyor...";
+   injuryReport=await getMatchInjuries(button.dataset.id);
+  }catch(injuryError){
+   injuryReport.note="Sakatlık/eksik bilgisi alınamadı: "+String(injuryError.message||injuryError);
+  }
+  try{
+   target.textContent="Oyuncu gol istatistikleri alınıyor...";
+   const homePlayerData=await getPlayerScoringCandidates(homeId,leagueId,date,button.dataset.id);
+   const awayPlayerData=await getPlayerScoringCandidates(awayId,leagueId,date,button.dataset.id);
+   homeScorers=homePlayerData.players;
+   awayScorers=awayPlayerData.players;
+   playerDataNote=homeName+": "+homePlayerData.note+" · "+awayName+": "+awayPlayerData.note;
+  }catch(playerError){
+   playerDataNote=String(playerError.message||playerError);
+  }
+  const venue=v=>v==="home"?"iç saha":v==="away"?"deplasman":"son maçlar";
+  const scores=topScores(lh,la);
+
+  let html=`<b>📊 KENDİ İSTATİSTİKSEL ANALİZİMİZ</b>
+   <div class="section-title">🏆 Modelin maç sonucu tahmini</div>
+   <div class="statgrid">
+    <div class="stat"><span>En olası sonuç</span><b>${esc(outcome.label)}</b></div>
+    <div class="stat"><span>Model olasılığı</span><b>${pct(outcome.chance)}</b></div>
+   </div>
+   <p class="note">1-X-2 olasılıkları içindeki en yüksek sonuçtur; kesinlik veya garanti değildir.</p>
+   <div class="section-title">Beklenen gol</div>
+   <div class="statgrid">
+    <div class="stat"><span>${esc(homeName)}</span><b>${lh.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(awayName)}</span><b>${la.toFixed(2)}</b></div>
+   </div>
+   <div class="section-title">Takım performansı</div>
+   <div class="statgrid">
+    <div class="stat"><span>${esc(homeName)} gol ortalaması</span><b>${hs.gf.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(homeName)} yediği gol</span><b>${hs.ga.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(awayName)} gol ortalaması</span><b>${as.gf.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(awayName)} yediği gol</span><b>${as.ga.toFixed(2)}</b></div>
+   </div>
+   <p class="note">${esc(homeName)}: ${hs.count} maç (${venue(hs.venue)}) · ${esc(awayName)}: ${as.count} maç (${venue(as.venue)})</p>
+   ${lowSample?'<p class="note">⚠️ Uyarı: Takımlardan en az birinde 3 maçtan az geçmiş veri var. Tahmin düşük örneklem nedeniyle daha az güvenilirdir.</p>':''}
+   <div class="section-title">Maç sonucu olasılıkları</div>
+   ${probHTML("1 - Ev sahibi kazanır",win)}
+   ${probHTML("X - Beraberlik",draw)}
+   ${probHTML("2 - Deplasman kazanır",lose)}
+   ${probHTML("1X - Ev sahibi kaybetmez",win+draw)}
+   ${probHTML("X2 - Deplasman kaybetmez",lose+draw)}
+   <div class="section-title">Toplam gol tahminleri</div>
+   ${probHTML("1.5 Üst",over15)}
+   ${probHTML("2.5 Üst",over25)}
+   ${probHTML("3.5 Üst",over35)}
+   ${probHTML("Karşılıklı gol - KG Var",btts)}
+   <div class="section-title">İlk yarı / ikinci yarı</div>`;
+
+  if(hasHalf){
+   html+=probHTML("İlk yarı 0.5 Üst",first05);
+   html+=probHTML("İlk yarı 1.5 Üst",first15);
+   html+=probHTML("İkinci yarı 0.5 Üst",second05);
+   html+=probHTML("İkinci yarı 1.5 Üst",second15);
+   const firstBttsYes=(hs.firstBothRate+as.firstBothRate)/2;
+   const secondBttsYes=(hs.secondBothRate+as.secondBothRate)/2;
+   html+='<div class="section-title">🤝 İlk yarı / ikinci yarı karşılıklı gol</div>';
+   html+=probHTML("İlk yarı KG Var",firstBttsYes);
+   html+=probHTML("İlk yarı KG Yok",1-firstBttsYes);
+   html+=probHTML("İkinci yarı KG Var",secondBttsYes);
+   html+=probHTML("İkinci yarı KG Yok",1-secondBttsYes);
+   html+='<p class="note">Bu oranlar takımların geçmiş devre bazlı karşılıklı gol sıklıklarından hesaplanır; iki takımda da en az 3 devre skoru gerekir.</p>';
+  }else{
+   html+='<p class="note">Devre skorları için yeterli geçmiş veri bulunamadı. İlk yarı ve ikinci yarı karşılıklı gol olasılıkları gerçek veri olmadan gösterilmez.</p>';
+  }
+
+  const hc=optionalMetric(homeMatches,homeId,"corners","home");
+  const ac=optionalMetric(awayMatches,awayId,"corners","away");
+  html+='<div class="section-title">🚩 Korner analizi</div>';
+  if(hc.count>=3&&ac.count>=3){
+   const expectedCorners=hc.average+ac.average;
+   html+='<p class="note">Takımların korner ortalamalarından Poisson yaklaşımı. Lig ve rakip gücü düzeltmesi yapılmamıştır.</p>';
+   html+=`<div class="statgrid">
+    <div class="stat"><span>${esc(homeName)} korner ort.</span><b>${hc.average.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(awayName)} korner ort.</span><b>${ac.average.toFixed(2)}</b></div></div>`;
+   html+=probHTML("8.5 Korner Üst",overProb(expectedCorners,9));
+   html+=probHTML("9.5 Korner Üst",overProb(expectedCorners,10));
+   html+=probHTML("10.5 Korner Üst",overProb(expectedCorners,11));
+  }else{
+   html+='<p class="note">Gerçek korner verisi yetersiz (her takım için en az 3 maç gerekli). Tahmin üretilmedi.</p>';
+  }
+
+  const hShots=optionalMetric(homeMatches,homeId,"shotsOnTarget","home");
+  const aShots=optionalMetric(awayMatches,awayId,"shotsOnTarget","away");
+  html+='<div class="section-title">🎯 İsabetli şut analizi</div>';
+  if(hShots.count>=3&&aShots.count>=3){
+   html+=`<div class="statgrid">
+    <div class="stat"><span>${esc(homeName)} isabetli şut ort.</span><b>${hShots.average.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(awayName)} isabetli şut ort.</span><b>${aShots.average.toFixed(2)}</b></div></div>`;
+   html+='<p class="note">Ortalamalar geçmiş maçlara aittir; garanti veya kesin tahmin değildir.</p>';
+  }else{
+   html+='<p class="note">Gerçek isabetli şut verisi yetersiz (her takım için en az 3 maç gerekli). Ortalama gösterilmiyor.</p>';
+  }
+
+  html+='<div class="section-title">🚑 Maç önü kadro ve eksikler raporu</div>';
+  if(injuryReport.items.length){
+   html+=injuryReport.items.map(p=>`<div class="scoreline"><span>${esc(p.name)} · ${esc(p.team)}</span><b>${esc(p.type)}</b></div><p class="note">${esc(p.reason)}</p>`).join("");
+  }else{
+   html+='<p class="note">'+esc(injuryReport.note)+'</p>';
+  }
+  html+='<p class="note">Bu liste yalnızca veri sağlayıcısının bu maça bağladığı eksik kayıtlarını gösterir. Listede oyuncu olmaması, tüm futbolcuların kesin oynayacağı anlamına gelmez. İlk 11 ve maç kadrosu açıklanmadan kesin kadro yorumu yapılmaz.</p>';
+
+  html+='<div class="section-title">⚽ Oyuncu gol atar mı?</div>';
+  const playerCards=(players,teamName)=>players.length
+   ? '<p class="note">'+esc(teamName)+'</p>'+players.map(p=>`<div class="scoreline"><span>${esc(p.name)} · ${p.goals} gol / ${p.appearances} maç</span><b>${pct(p.scoreChance)} gol atar</b></div><div class="note">Model adil oranı: <b>${fairOdds(p.scoreChance)}</b> · Gol atmaz: ${pct(1-p.scoreChance)} (adil oran ${fairOdds(1-p.scoreChance)})</div>`).join("")
+   : '<p class="note">'+esc(teamName)+': Kullanılabilir oyuncu sezon istatistiği bulunamadı.</p>';
+  html+=playerCards(homeScorers,homeName);
+  html+=playerCards(awayScorers,awayName);
+  if(playerDataNote)html+='<p class="note">Oyuncu verisi notu: '+esc(playerDataNote)+'</p>';
+  html+='<p class="note">Oyuncu olasılığı, API-Football sezon golü/dakika verisinden yaklaşık 70 dakika oynama varsayımıyla hesaplanır. Model adil oranı 1 / olasılık formülüdür; bahis şirketi oranı değildir ve şirket marjı içermez. İlk 11 kesinleşmeden ve oyuncunun oynama süresi bilinmeden kesin tahmin değildir.</p>';
+
+  html+='<div class="section-title">En olası 5 skor</div>';
+  scores.forEach((s,i)=>{
+   html+=`<div class="scoreline"><span>${i+1}. ${s.h} - ${s.a}</span><b>${pct(s.p)}</b></div>`;
+  });
+
+  html+=`<div class="section-title">Veri notu</div>
+   <p class="note">Model, geçmiş gol ortalamalarını Poisson dağılımıyla değerlendirir. Yüzdeler tahmindir; kesin sonuç değildir.</p>
+   <p class="note">H2H henüz eklenmedi. Korner ve isabetli şut yalnızca kaynaktan doğrulanabilir istatistik geldiğinde hesaplanır.</p>`;
+  target.innerHTML=html;
+
+ }catch(error){
+  target.innerHTML='<span class="error">Analiz hatası: '+esc(error.message)+'</span>';
+ }finally{
+  button.disabled=false;
+  button.textContent="Analizi yenile";
+ }
+}
+</script>
+<a href="https://sportscore.com/" rel="dofollow">Powered by SportScore</a>
+</body>
+</html>
