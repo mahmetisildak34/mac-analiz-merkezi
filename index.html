@@ -1151,13 +1151,16 @@ async function loadLineups(button){
    const forms=Array.isArray(summary.boxscore?.form)?summary.boxscore.form:[];
    const competitors=summary.header?.competitions?.[0]?.competitors||[];
    teams=rosters.map((roster,index)=>{
-    const teamInfo=forms[index]?.team||competitors[index]?.team||{};
+    const teamInfo=roster.team||forms.find(x=>String(x.team?.id||"")===String(roster.team?.id||""))?.team||competitors.find(x=>String(x.team?.id||"")===String(roster.team?.id||""))?.team||forms[index]?.team||competitors[index]?.team||{};
     const entries=Array.isArray(roster.roster)?roster.roster:[];
     const normalizePlayer=entry=>{
      const athlete=entry.athlete||{};
      const pos=entry.position||athlete.position||{};
-     const position=String(pos.abbreviation||pos.name||"").toUpperCase();
-     const row=/^(GK|G|GOALKEEPER)$/.test(position)?1:/^(D|DF|DEF|DEFENDER|CB|LB|RB|WB)$/.test(position)?2:/^(M|MF|MID|MIDFIELDER|DM|CM|AM)$/.test(position)?3:/^(F|FW|FWD|FORWARD|ST|W)$/.test(position)?4:3;
+     const position=String(pos.abbreviation||pos.name||"").toUpperCase().replace(/[_-]/g," ").trim();
+     const row=/^(GK|G|GOALKEEPER|GOAL KEEPER)$/.test(position)||/GOALKEEP/.test(position)?1:
+      /^(D|DF|DEF|DEFENDER|CB|LCB|RCB|LB|RB|WB|LWB|RWB|FB|RFB|LFB)$/.test(position)||/(BACK|BACKS|DEFEN[CS]E|CENTRE BACK|CENTER BACK)/.test(position)?2:
+      /^(M|MF|MID|MIDFIELDER|DM|CDM|CM|LCM|RCM|AM|CAM|LM|RM|WM)$/.test(position)||/(MIDFIELD|WINGER|WIDE MID|ATTACKING MID|DEFENSIVE MID)/.test(position)?3:
+      /^(F|FW|FWD|FORWARD|ST|CF|SS|LW|RW)$/.test(position)||/(FORWARD|STRIK|CENTRE FORWARD|CENTER FORWARD|WING)/.test(position)?4:3;
      const headshot=athlete.headshot?.href||athlete.headshot||"";
      return {player:{id:athlete.id,source:"espn",name:athlete.displayName||athlete.fullName||athlete.shortName||"Oyuncu",number:athlete.jersey||entry.jersey||"",photo:headshot,grid:row+":"+String(entry.formationPlace||"")}};
     };
@@ -1187,7 +1190,7 @@ async function loadLineups(button){
   for(const team of playerRows)for(const item of team.players||[]){const id=String(item.player?.id||""),rating=item.statistics?.[0]?.games?.rating;if(id&&rating!==undefined&&rating!==null)ratingMap.set(id,rating);}
   const hasStarters=teams.some(team=>(team.startXI||[]).length>0);
   panel.innerHTML='<div class="lineup-head"><strong>⚽ '+(isEspn?"ESPN maç kadrosu":"Resmî maç kadrosu")+'</strong><span class="lineup-formation">'+(hasStarters?"İlk 11":"Kadro listesi")+'</span></div>'+
-   teams.map((team,index)=>'<div class="lineup-head"><strong>'+esc(team.team?.name||"Takım")+'</strong><span class="lineup-formation">'+esc(team.formation||"Diziliş bilgisi yok")+'</span></div>'+lineupTeamHTML(team,ratingMap,index)).join("")+
+   teams.map((team,index)=>'<div class="lineup-head"><strong>Diziliş</strong><span class="lineup-formation">'+esc(team.formation||"Diziliş bilgisi yok")+'</span></div>'+lineupTeamHTML(team,ratingMap,index)).join("")+
    '<div class="lineup-note">Kaynak: '+(isEspn?"ESPN":"API-Football")+'. Oyuncu puanları yalnızca kaynakta mevcut olduğunda gösterilir.</div>';
   panel.querySelectorAll(".lineup-bench-toggle").forEach(benchButton=>{
    benchButton.addEventListener("click",()=>{
