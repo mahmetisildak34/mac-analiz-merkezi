@@ -682,7 +682,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   };
 
   const folder=leagues[String(leagueId)];
-  if(String(leagueId)==="5"){
+  const isNationalCompetition=["5","10"].includes(String(leagueId))||/(nations league|international friendly|world cup|qualification|qualifier|africa cup|u23|u-23)/i.test(String(leagueName||""));
+  if(isNationalCompetition){
     try{
       const nationalMatches=await getESPNNationalHistory(teamId,teamName,matchDate,leagueId,leagueName);
       output.push(...nationalMatches);
@@ -726,7 +727,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       }
     }
     if(!output.length&&!sourceError)sourceError="Dosya açıldı ancak "+teamName+" için "+matchDate+" öncesinde eşleşen tamamlanmış maç bulunamadı.";
-  }else if(String(leagueId)!=="5"){
+  }else if(!isNationalCompetition){
     sourceError="Bu lig için Open Matchday arşiv eşlemesi henüz tanımlı değil (lig kodu: "+leagueId+").";
   }
 
@@ -989,7 +990,7 @@ async function analyze(button){
   await wait(250);
   const awayMatches=await getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id,button.dataset.leagueName);
 
-  const nationalMatch=/(national|nations|friendly|world cup|qualification|qualifier|africa cup|u23|u-23)/i.test(button.dataset.leagueName||"")||["5","10"].includes(String(button.dataset.league));
+  const nationalMatch=["5","10"].includes(String(button.dataset.league))||/(nations league|international friendly|world cup|qualification|qualifier|africa cup|u23|u-23)/i.test(button.dataset.leagueName||"");
   const hs=teamStats(homeMatches,homeId,nationalMatch?"all":"home");
   const as=teamStats(awayMatches,awayId,nationalMatch?"all":"away");
   if(hs.count<1||as.count<1){
