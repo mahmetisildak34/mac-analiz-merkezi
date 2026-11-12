@@ -2457,6 +2457,19 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     sourceError="Bu lig için Open Matchday arşiv eşlemesi henüz tanımlı değil (lig kodu: "+leagueId+").";
   }
 
+  // API-Football son çare: arşiv ve CSV beş maçın altında kaldıysa dene.
+  // Ücretsiz plan geçmiş tarihleri reddedebilir; hata diğer kaynakları durdurmaz.
+  if(output.length<5&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))){
+    try{
+      const data=await api("fixtures?"+qs({team:teamId,last:20,status:"FT",timezone:"Europe/Istanbul"}));
+      const cutoff=new Date(matchDate+"T00:00:00");
+      for(const match of (data.response||[])){
+        if(!match.fixture?.date||new Date(match.fixture.date)>=cutoff)continue;
+        addMatch(match);
+      }
+    }catch(e){sourceError+=" API-Football: "+String(e.message||e);}
+  }
+
   // ESPN yedek geçmişi: fikstür API-Football'dan gelse bile maç tarihindeki
   // ESPN skor tablosundan takımın ESPN ID'sini bul ve takım takvimini oku.
   if(ESPN_LEAGUES[String(leagueId)]?.slug&&output.length<10){
