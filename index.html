@@ -2393,7 +2393,7 @@ renderCoupon();
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
-  const key="mam_history_v27_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v28_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2500,19 +2500,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const n=Number(value);return Number.isFinite(n)?n:null;
   };
 
-  // Önce ESPN takım geçmişini Cloudflare KV'ye aktar; ardından arşivden oku.
-  // Bu, ilk analizde takımın geçmişini bir kez doldurur ve sonraki analizleri hızlandırır.
-  if(String(sourceFixtureId||"").startsWith("espn-")){
-    try{
-      const slug=ESPN_LEAGUES[String(leagueId)]?.slug;
-      if(slug){
-        await api("archive/espn-backfill?"+qs({league:slug,teamId:String(teamId),teamName:teamName}));
-      }
-    }catch(e){
-      sourceError="ESPN geçmişini arşive aktarma: "+String(e.message||e);
-    }
-  }
-
+  // Cloudflare KV ücretsiz yazma kotası doluysa bu analiz akışında KV'ye hiç dokunma.
   const folder=leagues[String(leagueId)];
   if(folder){
     // Üç sezonun CSV arşivini paralel tara; iki ayna kaynağı da zaman aşımıyla sınırla.
@@ -2565,35 +2553,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     }
   }
 
-  // CSV arşivi hızlı sonuç vermezse Cloudflare KV arşivine başvur.
-  // Her takım için önce gereksiz ağ beklemesi oluşturmamak adına bu çağrı CSV sonrasına alındı.
-  if(output.length<5){
-   // 1) Cloudflare KV arşivi: takım adına göre saklanan gerçek geçmiş maçlar.
-   // ESPN ve API-Football takım ID'leri farklı olabileceğinden hedef takımın ID'sini
-   // yalnızca doğrulanmış takım adı eşleşmesinde yeniden bağlıyoruz.
-   try{
-     const archive=await api("archive/team?"+qs({name:teamName}));
-     const archived=Array.isArray(archive.response)?archive.response:[];
-     for(const m of archived){
-       const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
-       const hm=isTarget(h),am=isTarget(a);
-       if(hm===am)continue;
-       const copy={
-         ...m,
-         teams:{
-           home:{...(m.teams?.home||{}),id:hm?Number(teamId):(Number(m.teams?.home?.id)||-1)},
-           away:{...(m.teams?.away||{}),id:am?Number(teamId):(Number(m.teams?.away?.id)||-1)}
-         }
-       };
-       addMatch(copy);
-     }
-     if(archived.length&&!output.length)sourceError="Cloudflare arşivinde takım adı eşleşmesi bulunamadı.";
-   }catch(e){
-     sourceError="Cloudflare arşivi: "+String(e.message||e);
-   }
- 
-   }
-
+  // KV günlük yazma kotası dolu (429); takım geçmişi için KV arşivi atlanıyor.
 
   // API-Football son çare: arşiv ve CSV beş maçın altında kaldıysa dene.
   // Ücretsiz plan geçmiş tarihleri reddedebilir; hata diğer kaynakları durdurmaz.
@@ -2631,11 +2591,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         }
       }
       if(espnTeamId){
-        // ESPN kimliğini bulduktan sonra Worker KV arşivine de yaz.
-        // Bu işlem API-Football kotasını kullanmaz.
-        try{
-          await api("archive/espn-backfill?"+qs({league:espnLeagueSlug,teamId:espnTeamId,teamName:teamName}));
-        }catch(e){sourceError+=" ESPN arşiv kaydı: "+String(e.message||e);}
+        // KV kotası dolu olabileceğinden ESPN fikstürü doğrudan okunur; arşive yazılmaz.
         const schedule=await api("espn/"+espnLeagueSlug+"/teams/"+espnTeamId+"/schedule");
         for(const event of (Array.isArray(schedule.events)?schedule.events:[])){
           const competition=event.competitions?.[0],competitors=competition?.competitors||[];
