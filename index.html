@@ -478,6 +478,7 @@ function renderMatches(){
      data-home-name="${esc(t.home?.name)}"
      data-away-name="${esc(t.away?.name)}"
      data-league="${esc(l.id)}"
+     data-league-name="${esc(l.name)}"
      data-date="${esc(f.date?.slice(0,10))}">
      Kendi analizini yap
     </button>
@@ -492,7 +493,7 @@ function renderMatches(){
 }
 
 /* MİLLİ TAKIM GEÇMİŞİ — kulüp ligi arşivinden bağımsız ESPN kaynağı */
-async function getESPNNationalHistory(teamId,teamName,matchDate){
+async function getESPNNationalHistory(teamId,teamName,matchDate,leagueId,leagueName){
  const cacheKey="mam_national_history_v1_"+String(teamName).toLowerCase()+"_"+matchDate.slice(0,4);
  try{
   const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");
@@ -513,7 +514,20 @@ async function getESPNNationalHistory(teamId,teamName,matchDate){
  const wanted=normalize(teamName);
  const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize)]);
  const matchesName=name=>accepted.has(normalize(name));
- const teamsData=await api("espn/uefa.nations/teams?limit=500");
+ const comp=String(leagueName||"").toLowerCase();
+ const preferred=String(leagueId)==="5"||comp.includes("nations league")?["uefa.nations","fifa.friendly"]:
+  comp.includes("africa cup")||comp.includes("caf")?["caf.nations_qual","caf.nations","fifa.worldq.caf"]:
+  comp.includes("world cup")||comp.includes("qualification")||comp.includes("qualifier")?["fifa.worldq","fifa.friendly"]:
+  comp.includes("u23")||comp.includes("u-23")?["caf.u23","fifa.u23","fifa.friendly"]:
+  ["fifa.friendly","fifa.worldq","uefa.nations"];
+ let selectedSlug="",teamsData=null,lastTeamError="";
+ for(const slug of preferred){
+  try{
+   const payload=await api("espn/"+slug+"/teams?limit=500");
+   if(payload&&Object.keys(payload).length){selectedSlug=slug;teamsData=payload;break;}
+  }catch(e){lastTeamError=String(e.message||e);}
+ }
+ if(!teamsData)throw new Error("Milli takım listesi alınamadı ("+preferred.join(", ")+"). "+lastTeamError);
  const candidates=[];
  const walk=(node,depth=0)=>{
   if(!node||typeof node!=="object"||depth>9)return;
@@ -529,7 +543,7 @@ async function getESPNNationalHistory(teamId,teamName,matchDate){
  const teamMap=new Map(candidates.map(t=>[String(t.id),t]));
  const espnTeam=[...teamMap.values()].find(t=>matchesName(t.displayName||t.name)||matchesName(t.shortDisplayName)||matchesName(t.abbreviation));
  if(!espnTeam)throw new Error(teamName+" ESPN milli takım listesinde bulunamadı.");
- const scheduleData=await api("espn/uefa.nations/teams/"+encodeURIComponent(espnTeam.id)+"/schedule");
+ const scheduleData=await api("espn/"+selectedSlug+"/teams/"+encodeURIComponent(espnTeam.id)+"/schedule");
  const events=Array.isArray(scheduleData.events)?scheduleData.events:
   Array.isArray(scheduleData.schedule)?scheduleData.schedule:
   Array.isArray(scheduleData.items)?scheduleData.items:[];
@@ -573,7 +587,7 @@ async function getESPNNationalHistory(teamId,teamName,matchDate){
 }
 
 /* GEÇMİŞ MAÇLAR */
-async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
+async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, leagueName){
   const key="mam_history_v16_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached){
@@ -670,7 +684,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const folder=leagues[String(leagueId)];
   if(String(leagueId)==="5"){
     try{
-      const nationalMatches=await getESPNNationalHistory(teamId,teamName,matchDate);
+      const nationalMatches=await getESPNNationalHistory(teamId,teamName,matchDate,leagueId,leagueName);
       output.push(...nationalMatches);
     }catch(e){sourceError="ESPN milli takım geçmişi: "+String(e.message||e);}
   }else if(folder){
@@ -970,13 +984,14 @@ async function analyze(button){
   const date=button.dataset.date;
   if(!homeId||!awayId||!date)throw new Error("Maç bilgileri eksik. Fikstürü yeniden yükle.");
 
-  const homeMatches=await getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id);
+  const homeMatches=await getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id,button.dataset.leagueName);
   target.textContent="İkinci takımın geçmiş maçları alınıyor...";
   await wait(250);
-  const awayMatches=await getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id);
+  const awayMatches=await getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id,button.dataset.leagueName);
 
-  const hs=teamStats(homeMatches,homeId,"home");
-  const as=teamStats(awayMatches,awayId,"away");
+  const nationalMatch=/(national|nations|friendly|world cup|qualification|qualifier|africa cup|u23|u-23)/i.test(button.dataset.leagueName||"")||["5","10"].includes(String(button.dataset.league));
+  const hs=teamStats(homeMatches,homeId,nationalMatch?"all":"home");
+  const as=teamStats(awayMatches,awayId,nationalMatch?"all":"away");
   if(hs.count<1||as.count<1){
    throw new Error("Geçmiş veri yetersiz. "+button.dataset.homeName+": "+hs.count+" maç; "+button.dataset.awayName+": "+as.count+" maç. Kaynak eşleşmesini kontrol et.");
   }
