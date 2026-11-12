@@ -874,6 +874,14 @@ async function analyze(button){
    throw new Error("Geçmiş veri yetersiz. "+button.dataset.homeName+": "+hs.count+" maç; "+button.dataset.awayName+": "+as.count+" maç. Kaynak eşleşmesini kontrol et.");
   }
   const lowSample = hs.count<3 || as.count<3;
+  const sampleTarget=20;
+  const sampleCoverage=Math.min(1,hs.count/sampleTarget,as.count/sampleTarget);
+  const dataGrade=sampleCoverage>=0.9&&hs.halfCount>=10&&as.halfCount>=10
+    ?"Güçlü veri kapsamı"
+    :sampleCoverage>=0.5
+      ?"Orta veri kapsamı"
+      :"Sınırlı veri kapsamı";
+  const dataGradeNote="Bu etiket veri miktarını gösterir; modelin kazanma başarısını veya bahis güvenini garanti etmez.";
 
   const lh=Math.max(.15,Math.min(4,(hs.gf+as.ga)/2));
   const la=Math.max(.15,Math.min(4,(as.gf+hs.ga)/2));
@@ -949,7 +957,14 @@ async function analyze(button){
     <div class="stat"><span>${esc(awayName)} gol ortalaması</span><b>${as.gf.toFixed(2)}</b></div>
     <div class="stat"><span>${esc(awayName)} yediği gol</span><b>${as.ga.toFixed(2)}</b></div>
    </div>
-   <p class="note">${esc(homeName)}: ${hs.count} maç (${venue(hs.venue)}) · ${esc(awayName)}: ${as.count} maç (${venue(as.venue)})</p>
+   <p class="note">${esc(homeName)}: ${hs.count}/${sampleTarget} maç (${venue(hs.venue)}) · ${esc(awayName)}: ${as.count}/${sampleTarget} maç (${venue(as.venue)})</p>
+   <div class="section-title">🧪 Veri yeterliliği</div>
+   <div class="statgrid">
+    <div class="stat"><span>Veri kapsamı</span><b>${Math.round(sampleCoverage*100)}%</b></div>
+    <div class="stat"><span>Değerlendirme</span><b>${dataGrade}</b></div>
+    <div class="stat"><span>İlk yarı skoru</span><b>${hs.halfCount} / ${as.halfCount}</b></div>
+   </div>
+   <p class="note">${dataGradeNote} 20 maçın altında kalan örneklem, daha temkinli yorumlanmalıdır.</p>
    ${lowSample?'<p class="note">⚠️ Uyarı: Takımlardan en az birinde 3 maçtan az geçmiş veri var. Tahmin düşük örneklem nedeniyle daha az güvenilirdir.</p>':''}
    <div class="section-title">Maç sonucu olasılıkları</div>
    ${probHTML("1 - Ev sahibi kazanır",win)}
