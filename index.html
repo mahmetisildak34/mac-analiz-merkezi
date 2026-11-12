@@ -350,6 +350,24 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .preview-dot{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#20aa53}
 @media(max-width:560px){.match-versus{grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr);gap:5px}.team-logo{width:36px;height:36px}.team-block strong{font-size:12px}.match-clock{font-size:15px}.match-actions .small{font-size:10px}.match-actions button{font-size:11px!important;padding:8px 10px!important}}
 
+
+/* ===== ANALYSIS CARD PRESENTATION ===== */
+.analysis-card{display:block;position:relative;margin:15px 0;padding:17px 15px 15px;border:1px solid #e3ebe5;border-radius:18px;background:linear-gradient(180deg,#fff 0%,#fcfefd 100%);box-shadow:0 4px 15px rgba(26,65,42,.045)}
+.analysis-card .section-title{display:flex;align-items:center;gap:9px;margin:0 0 14px;padding:0 0 11px;color:#168541;font-size:15px;font-weight:850;letter-spacing:-.1px;border-bottom:1px solid #e8f2eb}
+.analysis-card .section-title:after{content:"";height:2px;flex:1;max-width:65px;border-radius:5px;background:linear-gradient(90deg,#bce9ca,transparent)}
+.analysis-card .statgrid{margin:10px 0 12px;gap:9px}
+.analysis-card .stat{background:#f2f9f4;border:1px solid #e0eee4;border-radius:14px;padding:13px}
+.analysis-card .stat span{color:#647469;font-size:11px;line-height:1.4}
+.analysis-card .stat b{color:#168344;font-size:21px;line-height:1.25;overflow-wrap:anywhere}
+.analysis-card .prob{margin:13px 0 15px;padding:0}
+.analysis-card .probline{font-size:12px;font-weight:700;color:#465363;margin-bottom:7px}
+.analysis-card .bar{height:9px;background:#e8edef;border-radius:99px;overflow:hidden}
+.analysis-card .bar i{border-radius:99px;background:linear-gradient(90deg,#16a34a,#75d69a)}
+.analysis-card .scoreline{padding:11px 2px;border-bottom:1px solid #edf1ee;color:#394654}
+.analysis-card .note{font-size:11px;line-height:1.65;color:#78848f;margin:10px 0 2px}
+.analysis-card .scoreline b{color:#168344}
+@media(max-width:560px){.analysis-card{margin:12px 0;padding:15px 13px 13px;border-radius:16px}.analysis-card .section-title{font-size:14px;margin-bottom:12px}.analysis-card .stat{padding:11px}.analysis-card .stat b{font-size:19px}.analysis-card .prob{margin:12px 0 14px}}
+
 </style>
 </head>
 <body>
@@ -1292,6 +1310,21 @@ function topScores(lh,la){
 
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 
+
+/* ===== ANALYSIS SECTIONS · CARD LAYOUT ===== */
+function wrapAnalysisSections(markup){
+ const re=/<div class="section-title">[\\s\\S]*?<\\/div>/g;
+ const heads=[...markup.matchAll(re)];
+ if(!heads.length)return markup;
+ let result=markup.slice(0,heads[0].index);
+ for(let i=0;i<heads.length;i++){
+  const start=heads[i].index;
+  const end=i+1<heads.length?heads[i+1].index:markup.length;
+  result+='<section class="analysis-card">'+markup.slice(start,end)+'</section>';
+ }
+ return result;
+}
+
 /* ANALİZ */
 async function analyze(button){
  if(button.disabled)return;
@@ -1477,6 +1510,7 @@ async function analyze(button){
   html+=`<div class="section-title">Veri notu</div>
    <p class="note">Model, geçmiş gol ortalamalarını Poisson dağılımıyla değerlendirir. Yüzdeler tahmindir; kesin sonuç değildir.</p>
    <p class="note">H2H henüz eklenmedi. Korner ve isabetli şut yalnızca kaynaktan doğrulanabilir istatistik geldiğinde hesaplanır.</p>`;
+  html=wrapAnalysisSections(html);
   target.innerHTML=html;
 
  }catch(error){
