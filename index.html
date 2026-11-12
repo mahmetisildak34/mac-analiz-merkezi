@@ -124,8 +124,8 @@ let apiQueue=Promise.resolve();
 let lastApiCall=0;
 
 async function api(path){
-  const cleanPath=String(path).replace(/^\\/+/, "");
-  const url=WORKER.replace(/\\/$/,"")+"/api/"+cleanPath;
+  const cleanPath=String(path).replace(/^\/+/, "");
+  const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings");
   const isLive=cleanPath.includes("live=all");
   const isPrimaryApi=!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
