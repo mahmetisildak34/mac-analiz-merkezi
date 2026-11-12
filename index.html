@@ -493,7 +493,7 @@ function renderMatches(){
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
-  const key = "mam_history_v8_" + leagueId + "_" + teamId + "_" + matchDate.slice(0,4);
+  const key = "mam_history_v9_" + leagueId + "_" + teamId + "_" + matchDate.slice(0,4);
   const cached = localStorage.getItem(key);
   if(cached){
     try{
@@ -594,62 +594,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     }catch(e){console.warn("Open Matchday geçmiş verisi alınamadı:",teamName,e);}
   }
 
-  // Source 2: Football-Data.co.uk historical seasons (top European leagues).
-  // Cache each league-season CSV separately so the opponent lookup reuses it.
-  const divisionCodes={
-    "39":"E0","140":"SP1","78":"D1","135":"I1","61":"F1",
-    "88":"N1","144":"B1","94":"P1","203":"T1","179":"SC0"
-  };
-  const division=divisionCodes[String(leagueId)];
-  if(division){
-    const seasons=["2526","2425","2324","2223","2122"];
-    for(const season of seasons){
-      const csvKey="mam_fd_csv_"+division+"_"+season;
-      let csvText=null;
-      try{
-        const saved=localStorage.getItem(csvKey);
-        if(saved){
-          const item=JSON.parse(saved);
-          if(item.time&&Date.now()-item.time<7*24*60*60*1000)csvText=item.text;
-        }
-      }catch(e){}
-      if(!csvText){
-        try{
-          const response=await fetch("https://www.football-data.co.uk/mmz4281/"+season+"/"+division+".csv");
-          if(!response.ok)continue;
-          csvText=await response.text();
-          try{localStorage.setItem(csvKey,JSON.stringify({time:Date.now(),text:csvText}));}catch(e){}
-        }catch(e){console.warn("Football-Data CSV alınamadı:",division,season,e);continue;}
-      }
-      try{
-        for(const row of parseCSV(csvText)){
-          const home=isTarget(row.HomeTeam),away=isTarget(row.AwayTeam);
-          if(home===away)continue;
-          const rawDate=row.Date||"";
-          const parts=rawDate.split("/");
-          if(parts.length!==3)continue;
-          let yy=parts[2];if(yy.length===2)yy=Number(yy)>=80?"19"+yy:"20"+yy;
-          const iso=yy+"-"+String(parts[1]).padStart(2,"0")+"-"+String(parts[0]).padStart(2,"0");
-          if(iso>=matchDate)continue;
-          const gh=nullable(row.FTHG),ga=nullable(row.FTAG);
-          if(gh===null||ga===null)continue;
-          output.push({
-            fixture:{date:iso+"T12:00:00Z",status:{short:"FT"}},
-            teams:{home:{id:home?teamId:-1,name:row.HomeTeam},away:{id:away?teamId:-1,name:row.AwayTeam}},
-            goals:{home:gh,away:ga},
-            score:{halftime:{home:nullable(row.HTHG),away:nullable(row.HTAG)}},
-            statistics:{
-              home:{shots:nullable(row.HS),shotsOnTarget:nullable(row.HST),corners:nullable(row.HC)},
-              away:{shots:nullable(row.AS),shotsOnTarget:nullable(row.AST),corners:nullable(row.AC)}
-            }
-          });
-        }
-      }catch(e){console.warn("Football-Data CSV ayrıştırılamadı:",division,season,e);}
-    }
-  }
-
   // Source 3: SportScore team schedule, only when the structured archives have no matching history.
-  if(!output.length){
+  {
     try{
       const searchUrl="https://sportscore.com/api/v1/search/?q="+encodeURIComponent(teamName)+"&sport=football&limit=20";
       const searchResponse=await fetch(searchUrl);
