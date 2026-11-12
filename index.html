@@ -733,6 +733,17 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 .mam-section-back{min-height:38px;padding:8px 11px!important;background:#173541!important;color:#e8f8f2!important;border:1px solid rgba(130,175,193,.2)!important;box-shadow:none!important;font-size:12px!important}
 .mam-screen-live .mam-home-intro,.mam-screen-upcoming .mam-home-intro{display:none!important}
 .mam-standings-screen{margin:18px 0 24px}
+.mam-standings-search{display:flex;align-items:center;gap:10px;background:#101d29;border:1px solid #29404b;border-radius:14px;padding:0 14px;margin:12px 0 22px;color:#9fb2bd}
+.mam-standings-search span{font-size:25px;line-height:1}
+.mam-standings-search input{border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;padding:14px 0!important;color:#f4fbff!important;font-size:15px!important;min-width:0}
+.mam-standings-group{margin:18px 0 22px}
+.mam-standings-group h3{font-size:14px;letter-spacing:.2px;color:#dbe8ed;margin:0 0 10px}
+.mam-standings-leagues{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0}
+.mam-standings-leagues button{min-height:51px;padding:10px 12px;text-align:left;border:1px solid #29434d;background:#142631;color:#edf7f7;box-shadow:0 3px 12px rgba(0,0,0,.12);font-size:13px;font-weight:750;border-radius:13px}
+.mam-standings-leagues button.active{background:linear-gradient(135deg,#dff8e9,#c9f0dd)!important;border:1px solid #25bd7d!important;color:#075c3c!important;box-shadow:0 0 0 2px rgba(37,189,125,.12)!important}
+.mam-standings-leagues button[hidden]{display:none!important}
+.mam-standings-footnote{font-size:11px;line-height:1.5;color:#8ea3ad;margin:5px 2px 18px}
+
 .mam-standings-intro{padding:8px 3px 15px}
 .mam-standings-intro>span{font-size:10px;font-weight:900;letter-spacing:1.5px;color:#149b66}
 .mam-standings-intro h2{font-size:27px;letter-spacing:-.7px;margin:7px 0;color:#17252f}
@@ -811,11 +822,15 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 </div>
 <div class="mam-section-header" id="mamSectionHeader" hidden><button type="button" class="mam-section-back" id="mamSectionBack">← Ana sayfa</button><div class="mam-section-title"><small id="mamSectionEyebrow">CANLI TAKİP</small><strong id="mamSectionTitle">Canlı Maçlar</strong></div><span class="mam-section-count" id="mamSectionCount"></span><button type="button" class="mam-section-back" id="mamSectionRefresh">↻ Yenile</button></div>
 <section id="mamStandingsScreen" class="mam-standings-screen" hidden>
- <div class="mam-standings-intro"><span>🏆 LİG MERKEZİ</span><h2>Puan Durumu</h2><p>Takım sıralamalarını liglere göre ayrı ayrı incele.</p></div>
- <div class="mam-standings-leagues" id="mamStandingsLeagues" aria-label="Puan durumu lig seçimi">
-  <button type="button" data-standing-league="203">🇹🇷 Süper Lig</button><button type="button" data-standing-league="39">🏴 Premier League</button><button type="button" data-standing-league="140">🇪🇸 La Liga</button><button type="button" data-standing-league="78">🇩🇪 Bundesliga</button><button type="button" data-standing-league="135">🇮🇹 Serie A</button><button type="button" data-standing-league="61">🇫🇷 Ligue 1</button><button type="button" data-standing-league="2">🏆 Şampiyonlar Ligi</button>
- </div>
- <div class="mam-standings-card"><div class="mam-standings-card-head"><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Bir lig seç</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan durumunu görmek için yukarıdan bir lig seç.</div></div></div>
+ <div class="mam-standings-intro"><span>🏆 LİG MERKEZİ</span><h2>Puan Durumu</h2><p>Türkiye ligleri, Avrupa kupaları ve dünyanın önde gelen organizasyonları tek yerde.</p></div>
+ <label class="mam-standings-search"><span>⌕</span><input id="mamStandingsSearch" type="search" placeholder="Lig veya turnuva ara..." autocomplete="off"></label>
+ <div class="mam-standings-group"><h3>⭐ Popüler Ligler</h3><div class="mam-standings-leagues" id="mamStandingsPopular"></div></div>
+ <div class="mam-standings-group"><h3>🇹🇷 Türkiye</h3><div class="mam-standings-leagues" id="mamStandingsTurkey"></div></div>
+ <div class="mam-standings-group"><h3>🌍 Avrupa'nın Büyük Ligleri</h3><div class="mam-standings-leagues" id="mamStandingsEurope"></div></div>
+ <div class="mam-standings-group"><h3>🏆 Avrupa Kupaları</h3><div class="mam-standings-leagues" id="mamStandingsCups"></div></div>
+ <div class="mam-standings-group"><h3>🌐 Diğer Ülkeler ve Uluslararası Turnuvalar</h3><div class="mam-standings-leagues" id="mamStandingsWorld"></div></div>
+ <p class="mam-standings-footnote">Liste, veri sağlayıcılarımızın desteklediği organizasyonlara göre genişletilir. Eleme usulü kupalarda puan tablosu bulunmayabilir; grup aşaması varsa grup tablosu gösterilir.</p>
+ <div class="mam-standings-card"><div class="mam-standings-card-head"><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Bir lig veya turnuva seç</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosunu görmek için yukarıdan bir lig seç.</div></div></div>
 </section>
 <div class="mam-home-intro">
 <div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
@@ -1085,7 +1100,7 @@ async function loadStandings(){
  box.innerHTML='<div class="empty">Puan durumu alınıyor...</div>';
  const now=new Date(),year=now.getFullYear(),season=now.getMonth()<=5?year-1:year;
  $("mamStandingsSeason").textContent=season+" / "+(season+1);
- $("mamStandingsLeagueTitle").textContent=({"203":"Süper Lig","39":"Premier League","140":"La Liga","78":"Bundesliga","135":"Serie A","61":"Ligue 1","2":"Şampiyonlar Ligi"})[leagueId]||"Lig puan durumu";
+ $("mamStandingsLeagueTitle").textContent=(standingCompetitions.find(x=>x.id===leagueId)?.name)||"Lig puan durumu";
  try{
   let rows=[],leagueName="";
   try{
@@ -2855,11 +2870,63 @@ async function analyze(button){
  }));
  $("mamSectionBack")?.addEventListener("click",async()=>{setMamScreen("home");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});});
  $("mamSectionRefresh")?.addEventListener("click",async()=>{if(mamScreenMode==="live")await loadLiveMatches();else if(mamScreenMode==="upcoming")await loadMatches();else if(mamScreenMode==="standings")await loadStandings();});
- $("mamStandingsLeagues")?.querySelectorAll("[data-standing-league]").forEach(button=>button.addEventListener("click",async()=>{
+ const standingCompetitions=[
+  {id:"203",name:"Trendyol Süper Lig",flag:"🇹🇷",group:"turkey",popular:true},
+  {id:"204",name:"Trendyol 1. Lig",flag:"🇹🇷",group:"turkey"},
+  {id:"206",name:"Ziraat Türkiye Kupası",flag:"🇹🇷",group:"turkey",cup:true},
+  {id:"39",name:"Premier League",flag:"🏴",group:"europe",popular:true},
+  {id:"40",name:"Championship",flag:"🏴",group:"europe"},
+  {id:"45",name:"FA Cup",flag:"🏴",group:"europe",cup:true},
+  {id:"48",name:"EFL Cup",flag:"🏴",group:"europe",cup:true},
+  {id:"140",name:"La Liga",flag:"🇪🇸",group:"europe",popular:true},
+  {id:"141",name:"La Liga 2",flag:"🇪🇸",group:"europe"},
+  {id:"143",name:"Copa del Rey",flag:"🇪🇸",group:"europe",cup:true},
+  {id:"78",name:"Bundesliga",flag:"🇩🇪",group:"europe",popular:true},
+  {id:"79",name:"2. Bundesliga",flag:"🇩🇪",group:"europe"},
+  {id:"81",name:"DFB Pokal",flag:"🇩🇪",group:"europe",cup:true},
+  {id:"135",name:"Serie A",flag:"🇮🇹",group:"europe",popular:true},
+  {id:"136",name:"Serie B",flag:"🇮🇹",group:"europe"},
+  {id:"137",name:"Coppa Italia",flag:"🇮🇹",group:"europe",cup:true},
+  {id:"61",name:"Ligue 1",flag:"🇫🇷",group:"europe",popular:true},
+  {id:"62",name:"Ligue 2",flag:"🇫🇷",group:"europe"},
+  {id:"66",name:"Coupe de France",flag:"🇫🇷",group:"europe",cup:true},
+  {id:"88",name:"Eredivisie",flag:"🇳🇱",group:"europe"},
+  {id:"94",name:"Primeira Liga",flag:"🇵🇹",group:"europe"},
+  {id:"144",name:"Jupiler Pro League",flag:"🇧🇪",group:"europe"},
+  {id:"179",name:"Scottish Premiership",flag:"🏴",group:"europe"},
+  {id:"2",name:"UEFA Şampiyonlar Ligi",flag:"🏆",group:"cups",popular:true},
+  {id:"3",name:"UEFA Avrupa Ligi",flag:"🏆",group:"cups",popular:true},
+  {id:"848",name:"UEFA Konferans Ligi",flag:"🏆",group:"cups",popular:true},
+  {id:"1",name:"FIFA Dünya Kupası",flag:"🌍",group:"world"},
+  {id:"4",name:"EURO",flag:"🇪🇺",group:"world"},
+  {id:"5",name:"UEFA Uluslar Ligi",flag:"🇪🇺",group:"world"},
+  {id:"9",name:"Copa América",flag:"🌎",group:"world"},
+  {id:"6",name:"Afrika Uluslar Kupası",flag:"🌍",group:"world"},
+  {id:"15",name:"FIFA Kulüpler Dünya Kupası",flag:"🌐",group:"world"},
+  {id:"307",name:"Suudi Arabistan Pro Lig",flag:"🇸🇦",group:"world"},
+  {id:"253",name:"MLS",flag:"🇺🇸",group:"world"},
+  {id:"71",name:"Brezilya Serie A",flag:"🇧🇷",group:"world"},
+  {id:"128",name:"Arjantin Primera División",flag:"🇦🇷",group:"world"}
+ ];
+ const groupTargets={popular:$("mamStandingsPopular"),turkey:$("mamStandingsTurkey"),europe:$("mamStandingsEurope"),cups:$("mamStandingsCups"),world:$("mamStandingsWorld")};
+ const renderStandingButtons=(filter="")=>{
+  Object.values(groupTargets).forEach(target=>{if(target)target.innerHTML=""});
+  const q=filter.trim().toLocaleLowerCase("tr-TR");
+  standingCompetitions.filter(item=>!q||(item.name+" "+item.flag).toLocaleLowerCase("tr-TR").includes(q)).forEach(item=>{
+   const button=document.createElement("button");button.type="button";button.dataset.standingLeague=item.id;button.textContent=item.flag+" "+item.name;button.classList.toggle("active",selectedStandingsLeague===item.id);
+   if(item.popular&&groupTargets.popular)groupTargets.popular.appendChild(button);
+   if(groupTargets[item.group])groupTargets[item.group].appendChild(button);
+  });
+  Object.values(groupTargets).forEach(target=>{const section=target?.closest(".mam-standings-group");if(section)section.hidden=!target.children.length;});
+ };
+ renderStandingButtons();
+ $("mamStandingsSearch")?.addEventListener("input",event=>renderStandingButtons(event.target.value));
+ $("mamStandingsLeagues")?.addEventListener("click",async event=>{
+  const button=event.target.closest("[data-standing-league]");if(!button)return;
   selectedStandingsLeague=button.dataset.standingLeague;
-  $("mamStandingsLeagues").querySelectorAll("[data-standing-league]").forEach(item=>item.classList.toggle("active",item===button));
+  document.querySelectorAll("#mamStandingsScreen [data-standing-league]").forEach(item=>item.classList.toggle("active",item.dataset.standingLeague===selectedStandingsLeague));
   await loadStandings();
- }));
+ });
  $("mamStandingsRefresh")?.addEventListener("click",loadStandings);
  const dateInput=$("date"),strip=$("mamDateStrip");
  if(!dateInput||!strip)return;
