@@ -1092,6 +1092,7 @@ $("loadStandings").addEventListener("click",loadStandings);
 $("league").addEventListener("change",renderMatches);
 
 let selectedStandingsLeague="";
+let standingCompetitionNames={};
 async function loadStandings(){
  const leagueId=selectedStandingsLeague;
  const box=$("mamStandingsTable");
@@ -1101,7 +1102,7 @@ async function loadStandings(){
  box.innerHTML='<div class="empty">Puan durumu alınıyor...</div>';
  const now=new Date(),year=now.getFullYear(),season=now.getMonth()<=5?year-1:year;
  $("mamStandingsSeason").textContent=season+" / "+(season+1);
- $("mamStandingsLeagueTitle").textContent=(standingCompetitions.find(x=>x.id===leagueId)?.name)||"Lig puan durumu";
+ $("mamStandingsLeagueTitle").textContent=standingCompetitionNames[leagueId]||"Lig puan durumu";
  try{
   let rows=[],leagueName="";
   try{
@@ -2909,15 +2910,16 @@ async function analyze(button){
   {id:"71",name:"Brezilya Serie A",flag:"🇧🇷",group:"world"},
   {id:"128",name:"Arjantin Primera División",flag:"🇦🇷",group:"world"}
  ];
+ standingCompetitionNames=Object.fromEntries(standingCompetitions.map(item=>[item.id,item.name]));
  const groupTargets={popular:$("mamStandingsPopular"),turkey:$("mamStandingsTurkey"),europe:$("mamStandingsEurope"),cups:$("mamStandingsCups"),world:$("mamStandingsWorld"),all:$("mamStandingsAll")};
  let allProviderLeagues=[];
  const renderStandingButtons=(filter="")=>{
   Object.entries(groupTargets).forEach(([key,target])=>{if(key!=="all"&&target)target.innerHTML=""});
   const q=filter.trim().toLocaleLowerCase("tr-TR");
   standingCompetitions.filter(item=>!q||(item.name+" "+item.flag).toLocaleLowerCase("tr-TR").includes(q)).forEach(item=>{
-   const button=document.createElement("button");button.type="button";button.dataset.standingLeague=item.id;button.textContent=item.flag+" "+item.name;button.classList.toggle("active",selectedStandingsLeague===item.id);
-   if(item.popular&&groupTargets.popular)groupTargets.popular.appendChild(button);
-   if(groupTargets[item.group])groupTargets[item.group].appendChild(button);
+   const makeButton=()=>{const button=document.createElement("button");button.type="button";button.dataset.standingLeague=item.id;button.textContent=item.flag+" "+item.name;button.classList.toggle("active",selectedStandingsLeague===item.id);return button;};
+   if(item.popular&&groupTargets.popular)groupTargets.popular.appendChild(makeButton());
+   if(groupTargets[item.group])groupTargets[item.group].appendChild(makeButton());
   });
   Object.values(groupTargets).forEach(target=>{const section=target?.closest(".mam-standings-group");if(section)section.hidden=!target.children.length;});
  };
