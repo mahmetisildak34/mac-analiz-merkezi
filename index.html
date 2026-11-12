@@ -1117,10 +1117,8 @@ function teamBadge(team){
 function lineupRatingClass(value){const n=Number(value);return Number.isFinite(n)&&n>=7.5?"good":Number.isFinite(n)&&n<6.5?"low":"";}
 function lineupPlayerCard(entry,ratingMap){
  const p=entry?.player||entry||{},id=Number(p.id),rating=ratingMap.get(String(id));
- const isEspn=p.source==="espn";
- const photo=p.photo||(isEspn&&id>0?"https://a.espncdn.com/i/headshots/soccer/players/full/"+id+".png":!isEspn&&id>0?"https://media.api-sports.io/football/players/"+id+".png":"");
- const fallback=isEspn&&id>0?"https://a.espncdn.com/i/headshots/soccer/players/full/"+id+".png":"";
- const image=photo?'<img src="'+esc(photo)+'" data-fallback="'+esc(fallback)+'" alt="'+esc(p.name||"Oyuncu")+'" loading="lazy" onerror="if(this.dataset.fallback&&this.src!==this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback=\'\';}else{this.style.display=\'none\';}">':"";
+ const photo=p.photo||(id>0?"https://media.api-sports.io/football/players/"+id+".png":"");
+ const image=photo?'<img src="'+esc(photo)+'" alt="'+esc(p.name||"Oyuncu")+'" loading="lazy" onerror="this.style.display=\'none\'">':"";
  const ratingHtml=rating!==undefined&&rating!==null&&rating!==""?'<span class="player-rating '+lineupRatingClass(rating)+'">'+esc(Number(rating).toFixed(1))+'</span>':'<span class="player-rating">—</span>';
  return '<div class="lineup-player">'+image+'<span class="shirt">'+esc(p.number??"")+'</span><span class="player-name" title="'+esc(p.name||"Oyuncu")+'">'+esc(p.name||"Oyuncu")+'</span>'+ratingHtml+'</div>';
 }
@@ -1162,11 +1160,26 @@ async function loadLineups(button){
       /^(M|MF|MID|MIDFIELDER|DM|CDM|CM|LCM|RCM|AM|CAM|LM|RM|WM)$/.test(position)||/(MIDFIELD|WINGER|WIDE MID|ATTACKING MID|DEFENSIVE MID)/.test(position)?3:
       /^(F|FW|FWD|FORWARD|ST|CF|SS|LW|RW)$/.test(position)||/(FORWARD|STRIK|CENTRE FORWARD|CENTER FORWARD|WING)/.test(position)?4:3;
      const headshot=athlete.headshot?.href||athlete.headshot||"";
-     return {player:{id:athlete.id,source:"espn",name:athlete.displayName||athlete.fullName||athlete.shortName||"Oyuncu",number:athlete.jersey||entry.jersey||"",photo:headshot,grid:row+":"+String(entry.formationPlace||"")}};
+     return {player:{id:athlete.id,source:"espn",name:athlete.displayName||athlete.fullName||athlete.shortName||"Oyuncu",number:athlete.jersey||entry.jersey||"",photo:headshot,grid:row+":"+String(entry.formationPlace||""),formationPlace:entry.formationPlace??null,position:position}};
     };
     const starters=entries.filter(x=>x.starter===true).map(normalizePlayer);
     const substitutes=entries.filter(x=>x.starter!==true).map(normalizePlayer);
-    return {team:{name:teamInfo.displayName||teamInfo.name||button.dataset.homeName||"Takım"},formation:roster.formation||forms[index]?.formation||"",startXI:starters,substitutes,coach:null};
+    const formation=String(roster.formation||forms.find(x=>String(x.team?.id||"")===String(roster.team?.id||""))?.formation||forms[index]?.formation||"");
+    const formationRows=formation.split("-").map(Number);
+    if(formationRows.length&&formationRows.every(n=>Number.isInteger(n)&&n>0)&&formationRows.reduce((a,b)=>a+b,0)===10&&starters.length===11){
+     const keeper=starters.find(p=>/^(GK|G|GOALKEEPER|GOAL KEEPER)$/.test(String(p.player.position||"")));
+     const outfield=starters.filter(p=>p!==keeper).sort((a,b)=>{
+      const av=Number(a.player.formationPlace),bv=Number(b.player.formationPlace);
+      return Number.isFinite(av)&&Number.isFinite(bv)&&av!==bv?av-bv:0;
+     });
+     const ordered=[...(keeper?[keeper]:[]),...outfield];
+     let offset=keeper?1:0;
+     const groups=[];
+     if(keeper)groups.push([keeper]);
+     for(const count of formationRows){groups.push(ordered.slice(offset,offset+count));offset+=count;}
+     groups.forEach((group,rowIndex)=>group.forEach((p,slot)=>{p.player.grid=(rowIndex+1)+":"+(slot+1);}));
+    }
+    return {team:{id:roster.team?.id,name:teamInfo.displayName||teamInfo.name||button.dataset.homeName||"Takım"},formation:formation,startXI:starters,substitutes:substitutes,coach:null};
    }).filter(team=>team.startXI.length||team.substitutes.length);
    const homeName=String(button.dataset.homeName||"").toLowerCase();
    teams.sort((a,b)=>Number(b.team.name.toLowerCase()===homeName)-Number(a.team.name.toLowerCase()===homeName));
