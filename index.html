@@ -354,6 +354,44 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 
 
 
+/* TAM EKRAN MAÇ KADROSU */
+.lineup-panel.lineup-fullscreen{
+ position:fixed!important;inset:0!important;z-index:99999!important;
+ width:100vw!important;height:100vh!important;height:100dvh!important;
+ max-height:100vh!important;max-height:100dvh!important;
+ margin:0!important;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px calc(env(safe-area-inset-bottom,0px) + 22px)!important;
+ overflow-y:auto!important;overscroll-behavior:contain!important;
+ border:0!important;border-radius:0!important;background:#101815!important;
+ color:#f5faf6!important;box-shadow:none!important;
+}
+.lineup-fullscreen-top{
+ position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;
+ min-height:48px;margin:-2px 0 12px;padding:4px 0 10px;
+ background:#101815;color:#fff;border-bottom:1px solid rgba(255,255,255,.12)
+}
+.lineup-fullscreen-top strong{font-size:18px;font-weight:900}
+.lineup-close{
+ width:40px;height:40px;border:1px solid rgba(255,255,255,.2)!important;border-radius:50%!important;
+ background:#26332d!important;color:#fff!important;font-size:21px!important;font-weight:700!important
+}
+.lineup-fullscreen .lineup-head strong,.lineup-fullscreen .lineup-team-title{color:#f4fff6}
+.lineup-fullscreen .lineup-note{color:#a8b8ad}
+.lineup-fullscreen .lineup-team-tab{background:#26332d!important;color:#e8f5ec!important;border-color:#42554a!important}
+.lineup-fullscreen .lineup-team-tab.active{background:#168447!important;color:#fff!important;border-color:#168447!important}
+.lineup-fullscreen .lineup-pitch{min-height:min(68vh,760px);display:flex;align-items:center;justify-content:center;padding:18px 8px}
+.lineup-fullscreen .lineup-rows{width:100%;gap:clamp(16px,3.2vh,30px)}
+.lineup-fullscreen .lineup-player{width:calc(100% / 5);max-width:118px}
+.lineup-fullscreen .lineup-player img{width:clamp(44px,8vw,68px);height:clamp(44px,8vw,68px)}
+.lineup-fullscreen .lineup-player .player-name{font-size:clamp(11px,2.5vw,14px)}
+.lineup-fullscreen .lineup-player .shirt{font-size:11px}
+.lineup-fullscreen .lineup-player .player-rating{font-size:11px}
+.lineup-fullscreen .lineup-bench-toggle{min-height:48px;font-size:14px}
+@media(max-width:430px){
+ .lineup-fullscreen .lineup-player{width:calc(100% / 4.5)}
+ .lineup-fullscreen .lineup-pitch{min-height:64vh;padding:14px 4px}
+ .lineup-fullscreen .lineup-rows{gap:clamp(13px,2.8vh,23px)}
+}
+
 /* TAKIM SEÇİMLİ KADRO GÖRÜNÜMÜ */
 .lineup-team-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
 .lineup-team-tab{min-width:0;padding:12px 8px;border:1px solid #dce8df!important;border-radius:12px!important;background:#fff!important;color:#28563b!important;font-size:14px!important;font-weight:850!important;box-shadow:none!important;overflow-wrap:anywhere}
@@ -1128,7 +1166,7 @@ function lineupRatingClass(value){const n=Number(value);return Number.isFinite(n
 function lineupPlayerCard(entry,ratingMap){
  const p=entry?.player||entry||{},id=Number(p.id),rating=ratingMap.get(String(id));
  const isEspn=p.source==="espn";
- const photo=p.photo||(!isEspn&&id>0?"https://media.api-sports.io/football/players/"+id+".png":"");
+ const photo=p.photo||(id>0?(isEspn?"https://a.espncdn.com/i/headshots/soccer/players/full/"+id+".png":"https://media.api-sports.io/football/players/"+id+".png"):"");
  const image=photo?'<img src="'+esc(photo)+'" alt="'+esc(p.name||"Oyuncu")+'" loading="lazy" onerror="this.style.display=\'none\'">':"";
  const ratingHtml=rating!==undefined&&rating!==null&&rating!==""?'<span class="player-rating '+lineupRatingClass(rating)+'">'+esc(Number(rating).toFixed(1))+'</span>':'<span class="player-rating">—</span>';
  return '<div class="lineup-player">'+image+'<span class="shirt">'+esc(p.number??"")+'</span><span class="player-name" title="'+esc(p.name||"Oyuncu")+'">'+esc(p.name||"Oyuncu")+'</span>'+ratingHtml+'</div>';
@@ -1147,7 +1185,7 @@ async function loadLineups(button){
  const fixtureId=String(button.dataset.id||""),panel=document.getElementById("lineup-"+fixtureId);
  if(!panel)return;
  if(panel.dataset.loaded==="true"&&!panel.hidden){panel.hidden=true;button.textContent="⚽ Kadro ve dizilişi göster";return;}
- panel.hidden=false;button.textContent="Kadro yükleniyor…";
+ panel.hidden=false;panel.classList.add("lineup-fullscreen");button.textContent="Kadro yükleniyor…";
  if(panel.dataset.loaded==="true")return;
  panel.innerHTML='<div class="lineup-empty">Gerçek kadro bilgileri yükleniyor…</div>';button.disabled=true;
  try{
@@ -1272,10 +1310,15 @@ async function loadLineups(button){
    const crest=logo?'<img class="lineup-tab-crest" src="'+esc(logo)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'<span class="lineup-tab-fallback">'+esc(fallback)+'</span>';
    return '<button type="button" class="lineup-team-tab'+(index===0?' active':'')+'" data-lineup-team="'+index+'" aria-pressed="'+(index===0?'true':'false')+'">'+crest+'<span>'+esc(team.team?.name||"Takım")+'</span></button>';
   }).join("");
-  panel.innerHTML='<div class="lineup-head"><strong>⚽ '+(isEspn?"ESPN maç kadrosu":"Resmî maç kadrosu")+'</strong><span class="lineup-formation">'+(hasStarters?"İlk 11":"Kadro listesi")+'</span></div>'+
+  panel.innerHTML='<div class="lineup-fullscreen-top"><strong>⚽ Maç kadrosu</strong><button type="button" class="lineup-close" aria-label="Kadro ekranını kapat">✕</button></div><div class="lineup-head"><strong>'+(isEspn?"ESPN maç kadrosu":"Resmî maç kadrosu")+'</strong><span class="lineup-formation">'+(hasStarters?"İlk 11":"Kadro listesi")+'</span></div>'+
    '<div class="lineup-team-tabs" role="group" aria-label="Takım kadrosunu seç">'+teamTabs+'</div>'+
    '<div class="lineup-selected-team"></div>'+
    '<div class="lineup-note">Kaynak: '+(isEspn?"ESPN":"API-Football")+'. Oyuncu puanları yalnızca kaynakta mevcut olduğunda gösterilir.</div>';
+  const closeLineup=panel.querySelector(".lineup-close");
+  closeLineup?.addEventListener("click",()=>{
+   panel.hidden=true;
+   button.textContent="⚽ Kadro ve dizilişi göster";
+  });
   const selectedTeamPanel=panel.querySelector(".lineup-selected-team");
   const showTeam=index=>{
    const safeIndex=Math.max(0,Math.min(teams.length-1,Number(index)||0));
