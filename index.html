@@ -552,6 +552,51 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .mam-date-chip{flex:0 0 auto;min-width:72px;min-height:55px;padding:7px 10px;background:#13253a;color:#d9e6f6;border:1px solid rgba(150,180,215,.16);box-shadow:none;border-radius:13px;font-size:11px}
 .mam-date-chip b{display:block;font-size:13px;margin-top:3px}.mam-date-chip.active{background:linear-gradient(135deg,#35e0b5,#22b995);color:#05251f;border-color:transparent}
 @media(max-width:500px){.mam-brand{font-size:12px}.top .tag{font-size:9px;padding:7px 9px}}
+
+/* MAÇ DETAYI — uygulama tarzı arayüz */
+.mam-match-open{width:100%;margin-top:12px;padding:12px 14px;border-radius:13px;background:#14263a;color:#f7fbff;border:1px solid rgba(120,160,205,.22);box-shadow:none;font-weight:850}
+.match:not(.in-detail) .match-actions,
+.match:not(.in-detail) .liveStatsBtn,
+.match:not(.in-detail) .liveStats,
+.match:not(.in-detail) .lineupBtn,
+.match:not(.in-detail) .lineup-panel,
+.match:not(.in-detail) .pred,
+.match:not(.in-detail) .analysis-preview{display:none!important}
+.match:not(.in-detail){padding:15px 14px;margin-bottom:11px;border-radius:18px}
+.match:not(.in-detail) .match-head{margin-bottom:10px}
+.match:not(.in-detail) .match-versus{padding:8px 0 4px}
+.match:not(.in-detail) .team-block strong{font-size:14px}
+.match:not(.in-detail) .match-clock{font-size:21px}
+.match-detail-overlay{position:fixed;inset:0;z-index:100100;background:#080f19;display:flex;flex-direction:column;overflow:auto;padding:calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 18px)}
+.match-detail-top{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:12px;padding:8px 2px 13px;background:#080f19;color:#fff}
+.match-detail-top strong{font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.match-detail-close{width:42px;min-height:42px;padding:0;border-radius:50%;background:#1d2b3d;color:#fff;box-shadow:none;font-size:21px}
+.match-detail-body{width:100%;max-width:760px;margin:0 auto}
+.match.in-detail{margin:0!important;padding:15px!important;border-radius:20px!important;background:#111c2b!important;border:1px solid rgba(150,180,215,.18)!important;color:#f5f8fc!important;box-shadow:0 12px 38px rgba(0,0,0,.24)!important}
+.match.in-detail .match-head{border-bottom:1px solid rgba(150,180,215,.16);padding-bottom:12px}
+.match.in-detail .match-versus{padding:22px 4px}
+.match.in-detail .match-clock{font-size:30px}
+.match.in-detail .match-center small{color:#aab8ca}
+.match.in-detail .team-block strong{color:#f5f8fc}
+.match-detail-tabs{display:flex;gap:7px;overflow-x:auto;padding:10px 0 13px;scrollbar-width:none}
+.match-detail-tabs::-webkit-scrollbar{display:none}
+.match-detail-tab{flex:0 0 auto;min-height:39px;padding:8px 13px;border-radius:22px;background:#1a2a3d;color:#dbe7f5;border:1px solid rgba(150,180,215,.16);box-shadow:none;font-size:12px;font-weight:800}
+.match-detail-tab.active{background:#35e0b5;color:#06251f;border-color:#35e0b5}
+.match-detail-pane{padding:14px 0 4px;border-top:1px solid rgba(150,180,215,.15)}
+.match-detail-pane[hidden]{display:none!important}
+.match-detail-pane .match-actions{display:flex!important}
+.match-detail-pane .predBtn,.match-detail-pane .lineupBtn,.match-detail-pane .liveStatsBtn{width:100%;margin:8px 0!important}
+.match-detail-pane .pred,.match-detail-pane .liveStats,.match-detail-pane .lineup-panel{display:block!important;margin-top:12px}
+.match-detail-pane .liveStats[hidden],.match-detail-pane .lineup-panel[hidden]{display:none!important}
+.match-detail-note{padding:13px;border-radius:13px;background:#1a2a3d;color:#b9c8d9;font-size:13px;line-height:1.55}
+.mam-form-team{margin:12px 0;padding:12px;border-radius:14px;background:#172638;border:1px solid rgba(150,180,215,.14)}
+.mam-form-team h4{margin:0 0 9px;color:#f5f8fc;font-size:14px}
+.mam-form-row{display:grid;grid-template-columns:54px minmax(0,1fr) auto;align-items:center;gap:8px;padding:9px 0;border-top:1px solid rgba(150,180,215,.12);font-size:12px;color:#dbe5f0}
+.mam-form-row b{font-size:13px;text-align:center;white-space:nowrap}
+.mam-form-result{font-size:10px;font-weight:900;padding:4px 7px;border-radius:9px;background:#26384c;color:#e8f1fa}
+.mam-form-result.win{background:#174c3b;color:#8df0c4}.mam-form-result.draw{background:#4c421c;color:#ffe18a}.mam-form-result.loss{background:#542b35;color:#ffadb7}
+@media(min-width:760px){.match-detail-overlay{align-items:center}.match-detail-body{max-height:none}}
+
 </style>
 </head>
 <body>
@@ -1514,6 +1559,142 @@ async function loadLineups(button){
  }
 }
 
+
+/* MAÇ DETAY EKRANI */
+let mamActiveMatch=null;
+let mamActivePlaceholder=null;
+let mamDetailOverlay=null;
+function ensureMamDetailOverlay(){
+ if(mamDetailOverlay)return mamDetailOverlay;
+ mamDetailOverlay=document.createElement("div");
+ mamDetailOverlay.className="match-detail-overlay";
+ mamDetailOverlay.hidden=true;
+ mamDetailOverlay.innerHTML='<div class="match-detail-top"><button type="button" class="match-detail-close" aria-label="Geri">‹</button><strong>Maç detayları</strong><span style="width:42px"></span></div><div class="match-detail-body"></div>';
+ document.body.appendChild(mamDetailOverlay);
+ mamDetailOverlay.querySelector(".match-detail-close").addEventListener("click",closeMamMatchDetail);
+ mamDetailOverlay.addEventListener("click",event=>{if(event.target===mamDetailOverlay)closeMamMatchDetail();});
+ return mamDetailOverlay;
+}
+function closeMamMatchDetail(){
+ if(!mamActiveMatch||!mamActivePlaceholder)return;
+ mamActivePlaceholder.parentNode.insertBefore(mamActiveMatch,mamActivePlaceholder);
+ mamActivePlaceholder.remove();
+ mamActiveMatch.classList.remove("in-detail");
+ mamActiveMatch=null;mamActivePlaceholder=null;
+ if(mamDetailOverlay){mamDetailOverlay.hidden=true;mamDetailOverlay.querySelector(".match-detail-body").innerHTML="";}
+ document.body.style.overflow="";
+}
+function openMamMatchDetail(article){
+ if(!article||mamActiveMatch)return;
+ const overlay=ensureMamDetailOverlay(),body=overlay.querySelector(".match-detail-body");
+ mamActivePlaceholder=document.createComment("match-card-position");
+ article.parentNode.insertBefore(mamActivePlaceholder,article);
+ article.classList.add("in-detail");
+ mamActiveMatch=article;
+ body.appendChild(article);
+ const home=article.querySelector(".team-block:first-child strong")?.textContent||"Ev sahibi";
+ const away=article.querySelector(".team-block:last-child strong")?.textContent||"Deplasman";
+ overlay.querySelector(".match-detail-top strong").textContent=home+" – "+away;
+ overlay.hidden=false;document.body.style.overflow="hidden";
+ const first=article.querySelector(".match-detail-tab");
+ if(first)first.click();
+}
+function makeMamDetailTab(article){
+ if(article.dataset.detailReady==="true")return;
+ article.dataset.detailReady="true";
+ const actions=article.querySelector(".match-actions");
+ const analysisButton=actions?.querySelector(".predBtn")||null;
+ const statusLabel=actions?.querySelector(".small")||null;
+ const liveButton=article.querySelector(".liveStatsBtn");
+ const livePanel=article.querySelector(".liveStats");
+ const lineupButton=article.querySelector(".lineupBtn");
+ const lineupPanel=article.querySelector(".lineup-panel");
+ const prediction=article.querySelector(".pred");
+ const preview=article.querySelector(".analysis-preview");
+ const tabs=document.createElement("div");tabs.className="match-detail-tabs";
+ const panes=document.createElement("div");
+ const definitions=[
+  {id:"overview",label:"Detay",icon:"⚽"},
+  {id:"form",label:"Geçmiş maçlar",icon:"🕘"},
+  {id:"lineup",label:"Kadro",icon:"👥"},
+  {id:"stats",label:"İstatistik",icon:"📊"},
+  {id:"analysis",label:"Analiz",icon:"🎯"}
+ ];
+ const sections={};
+ definitions.forEach((def,index)=>{
+  const tab=document.createElement("button");tab.type="button";tab.className="match-detail-tab"+(index===0?" active":"");tab.textContent=def.icon+" "+def.label;tab.dataset.pane=def.id;
+  tabs.appendChild(tab);
+  const pane=document.createElement("section");pane.className="match-detail-pane";pane.dataset.pane=def.id;pane.hidden=index!==0;panes.appendChild(pane);sections[def.id]=pane;
+  tab.addEventListener("click",()=>{
+   tabs.querySelectorAll(".match-detail-tab").forEach(x=>x.classList.toggle("active",x===tab));
+   panes.querySelectorAll(".match-detail-pane").forEach(x=>x.hidden=x!==pane);
+  });
+ });
+ if(actions){
+  if(statusLabel)sections.overview.appendChild(statusLabel);
+  if(preview)sections.overview.appendChild(preview);
+  actions.remove();
+ }
+ const formButton=document.createElement("button");formButton.type="button";formButton.className="secondary mam-form-load";formButton.textContent="🕘 Son 5 maçı göster";
+ formButton.dataset.homeId=analysisButton?.dataset.home||lineupButton?.dataset.home||"";
+ formButton.dataset.awayId=analysisButton?.dataset.away||"";
+ formButton.dataset.homeName=analysisButton?.dataset.homeName||lineupButton?.dataset.homeName||"";
+ formButton.dataset.awayName=analysisButton?.dataset.awayName||lineupButton?.dataset.awayName||"";
+ formButton.dataset.date=analysisButton?.dataset.date||lineupButton?.dataset.date||"";
+ formButton.dataset.league=analysisButton?.dataset.league||lineupButton?.dataset.league||"";
+ formButton.dataset.fixtureId=analysisButton?.dataset.id||lineupButton?.dataset.id||"";
+ const formResult=document.createElement("div");formResult.className="mam-form-results";
+ formResult.innerHTML='<div class="match-detail-note">Takımların doğrulanmış son maçları bu bölümden yüklenecek. Veri bulunamazsa sonuç uydurulmaz.</div>';
+ sections.form.append(formButton,formResult);
+ if(lineupButton)sections.lineup.appendChild(lineupButton);
+ if(lineupPanel)sections.lineup.appendChild(lineupPanel);
+ else sections.lineup.innerHTML='<div class="match-detail-note">Bu maç için kadro verisi henüz mevcut değil.</div>';
+ if(liveButton)sections.stats.appendChild(liveButton);
+ if(livePanel)sections.stats.appendChild(livePanel);
+ else sections.stats.innerHTML='<div class="match-detail-note">Canlı istatistikler yalnızca maç başladıktan sonra ve veri sağlayıcısı paylaşırsa gösterilir.</div>';
+ if(analysisButton)sections.analysis.appendChild(analysisButton);
+ if(prediction)sections.analysis.appendChild(prediction);
+ else if(!analysisButton)sections.analysis.innerHTML='<div class="match-detail-note">Maç tamamlandığı için maç önü tahmini üretilmez.</div>';
+ article.querySelector(".match-versus")?.after(tabs,panes);
+ const open=document.createElement("button");open.type="button";open.className="mam-match-open";open.textContent="Maç detayını aç  →";
+ open.addEventListener("click",()=>openMamMatchDetail(article));
+ article.appendChild(open);
+ formButton.addEventListener("click",()=>loadMamMatchForm(formButton));
+}
+async function loadMamMatchForm(button){
+ if(button.disabled)return;
+ const box=button.nextElementSibling;
+ const homeId=button.dataset.homeId,awayId=button.dataset.awayId,date=button.dataset.date;
+ if(!homeId||!awayId||!date){box.innerHTML='<div class="match-detail-note">Bu maç için geçmiş maç kimlikleri bulunamadı.</div>';return;}
+ button.disabled=true;button.textContent="Geçmiş maçlar yükleniyor…";
+ box.innerHTML='<div class="match-detail-note">İki takımın son maçları aranıyor…</div>';
+ try{
+  const [homeMatches,awayMatches]=await Promise.all([
+   getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.fixtureId),
+   getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.fixtureId)
+  ]);
+  const renderTeam=(name,teamId,matches)=>{
+   const last=matches.slice().sort((a,b)=>new Date(b.fixture?.date||0)-new Date(a.fixture?.date||0)).slice(0,5);
+   if(!last.length)return '<section class="mam-form-team"><h4>'+esc(name)+'</h4><div class="match-detail-note">Doğrulanmış geçmiş maç bulunamadı.</div></section>';
+   return '<section class="mam-form-team"><h4>'+esc(name)+' · Son '+last.length+' maç</h4>'+last.map(m=>{
+    const h=m.teams?.home||{},a=m.teams?.away||{},gh=m.goals?.home,ga=m.goals?.away;
+    const isHome=String(h.id)===String(teamId)||String(h.name).toLowerCase()===String(name).toLowerCase();
+    const gf=Number(isHome?gh:ga),gaAgainst=Number(isHome?ga:gh);
+    const result=gf>gaAgainst?"G":gf===gaAgainst?"B":"M";
+    const cls=result==="G"?"win":result==="B"?"draw":"loss";
+    const day=m.fixture?.date?new Date(m.fixture.date).toLocaleDateString("tr-TR",{day:"2-digit",month:"2-digit"}):"—";
+    return '<div class="mam-form-row"><span>'+day+'</span><span>'+esc(h.name||"Ev")+' <b>'+esc(gh)+' – '+esc(ga)+'</b> '+esc(a.name||"Dep")+'</span><span class="mam-form-result '+cls+'">'+result+'</span></div>';
+   }).join("")+'</section>';
+  };
+  box.innerHTML=renderTeam(button.dataset.homeName,homeId,homeMatches)+renderTeam(button.dataset.awayName,awayId,awayMatches);
+  button.textContent="↻ Geçmiş maçları yenile";
+ }catch(error){
+  box.innerHTML='<div class="match-detail-note">Geçmiş maçlar alınamadı: '+esc(error.message||error)+'</div>';
+  button.textContent="Tekrar dene";
+ }finally{button.disabled=false;}
+}
+document.addEventListener("keydown",event=>{if(event.key==="Escape"&&mamActiveMatch)closeMamMatchDetail();});
+
 function renderMatches(){
  const league=$("league").value;
  const list=league==="all"?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
@@ -1578,6 +1759,7 @@ function renderMatches(){
  document.querySelectorAll(".liveStatsBtn").forEach(b=>{
   b.addEventListener("click",()=>loadLiveStats(b));
  });
+ document.querySelectorAll("#matches .match").forEach(makeMamDetailTab);
  autoTrackUpcomingLineups();
 }
 
