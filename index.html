@@ -321,6 +321,35 @@ button:disabled{opacity:.55}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 
+
+/* ===== REAL SCREEN LAYOUT · CLEAN LIGHT ===== */
+:root{color-scheme:light}
+body{background:#f5f7f8!important;color:#18232d!important}
+.top{background:#fff!important;border:1px solid #e7ebef!important;box-shadow:0 5px 20px rgba(20,35,50,.05)!important}
+.top>div{color:#17212b!important}
+.panel{background:#fff!important;border:1px solid #e4e9ed!important;box-shadow:0 5px 18px rgba(22,38,54,.045)!important}
+.panel:first-of-type{background:#f8fafb!important}
+input,select{background:#fff!important;color:#17212b!important;border-color:#dce3e8!important}
+.match-modern{padding:15px!important;border:1px solid #e3e8ed!important;background:#fff!important;border-radius:20px!important;box-shadow:0 5px 16px rgba(22,38,54,.055)!important}
+.match-modern:before{display:none}
+.match-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid #edf0f2}
+.league-label{font-size:12px;font-weight:800;color:#657181}
+.match-time{font-size:12px;font-weight:800;color:#168b43;white-space:nowrap}
+.match-time i{font-style:normal;font-weight:600;color:#8a95a1;margin-left:4px}
+.match-versus{display:grid;grid-template-columns:minmax(0,1fr) 74px minmax(0,1fr);align-items:center;gap:8px;padding:17px 2px}
+.team-block{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;min-width:0}
+.team-logo{width:42px;height:42px;object-fit:contain}
+.team-block strong{font-size:14px;line-height:1.3;color:#18232d;overflow-wrap:anywhere}
+.match-center{text-align:center;display:flex;flex-direction:column;gap:5px}
+.match-clock{font-size:17px;font-weight:900;color:#17212b;white-space:nowrap}
+.match-center small{font-size:10px;color:#85909b}
+.match-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:11px;border-top:1px solid #edf0f2}
+.match-actions .small{font-size:11px;color:#7b8792}
+.match-actions button,.predBtn{flex:0 0 auto!important;width:auto!important;min-height:39px;padding:9px 14px!important;border-radius:11px!important;background:#e9f8ee!important;color:#11813c!important;border:1px solid #d3f0dc!important;box-shadow:none!important;font-size:12px!important}
+.analysis-preview{display:flex;align-items:center;gap:8px;margin-top:10px;padding:11px 12px;border-radius:11px;background:#f6faf7;color:#738078;font-size:11px;line-height:1.45}
+.preview-dot{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#20aa53}
+@media(max-width:560px){.match-versus{grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr);gap:5px}.team-logo{width:36px;height:36px}.team-block strong{font-size:12px}.match-clock{font-size:15px}.match-actions .small{font-size:10px}.match-actions button{font-size:11px!important;padding:8px 10px!important}}
+
 </style>
 </head>
 <body>
@@ -771,23 +800,18 @@ function renderMatches(){
   const time=f.date?new Date(f.date).toLocaleTimeString("tr-TR",{
    hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"
   }):"";
-  return `<article class="match">
-   <div class="meta"><span>${esc(l.name)} · ${esc(l.country)}</span><span>${esc(time)} · ${isLiveStatus?"🔴 ":""}${esc(statusLabel)}</span></div>
-   <div class="teams">${esc(t.home?.name)} <span class="score">${g.home!=null?" "+g.home+" - "+g.away+" ":" - "}</span> ${esc(t.away?.name)}</div>
-   <div class="row">
-    <span class="small">Maç ID: ${esc(f.id)}</span>
-    <button class="secondary predBtn"
-     data-id="${esc(f.id)}"
-     data-home="${esc(t.home?.id)}"
-     data-away="${esc(t.away?.id)}"
-     data-home-name="${esc(t.home?.name)}"
-     data-away-name="${esc(t.away?.name)}"
-     data-league="${esc(l.id)}"
-     data-date="${esc(f.date?.slice(0,10))}">
-     Kendi analizini yap
-    </button>
+  return `<article class="match match-modern">
+   <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(time)} <i>${esc(statusLabel)}</i></span></div>
+   <div class="match-versus">
+    <div class="team-block"><img class="team-logo" src="${esc(t.home?.logo||"")}" alt="" loading="lazy"><strong>${esc(t.home?.name)}</strong></div>
+    <div class="match-center"><span class="match-clock">${g.home!=null?esc(g.home)+" – "+esc(g.away):esc(time||"VS")}</span><small>${statusCode==="NS"?"Karşılaşma":esc(statusLabel)}</small></div>
+    <div class="team-block"><img class="team-logo" src="${esc(t.away?.logo||"")}" alt="" loading="lazy"><strong>${esc(t.away?.name)}</strong></div>
    </div>
-   <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
+   <div class="match-actions">
+    <span class="small">Maç ön analizi</span>
+    <button class="predBtn" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-league="${esc(l.id)}" data-date="${esc(f.date?.slice(0,10))}">✦ Maçı analiz et</button>
+   </div>
+   <div class="analysis-preview" id="pred-${esc(f.id)}"><span class="preview-dot"></span> Tahminleri ve istatistikleri görmek için analiz et</div>
   </article>`;
  }).join("");
 
