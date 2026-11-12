@@ -493,7 +493,7 @@ function renderMatches(){
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
-  const key = "mam_history_v10_" + leagueId + "_" + teamId + "_" + matchDate.slice(0,4);
+  const key = "mam_history_v11_" + leagueId + "_" + teamId + "_" + matchDate.slice(0,4);
   const cached = localStorage.getItem(key);
   if(cached){
     try{
@@ -570,7 +570,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const folder=openMatchdayLeagues[String(leagueId)];
   if(folder){
     try{
-      const url="https://raw.githubusercontent.com/oladeeayo/open-matchday/master/data/"+folder+"/results_2627.csv";
+      const url="./data/"+folder+"/results_2627.csv";
       const response=await fetch(url);
       if(response.ok){
         const rows=parseCSV(await response.text());
