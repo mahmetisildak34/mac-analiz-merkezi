@@ -951,7 +951,7 @@ async function espnFixtures(date){
     return -1;
    };
    return {
-    fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||date+"T12:00:00Z",status:{short:statusShort}},
+    fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||date+"T12:00:00Z",status:{short:statusShort,displayClock:event.status?.displayClock||event.status?.type?.detail||""}},
     league:{id:leagueId,name:league.name,country:league.country},
     teams:{
      home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||home.team?.logos?.[0]?.url||""},
@@ -1142,7 +1142,17 @@ async function loadLiveStats(button){
     let slug=String(button.dataset.liveLeague||ESPN_LEAGUES[leagueId]?.slug||"");
     const leagueName=String(button.dataset.liveLeagueName||"").toLowerCase();
     if(!slug){
-     const map=[[/copa del rey/,"esp.copa_del_rey"],[/copa de la reina/,"esp.copa_de_la_reina"],[/premier league/,"eng.1"],[/la liga/,"esp.1"],[/bundesliga/,"ger.1"],[/serie a/,"ita.1"],[/ligue 1/,"fra.1"],[/champions league/,"uefa.champions"],[/europa league/,"uefa.europa"],[/conference league/,"uefa.europa.conf"],[/nations league/,"uefa.nations"],[/argentina/,"arg.1"],[/eredivisie/,"ned.1"],[/super lig/,"tur.1"]];
+     const map=[
+      [/africa cup of nations.*qual|afcon.*qual/,"caf.nations_qual"],
+      [/africa cup of nations|afcon/,"caf.nations"],
+      [/copa del rey/,"esp.copa_del_rey"],[/copa de la reina/,"esp.copa_de_la_reina"],
+      [/premier league.*england|english premier league/,"eng.1"],[/la liga/,"esp.1"],[/bundesliga/,"ger.1"],[/serie a.*italy|italian serie a/,"ita.1"],[/ligue 1/,"fra.1"],
+      [/champions league/,"uefa.champions"],[/europa league/,"uefa.europa"],[/conference league/,"uefa.europa.conf"],[/nations league/,"uefa.nations"],
+      [/international friendlies|international friendly/,"fifa.friendly"],[/world cup qualifying.*africa|caf.*qualif/,"fifa.worldq.caf"],
+      [/argentina/,"arg.1"],[/eredivisie/,"ned.1"],[/super lig|süper lig/,"tur.1"],[/primeira liga|portugal/,"por.1"],
+      [/major league soccer|\bmls\b/,"usa.1"],[/liga mx/,"mex.1"],[/brasileirao|serie a.*brazil/,"bra.1"],
+      [/scottish premiership/,"sco.1"],[/j.?league/,"jpn.1"],[/a.?league/,"aus.1"]
+     ];
      slug=map.find(([re])=>re.test(leagueName))?.[1]||"";
     }
     if(!slug)throw new Error("API-Football kotası dolu ve bu lig için ESPN istatistik eşleştirmesi tanımlı değil.");
@@ -1484,8 +1494,13 @@ function renderMatches(){
   const time=f.date?new Date(f.date).toLocaleTimeString("tr-TR",{
    hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"
   }):"";
+  const elapsed=f.status?.elapsed;
+  const liveMinute=isLiveStatus
+   ? (elapsed!==null&&elapsed!==undefined&&elapsed!==""?String(elapsed)+"'":String(f.status?.displayClock||""))
+   : "";
+  const displayedTime=isLiveStatus?(liveMinute||"Canlı"):time;
   return `<article class="match match-modern">
-   <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(time)} <i>${esc(statusLabel)}</i></span></div>
+   <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span></div>
    <div class="match-versus">
     <div class="team-block">${teamBadge(t.home)}<strong>${esc(t.home?.name)}</strong></div>
     <div class="match-center"><span class="match-clock">${g.home!=null?esc(g.home)+" – "+esc(g.away):esc(time||"VS")}</span><small>${statusCode==="NS"?"Karşılaşma":esc(statusLabel)}</small></div>
