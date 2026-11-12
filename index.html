@@ -257,9 +257,14 @@ async function footballDataFixtures(date){
  if(selected!=="all" && !code){
   throw new Error("Seçili lig Football-data.org ücretsiz kapsamına dahil değil. API-Football kotası yenilenince tekrar deneyebiliriz.");
  }
+ // football-data.org v4 dateTo sınırını hariç tutar; tek günü almak için ertesi gün gönderilir.
+ const nextDay=new Date(date+"T00:00:00Z");
+ nextDay.setUTCDate(nextDay.getUTCDate()+1);
+ const exclusiveDateTo=nextDay.toISOString().slice(0,10);
+ const dateFilters={dateFrom:date,dateTo:exclusiveDateTo};
  const endpoint=code
-  ? "football-data/competitions/"+code+"/matches?"+qs({dateFrom:date,dateTo:date})
-  : "football-data/matches?"+qs({dateFrom:date,dateTo:date});
+  ? "football-data/competitions/"+code+"/matches?"+qs(dateFilters)
+  : "football-data/matches?"+qs(dateFilters);
  const data=await api(endpoint);
  const idMap={"PL":"39","PD":"140","BL1":"78","SA":"135","FL1":"61","CL":"2"};
  return (data.matches||[]).map(m=>({
