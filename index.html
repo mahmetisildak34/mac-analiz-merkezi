@@ -658,7 +658,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // ESPN fixtures carry ESPN team IDs, not API-Football IDs. Use the
   // matching ESPN team's own schedule endpoint to retrieve completed history.
   // This also fills gaps when the CSV/KV archive contains fewer than 20 matches.
-  if(String(sourceFixtureId||'').startsWith('espn-')&&/^\\d+$/.test(String(teamId))&&output.length<20){
+  if(String(sourceFixtureId||'').startsWith('espn-')&&/^\d+$/.test(String(teamId))&&output.length<20){
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)]?.slug||String(leagueId);
       const schedule=await api('espn/'+espnLeagueSlug+'/teams/'+teamId+'/schedule');
