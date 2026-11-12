@@ -756,10 +756,16 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 .mam-standings-card-head small{font-size:10px;font-weight:800;letter-spacing:.8px;color:#149b66}
 .mam-standings-card-head h3{font-size:17px;margin:4px 0 0;color:#1a2b24}
 .mam-standings-card-head button{min-height:36px;padding:7px 10px;font-size:11px}
-.mam-standings-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
-.mam-standings-table th{padding:10px 6px;text-align:center;color:#78868f;background:#f5f8f6;font-size:10px}
+.mam-standings-table{width:100%;border-collapse:collapse;font-size:11px;white-space:nowrap}
+#mamStandingsTable{max-height:62vh;overflow:auto;-webkit-overflow-scrolling:touch}
+#mamStandingsTable thead{position:sticky;top:0;z-index:2}
+.mam-standings-card-head{flex-wrap:wrap}
+.mam-standings-card-head>div{flex:1;min-width:110px}
+.mam-standings-card-head #mamStandingsBack{white-space:nowrap}
+#mamStandingsPicker[hidden],#mamStandingsCard[hidden]{display:none!important}
+.mam-standings-table th{padding:7px 4px;text-align:center;color:#78868f;background:#f5f8f6;font-size:10px}
 .mam-standings-table th:nth-child(2),.mam-standings-table td:nth-child(2){text-align:left}
-.mam-standings-table td{padding:11px 6px;text-align:center;border-bottom:1px solid #edf1ee;color:#405047}
+.mam-standings-table td{padding:7px 4px;text-align:center;border-bottom:1px solid #edf1ee;color:#405047}
 .mam-standings-table td:nth-child(2){font-weight:750;color:#1d3028;max-width:145px;overflow:hidden;text-overflow:ellipsis}
 .mam-standings-table tr:last-child td{border-bottom:0}
 .mam-standings-table td:first-child{color:#149b66;font-weight:900}
@@ -823,8 +829,8 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 <div class="mam-section-header" id="mamSectionHeader" hidden><button type="button" class="mam-section-back" id="mamSectionBack">← Ana sayfa</button><div class="mam-section-title"><small id="mamSectionEyebrow">CANLI TAKİP</small><strong id="mamSectionTitle">Canlı Maçlar</strong></div><span class="mam-section-count" id="mamSectionCount"></span><button type="button" class="mam-section-back" id="mamSectionRefresh">↻ Yenile</button></div>
 <section id="mamStandingsScreen" class="mam-standings-screen" hidden>
  <div class="mam-standings-intro"><span>🏆 LİG MERKEZİ</span><h2>Puan Durumu</h2><p>Türkiye ligleri, Avrupa kupaları ve dünyanın önde gelen organizasyonları tek yerde.</p></div>
+ <div id="mamStandingsPicker">
  <label class="mam-standings-search"><span>⌕</span><input id="mamStandingsSearch" type="search" placeholder="Lig veya turnuva ara..." autocomplete="off"></label>
- <div class="mam-standings-card" id="mamStandingsCard"><div class="mam-standings-card-head"><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Bir lig veya turnuva seç</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosunu görmek için yukarıdan bir lig seç.</div></div></div>
  <div class="mam-standings-group"><h3>⭐ Popüler Ligler</h3><div class="mam-standings-leagues" id="mamStandingsPopular"></div></div>
  <div class="mam-standings-group"><h3>🇹🇷 Türkiye</h3><div class="mam-standings-leagues" id="mamStandingsTurkey"></div></div>
  <div class="mam-standings-group"><h3>🌍 Avrupa'nın Büyük Ligleri</h3><div class="mam-standings-leagues" id="mamStandingsEurope"></div></div>
@@ -832,6 +838,8 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
  <div class="mam-standings-group"><h3>🌐 Diğer Ülkeler ve Uluslararası Turnuvalar</h3><div class="mam-standings-leagues" id="mamStandingsWorld"></div></div>
  <div class="mam-standings-group"><h3>🌍 Tüm desteklenen ligler ve kupalar</h3><p class="mam-standings-footnote">Veri sağlayıcısının güncel sezon için sunduğu tüm organizasyonları getir.</p><button type="button" class="secondary" id="mamLoadAllLeagues">Tüm ligleri yükle</button><div class="mam-standings-leagues" id="mamStandingsAll" style="margin-top:10px"></div></div>
  <p class="mam-standings-footnote">Liste, veri sağlayıcılarımızın desteklediği organizasyonlara göre genişletilir. Eleme usulü kupalarda puan tablosu bulunmayabilir; grup aşaması varsa grup tablosu gösterilir.</p>
+ </div>
+ <div class="mam-standings-card" id="mamStandingsCard" hidden><div class="mam-standings-card-head"><button type="button" id="mamStandingsBack" class="secondary">← Liglere dön</button><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Lig puan durumu</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosu yükleniyor...</div></div></div>
  </section>
 <div class="mam-home-intro">
 <div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
@@ -2943,9 +2951,11 @@ async function analyze(button){
   const button=event.target.closest("[data-standing-league]");if(!button)return;
   selectedStandingsLeague=button.dataset.standingLeague;
   document.querySelectorAll("#mamStandingsScreen [data-standing-league]").forEach(item=>item.classList.toggle("active",item.dataset.standingLeague===selectedStandingsLeague));
+  $("mamStandingsPicker").hidden=true;$("mamStandingsCard").hidden=false;
   await loadStandings();
   $("mamStandingsCard")?.scrollIntoView({behavior:"smooth",block:"start"});
  });
+ $("mamStandingsBack")?.addEventListener("click",()=>{$("mamStandingsCard").hidden=true;$("mamStandingsPicker").hidden=false;$("mamStandingsPicker")?.scrollIntoView({behavior:"smooth",block:"start"});});
  $("mamStandingsRefresh")?.addEventListener("click",loadStandings);
  const dateInput=$("date"),strip=$("mamDateStrip");
  if(!dateInput||!strip)return;
