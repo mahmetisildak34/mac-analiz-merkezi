@@ -1202,7 +1202,10 @@ async function loadLineups(button){
   if(isEspn){
    const match=fixtureId.match(/^espn-[a-z0-9.]+-(\d+)$/),eventId=match?.[1],leagueSlug=String(button.dataset.espnLeague||"");
    if(!eventId||!leagueSlug)throw new Error("ESPN maç kimliği veya lig bilgisi eksik.");
-   const summary=await api("espn/"+leagueSlug+"/summary?"+qs({event:eventId}));
+   const espnCacheKey="mam_lineup_espn_"+eventId;
+   let cachedEspn=null;
+   try{const saved=JSON.parse(localStorage.getItem(espnCacheKey)||"null");if(saved?.time&&Date.now()-saved.time<30*60*1000)cachedEspn=saved.data;}catch(e){}
+   const summary=cachedEspn||await api("espn/"+leagueSlug+"/summary?"+qs({event:eventId}));
    const rosters=Array.isArray(summary.rosters)?summary.rosters:[];
    const forms=Array.isArray(summary.boxscore?.form)?summary.boxscore.form:[];
    const competitors=summary.header?.competitions?.[0]?.competitors||[];
@@ -1244,12 +1247,19 @@ async function loadLineups(button){
   }else{
    if(!/^\d+$/.test(fixtureId))throw new Error("Bu maç için tanınan bir veri kaynağı bulunamadı.");
    try{
-    const payload=await api("fixtures?"+qs({id:fixtureId})),fixture=(payload.response||[])[0]||{};
-    teams=Array.isArray(fixture.lineups)?fixture.lineups:[];
-    playerRows=Array.isArray(fixture.players)?fixture.players:[];
-    if(!teams.length){const lineups=await api("fixtures/lineups?"+qs({fixture:fixtureId}));teams=lineups.response||[];}
-    if(!playerRows.length&&!["NS","TBD","PST"].includes(String(fixture.fixture?.status?.short||""))){
-     try{const playerData=await api("fixtures/players?"+qs({fixture:fixtureId}));playerRows=playerData.response||[];}catch(e){}
+    const prefetchedKey="mam_lineup_prefetch_"+fixtureId;
+    let prefetched=null;
+    try{const saved=JSON.parse(localStorage.getItem(prefetchedKey)||"null");if(saved?.time&&Date.now()-saved.time<30*60*1000)prefetched=saved.data;}catch(e){}
+    if(prefetched?.length){
+     teams=prefetched;
+    }else{
+     const payload=await api("fixtures?"+qs({id:fixtureId})),fixture=(payload.response||[])[0]||{};
+     teams=Array.isArray(fixture.lineups)?fixture.lineups:[];
+     playerRows=Array.isArray(fixture.players)?fixture.players:[];
+     if(!teams.length){const lineups=await api("fixtures/lineups?"+qs({fixture:fixtureId}));teams=lineups.response||[];}
+     if(!playerRows.length&&!["NS","TBD","PST"].includes(String(fixture.fixture?.status?.short||""))){
+      try{const playerData=await api("fixtures/players?"+qs({fixture:fixtureId}));playerRows=playerData.response||[];}catch(e){}
+     }
     }
     const homeId=String(button.dataset.home||"");
     teams.sort((a,b)=>Number(String(b.team?.id)===homeId)-Number(String(a.team?.id)===homeId));
@@ -1273,7 +1283,10 @@ async function loadLineups(button){
      return home&&away&&equivalent(home.team?.displayName||home.team?.name,homeName)&&equivalent(away.team?.displayName||away.team?.name,awayName);
     });
     if(!event?.id)throw new Error("API-Football kotası dolu. ESPN'de bu tarih ve takımlarla eşleşen maç bulunamadı; yanlış kadro göstermemek için durduruldu.");
-    const summary=await api("espn/"+leagueSlug+"/summary?"+qs({event:String(event.id)}));
+    const espnCacheKey="mam_lineup_espn_"+String(event.id);
+    let cachedEspn=null;
+    try{const saved=JSON.parse(localStorage.getItem(espnCacheKey)||"null");if(saved?.time&&Date.now()-saved.time<30*60*1000)cachedEspn=saved.data;}catch(e){}
+    const summary=cachedEspn||await api("espn/"+leagueSlug+"/summary?"+qs({event:String(event.id)}));
     const rosters=Array.isArray(summary.rosters)?summary.rosters:[];
     const forms=Array.isArray(summary.boxscore?.form)?summary.boxscore.form:[];
     const competitors=summary.header?.competitions?.[0]?.competitors||[];
@@ -1382,7 +1395,7 @@ function renderMatches(){
    </div>
 
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9.]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9.]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
-   <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-date="${esc(f.date?.slice(0,10))}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
+   <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
@@ -1397,6 +1410,69 @@ function renderMatches(){
  document.querySelectorAll(".liveStatsBtn").forEach(b=>{
   b.addEventListener("click",()=>loadLiveStats(b));
  });
+ autoTrackUpcomingLineups();
+}
+
+/* Kadroları maçtan 40 ve 20 dakika önce otomatik kontrol et.
+   Kontroller yalnızca sayfa açıkken çalışır; sonuçlar cihazda 30 dakika saklanır. */
+let lineupAutoBusy=false;
+async function autoTrackUpcomingLineups(){
+ if(lineupAutoBusy||document.hidden)return;
+ lineupAutoBusy=true;
+ try{
+  const now=Date.now(),day=new Date().toISOString().slice(0,10);
+  const counterKey="mam_lineup_auto_count_"+day;
+  let count=Number(localStorage.getItem(counterKey)||0);
+  const buttons=[...document.querySelectorAll(".lineupBtn[data-kickoff]")];
+  const due=[];
+  for(const b of buttons){
+   const id=String(b.dataset.id||""),kickoff=new Date(b.dataset.kickoff||"").getTime();
+   if(!id||!Number.isFinite(kickoff))continue;
+   const minutes=(kickoff-now)/60000;
+   if(minutes<=0||minutes>40)continue;
+   const stage=minutes>20?"t40":"t20";
+   const checkKey="mam_lineup_auto_"+id+"_"+stage;
+   if(localStorage.getItem(checkKey))continue;
+   due.push({b,id,stage,checkKey});
+  }
+  // Protect the free API quota: no more than 30 automatic fixture checks per local day.
+  for(const item of due.slice(0,Math.max(0,Math.min(3,30-count)))){
+   const {b,id,stage,checkKey}=item;
+   try{
+    let hasLineup=false;
+    if(/^espn-[a-z0-9.]+-\d+$/.test(id)){
+     const eventId=id.match(/-(\d+)$/)?.[1],slug=String(b.dataset.espnLeague||"");
+     if(eventId&&slug){
+      const summary=await api("espn/"+slug+"/summary?"+qs({event:eventId}));
+      const rosters=Array.isArray(summary.rosters)?summary.rosters:[];
+      hasLineup=rosters.some(r=>(r.roster||[]).some(p=>p.starter===true));
+      if(hasLineup)localStorage.setItem("mam_lineup_espn_"+eventId,JSON.stringify({time:Date.now(),data:summary}));
+     }
+    }else if(/^\d+$/.test(id)){
+     const data=await api("fixtures/lineups?"+qs({fixture:id}));
+     const rows=Array.isArray(data.response)?data.response:[];
+     hasLineup=rows.some(team=>(team.startXI||[]).length>0);
+     if(hasLineup)localStorage.setItem("mam_lineup_prefetch_"+id,JSON.stringify({time:Date.now(),data:rows}));
+    }
+    localStorage.setItem(checkKey,JSON.stringify({time:Date.now(),hasLineup}));
+    if(hasLineup){
+     b.textContent="✅ İlk 11 açıklandı · Kadroyu göster";
+     b.dataset.lineupReady="true";
+    }else{
+     b.textContent=stage==="t40"?"⏳ Kadro bekleniyor · tekrar kontrol edilecek":"⏳ Kadro henüz açıklanmadı";
+    }
+   }catch(error){
+    // A failed/limited request is not treated as an unpublished lineup.
+    localStorage.setItem(checkKey,JSON.stringify({time:Date.now(),error:String(error.message||error)}));
+   }
+   count++;
+   localStorage.setItem(counterKey,String(count));
+  }
+ }finally{lineupAutoBusy=false;}
+}
+if(!window.mamLineupAutoTimer){
+ window.mamLineupAutoTimer=setInterval(autoTrackUpcomingLineups,5*60*1000);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)autoTrackUpcomingLineups();});
 }
 
 
