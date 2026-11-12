@@ -573,12 +573,13 @@ async function api(path){
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings");
   const isLive=cleanPath.includes("live=all");
+  const isLiveStats=cleanPath.startsWith("fixtures/statistics?");
   const isArchive=cleanPath.startsWith("archive/");
    const isPrimaryApi=!isArchive&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
   const cacheKey="mam_api_cache_v2_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
 
-  if(cached&&!isStandings&&!isLive){
+  if(cached&&!isStandings&&!isLive&&!isLiveStats){
     try{
       const saved=JSON.parse(cached);
       if(saved.time&&Date.now()-saved.time<30*60*1000)return saved.data;
@@ -967,6 +968,30 @@ async function loadLiveMatches(){
  }finally{button.disabled=false}
 }
 
+
+async function loadLiveStats(button){
+ const fixtureId=String(button.dataset.liveId||"");
+ const panel=document.getElementById("live-stats-"+fixtureId);
+ if(!panel||!/^\\d+$/.test(fixtureId))return;
+ if(!panel.hidden){panel.hidden=true;button.textContent="📊 Canlı istatistikler";return;}
+ panel.hidden=false;panel.innerHTML='<div class="small">Canlı istatistikler alınıyor…</div>';
+ button.disabled=true;
+ try{
+  const payload=await api("fixtures/statistics?"+qs({fixture:fixtureId}));
+  const teams=Array.isArray(payload.response)?payload.response:[];
+  if(!teams.length)throw new Error("Bu maç için henüz istatistik verisi yok.");
+  const keys=[["Ball Possession","Topla oynama"],["Total Shots","Toplam şut"],["Shots on Goal","İsabetli şut"],["Shots off Goal","İsabetsiz şut"],["Blocked Shots","Engellenen şut"],["Corner Kicks","Korner"],["Fouls","Faul"],["Offsides","Ofsayt"],["Yellow Cards","Sarı kart"],["Red Cards","Kırmızı kart"],["Goalkeeper Saves","Kurtarış"],["Total passes","Pas"],["Passes accurate","İsabetli pas"]];
+  const value=v=>v===null||v===undefined||v===""?"—":String(v);
+  const rows=keys.map(([key,label])=>{
+   const vals=teams.slice(0,2).map(team=>(team.statistics||[]).find(x=>String(x.type||"").toLowerCase()===key.toLowerCase())?.value);
+   if(vals.every(v=>v===null||v===undefined||v===""))return "";
+   return '<div class="probline" style="padding:7px 0;border-bottom:1px solid var(--line)"><b>'+esc(value(vals[0]))+'</b><span>'+esc(label)+'</span><b>'+esc(value(vals[1]))+'</b></div>';
+  }).filter(Boolean).join("");
+  panel.innerHTML='<div style="font-weight:800;margin-bottom:8px">📊 Canlı maç istatistikleri</div><div class="probline" style="padding:7px 0"><b>'+esc(teams[0]?.team?.name||"Ev sahibi")+'</b><span>İstatistik</span><b>'+esc(teams[1]?.team?.name||"Deplasman")+'</b></div>'+(rows||'<div class="small">Kaynak henüz istatistik paylaşmadı.</div>')+'<div class="small" style="margin-top:9px">Kaynak: API-Football. Veriler talep üzerine yenilenir.</div>';
+ }catch(error){panel.innerHTML='<span class="error">'+esc(error.message||error)+'</span>';}
+ finally{button.disabled=false;button.textContent="İstatistikleri gizle";}
+}
+
 function teamBadge(team){
  const name=String(team?.name||"Takım");
  const initials=name.trim().split(/\\s+/).slice(0,2).map(part=>part[0]||"").join("").toUpperCase();
@@ -1004,12 +1029,16 @@ function renderMatches(){
     <button class="predBtn" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-league="${esc(l.id)}" data-date="${esc(f.date?.slice(0,10))}">✦ Maçı analiz et</button>
    </div>
 
+   ${isLiveStatus&&/^\d+$/.test(String(f.id||""))?'<button type="button" class="liveStatsBtn secondary" data-live-id="'+esc(f.id)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(f.id)+'" hidden></div>':""}
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
  }).join("");
 
  document.querySelectorAll(".predBtn").forEach(b=>{
   b.addEventListener("click",()=>analyze(b));
+ });
+ document.querySelectorAll(".liveStatsBtn").forEach(b=>{
+  b.addEventListener("click",()=>loadLiveStats(b));
  });
 }
 
