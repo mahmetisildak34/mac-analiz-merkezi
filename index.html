@@ -500,9 +500,9 @@ async function getESPNNationalHistory(teamId,teamName,matchDate,leagueId,leagueN
   if(saved&&saved.time&&Date.now()-saved.time<CACHE_HOURS*60*60*1000&&Array.isArray(saved.matches)&&saved.matches.length)return saved.matches;
  }catch(e){}
  const normalize=value=>String(value||"").normalize("NFD").toLowerCase()
-  .replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i")
+  .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
   .replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim()
-  .replace(/\\s+/g," ");
+  .replace(/\s+/g," ");
  const aliases={
   "turkiye":["turkey","türkiye"],"turkey":["turkiye","türkiye"],
   "belgium":["belgie","belgique"],"czechia":["czech republic"],
