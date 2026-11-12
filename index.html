@@ -1265,6 +1265,7 @@ const ESPN_LEAGUES={
  "188":{slug:"aus.1",name:"A-League",country:"Australia"},
  "169":{slug:"chn.1",name:"Chinese Super League",country:"China"},
  "10":{slug:"fifa.friendly",name:"International Friendlies",country:"World"},
+ "5":{slug:"uefa.nations",name:"UEFA Nations League",country:"Europe"},
  "esp_copa":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
  "esp_copa_del_rey":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
  "esp.copa":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
@@ -3012,12 +3013,17 @@ async function analyze(button){
   await wait(250);
   const awayMatches=await getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id);
 
-  const hs=teamStats(homeMatches,homeId,"home");
-  const as=teamStats(awayMatches,awayId,"away");
-  if(hs.count<1||as.count<1){
-   throw new Error("Geçmiş veri yetersiz. "+button.dataset.homeName+": "+hs.count+" maç; "+button.dataset.awayName+": "+as.count+" maç. Kaynak eşleşmesini kontrol et.");
+  const homeOverall=teamStats(homeMatches,homeId,"all");
+  const awayOverall=teamStats(awayMatches,awayId,"all");
+  const homeVenue=teamStats(homeMatches,homeId,"home");
+  const awayVenue=teamStats(awayMatches,awayId,"away");
+  const hs=homeVenue.count?homeVenue:homeOverall;
+  const as=awayVenue.count?awayVenue:awayOverall;
+  const homeVenueFallback=!homeVenue.count,awayVenueFallback=!awayVenue.count;
+  if(homeOverall.count<1||awayOverall.count<1){
+   throw new Error("Geçmiş veri yetersiz. "+button.dataset.homeName+": "+homeOverall.count+" maç; "+button.dataset.awayName+": "+awayOverall.count+" maç. Kaynak eşleşmesini kontrol et.");
   }
-  const lowSample = hs.count<3 || as.count<3;
+  const lowSample=hs.count<3||as.count<3;
 
   const lh=Math.max(.15,Math.min(4,(hs.gf+as.ga)/2));
   const la=Math.max(.15,Math.min(4,(as.gf+hs.ga)/2));
@@ -3087,14 +3093,21 @@ async function analyze(button){
     <div class="stat"><span>${esc(awayName)}</span><b>${la.toFixed(2)}</b></div>
    </div>
    <p class="note">Bu değerler geçmiş gol ortalamalarından üretilen model tahminidir; sağlayıcının maç içi gerçek xG verisi değildir.</p>
-   <div class="section-title">Takım performansı</div>
+   <div class="section-title">Takım performansı · Son 10 maç</div>
    <div class="statgrid">
-    <div class="stat"><span>${esc(homeName)} gol ortalaması</span><b>${hs.gf.toFixed(2)}</b></div>
-    <div class="stat"><span>${esc(homeName)} yediği gol</span><b>${hs.ga.toFixed(2)}</b></div>
-    <div class="stat"><span>${esc(awayName)} gol ortalaması</span><b>${as.gf.toFixed(2)}</b></div>
-    <div class="stat"><span>${esc(awayName)} yediği gol</span><b>${as.ga.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(homeName)} gol ortalaması</span><b>${homeOverall.gf.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(homeName)} yediği gol</span><b>${homeOverall.ga.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(awayName)} gol ortalaması</span><b>${awayOverall.gf.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(awayName)} yediği gol</span><b>${awayOverall.ga.toFixed(2)}</b></div>
    </div>
-   <p class="note">${esc(homeName)}: ${hs.count} maç (${venue(hs.venue)}) · ${esc(awayName)}: ${as.count} maç (${venue(as.venue)})</p>
+   <div class="statgrid">
+    <div class="stat"><span>${esc(homeName)} · G-B-M</span><b>${homeOverall.wins}-${homeOverall.draws}-${homeOverall.losses}</b></div>
+    <div class="stat"><span>${esc(awayName)} · G-B-M</span><b>${awayOverall.wins}-${awayOverall.draws}-${awayOverall.losses}</b></div>
+    <div class="stat"><span>${esc(homeName)} iç saha</span><b>${homeVenue.wins}-${homeVenue.draws}-${homeVenue.losses}</b><span>${homeVenue.count} maç</span></div>
+    <div class="stat"><span>${esc(awayName)} deplasman</span><b>${awayVenue.wins}-${awayVenue.draws}-${awayVenue.losses}</b><span>${awayVenue.count} maç</span></div>
+   </div>
+   <p class="note">${esc(homeName)}: ${homeOverall.count} doğrulanmış maç · ${esc(awayName)}: ${awayOverall.count} doğrulanmış maç. Model hesabı ${hs.count} ev sahibi / ${as.count} deplasman odaklı maç kullanıyor.</p>
+   ${(homeVenueFallback||awayVenueFallback)?"<p class=\"note\">⚠️ İç saha veya deplasman örneği bulunamadığında model o takımın tüm geçmiş maçlarına geri döndü.</p>":""}
    ${lowSample?'<p class="note">⚠️ Uyarı: Takımlardan en az birinde 3 maçtan az geçmiş veri var. Tahmin düşük örneklem nedeniyle daha az güvenilirdir.</p>':''}
    <div class="section-title">Maç sonucu olasılıkları</div>
    ${probHTML("1 - Ev sahibi kazanır",win)}
