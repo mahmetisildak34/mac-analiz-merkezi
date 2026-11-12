@@ -647,6 +647,14 @@ main{max-width:980px;padding-top:12px}
  .mam-league-group .match{padding:11px 8px}
 }
 
+
+/* HOME: keep the main screen focused on the day's fixtures.
+   Live scores, standings and coupon tools are launched from the top-left menu. */
+#loadLive,#loadStandings,#couponToggle{display:none!important}
+#standings{display:none}
+#standings.mam-standings-visible{display:block}
+.mam-drawer .mam-nav-item{cursor:pointer}
+
 </style>
 </head>
 <body>
@@ -2649,9 +2657,9 @@ async function analyze(button){
  $("mamSearchToggle")?.addEventListener("click",()=>{$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});});
  drawer.querySelectorAll("[data-mam-nav]").forEach(button=>button.addEventListener("click",()=>{
   const action=button.dataset.mamNav;shut();
-  if(action==="live"){$("loadLive")?.click();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
+  if(action==="live"){$("loadLive")?.click();setTimeout(()=>$("matches")?.scrollIntoView({behavior:"smooth",block:"start"}),250);}
   if(action==="fixtures"){$("date")?.scrollIntoView({behavior:"smooth",block:"center"});$("load")?.click();}
-  if(action==="standings"){$("standings")?.scrollIntoView({behavior:"smooth",block:"center"});$("loadStandings")?.click();}
+  if(action==="standings"){$("standings")?.classList.add("mam-standings-visible");$("loadStandings")?.click();setTimeout(()=>$("standings")?.scrollIntoView({behavior:"smooth",block:"center"}),250);}
   if(action==="coupon"){$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="analysis")$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});
  }));
