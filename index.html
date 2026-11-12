@@ -615,8 +615,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   if(folder){
     const path="data/"+folder+"/results_2627.csv";
     const urls=[
-      new URL("./"+path,window.location.href).href,
-      "https://raw.githubusercontent.com/mahmetisildak34/mac-analiz-merkezi/main/"+path
+      "https://raw.githubusercontent.com/oladeeayo/open-matchday/master/"+path,
+      "https://cdn.jsdelivr.net/gh/oladeeayo/open-matchday@master/"+path
     ];
     let csv=null;
     for(const url of urls){
