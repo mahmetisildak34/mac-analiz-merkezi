@@ -2391,9 +2391,13 @@ $("couponBuildSafe").addEventListener("click",()=>buildSuggestedCoupon("safe"));
 $("couponBuildRisky").addEventListener("click",()=>buildSuggestedCoupon("risky"));
 renderCoupon();
 
+// Ortak lig/sezon arşivi: aynı CSV dosyası aynı cihazda tüm maç analizlerinde tekrar kullanılır.
+const MAM_LEAGUE_ARCHIVE_PROMISES=new Map();
+const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
+
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
-  const key="mam_history_v28_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v29_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2510,24 +2514,46 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const seasons=[seasonStart,seasonStart-1,seasonStart-2];
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
+      const archiveKey="mam_league_csv_v1_"+folder+"_"+seasonCode;
+      if(!forceRefresh){
+        const pending=MAM_LEAGUE_ARCHIVE_PROMISES.get(archiveKey);
+        if(pending)return pending;
+        try{
+          const saved=JSON.parse(localStorage.getItem(archiveKey)||"null");
+          if(saved?.csv&&Date.now()-saved.time<MAM_LEAGUE_ARCHIVE_TTL)return saved.csv;
+        }catch(e){}
+      }else{
+        MAM_LEAGUE_ARCHIVE_PROMISES.delete(archiveKey);
+        try{localStorage.removeItem(archiveKey);}catch(e){}
+      }
       const path="data/"+folder+"/results_"+seasonCode+".csv";
       const urls=[
         "https://raw.githubusercontent.com/oladeeayo/open-matchday/master/"+path,
         "https://cdn.jsdelivr.net/gh/oladeeayo/open-matchday@master/"+path
       ];
-      const attempts=urls.map(async url=>{
-        const controller=new AbortController();
-        const timer=setTimeout(()=>controller.abort(),7000);
-        try{
-          const response=await fetch(url,{signal:controller.signal,cache:"no-store"});
-          if(!response.ok)throw new Error("CSV HTTP "+response.status);
-          const body=await response.text();
-          if(!body||!body.includes("ft_home")||!body.includes("ft_away"))throw new Error("CSV başlıkları geçersiz");
-          return body;
-        }finally{clearTimeout(timer);}
-      });
-      try{return await Promise.any(attempts);}
-      catch(e){sourceError+=" "+seasonCode+" CSV arşivi alınamadı.";return null;}
+      const fetchPromise=(async()=>{
+        const attempts=urls.map(async url=>{
+          const controller=new AbortController();
+          const timer=setTimeout(()=>controller.abort(),7000);
+          try{
+            const response=await fetch(url,{signal:controller.signal,cache:"no-store"});
+            if(!response.ok)throw new Error("CSV HTTP "+response.status);
+            const body=await response.text();
+            if(!body||!body.includes("ft_home")||!body.includes("ft_away"))throw new Error("CSV başlıkları geçersiz");
+            return body;
+          }finally{clearTimeout(timer);}
+        });
+        const body=await Promise.any(attempts);
+        try{localStorage.setItem(archiveKey,JSON.stringify({time:Date.now(),csv:body}));}catch(e){}
+        return body;
+      })();
+      MAM_LEAGUE_ARCHIVE_PROMISES.set(archiveKey,fetchPromise);
+      try{return await fetchPromise;}
+      catch(e){
+        if(MAM_LEAGUE_ARCHIVE_PROMISES.get(archiveKey)===fetchPromise)MAM_LEAGUE_ARCHIVE_PROMISES.delete(archiveKey);
+        sourceError+=" "+seasonCode+" CSV arşivi alınamadı.";
+        return null;
+      }
     };
     const csvSeasons=await Promise.all(seasons.map(fetchSeason));
     for(const csvText of csvSeasons){
@@ -2545,8 +2571,14 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
           goals:{home:gh,away:ga},
           score:{halftime:{home:num(row.ht_home),away:num(row.ht_away)}},
           statistics:{
-            home:{shots:num(row.home_shots),shotsOnTarget:num(row.home_target),corners:num(row.home_corners)},
-            away:{shots:num(row.away_shots),shotsOnTarget:num(row.away_target),corners:num(row.away_corners)}
+            home:{
+              shots:num(row.home_shots),shotsOnTarget:num(row.home_target),corners:num(row.home_corners),
+              yellowCards:num(row.home_yellow),redCards:num(row.home_red)
+            },
+            away:{
+              shots:num(row.away_shots),shotsOnTarget:num(row.away_target),corners:num(row.away_corners),
+              yellowCards:num(row.away_yellow),redCards:num(row.away_red)
+            }
           }
         });
       }
