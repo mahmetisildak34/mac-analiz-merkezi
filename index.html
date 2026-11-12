@@ -702,7 +702,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   };
 
   const folder=leagues[String(leagueId)];
-  const isNationalCompetition=["5","10"].includes(String(leagueId))||/(nations league|international friendly|world cup|qualification|qualifier|africa cup|u23|u-23)/i.test(String(leagueName||""));
+  const isNationalCompetition=["5","10"].includes(String(leagueId))||/fifa[_ .-]?friendly|international friendlies?|nations league|world cup|qualification|qualifier|africa cup|u23|u-23/i.test(String(leagueId)+" "+String(leagueName||""));
   if(isNationalCompetition){
     try{
       const nationalMatches=await getESPNNationalHistory(teamId,teamName,matchDate,leagueId,leagueName);
