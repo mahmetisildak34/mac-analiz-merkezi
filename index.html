@@ -606,17 +606,19 @@ async function api(path){
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings");
   const isLive=cleanPath.includes("live=all");
-  const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||/^espn\/[^/]+\/summary\?/.test(cleanPath);
+  const isEspnSummary=/^espn\/[^/]+\/summary\?/.test(cleanPath);
+  const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||isEspnSummary;
   const isLineupRequest=cleanPath.startsWith("fixtures?id=")||cleanPath.startsWith("fixtures/lineups?")||cleanPath.startsWith("fixtures/players?");
   const isArchive=cleanPath.startsWith("archive/");
    const isPrimaryApi=!isArchive&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
   const cacheKey="mam_api_cache_v2_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
 
-  if(cached&&!isStandings&&!isLive&&!isLiveStats&&!isLineupRequest){
+  if(cached&&!isStandings&&!isLive&&(!isLiveStats||isEspnSummary)&&!isLineupRequest){
     try{
       const saved=JSON.parse(cached);
-      if(saved.time&&Date.now()-saved.time<30*60*1000)return saved.data;
+      const cacheAge=isEspnSummary?5*60*1000:30*60*1000;
+      if(saved.time&&Date.now()-saved.time<cacheAge)return saved.data;
     }catch(e){}
   }
 
@@ -649,7 +651,8 @@ async function api(path){
     const errorText=JSON.stringify(data.errors||data.error||data);
     if(!response.ok||(data.errors&&Object.keys(data.errors).length)){
       if(/rate.?limit|too many requests|request limit|requests limit|quota/i.test(errorText)){
-        throw new Error("Too many requests: API dakikalık istek kotası dolu. ESPN ve Football-data.org yedek kaynakları kullanılacak.");
+        const provider=isPrimaryApi?"API-Football":cleanPath.startsWith("espn/")?"ESPN":"Football-data.org";
+        throw new Error("Too many requests: "+provider+" istek sınırına ulaşıldı. Bir süre sonra tekrar dene; diğer kaynaklar kullanılabilir.");
       }
       if(/plan|date/i.test(errorText)){
         throw new Error("Seçilen tarih mevcut API-Football planınızda desteklenmiyor.");
