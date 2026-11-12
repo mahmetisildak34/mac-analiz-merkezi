@@ -128,7 +128,8 @@ async function api(path){
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings");
   const isLive=cleanPath.includes("live=all");
-  const isPrimaryApi=!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
+  const isArchive=cleanPath.startsWith("archive/");
+   const isPrimaryApi=!isArchive&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
   const cacheKey="mam_api_cache_v2_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
 
@@ -493,7 +494,7 @@ function renderMatches(){
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
-  const key="mam_history_v16_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v17_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached){
     try{
@@ -585,6 +586,30 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     if(value===undefined||value===null||String(value).trim()==="")return null;
     const n=Number(value);return Number.isFinite(n)?n:null;
   };
+
+  // 1) Cloudflare KV arşivi: takım adına göre saklanan gerçek geçmiş maçlar.
+  // ESPN ve API-Football takım ID'leri farklı olabileceğinden hedef takımın ID'sini
+  // yalnızca doğrulanmış takım adı eşleşmesinde yeniden bağlıyoruz.
+  try{
+    const archive=await api("archive/team?"+qs({name:teamName}));
+    const archived=Array.isArray(archive.response)?archive.response:[];
+    for(const m of archived){
+      const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
+      const hm=isTarget(h),am=isTarget(a);
+      if(hm===am)continue;
+      const copy={
+        ...m,
+        teams:{
+          home:{...(m.teams?.home||{}),id:hm?Number(teamId):(Number(m.teams?.home?.id)||-1)},
+          away:{...(m.teams?.away||{}),id:am?Number(teamId):(Number(m.teams?.away?.id)||-1)}
+        }
+      };
+      addMatch(copy);
+    }
+    if(archived.length&&!output.length)sourceError="Cloudflare arşivinde takım adı eşleşmesi bulunamadı.";
+  }catch(e){
+    sourceError="Cloudflare arşivi: "+String(e.message||e);
+  }
 
   const folder=leagues[String(leagueId)];
   if(folder){
