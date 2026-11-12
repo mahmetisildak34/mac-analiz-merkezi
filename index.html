@@ -1128,29 +1128,66 @@ function lineupTeamHTML(team,ratingMap){
 async function loadLineups(button){
  const fixtureId=String(button.dataset.id||""),panel=document.getElementById("lineup-"+fixtureId);
  if(!panel)return;
- if(panel.dataset.loaded==="true"&&!panel.hidden){panel.hidden=true;button.textContent="⚽ Kadroyu göster";return;}
- panel.hidden=false;button.textContent="Kadroyu gizle";
+ if(panel.dataset.loaded==="true"&&!panel.hidden){panel.hidden=true;button.textContent="⚽ Kadro ve dizilişi göster";return;}
+ panel.hidden=false;button.textContent="Kadro yükleniyor…";
  if(panel.dataset.loaded==="true")return;
- if(!/^\d+$/.test(fixtureId)){panel.innerHTML='<div class="lineup-empty">Bu maç farklı bir veri kaynağından geliyor. API-Football maç kimliği eşleştirilmediği için doğrulanmış kadro gösterilemiyor.</div>';panel.dataset.loaded="true";return;}
  panel.innerHTML='<div class="lineup-empty">Gerçek kadro bilgileri yükleniyor…</div>';button.disabled=true;
  try{
-  const payload=await api("fixtures?"+qs({id:fixtureId})),fixture=(payload.response||[])[0]||{};
-  let teams=Array.isArray(fixture.lineups)?fixture.lineups:[],playerRows=Array.isArray(fixture.players)?fixture.players:[];
-  if(!teams.length){const lineups=await api("fixtures/lineups?"+qs({fixture:fixtureId}));teams=lineups.response||[];}
-  if(!playerRows.length&&!["NS","TBD","PST"].includes(String(fixture.fixture?.status?.short||""))){
-   try{const playerData=await api("fixtures/players?"+qs({fixture:fixtureId}));playerRows=playerData.response||[];}catch(e){}
+  let teams=[],playerRows=[],isEspn=fixtureId.startsWith("espn-");
+  if(isEspn){
+   const match=fixtureId.match(/^espn-[a-z0-9.]+-(\d+)$/),eventId=match?.[1],leagueSlug=String(button.dataset.espnLeague||"");
+   if(!eventId||!leagueSlug)throw new Error("ESPN maç kimliği veya lig bilgisi eksik.");
+   const summary=await api("espn/"+leagueSlug+"/summary?"+qs({event:eventId}));
+   const rosters=Array.isArray(summary.rosters)?summary.rosters:[];
+   const forms=Array.isArray(summary.boxscore?.form)?summary.boxscore.form:[];
+   const competitors=summary.header?.competitions?.[0]?.competitors||[];
+   teams=rosters.map((roster,index)=>{
+    const teamInfo=forms[index]?.team||competitors[index]?.team||{};
+    const entries=Array.isArray(roster.roster)?roster.roster:[];
+    const normalizePlayer=entry=>{
+     const athlete=entry.athlete||{};
+     const pos=entry.position||athlete.position||{};
+     const position=String(pos.abbreviation||pos.name||"").toUpperCase();
+     const row=/^(GK|G|GOALKEEPER)$/.test(position)?1:/^(D|DF|DEF|DEFENDER|CB|LB|RB|WB)$/.test(position)?2:/^(M|MF|MID|MIDFIELDER|DM|CM|AM)$/.test(position)?3:/^(F|FW|FWD|FORWARD|ST|W)$/.test(position)?4:3;
+     const headshot=athlete.headshot?.href||athlete.headshot||"";
+     return {player:{id:athlete.id,name:athlete.displayName||athlete.fullName||athlete.shortName||"Oyuncu",number:athlete.jersey||entry.jersey||"",photo:headshot,grid:row+":"+String(entry.formationPlace||"")}};
+    };
+    const starters=entries.filter(x=>x.starter===true).map(normalizePlayer);
+    const substitutes=entries.filter(x=>x.starter!==true).map(normalizePlayer);
+    return {team:{name:teamInfo.displayName||teamInfo.name||button.dataset.homeName||"Takım"},formation:roster.formation||forms[index]?.formation||"",startXI:starters,substitutes,coach:null};
+   }).filter(team=>team.startXI.length||team.substitutes.length);
+   const homeName=String(button.dataset.homeName||"").toLowerCase();
+   teams.sort((a,b)=>Number(b.team.name.toLowerCase()===homeName)-Number(a.team.name.toLowerCase()===homeName));
+  }else{
+   if(!/^\d+$/.test(fixtureId))throw new Error("Bu maç için tanınan bir veri kaynağı bulunamadı.");
+   const payload=await api("fixtures?"+qs({id:fixtureId})),fixture=(payload.response||[])[0]||{};
+   teams=Array.isArray(fixture.lineups)?fixture.lineups:[];
+   playerRows=Array.isArray(fixture.players)?fixture.players:[];
+   if(!teams.length){const lineups=await api("fixtures/lineups?"+qs({fixture:fixtureId}));teams=lineups.response||[];}
+   if(!playerRows.length&&!["NS","TBD","PST"].includes(String(fixture.fixture?.status?.short||""))){
+    try{const playerData=await api("fixtures/players?"+qs({fixture:fixtureId}));playerRows=playerData.response||[];}catch(e){}
+   }
+   const homeId=String(button.dataset.home||"");
+   teams.sort((a,b)=>Number(String(b.team?.id)===homeId)-Number(String(a.team?.id)===homeId));
   }
-  if(!teams.length){panel.innerHTML='<div class="lineup-empty"><b>Resmî kadro henüz açıklanmadı.</b><br>İlk 11 ve yedekler genellikle maçtan 20–40 dakika önce yayınlanır. Daha sonra tekrar kontrol edebilirsin.</div>';panel.dataset.loaded="false";return;}
+  if(!teams.length){
+   panel.innerHTML='<div class="lineup-empty"><b>Resmî kadro henüz açıklanmadı veya veri sağlayıcı paylaşmıyor.</b><br>Bir süre sonra tekrar kontrol edebilirsin.</div>';
+   panel.dataset.loaded="false";return;
+  }
   const ratingMap=new Map();
   for(const team of playerRows)for(const item of team.players||[]){const id=String(item.player?.id||""),rating=item.statistics?.[0]?.games?.rating;if(id&&rating!==undefined&&rating!==null)ratingMap.set(id,rating);}
-  const homeId=String(button.dataset.home||"");
-  teams.sort((a,b)=>Number(String(a.team?.id)===homeId)?-1:Number(String(b.team?.id)===homeId)?1:0);
-  panel.innerHTML='<div class="lineup-head"><strong>⚽ Resmî maç kadrosu</strong><span class="lineup-formation">'+(ratingMap.size?"Oyuncu puanları":"Puanlar maç sırasında oluşur")+'</span></div>'+
-   teams.map(team=>'<div class="lineup-head"><strong>'+esc(team.team?.name||"Takım")+'</strong><span class="lineup-formation">'+esc(team.formation||"Diziliş yok")+'</span></div>'+lineupTeamHTML(team,ratingMap)).join("")+
-   '<div class="lineup-note">Kaynak: API-Football. Kadro ve oyuncu puanları yalnızca kaynakta mevcut olduğunda gösterilir.</div>';
+  const hasStarters=teams.some(team=>(team.startXI||[]).length>0);
+  panel.innerHTML='<div class="lineup-head"><strong>⚽ '+(isEspn?"ESPN maç kadrosu":"Resmî maç kadrosu")+'</strong><span class="lineup-formation">'+(hasStarters?"İlk 11":"Kadro listesi")+'</span></div>'+
+   teams.map(team=>'<div class="lineup-head"><strong>'+esc(team.team?.name||"Takım")+'</strong><span class="lineup-formation">'+esc(team.formation||"Diziliş bilgisi yok")+'</span></div>'+lineupTeamHTML(team,ratingMap)).join("")+
+   '<div class="lineup-note">Kaynak: '+(isEspn?"ESPN":"API-Football")+'. Oyuncu puanları yalnızca kaynakta mevcut olduğunda gösterilir.</div>';
   panel.dataset.loaded="true";
- }catch(error){panel.innerHTML='<div class="lineup-empty">Kadro verisi alınamadı: '+esc(error.message||error)+'</div>';panel.dataset.loaded="false";}
- finally{button.disabled=false;button.textContent=panel.dataset.loaded==="true"?"Kadroyu gizle":"⚽ Kadroyu göster";}
+ }catch(error){
+  panel.innerHTML='<div class="lineup-empty">Kadro verisi alınamadı: '+esc(error.message||error)+'</div>';
+  panel.dataset.loaded="false";
+ }finally{
+  button.disabled=false;
+  button.textContent=panel.dataset.loaded==="true"?"Kadro ve dizilişi gizle":"⚽ Kadro ve dizilişi göster";
+ }
 }
 
 function renderMatches(){
@@ -1182,7 +1219,7 @@ function renderMatches(){
    </div>
 
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9.]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9.]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
-   <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-date="${esc(f.date?.slice(0,10))}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
+   <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-date="${esc(f.date?.slice(0,10))}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
