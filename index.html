@@ -493,7 +493,7 @@ function renderMatches(){
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
-  const key="mam_history_v15_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v16_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached){
     try{
@@ -528,6 +528,10 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     "newcastle united":["newcastle"],
     "leicester city":["leicester"],
     "ipswich town":["ipswich"],
+    "leeds united":["leeds","leeds utd"],
+    "leeds":["leeds united","leeds utd"],
+    "coventry city":["coventry"],
+    "coventry":["coventry city"],
     "nottingham":["nottingham forest","nottm forest"]
   };
   const wanted=normalize(teamName);
