@@ -2381,7 +2381,21 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     "leeds":["leeds united","leeds utd"],
     "coventry city":["coventry"],
     "coventry":["coventry city"],
-    "nottingham":["nottingham forest","nottm forest"]
+    "nottingham":["nottingham forest","nottm forest"],
+    "united states":["usa","united states of america","usmnt"],
+    "usa":["united states","united states of america","usmnt"],
+    "south korea":["korea republic","korea republic of"],
+    "korea republic":["south korea"],
+    "turkiye":["turkey"],
+    "turkey":["turkiye"],
+    "czechia":["czech republic"],
+    "czech republic":["czechia"],
+    "ivory coast":["cote divoire","cote d ivoire"],
+    "cote divoire":["ivory coast"],
+    "north macedonia":["macedonia"],
+    "cape verde":["cabo verde"],
+    "iran":["ir iran"],
+    "ir iran":["iran"]
   };
   const wanted=normalize(teamName);
   const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize)]);
@@ -2520,160 +2534,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     }
   }
 
-  // SportScore: uluslararası takımlar dahil takım arşivini genişletmek için
-  // herkese açık takım arama ve takım fikstürü uç noktalarını kullan.
-  if(output.length<5){
-    try{
-      const sportScoreSearchUrl="https://sportscore.com/api/v1/search/?"+qs({q:teamName,sport:"football",limit:12});
-      const searchResponse=await fetch(sportScoreSearchUrl,{headers:{Accept:"application/json"},cache:"no-store"});
-      if(!searchResponse.ok)throw new Error("SportScore takım arama HTTP "+searchResponse.status);
-      const searchData=await searchResponse.json();
-      const teamRows=[
-        ...(Array.isArray(searchData.teams)?searchData.teams:[]),
-        ...(Array.isArray(searchData.results?.teams)?searchData.results.teams:[]),
-        ...(Array.isArray(searchData.data?.teams)?searchData.data.teams:[]),
-        ...(Array.isArray(searchData.results)?searchData.results.filter(x=>String(x.type||x.entity_type||"").toLowerCase()==="team"):[])
-      ];
-      const teamRow=teamRows.find(item=>{
-        const n=item.name||item.display_name||item.title||item.team?.name||"";
-        return normalize(n)===wanted;
-      })||teamRows.find(item=>{
-        const n=item.name||item.display_name||item.title||item.team?.name||"";
-        return isTarget(n);
-      });
-      const teamSlug=teamRow?.slug||teamRow?.team_slug||teamRow?.team?.slug||"";
-      if(teamSlug){
-        const scheduleResponse=await fetch("https://sportscore.com/api/widget/team/?"+qs({sport:"football",slug:teamSlug,limit:50}),{
-          headers:{Accept:"application/json"},cache:"no-store"
-        });
-        if(!scheduleResponse.ok)throw new Error("SportScore takım fikstürü HTTP "+scheduleResponse.status);
-        const scheduleData=await scheduleResponse.json();
-        const rows=[
-          ...(Array.isArray(scheduleData.fixtures)?scheduleData.fixtures:[]),
-          ...(Array.isArray(scheduleData.matches)?scheduleData.matches:[]),
-          ...(Array.isArray(scheduleData.events)?scheduleData.events:[]),
-          ...(Array.isArray(scheduleData.results)?scheduleData.results:[]),
-          ...(Array.isArray(scheduleData.data?.fixtures)?scheduleData.data.fixtures:[]),
-          ...(Array.isArray(scheduleData.data?.matches)?scheduleData.data.matches:[])
-        ];
-        for(const item of rows){
-          const homeObj=item.home||item.home_team||item.teams?.home||{};
-          const awayObj=item.away||item.away_team||item.teams?.away||{};
-          const homeName=typeof homeObj==="string"?homeObj:(homeObj.name||homeObj.display_name||homeObj.team_name||"");
-          const awayName=typeof awayObj==="string"?awayObj:(awayObj.name||awayObj.display_name||awayObj.team_name||"");
-          const dateValue=item.time||item.date||item.kickoff||item.start_time||item.fixture?.date||"";
-          const date=String(dateValue).slice(0,10);
-          if(!date||date>=matchDate)continue;
-          const status=String(item.status||item.status_text||item.fixture?.status?.short||"").toLowerCase();
-          if(status&&!["finished","ft","aet","pen","full time","completed","post"].some(x=>status.includes(x)))continue;
-          let homeScore=item.home_score??item.goals?.home??item.score?.home??item.scores?.home??homeObj.score;
-          let awayScore=item.away_score??item.goals?.away??item.score?.away??item.scores?.away??awayObj.score;
-          if(typeof homeScore==="object")homeScore=homeScore.value??homeScore.displayValue;
-          if(typeof awayScore==="object")awayScore=awayScore.value??awayScore.displayValue;
-          const gh=Number(homeScore),ga=Number(awayScore);
-          if(!Number.isFinite(gh)||!Number.isFinite(ga)||!homeName||!awayName)continue;
-          const hm=isTarget(homeName),am=isTarget(awayName);
-          if(hm===am)continue;
-          addMatch({
-            mamSource:"sportscore",
-            fixture:{id:item.id||item.match_id||item.slug||"",date:dateValue||date,status:{short:"FT"}},
-            teams:{
-              home:{id:hm?Number(teamId):-1,name:hm?teamName:homeName},
-              away:{id:am?Number(teamId):-1,name:am?teamName:awayName}
-            },
-            goals:{home:gh,away:ga},score:null,statistics:null
-          });
-        }
-      }else if(!output.length){
-        sourceError+=" SportScore takım aramasında eşleşme bulunamadı.";
-      }
-    }catch(e){sourceError+=" SportScore: "+String(e.message||e);}
-  }
-
-  // SportScore resmi arama + takım fikstürü uç noktaları.
-  // Arama yanıtı gruplu gelebilir; takım nesnelerini JSON ağacının tamamında bul.
-  if(output.length<20){
-    try{
-      const searchResponse=await fetch("https://sportscore.com/api/v1/search/?"+qs({q:teamName,sport:"football",limit:20}),{
-        headers:{Accept:"application/json"},cache:"no-store"
-      });
-      if(!searchResponse.ok)throw new Error("SportScore arama HTTP "+searchResponse.status);
-      const searchData=await searchResponse.json();
-      const walk=(node,visit,depth=0,seenNodes=new Set())=>{
-        if(!node||typeof node!=="object"||depth>8||seenNodes.has(node))return;
-        seenNodes.add(node);
-        if(!Array.isArray(node))visit(node);
-        if(Array.isArray(node)){for(const child of node)walk(child,visit,depth+1,seenNodes);}
-        else for(const value of Object.values(node))if(value&&typeof value==="object")walk(value,visit,depth+1,seenNodes);
-      };
-      const candidates=[];
-      walk(searchData,item=>{
-        const name=item.name||item.display_name||item.displayName||item.title||item.team?.name||"";
-        const type=String(item.type||item.entity_type||item.kind||"").toLowerCase();
-        if(name&&(item.slug||item.team_slug||item.url||item.team?.slug)&&(!type||type.includes("team")||item.team))candidates.push(item);
-      });
-      const teamRow=candidates.find(item=>normalize(item.name||item.display_name||item.displayName||item.title||item.team?.name)===wanted)
-        ||candidates.find(item=>isTarget(item.name||item.display_name||item.displayName||item.title||item.team?.name));
-      const slugFromUrl=value=>{
-        const match=String(value||"").match(/\/(?:teams?|football\/teams?)\/([^/?#]+)/i);
-        return match?match[1]:"";
-      };
-      const teamSlug=teamRow?.slug||teamRow?.team_slug||teamRow?.team?.slug||slugFromUrl(teamRow?.url)||normalize(teamName).replace(/\s+/g,"-");
-      const scheduleResponse=await fetch("https://sportscore.com/api/widget/team/?"+qs({sport:"football",slug:teamSlug,limit:30}),{
-        headers:{Accept:"application/json"},cache:"no-store"
-      });
-      if(!scheduleResponse.ok)throw new Error("SportScore takım fikstürü HTTP "+scheduleResponse.status+" ("+teamSlug+")");
-      const scheduleData=await scheduleResponse.json();
-      const scheduleRows=[];
-      walk(scheduleData,item=>{
-        const home=item.home??item.home_team??item.teams?.home??item.homeTeam;
-        const away=item.away??item.away_team??item.teams?.away??item.awayTeam;
-        const date=item.time||item.date||item.kickoff||item.start_time||item.fixture?.date||item.utcDate||"";
-        if(home!==undefined&&away!==undefined&&date)scheduleRows.push(item);
-      });
-      const nameOf=value=>typeof value==="string"?value:(value?.name||value?.display_name||value?.displayName||value?.team_name||value?.shortName||"");
-      const scorePair=value=>{
-        if(value&&typeof value==="object")return [value.home??value.h??value.home_score,value.away??value.a??value.away_score];
-        const match=String(value??"").match(/(\d+)\s*[-–:]\s*(\d+)/);
-        return match?[match[1],match[2]]:[null,null];
-      };
-      for(const item of scheduleRows){
-        const homeObj=item.home??item.home_team??item.teams?.home??item.homeTeam;
-        const awayObj=item.away??item.away_team??item.teams?.away??item.awayTeam;
-        const homeName=nameOf(homeObj),awayName=nameOf(awayObj);
-        const dateValue=item.time||item.date||item.kickoff||item.start_time||item.fixture?.date||item.utcDate||"";
-        const date=String(dateValue).slice(0,10);
-        if(!date||date>=matchDate||!homeName||!awayName)continue;
-        const statusValue=item.status?.type?.name||item.status?.name||item.status||item.status_text||item.fixture?.status?.short||"";
-        const status=String(statusValue).toLowerCase();
-        const score=item.score??item.scores??item.result??{};
-        const pair=scorePair(score);
-        let homeScore=item.home_score??item.goals?.home??item.scores?.home??homeObj?.score??pair[0];
-        let awayScore=item.away_score??item.goals?.away??item.scores?.away??awayObj?.score??pair[1];
-        if(typeof homeScore==="object")homeScore=homeScore.value??homeScore.displayValue;
-        if(typeof awayScore==="object")awayScore=awayScore.value??awayScore.displayValue;
-        const gh=num(homeScore),ga=num(awayScore);
-        if(gh===null||ga===null)continue;
-        if(status&&!["finished","ft","aet","pen","full time","completed","post","after extra time","after penalties"].some(x=>status.includes(x)))continue;
-        const hm=isTarget(homeName),am=isTarget(awayName);
-        if(hm===am)continue;
-        const ht=item.halftime_score||item.half_time_score||item.halfTimeScore||item.score?.halftime||item.scores?.halftime||null;
-        const htPair=scorePair(ht);
-        const comp=item.competition?.name||item.league?.name||item.tournament?.name||item.competition_name||item.league_name||"";
-        addMatch({
-          mamSource:"sportscore",
-          fixture:{id:item.id||item.match_id||item.slug||"",date:dateValue,status:{short:"FT"}},
-          league:{name:comp},
-          teams:{home:{id:hm?Number(teamId):-1,name:hm?teamName:homeName},away:{id:am?Number(teamId):-1,name:am?teamName:awayName}},
-          goals:{home:gh,away:ga},
-          score:htPair[0]!==null&&htPair[1]!==null?{halftime:{home:num(htPair[0]),away:num(htPair[1])}}:null,
-          statistics:item.statistics||null
-        });
-      }
-      if(!scheduleRows.length&&!output.length)sourceError+=" SportScore takım fikstürü maç listesi döndürmedi.";
-    }catch(e){sourceError+=" SportScore: "+String(e.message||e);}
-  }
-
   // API-Football son çare: arşiv ve CSV beş maçın altında kaldıysa dene.
   // Ücretsiz plan geçmiş tarihleri reddedebilir; hata diğer kaynakları durdurmaz.
   if(output.length<5&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))){
@@ -2689,11 +2549,11 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // ESPN yedek geçmişi: fikstür API-Football'dan gelse bile maç tarihindeki
   // ESPN skor tablosundan takımın ESPN ID'sini bul ve takım takvimini oku.
-  if(ESPN_LEAGUES[String(leagueId)]?.slug&&output.length<10){
+  if(ESPN_LEAGUES[String(leagueId)]?.slug){
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)].slug;
       let espnTeamId="";
-      if(String(sourceFixtureId||"").startsWith("espn-")&&/^\\d+$/.test(String(teamId))){
+      if(String(sourceFixtureId||"").startsWith("espn-")&&/^\d+$/.test(String(teamId))){
         espnTeamId=String(teamId);
       }else{
         const scoreboard=await api("espn/"+espnLeagueSlug+"/scoreboard?"+qs({
@@ -2701,8 +2561,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         }));
         for(const event of (Array.isArray(scoreboard.events)?scoreboard.events:[])){
           for(const competitor of (event.competitions?.[0]?.competitors||[])){
-            const name=competitor.team?.displayName||competitor.team?.name||competitor.team?.shortDisplayName||"";
-            if(isTarget(name)&&/^\\d+$/.test(String(competitor.team?.id||""))){
+            const names=[competitor.team?.displayName,competitor.team?.name,competitor.team?.shortDisplayName,competitor.team?.abbreviation].filter(Boolean);
+            if(names.some(isTarget)&&/^\d+$/.test(String(competitor.team?.id||""))){
               espnTeamId=String(competitor.team.id);break;
             }
           }
@@ -2710,6 +2570,11 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         }
       }
       if(espnTeamId){
+        // ESPN kimliğini bulduktan sonra Worker KV arşivine de yaz.
+        // Bu işlem API-Football kotasını kullanmaz.
+        try{
+          await api("archive/espn-backfill?"+qs({league:espnLeagueSlug,teamId:espnTeamId,teamName:teamName}));
+        }catch(e){sourceError+=" ESPN arşiv kaydı: "+String(e.message||e);}
         const schedule=await api("espn/"+espnLeagueSlug+"/teams/"+espnTeamId+"/schedule");
         for(const event of (Array.isArray(schedule.events)?schedule.events:[])){
           const competition=event.competitions?.[0],competitors=competition?.competitors||[];
@@ -2720,8 +2585,10 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
           const scoreValue=value=>Number(value&&typeof value==="object"?(value.value??value.displayValue):value);
           const homeScore=scoreValue(home.score),awayScore=scoreValue(away.score);
           if(!Number.isFinite(homeScore)||!Number.isFinite(awayScore))continue;
-          const homeIsTarget=Number(home.team?.id)===Number(espnTeamId)||isTarget(home.team?.displayName||home.team?.name);
-          const awayIsTarget=Number(away.team?.id)===Number(espnTeamId)||isTarget(away.team?.displayName||away.team?.name);
+          const homeNames=[home.team?.displayName,home.team?.name,home.team?.shortDisplayName,home.team?.abbreviation].filter(Boolean);
+          const awayNames=[away.team?.displayName,away.team?.name,away.team?.shortDisplayName,away.team?.abbreviation].filter(Boolean);
+          const homeIsTarget=Number(home.team?.id)===Number(espnTeamId)||homeNames.some(isTarget);
+          const awayIsTarget=Number(away.team?.id)===Number(espnTeamId)||awayNames.some(isTarget);
           if(homeIsTarget===awayIsTarget)continue;
           const homeName=homeIsTarget?teamName:(home.team?.displayName||home.team?.name||home.team?.shortDisplayName||"");
           const awayName=awayIsTarget?teamName:(away.team?.displayName||away.team?.name||away.team?.shortDisplayName||"");
@@ -2745,7 +2612,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
   const result=output.slice(0,20);
   // Yalnızca ESPN'den doğrulanmış geçmiş maçların özet istatistiklerini tamamla.
-  const candidates=result.filter(m=>m.mamSource==="espn"&&/^\\d+$/.test(String(m.fixture?.id||""))&&!m.statistics).slice(0,8);
+  const candidates=result.filter(m=>m.mamSource==="espn"&&/^\d+$/.test(String(m.fixture?.id||""))&&!m.statistics).slice(0,8);
   await Promise.all(candidates.map(async match=>{
     try{
       const stats=await getEspnMatchStats(leagueId,match.fixture.id);
