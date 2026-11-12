@@ -302,6 +302,7 @@ const ESPN_LEAGUES={
  "61":{slug:"fra.1",name:"Ligue 1",country:"France"},
  "2":{slug:"uefa.champions",name:"UEFA Champions League",country:"Europe"},
  "esp_copa":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
+ "esp.copa":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
  "uefa_nations":{slug:"uefa.nations",name:"UEFA Nations League",country:"Europe"},
  "uefa_women":{slug:"uefa.wchampions",name:"UEFA Women's Champions League",country:"Europe"},
  "uefa_europa":{slug:"uefa.europa",name:"UEFA Europa League",country:"Europe"},
@@ -494,7 +495,7 @@ function renderMatches(){
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
-  const key="mam_history_v19_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v20_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached){
     try{
