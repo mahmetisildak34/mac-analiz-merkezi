@@ -768,16 +768,23 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     sourceError="Bu lig için Open Matchday arşiv eşlemesi henüz tanımlı değil (lig kodu: "+leagueId+").";
   }
 
-  // ESPN event/team IDs are not API-Football IDs. Never mix the providers' identifiers.
-  if(!output.length&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))){
+  // Provider IDs are not interchangeable. Resolve the team by name in API-Football
+  // before requesting its recent completed fixtures; never pass an ESPN team ID here.
+  if(!output.length){
     try{
-      const data=await api("fixtures?"+qs({team:teamId,last:20,status:"FT",timezone:"Europe/Istanbul"}));
+      const search=await api("teams?"+qs({search:teamName}));
+      const candidates=(search.response||[]).map(x=>x.team).filter(Boolean);
+      const exact=candidates.find(t=>normalize(t.name)===wanted);
+      const team=candidates.find(t=>normalize(t.name)===wanted)||candidates[0];
+      if(!team?.id)throw new Error("API-Football takım aramasında eşleşme bulunamadı.");
+      const data=await api("fixtures?"+qs({team:team.id,last:20,status:"FT",timezone:"Europe/Istanbul"}));
       const cutoff=new Date(matchDate+"T00:00:00");
       for(const m of data.response||[]){
         if(!m.fixture?.date||new Date(m.fixture.date)>=cutoff)continue;
         addMatch(m);
       }
-    }catch(e){sourceError+=" API-Football: "+String(e.message||e);}
+      if(!output.length)sourceError+=" API-Football ("+team.name+"): son 20 fikstürde tarih öncesi tamamlanmış maç bulunamadı.";
+    }catch(e){sourceError+=" API-Football takım adına göre arama: "+String(e.message||e);}
   }
 
   output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
