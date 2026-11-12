@@ -685,8 +685,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   }catch(archiveError){
     sourceError="Cloudflare KV arşivi: "+String(archiveError.message||archiveError);
   }
-  const seen=new Set();
-  let sourceError="";
 
   const leagues={
     "39":"ENG_1_premier-league","140":"ESP_1_la-liga","78":"GER_1_bundesliga",
