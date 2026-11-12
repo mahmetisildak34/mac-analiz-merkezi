@@ -157,7 +157,7 @@ async function api(path){
 
     const errorText=JSON.stringify(data.errors||data.error||data);
     if(!response.ok || (data.errors&&Object.keys(data.errors).length)){
-      if(/rate.?limit|too many requests/i.test(errorText)){
+      if(/rate.?limit|too many requests|request limit|requests limit|quota/i.test(errorText)){
         throw new Error("API dakika başına istek kotasını doldurdu. Yeni istek göndermiyoruz; kota sıfırlanınca tekrar deneyin.");
       }
       if(/plan|date/i.test(errorText)){
@@ -257,11 +257,8 @@ async function footballDataFixtures(date){
  if(selected!=="all" && !code){
   throw new Error("Seçili lig Football-data.org ücretsiz kapsamına dahil değil. API-Football kotası yenilenince tekrar deneyebiliriz.");
  }
- // football-data.org v4 dateTo sınırını hariç tutar; tek günü almak için ertesi gün gönderilir.
- const nextDay=new Date(date+"T00:00:00Z");
- nextDay.setUTCDate(nextDay.getUTCDate()+1);
- const exclusiveDateTo=nextDay.toISOString().slice(0,10);
- const dateFilters={dateFrom:date,dateTo:exclusiveDateTo};
+ // football-data.org v4 dateFrom/dateTo filtreleri iki sınır tarihini de kapsar.
+ const dateFilters={dateFrom:date,dateTo:date};
  const endpoint=code
   ? "football-data/competitions/"+code+"/matches?"+qs(dateFilters)
   : "football-data/matches?"+qs(dateFilters);
