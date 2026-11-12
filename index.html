@@ -124,41 +124,39 @@ let apiQueue=Promise.resolve();
 let lastApiCall=0;
 
 async function api(path){
-  const cleanPath=String(path).replace(/^\/+/, "");
-  const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
+  const cleanPath=String(path).replace(/^\\/+/, "");
+  const url=WORKER.replace(/\\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings");
   const isLive=cleanPath.includes("live=all");
-  const cacheKey="mam_api_cache_v1_"+cleanPath;
+  const isPrimaryApi=!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
+  const cacheKey="mam_api_cache_v2_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
 
-  // Puan durumu kısa süreli tutulur; her açılışta eski 30 dakikalık istemci önbelleği kullanılmaz.
   if(cached&&!isStandings&&!isLive){
     try{
       const saved=JSON.parse(cached);
-      if(saved.time && Date.now()-saved.time < 30*60*1000){
-        return saved.data;
-      }
+      if(saved.time&&Date.now()-saved.time<30*60*1000)return saved.data;
     }catch(e){}
   }
 
-  const run=apiQueue.then(async()=>{
-    const delay=Math.max(0,12000-(Date.now()-lastApiCall));
-    if(delay) await new Promise(resolve=>setTimeout(resolve,delay));
-
-    lastApiCall=Date.now();
-    const response=await fetch(url);
-
-    let data;
-    try{
-      data=await response.json();
-    }catch(e){
-      throw new Error("Sunucudan okunabilir yanıt alınamadı.");
+  const request=async()=>{
+    // Only API-Football is subject to this conservative rate limit.
+    // ESPN and Football-data.org fallback calls must not wait in this queue.
+    if(isPrimaryApi){
+      const delay=Math.max(0,12000-(Date.now()-lastApiCall));
+      if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
+      lastApiCall=Date.now();
     }
 
+    const response=await fetch(url);
+    let data;
+    try{data=await response.json();}
+    catch(e){throw new Error("Sunucudan okunabilir yanıt alınamadı.");}
+
     const errorText=JSON.stringify(data.errors||data.error||data);
-    if(!response.ok || (data.errors&&Object.keys(data.errors).length)){
+    if(!response.ok||(data.errors&&Object.keys(data.errors).length)){
       if(/rate.?limit|too many requests|request limit|requests limit|quota/i.test(errorText)){
-        throw new Error("API dakika başına istek kotasını doldurdu. Yeni istek göndermiyoruz; kota sıfırlanınca tekrar deneyin.");
+        throw new Error("API dakikalık istek kotası dolu. ESPN ve Football-data.org yedek kaynakları kullanılacak.");
       }
       if(/plan|date/i.test(errorText)){
         throw new Error("Seçilen tarih mevcut API-Football planınızda desteklenmiyor.");
@@ -166,12 +164,13 @@ async function api(path){
       throw new Error("API hatası ("+response.status+"): "+errorText);
     }
 
-    try{
-      localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));
-    }catch(e){}
+    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));}catch(e){}
     return data;
-  });
+  };
 
+  if(!isPrimaryApi)return request();
+
+  const run=apiQueue.then(request);
   apiQueue=run.catch(()=>{});
   return run;
 }
@@ -411,7 +410,8 @@ async function loadMatches(){
 async function loadLiveMatches(){
  const button=$("loadLive");
  button.disabled=true;
- $("status").textContent="Canlı maçlar API-Football üzerinden kontrol ediliyor...";
+ $("status").textContent="Canlı maçlar kontrol ediliyor...";
+ const previousMatches=allMatches.slice();
  try{
   const data=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
   const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
@@ -420,8 +420,21 @@ async function loadLiveMatches(){
   $("status").textContent=allMatches.length
    ? allMatches.length+" canlı maç bulundu. Skorları güncellemek için bu düğmeye tekrar bas."
    : "Şu anda API-Football canlı akışında devam eden maç bulunamadı.";
- }catch(e){
-  $("status").innerHTML='<span class="error">Canlı maçlar alınamadı: '+esc(e.message)+'</span>';
+ }catch(primaryError){
+  try{
+   $("status").textContent="API-Football canlı akışı kullanılamıyor. ESPN canlı maçları deneniyor...";
+   const date=$("date").value||new Date().toISOString().slice(0,10);
+   const fallback=await espnFixtures(date);
+   allMatches=fallback.filter(m=>String(m.fixture?.status?.short||"")==="LIVE");
+   renderMatches();
+   $("status").textContent=allMatches.length
+    ? allMatches.length+" canlı maç bulundu. Kaynak: ESPN."
+    : "ESPN yedek kaynağında şu an canlı maç bulunamadı.";
+  }catch(fallbackError){
+   allMatches=previousMatches;
+   renderMatches();
+   $("status").innerHTML='<span class="error">Canlı maçlar alınamadı. API-Football: '+esc(primaryError.message||primaryError)+' | ESPN: '+esc(fallbackError.message||fallbackError)+'</span>';
+  }
  }finally{button.disabled=false}
 }
 
