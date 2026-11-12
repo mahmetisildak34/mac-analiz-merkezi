@@ -285,66 +285,65 @@ async function footballDataFixtures(date){
  }));
 }
 
-async function sportScoreFixtures(date){
- const url="https://sportscore.com/api/v1/fixtures/?"+qs({
-  sport:"football",date,limit:200,src:"mac-analiz-merkezi"
- });
- const response=await fetch(url,{method:"GET",headers:{Accept:"application/json"}});
- if(!response.ok) throw new Error("SportScore fikstür servisi HTTP "+response.status);
- const payload=await response.json();
- const rows=Array.isArray(payload.matches)?payload.matches:
-  Array.isArray(payload.fixtures)?payload.fixtures:
-  Array.isArray(payload.data?.matches)?payload.data.matches:
-  Array.isArray(payload.data)?payload.data:[];
- if(!rows.length) return [];
- const getName=value=>typeof value==="string"?value:
-  value?.name||value?.short_name||value?.display_name||"";
- const getId=(value,fallback)=>{
-  const raw=value?.id??value?.team_id??value?.uid;
-  const parsed=Number(raw);
-  if(Number.isFinite(parsed)&&parsed!==0)return parsed;
-  let hash=0;
-  for(const ch of String(fallback||"team"))hash=(hash*31+ch.charCodeAt(0))|0;
-  return -Math.max(1,Math.abs(hash));
- };
- const leagueIdFor=name=>{
-  const n=String(name||"").toLowerCase();
-  if(/premier league|english premier/.test(n))return "39";
-  if(/la liga|primera division|spanish primera/.test(n))return "140";
-  if(/bundesliga/.test(n))return "78";
-  if(/serie a|italian serie/.test(n))return "135";
-  if(/ligue 1/.test(n))return "61";
-  if(/champions league/.test(n))return "2";
-  if(/europa league/.test(n))return "3";
-  if(/conference league/.test(n))return "848";
-  if(/super lig|süper lig/.test(n))return "203";
-  return "";
- };
- return rows.map((m,index)=>{
-  const home=m.home_team??m.homeTeam??m.home??{};
-  const away=m.away_team??m.awayTeam??m.away??{};
-  const homeName=getName(home),awayName=getName(away);
-  const competition=m.competition??m.league??m.tournament??{};
-  const leagueName=getName(competition)||m.competition_name||m.league_name||"SportScore";
-  const kickoff=m.kickoff??m.kickoff_time??m.utcDate??m.start_time??m.time??m.date;
-  const rawStatus=String(m.status?.short??m.status?.type??m.status??m.state??"").toLowerCase();
-  const statusShort=/live|in.?play|half|period/.test(rawStatus)?"LIVE":
-   /finish|ended|full.?time|ft/.test(rawStatus)?"FT":
-   /postpon|cancel|abandon/.test(rawStatus)?"PST":"NS";
-  const fixtureId=m.fixture_id??m.id??m.match_id??m.event_id??("ss-"+date+"-"+index);
-  const score=m.score||m.scores||{};
-  const homeGoals=m.home_score??score.home??score.home_score??m.goals?.home??null;
-  const awayGoals=m.away_score??score.away??score.away_score??m.goals?.away??null;
-  return {
-   fixture:{id:fixtureId,date:kickoff||date+"T12:00:00Z",status:{short:statusShort}},
-   league:{id:leagueIdFor(leagueName),name:leagueName,country:competition.country||m.country||""},
-   teams:{
-    home:{id:getId(home,String(fixtureId)+homeName),name:homeName},
-    away:{id:getId(away,String(fixtureId)+awayName),name:awayName}
-   },
-   goals:{home:homeGoals==null?null:Number(homeGoals),away:awayGoals==null?null:Number(awayGoals)}
-  };
- }).filter(m=>m.teams.home.name&&m.teams.away.name);
+const ESPN_LEAGUES={
+ "39":{slug:"eng.1",name:"Premier League",country:"England"},
+ "140":{slug:"esp.1",name:"La Liga",country:"Spain"},
+ "78":{slug:"ger.1",name:"Bundesliga",country:"Germany"},
+ "135":{slug:"ita.1",name:"Serie A",country:"Italy"},
+ "61":{slug:"fra.1",name:"Ligue 1",country:"France"},
+ "2":{slug:"uefa.champions",name:"UEFA Champions League",country:"Europe"}
+};
+
+async function espnFixtures(date){
+ const selected=$("league").value;
+ const targets=selected==="all"
+  ? Object.entries(ESPN_LEAGUES)
+  : (ESPN_LEAGUES[selected]?[[selected,ESPN_LEAGUES[selected]]]:[]);
+ if(!targets.length)return [];
+ const espnDate=String(date).replace(/-/g,"");
+ const results=await Promise.allSettled(targets.map(async([leagueId,league])=>{
+  const url="https://site.api.espn.com/apis/site/v2/sports/soccer/"+
+   league.slug+"/scoreboard?dates="+encodeURIComponent(espnDate)+"&limit=500";
+  const response=await fetch(url,{headers:{Accept:"application/json"}});
+  if(!response.ok)throw new Error(league.name+" ESPN HTTP "+response.status);
+  const payload=await response.json();
+  const events=Array.isArray(payload.events)?payload.events:[];
+  return events.map(event=>{
+   const competition=(event.competitions||[])[0]||{};
+   const competitors=competition.competitors||[];
+   const home=competitors.find(team=>team.homeAway==="home")||{};
+   const away=competitors.find(team=>team.homeAway==="away")||{};
+   const state=String(event.status?.type?.state||"").toLowerCase();
+   const completed=event.status?.type?.completed===true||state==="post";
+   const live=state==="in"||/in progress|halftime|live/i.test(event.status?.type?.detail||"");
+   const statusShort=completed?"FT":live?"LIVE":"NS";
+   const toGoals=value=>{
+    if(value===null||value===undefined||value==="")return null;
+    const parsed=Number(value);
+    return Number.isFinite(parsed)?parsed:null;
+   };
+   const teamId=value=>{
+    const n=Number(value);
+    if(Number.isFinite(n)&&n!==0)return n;
+    return -1;
+   };
+   return {
+    fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||date+"T12:00:00Z",status:{short:statusShort}},
+    league:{id:leagueId,name:league.name,country:league.country},
+    teams:{
+     home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||""},
+     away:{id:teamId(away.team?.id),name:away.team?.displayName||away.team?.name||""}
+    },
+    goals:{home:toGoals(home.score),away:toGoals(away.score)}
+   };
+  }).filter(match=>match.teams.home.name&&match.teams.away.name);
+ }));
+ const matches=results.flatMap(result=>result.status==="fulfilled"?result.value:[]);
+ const failures=results.filter(result=>result.status==="rejected");
+ if(!matches.length&&failures.length===targets.length){
+  throw new Error("ESPN maç verisi alınamadı: "+failures.map(x=>String(x.reason?.message||x.reason)).join("; "));
+ }
+ return matches.sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
 }
 
 async function loadMatches(){
@@ -354,7 +353,7 @@ async function loadMatches(){
  button.disabled=true;
  $("status").textContent="Fikstür alınıyor...";
  $("matches").innerHTML="";
- const fixtureCacheKey="mam_fixture_cache_v1_"+date;
+ const fixtureCacheKey="mam_fixture_cache_v2_"+date+"_"+$("league").value;
  const previousMatches=allMatches.slice();
  try{
   let source="API-Football";
@@ -363,42 +362,35 @@ async function loadMatches(){
    const freshMatches=data.response||[];
    allMatches=freshMatches;
    if(freshMatches.length){
-    try{
-     localStorage.setItem(fixtureCacheKey,JSON.stringify({time:Date.now(),matches:freshMatches}));
-    }catch(e){}
+    try{localStorage.setItem(fixtureCacheKey,JSON.stringify({time:Date.now(),matches:freshMatches}));}catch(e){}
    }
   }catch(primaryError){
    const message=String(primaryError.message||primaryError);
-   if(!/rateLimit|Too many requests|API dakika başına istek kotasını doldurdu|plan|date|429/i.test(message)) throw primaryError;
-
-   let saved=null;
+   if(!/rate.?limit|Too many requests|API dakika başına istek kotasını doldurdu|plan|date|429|quota/i.test(message))throw primaryError;
+   $("status").textContent="API-Football kotası/tarih erişimi kullanılamıyor. ESPN büyük lig fikstürleri deneniyor...";
+   let alternative=[];
+   let alternativeSource="";
    try{
-    saved=JSON.parse(localStorage.getItem(fixtureCacheKey)||"null");
-   }catch(e){}
-   if(saved&&Array.isArray(saved.matches)&&saved.matches.length){
-    allMatches=saved.matches;
-    source="Önbellekteki API-Football fikstürü";
-   }else{
-    $("status").textContent="API-Football kotası dolu. Football-data.org ve SportScore kaynakları deneniyor...";
-    let alternative=[];
-    let alternativeSource="";
+    alternative=await espnFixtures(date);
+    if(alternative.length)alternativeSource="ESPN";
+   }catch(espnError){
+    console.warn("ESPN fikstürü alınamadı:",espnError);
+   }
+   if(!alternative.length){
+    $("status").textContent="ESPN'de maç bulunamadı. Football-data.org yedek kaynağı deneniyor...";
     try{
      alternative=await footballDataFixtures(date);
-     if(alternative.length) alternativeSource="Football-data.org";
+     if(alternative.length)alternativeSource="Football-data.org";
     }catch(fallbackError){
      console.warn("Football-data.org fikstürü alınamadı:",fallbackError);
     }
-    if(!alternative.length){
-     alternative=await sportScoreFixtures(date);
-     if(alternative.length) alternativeSource="SportScore";
-    }
-    if(!alternative.length){
-     allMatches=previousMatches;
-     throw new Error("API-Football kotası dolu; Football-data.org ve SportScore bu tarih için maç döndürmedi. Önceki fikstür korunuyor.");
-    }
-    allMatches=alternative;
-    source=alternativeSource+" (alternatif)";
    }
+   if(!alternative.length){
+    allMatches=previousMatches;
+    throw new Error("API-Football kotası dolu. ESPN ve Football-data.org bu tarih/lig için maç döndürmedi. Önceki fikstür korunuyor.");
+   }
+   allMatches=alternative;
+   source=alternativeSource+" (yedek kaynak)";
   }
   renderMatches();
   if(!allMatches.length){
@@ -408,7 +400,7 @@ async function loadMatches(){
   }
  }catch(e){
   $("status").innerHTML='<span class="error">'+esc(e.message)+'</span>';
-  if(!allMatches.length) $("matches").innerHTML='<div class="empty">Fikstür alınamadı. Hata: '+esc(e.message)+'</div>';
+  if(!allMatches.length)$("matches").innerHTML='<div class="empty">Fikstür alınamadı. Hata: '+esc(e.message)+'</div>';
  }finally{button.disabled=false}
 }
 
