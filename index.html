@@ -599,6 +599,24 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .mam-form-row b{font-size:13px;text-align:center;white-space:nowrap}
 .mam-form-result{font-size:10px;font-weight:900;padding:4px 7px;border-radius:9px;background:#26384c;color:#e8f1fa}
 .mam-form-result.win{background:#174c3b;color:#8df0c4}.mam-form-result.draw{background:#4c421c;color:#ffe18a}.mam-form-result.loss{background:#542b35;color:#ffadb7}
+.mam-history-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:12px 0}
+.mam-history-tab{min-height:40px;padding:8px 6px!important;border-radius:10px!important;background:#172b39!important;color:#b9cbd0!important;border:1px solid rgba(130,175,193,.18)!important;box-shadow:none!important;font-size:12px!important}
+.mam-history-tab.active{background:#087d60!important;color:#fff!important;border-color:#20d6a6!important}
+.mam-history-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0}
+.mam-history-metric{padding:10px 7px;border-radius:11px;background:#0c1c28;border:1px solid rgba(130,175,193,.14);text-align:center;min-width:0}
+.mam-history-metric small{display:block;color:#91aab2;font-size:10px}
+.mam-history-metric b{display:block;color:#f2faf7;font-size:14px;margin-top:4px}
+.mam-history-row{display:grid;grid-template-columns:58px minmax(0,1fr) auto 28px;align-items:center;gap:7px;padding:10px 0;border-top:1px solid rgba(130,175,193,.14);font-size:12px}
+.mam-history-date{color:#9db5bd;font-variant-numeric:tabular-nums}
+.mam-history-match{min-width:0;line-height:1.45}
+.mam-history-match small{display:block;color:#829ca6;font-size:10px}
+.mam-history-score{text-align:center;white-space:nowrap;font-weight:850;color:#f1faf6;font-size:13px}
+.mam-history-score small{display:block;color:#8ea9b1;font-size:10px;font-weight:500}
+.mam-history-row .mam-form-result{justify-self:end}
+.mam-history-more{margin-top:10px;border-top:1px solid rgba(130,175,193,.14);padding-top:8px}
+.mam-history-more summary{color:#52ddb6;font-size:12px;font-weight:800;cursor:pointer;padding:7px 0}
+.mam-history-panel[hidden]{display:none!important}
+@media(max-width:420px){.mam-history-row{grid-template-columns:48px minmax(0,1fr) auto 25px;gap:5px}.mam-history-summary{gap:5px}.mam-history-metric{padding:8px 4px}.mam-history-metric b{font-size:12px}}
 @media(min-width:760px){.match-detail-overlay{align-items:center}.match-detail-body{max-height:none}}
 
  
@@ -1948,7 +1966,7 @@ function makeMamDetailTab(article){
   if(preview)sections.overview.appendChild(preview);
   actions.remove();
  }
- const formButton=document.createElement("button");formButton.type="button";formButton.className="secondary mam-form-load";formButton.textContent="🕘 Son 5 maçı göster";
+ const formButton=document.createElement("button");formButton.type="button";formButton.className="secondary mam-form-load";formButton.textContent="🕘 Son 10 maçı ve takım formunu göster";
  formButton.dataset.homeId=analysisButton?.dataset.home||lineupButton?.dataset.home||"";
  formButton.dataset.awayId=analysisButton?.dataset.away||lineupButton?.dataset.away||"";
  formButton.dataset.homeName=analysisButton?.dataset.homeName||lineupButton?.dataset.homeName||"";
@@ -1972,9 +1990,9 @@ function makeMamDetailTab(article){
  const open=document.createElement("button");open.type="button";open.className="mam-match-open";open.textContent="Maç detayını aç  →";
  open.addEventListener("click",()=>openMamMatchDetail(article));
  article.appendChild(open);
- formButton.addEventListener("click",()=>loadMamMatchForm(formButton));
+ formButton.addEventListener("click",()=>loadMamMatchForm(formButton,formButton.dataset.loaded==="1"));
 }
-async function loadMamMatchForm(button){
+async function loadMamMatchForm(button,forceRefresh=false){
  if(button.disabled)return;
  const box=button.nextElementSibling;
  const homeId=button.dataset.homeId,awayId=button.dataset.awayId,date=button.dataset.date;
@@ -1983,24 +2001,64 @@ async function loadMamMatchForm(button){
  box.innerHTML='<div class="match-detail-note">İki takımın son maçları aranıyor…</div>';
  try{
   const [homeMatches,awayMatches]=await Promise.all([
-   getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.fixtureId),
-   getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.fixtureId)
+   getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.fixtureId,forceRefresh),
+   getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.fixtureId,forceRefresh)
   ]);
-  const renderTeam=(name,teamId,matches)=>{
-   const last=matches.slice().sort((a,b)=>new Date(b.fixture?.date||0)-new Date(a.fixture?.date||0)).slice(0,5);
-   if(!last.length)return '<section class="mam-form-team"><h4>'+esc(name)+'</h4><div class="match-detail-note">Doğrulanmış geçmiş maç bulunamadı.</div></section>';
-   return '<section class="mam-form-team"><h4>'+esc(name)+' · Son '+last.length+' maç</h4>'+last.map(m=>{
-    const h=m.teams?.home||{},a=m.teams?.away||{},gh=m.goals?.home,ga=m.goals?.away;
-    const isHome=String(h.id)===String(teamId)||String(h.name).toLowerCase()===String(name).toLowerCase();
-    const gf=Number(isHome?gh:ga),gaAgainst=Number(isHome?ga:gh);
-    const result=gf>gaAgainst?"G":gf===gaAgainst?"B":"M";
-    const cls=result==="G"?"win":result==="B"?"draw":"loss";
-    const day=m.fixture?.date?new Date(m.fixture.date).toLocaleDateString("tr-TR",{day:"2-digit",month:"2-digit"}):"—";
-    return '<div class="mam-form-row"><span>'+day+'</span><span>'+esc(h.name||"Ev")+' <b>'+esc(gh)+' – '+esc(ga)+'</b> '+esc(a.name||"Dep")+'</span><span class="mam-form-result '+cls+'">'+result+'</span></div>';
-   }).join("")+'</section>';
+  const sorted=items=>items.slice().sort((a,b)=>new Date(b.fixture?.date||0)-new Date(a.fixture?.date||0));
+  const getTeamSide=(m,teamId,name)=>{
+   const h=m.teams?.home||{},a=m.teams?.away||{};
+   return Number(h.id)===Number(teamId)||String(h.name||"").toLowerCase()===String(name).toLowerCase()?"home":"away";
   };
-  box.innerHTML=renderTeam(button.dataset.homeName,homeId,homeMatches)+renderTeam(button.dataset.awayName,awayId,awayMatches);
+  const summarize=(items,teamId,name,venue="all")=>{
+   const valid=sorted(items).filter(m=>{
+    const side=getTeamSide(m,teamId,name);
+    return (venue==="all"||side===venue)&&Number.isFinite(Number(m.goals?.home))&&Number.isFinite(Number(m.goals?.away));
+   }).slice(0,10);
+   let w=0,d=0,l=0,gf=0,ga=0;
+   valid.forEach(m=>{
+    const side=getTeamSide(m,teamId,name),scored=Number(side==="home"?m.goals.home:m.goals.away),conceded=Number(side==="home"?m.goals.away:m.goals.home);
+    gf+=scored;ga+=conceded;if(scored>conceded)w++;else if(scored===conceded)d++;else l++;
+   });
+   return {count:valid.length,w,d,l,gf:valid.length?gf/valid.length:0,ga:valid.length?ga/valid.length:0};
+  };
+  const renderRows=(items,teamId,name)=>items.map(m=>{
+   const h=m.teams?.home||{},a=m.teams?.away||{},gh=Number(m.goals?.home),ga=Number(m.goals?.away);
+   const side=getTeamSide(m,teamId,name),scored=side==="home"?gh:ga,conceded=side==="home"?ga:gh;
+   const result=scored>conceded?"G":scored===conceded?"B":"M",cls=result==="G"?"win":result==="B"?"draw":"loss";
+   const date=m.fixture?.date?new Date(m.fixture.date).toLocaleDateString("tr-TR",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—";
+   const competition=m.league?.name||m.competition?.name||m.tournament?.name||"Karşılaşma";
+   const ht=m.score?.halftime,htText=ht&&ht.home!==null&&ht.home!==undefined&&ht.away!==null&&ht.away!==undefined?String(ht.home)+"–"+String(ht.away):"";
+   return '<div class="mam-history-row"><span class="mam-history-date">'+date+'</span><span class="mam-history-match"><small>'+esc(competition)+' · '+(side==="home"?"İç saha":"Deplasman")+'</small>'+esc(h.name||"Ev sahibi")+' – '+esc(a.name||"Deplasman")+'</span><span class="mam-history-score">'+(htText?'<small>İY '+esc(htText)+'</small>':"")+'<b>'+gh+' – '+ga+'</b></span><span class="mam-form-result '+cls+'">'+result+'</span></div>';
+  }).join("");
+  const renderTeam=(name,teamId,matches)=>{
+   const ordered=sorted(matches),last=ordered.slice(0,10),summary=summarize(ordered,teamId,name),home=summarize(ordered,teamId,name,"home"),away=summarize(ordered,teamId,name,"away");
+   const metrics='<div class="mam-history-summary"><div class="mam-history-metric"><small>Son 10 · G-B-M</small><b>'+summary.w+'-'+summary.d+'-'+summary.l+'</b></div><div class="mam-history-metric"><small>Gol ort. / maç</small><b>'+summary.gf.toFixed(2)+'</b></div><div class="mam-history-metric"><small>Yenilen gol / maç</small><b>'+summary.ga.toFixed(2)+'</b></div></div>'+
+    '<div class="mam-history-summary"><div class="mam-history-metric"><small>İç saha · G-B-M</small><b>'+home.w+'-'+home.d+'-'+home.l+'</b><small>'+home.count+' maç</small></div><div class="mam-history-metric"><small>Deplasman · G-B-M</small><b>'+away.w+'-'+away.d+'-'+away.l+'</b><small>'+away.count+' maç</small></div><div class="mam-history-metric"><small>Bulunan kayıt</small><b>'+ordered.length+'</b><small>tamamlanmış maç</small></div></div>';
+   const more=ordered.length>10?'<details class="mam-history-more"><summary>Önceki '+(ordered.length-10)+' maçı göster</summary>'+renderRows(ordered.slice(10),teamId,name)+'</details>':"";
+   return '<section class="mam-form-team"><h4>'+esc(name)+' · Son '+last.length+' maç</h4>'+metrics+(last.length?renderRows(last,teamId,name):'<div class="match-detail-note">Doğrulanmış geçmiş maç bulunamadı.</div>')+more+'</section>';
+  };
+  const homeName=button.dataset.homeName,awayName=button.dataset.awayName;
+  const h2hMap=new Map();
+  for(const m of [...homeMatches,...awayMatches]){
+   const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
+   const names=[h.toLowerCase(),a.toLowerCase()].sort().join("|");
+   if(h.toLowerCase()===homeName.toLowerCase()&&a.toLowerCase()===awayName.toLowerCase()||h.toLowerCase()===awayName.toLowerCase()&&a.toLowerCase()===homeName.toLowerCase()){
+    h2hMap.set([String(m.fixture?.date||"").slice(0,10),names,m.goals?.home,m.goals?.away].join("|"),m);
+   }
+  }
+  const h2h=[...h2hMap.values()].sort((a,b)=>new Date(b.fixture?.date||0)-new Date(a.fixture?.date||0));
+  const tabs='<div class="mam-history-tabs"><button type="button" class="mam-history-tab active" data-history-tab="home">'+esc(homeName)+'</button><button type="button" class="mam-history-tab" data-history-tab="h2h">Rekabet</button><button type="button" class="mam-history-tab" data-history-tab="away">'+esc(awayName)+'</button></div>';
+  box.innerHTML=tabs+
+   '<div class="mam-history-panel" data-history-panel="home">'+renderTeam(homeName,homeId,homeMatches)+'</div>'+
+   '<div class="mam-history-panel" data-history-panel="h2h" hidden><section class="mam-form-team"><h4>Aralarındaki maçlar · '+h2h.length+' kayıt</h4>'+(h2h.length?renderRows(h2h,homeId,homeName):'<div class="match-detail-note">Bu iki takım arasında kaynaklarda doğrulanmış karşılaşma bulunamadı.</div>')+'</section></div>'+
+   '<div class="mam-history-panel" data-history-panel="away" hidden>'+renderTeam(awayName,awayId,awayMatches)+'</div>';
+  box.querySelectorAll("[data-history-tab]").forEach(tab=>tab.addEventListener("click",()=>{
+   box.querySelectorAll("[data-history-tab]").forEach(x=>x.classList.toggle("active",x===tab));
+   box.querySelectorAll("[data-history-panel]").forEach(panel=>panel.hidden=panel.dataset.historyPanel!==tab.dataset.historyTab);
+  }));
+  button.dataset.loaded="1";
   button.textContent="↻ Geçmiş maçları yenile";
+
  }catch(error){
   box.innerHTML='<div class="match-detail-note">Geçmiş maçlar alınamadı: '+esc(error.message||error)+'</div>';
   button.textContent="Tekrar dene";
@@ -2282,10 +2340,10 @@ $("couponBuildRisky").addEventListener("click",()=>buildSuggestedCoupon("risky")
 renderCoupon();
 
 /* GEÇMİŞ MAÇLAR */
-async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
+async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
   const key="mam_history_v24_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
-  if(cached){
+  if(cached&&!forceRefresh){
     try{
       const saved=JSON.parse(cached);
       if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<(saved.matches.length>=5?CACHE_HOURS*60*60*1000:10*60*1000))return saved.matches;
@@ -2713,7 +2771,7 @@ function teamStats(matches, teamId, venue){
  });
 
  let gf=0, ga=0, firstGF=0, firstGA=0, secondGF=0, secondGA=0;
- let halfCount=0, firstBoth=0, secondBoth=0;
+ let halfCount=0, firstBoth=0, secondBoth=0,wins=0,draws=0,losses=0,cleanSheets=0,btts=0,over25=0;
 
  for(const m of valid){
   const isHome = Number(m.teams?.home?.id) === Number(teamId);
@@ -2721,6 +2779,10 @@ function teamStats(matches, teamId, venue){
   const conceded = Number(isHome ? m.goals.away : m.goals.home);
   gf += scored;
   ga += conceded;
+  if(scored>conceded)wins++;else if(scored===conceded)draws++;else losses++;
+  if(conceded===0)cleanSheets++;
+  if(scored>0&&conceded>0)btts++;
+  if(scored+conceded>=3)over25++;
 
   const ht = m.score?.halftime;
   const htHome = ht?.home;
@@ -2749,6 +2811,7 @@ function teamStats(matches, teamId, venue){
   count: valid.length,
   gf: gf / count,
   ga: ga / count,
+  wins,draws,losses,cleanSheets,btts,over25,
   venue,
   halfCount,
   firstGF: firstGF / halfDenominator,
