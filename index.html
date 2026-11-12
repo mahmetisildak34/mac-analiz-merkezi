@@ -2513,30 +2513,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     }
   }
 
-  // 1) Cloudflare KV arşivi: takım adına göre saklanan gerçek geçmiş maçlar.
-  // ESPN ve API-Football takım ID'leri farklı olabileceğinden hedef takımın ID'sini
-  // yalnızca doğrulanmış takım adı eşleşmesinde yeniden bağlıyoruz.
-  try{
-    const archive=await api("archive/team?"+qs({name:teamName}));
-    const archived=Array.isArray(archive.response)?archive.response:[];
-    for(const m of archived){
-      const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
-      const hm=isTarget(h),am=isTarget(a);
-      if(hm===am)continue;
-      const copy={
-        ...m,
-        teams:{
-          home:{...(m.teams?.home||{}),id:hm?Number(teamId):(Number(m.teams?.home?.id)||-1)},
-          away:{...(m.teams?.away||{}),id:am?Number(teamId):(Number(m.teams?.away?.id)||-1)}
-        }
-      };
-      addMatch(copy);
-    }
-    if(archived.length&&!output.length)sourceError="Cloudflare arşivinde takım adı eşleşmesi bulunamadı.";
-  }catch(e){
-    sourceError="Cloudflare arşivi: "+String(e.message||e);
-  }
-
   const folder=leagues[String(leagueId)];
   if(folder){
     // Üç sezonun CSV arşivini paralel tara; iki ayna kaynağı da zaman aşımıyla sınırla.
@@ -2588,6 +2564,36 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       }
     }
   }
+
+  // CSV arşivi hızlı sonuç vermezse Cloudflare KV arşivine başvur.
+  // Her takım için önce gereksiz ağ beklemesi oluşturmamak adına bu çağrı CSV sonrasına alındı.
+  if(output.length<5){
+   // 1) Cloudflare KV arşivi: takım adına göre saklanan gerçek geçmiş maçlar.
+   // ESPN ve API-Football takım ID'leri farklı olabileceğinden hedef takımın ID'sini
+   // yalnızca doğrulanmış takım adı eşleşmesinde yeniden bağlıyoruz.
+   try{
+     const archive=await api("archive/team?"+qs({name:teamName}));
+     const archived=Array.isArray(archive.response)?archive.response:[];
+     for(const m of archived){
+       const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
+       const hm=isTarget(h),am=isTarget(a);
+       if(hm===am)continue;
+       const copy={
+         ...m,
+         teams:{
+           home:{...(m.teams?.home||{}),id:hm?Number(teamId):(Number(m.teams?.home?.id)||-1)},
+           away:{...(m.teams?.away||{}),id:am?Number(teamId):(Number(m.teams?.away?.id)||-1)}
+         }
+       };
+       addMatch(copy);
+     }
+     if(archived.length&&!output.length)sourceError="Cloudflare arşivinde takım adı eşleşmesi bulunamadı.";
+   }catch(e){
+     sourceError="Cloudflare arşivi: "+String(e.message||e);
+   }
+ 
+   }
+
 
   // API-Football son çare: arşiv ve CSV beş maçın altında kaldıysa dene.
   // Ücretsiz plan geçmiş tarihleri reddedebilir; hata diğer kaynakları durdurmaz.
