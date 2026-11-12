@@ -2912,7 +2912,7 @@ async function analyze(button){
  const groupTargets={popular:$("mamStandingsPopular"),turkey:$("mamStandingsTurkey"),europe:$("mamStandingsEurope"),cups:$("mamStandingsCups"),world:$("mamStandingsWorld"),all:$("mamStandingsAll")};
  let allProviderLeagues=[];
  const renderStandingButtons=(filter="")=>{
-  Object.values(groupTargets).forEach(target=>{if(target)target.innerHTML=""});
+  Object.entries(groupTargets).forEach(([key,target])=>{if(key!=="all"&&target)target.innerHTML=""});
   const q=filter.trim().toLocaleLowerCase("tr-TR");
   standingCompetitions.filter(item=>!q||(item.name+" "+item.flag).toLocaleLowerCase("tr-TR").includes(q)).forEach(item=>{
    const button=document.createElement("button");button.type="button";button.dataset.standingLeague=item.id;button.textContent=item.flag+" "+item.name;button.classList.toggle("active",selectedStandingsLeague===item.id);
