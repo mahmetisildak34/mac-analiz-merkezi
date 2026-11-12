@@ -493,7 +493,7 @@ function renderMatches(){
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
-  const key="mam_history_v14_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v15_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached){
     try{
@@ -504,27 +504,31 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   const normalize=name=>String(name||"").normalize("NFD").toLowerCase()
     .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
-    .replace(/[^a-z0-9]+/g," ").trim();
+    .replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim()
+    .replace(/\b(football club|fc|cf|afc)\b/g,"").replace(/\s+/g," ").trim();
   const aliases={
-    "manchester city":["man city","m city"],
-    "man city":["manchester city","m city"],
-    "manchester united":["man utd","man united"],
-    "man utd":["manchester united","man united"],
-    "tottenham hotspur":["tottenham","spurs"],
+    "manchester city":["man city","m city","manchester city fc","man city fc"],
+    "man city":["manchester city","m city","manchester city fc"],
+    "manchester united":["man utd","man united","manchester united fc"],
+    "man utd":["manchester united","man united","man utd fc"],
+    "nottingham forest":["nottm forest","nott m forest","nott forest","nott'm forest","nottingham forest fc"],
+    "nottm forest":["nottingham forest","nott forest","nott m forest"],
+    "tottenham hotspur":["tottenham","spurs","tottenham hotspur fc"],
     "tottenham":["tottenham hotspur","spurs"],
-    "nottingham forest":["nottm forest","nott m forest","nott forest"],
-    "nottm forest":["nottingham forest","nott forest"],
-    "paris saint germain":["psg","paris sg"],
-    "atletico madrid":["atletico","atl madrid"],
+    "afc bournemouth":["bournemouth","bournemouth afc"],
+    "bournemouth":["afc bournemouth"],
+    "paris saint germain":["psg","paris sg","paris saint germain fc"],
+    "atletico madrid":["atletico","atl madrid","atletico de madrid"],
     "internazionale":["inter","inter milan"],
+    "inter":["internazionale","inter milan"],
     "bayern munich":["bayern"],
     "wolves":["wolverhampton","wolverhampton wanderers"],
     "west ham":["west ham united"],
-    "brighton and hove albion":["brighton"],
+    "brighton and hove albion":["brighton","brighton hove albion"],
     "newcastle united":["newcastle"],
-    "afc bournemouth":["bournemouth"],
     "leicester city":["leicester"],
-    "ipswich town":["ipswich"]
+    "ipswich town":["ipswich"],
+    "nottingham":["nottingham forest","nottm forest"]
   };
   const wanted=normalize(teamName);
   const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize)]);
