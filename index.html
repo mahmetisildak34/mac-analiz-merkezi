@@ -357,6 +357,13 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .team-placeholder{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#e9f7ed;border:1px solid #d6efdd;color:#168344;font-size:12px;font-weight:900;letter-spacing:-.4px}
 @media(max-width:560px){.team-logo,.team-placeholder{width:36px;height:36px}}
 
+
+/* TEAM CREST FALLBACK: initials are always visible */
+.team-crest{position:relative;width:44px;height:44px;display:grid;place-items:center;flex:0 0 44px}
+.team-placeholder{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:#e9f7ed;border:1px solid #d6efdd;color:#168344;font-size:13px;font-weight:900;letter-spacing:-.4px}
+.team-crest .team-logo{position:absolute;inset:0;width:44px;height:44px;object-fit:contain;background:transparent;border:0}
+@media(max-width:560px){.team-crest,.team-placeholder{width:38px;height:38px;flex-basis:38px}.team-crest .team-logo{width:38px;height:38px}}
+
 </style>
 </head>
 <body>
@@ -793,11 +800,11 @@ async function loadLiveMatches(){
 
 function teamBadge(team){
  const name=String(team?.name||"Takım");
- const initials=name.trim().split(/\s+/).slice(0,2).map(part=>part[0]||"").join("").toUpperCase();
- const logo=team?.logo;
- return logo
-  ? '<img class="team-logo" src="'+esc(logo)+'" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span class="team-placeholder" style="display:none">'+esc(initials)+'</span>'
-  : '<span class="team-placeholder">'+esc(initials)+'</span>';
+ const initials=name.trim().split(/\\s+/).slice(0,2).map(part=>part[0]||"").join("").toUpperCase();
+ const logo=String(team?.logo||"").trim();
+ return '<span class="team-crest"><span class="team-placeholder">'+esc(initials)+'</span>'+
+  (logo?'<img class="team-logo" src="'+esc(logo)+'" alt="" loading="lazy" onerror="this.remove()">':'')+
+  '</span>';
 }
 
 function renderMatches(){
