@@ -1117,7 +1117,8 @@ function teamBadge(team){
 function lineupRatingClass(value){const n=Number(value);return Number.isFinite(n)&&n>=7.5?"good":Number.isFinite(n)&&n<6.5?"low":"";}
 function lineupPlayerCard(entry,ratingMap){
  const p=entry?.player||entry||{},id=Number(p.id),rating=ratingMap.get(String(id));
- const photo=p.photo||(id>0?"https://media.api-sports.io/football/players/"+id+".png":"");
+ const isEspn=p.source==="espn";
+ const photo=p.photo||(!isEspn&&id>0?"https://media.api-sports.io/football/players/"+id+".png":"");
  const image=photo?'<img src="'+esc(photo)+'" alt="'+esc(p.name||"Oyuncu")+'" loading="lazy" onerror="this.style.display=\'none\'">':"";
  const ratingHtml=rating!==undefined&&rating!==null&&rating!==""?'<span class="player-rating '+lineupRatingClass(rating)+'">'+esc(Number(rating).toFixed(1))+'</span>':'<span class="player-rating">—</span>';
  return '<div class="lineup-player">'+image+'<span class="shirt">'+esc(p.number??"")+'</span><span class="player-name" title="'+esc(p.name||"Oyuncu")+'">'+esc(p.name||"Oyuncu")+'</span>'+ratingHtml+'</div>';
@@ -1203,7 +1204,7 @@ async function loadLineups(button){
   for(const team of playerRows)for(const item of team.players||[]){const id=String(item.player?.id||""),rating=item.statistics?.[0]?.games?.rating;if(id&&rating!==undefined&&rating!==null)ratingMap.set(id,rating);}
   const hasStarters=teams.some(team=>(team.startXI||[]).length>0);
   panel.innerHTML='<div class="lineup-head"><strong>⚽ '+(isEspn?"ESPN maç kadrosu":"Resmî maç kadrosu")+'</strong><span class="lineup-formation">'+(hasStarters?"İlk 11":"Kadro listesi")+'</span></div>'+
-   teams.map((team,index)=>'<div class="lineup-head"><strong>Diziliş</strong><span class="lineup-formation">'+esc(team.formation||"Diziliş bilgisi yok")+'</span></div>'+lineupTeamHTML(team,ratingMap,index)).join("")+
+   teams.map((team,index)=>lineupTeamHTML(team,ratingMap,index)).join("")+
    '<div class="lineup-note">Kaynak: '+(isEspn?"ESPN":"API-Football")+'. Oyuncu puanları yalnızca kaynakta mevcut olduğunda gösterilir.</div>';
   panel.querySelectorAll(".lineup-bench-toggle").forEach(benchButton=>{
    benchButton.addEventListener("click",()=>{
