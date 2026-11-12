@@ -364,6 +364,30 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .team-crest .team-logo{position:absolute;inset:0;width:44px;height:44px;object-fit:contain;background:transparent;border:0}
 @media(max-width:560px){.team-crest,.team-placeholder{width:38px;height:38px;flex-basis:38px}.team-crest .team-logo{width:38px;height:38px}}
 
+
+/* ===== KUPON OLUŞTURUCU · API'SİZ ===== */
+.coupon-panel{border:1px solid #dceee2;background:#fbfefc}
+.coupon-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.coupon-title strong{font-size:17px;color:#172b20}
+.coupon-count{font-size:11px;font-weight:800;color:#168344;background:#e8f7ed;border-radius:99px;padding:6px 9px}
+.coupon-leg{display:grid;grid-template-columns:minmax(0,1fr) 94px 34px;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid #e9efeb}
+.coupon-leg:last-child{border-bottom:0}
+.coupon-leg strong{display:block;font-size:12px;color:#24332a}
+.coupon-leg small{display:block;font-size:11px;color:#77847b;margin-top:3px}
+.coupon-leg b{font-size:13px;color:#11813c;text-align:right}
+.coupon-remove{min-height:30px!important;width:30px!important;padding:0!important;background:#fff1f0!important;color:#b43b35!important;border:1px solid #f2d7d4!important;box-shadow:none!important}
+.coupon-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+.coupon-summary .stat{background:#f0f8f2;border-color:#dceee1}
+.coupon-summary .stat b{font-size:18px}
+.coupon-add-row{display:grid;grid-template-columns:minmax(0,1fr) 105px;gap:8px;align-items:end;margin-top:12px}
+.coupon-add-row label{margin-top:0}
+.coupon-add-row select,.coupon-add-row input{min-height:42px;padding:9px 10px;font-size:13px}
+.coupon-add{width:100%;margin-top:9px;min-height:40px!important;padding:9px 12px!important;font-size:12px!important}
+.coupon-actions{display:flex;gap:8px;margin-top:10px}
+.coupon-actions button{flex:1;min-height:42px;font-size:12px}
+.coupon-empty{padding:12px;border:1px dashed #dce6df;border-radius:12px;color:#77847b;font-size:12px;text-align:center}
+@media(max-width:390px){.coupon-leg{grid-template-columns:minmax(0,1fr) 76px 30px;gap:5px}.coupon-summary{gap:6px}.coupon-summary .stat{padding:9px}}
+
 </style>
 </head>
 <body>
@@ -407,6 +431,23 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 <button id="loadStandings" class="secondary" style="width:100%;margin-top:10px">Seçili ligin puan durumunu getir</button>
 <div id="standings" class="pred" style="margin-top:12px">Puan durumunu görmek için lig seçip butona bas.</div>
 <div id="status" class="status"></div>
+
+<div class="panel coupon-panel" id="couponPanel">
+ <div class="coupon-title"><strong>🎟️ Kupon oluşturucu</strong><span class="coupon-count" id="couponCount">0 seçim</span></div>
+ <p class="hint">Maç kartlarından seçim ekle. Oranları kendin gir; toplam oran ve olası dönüş otomatik hesaplanır. API isteği gönderilmez.</p>
+ <div id="couponItems"><div class="coupon-empty">Henüz kupona maç eklemedin.</div></div>
+ <div class="coupon-add-row">
+  <div><label for="couponStake">Misli / tutar (₺)</label><input id="couponStake" type="number" min="0" step="0.01" value="20" inputmode="decimal"></div>
+  <div><label>Seçim sayısı</label><input id="couponLegCount" value="0" readonly></div>
+ </div>
+ <div class="coupon-summary">
+  <div class="stat"><span>Toplam oran</span><b id="couponTotalOdds">1.00</b></div>
+  <div class="stat"><span>Olası dönüş</span><b id="couponReturn">0,00 ₺</b></div>
+ </div>
+ <div class="coupon-actions"><button class="secondary" type="button" id="couponClear">Kuponu temizle</button></div>
+ <p class="note">Hesaplanan dönüş, girilen oranlar ve tutara göre matematiksel tutardır; kazanç garantisi değildir. Kupon yalnızca bu cihazın tarayıcısında saklanır.</p>
+</div>
+
 <div id="matches"><div class="empty">Maçları getirmek için tarih seç.</div></div>
 </section>
 
@@ -834,6 +875,16 @@ function renderMatches(){
     <span class="small">Maç ön analizi</span>
     <button class="predBtn" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-league="${esc(l.id)}" data-date="${esc(f.date?.slice(0,10))}">✦ Maçı analiz et</button>
    </div>
+
+   <div class="coupon-add-row">
+    <div><label>Kupon marketi</label><select class="coupon-market">
+     <option>1 - Ev sahibi</option><option>X - Beraberlik</option><option>2 - Deplasman</option>
+     <option>1.5 Üst</option><option>2.5 Üst</option><option>3.5 Üst</option><option>KG Var</option><option>KG Yok</option>
+    </select></div>
+    <div><label>Oran</label><input class="coupon-odds" type="number" min="1.01" step="0.01" placeholder="1.85" inputmode="decimal"></div>
+   </div>
+   <button class="coupon-add secondary" type="button" data-id="${esc(f.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-date="${esc(f.date?.slice(0,10))}">＋ Kupona ekle</button>
+
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
  }).join("");
@@ -841,7 +892,58 @@ function renderMatches(){
  document.querySelectorAll(".predBtn").forEach(b=>{
   b.addEventListener("click",()=>analyze(b));
  });
+ document.querySelectorAll(".coupon-add").forEach(b=>{
+  b.addEventListener("click",()=>addCouponSelection(b));
+ });
 }
+
+
+/* KUPON OLUŞTURUCU — yalnızca ekrandaki maç verisini kullanır; API çağırmaz. */
+const COUPON_KEY="mam_coupon_v1";
+let couponItems=[];
+try{couponItems=JSON.parse(localStorage.getItem(COUPON_KEY)||"[]");if(!Array.isArray(couponItems))couponItems=[];}catch(e){couponItems=[];}
+function saveCoupon(){
+ try{localStorage.setItem(COUPON_KEY,JSON.stringify(couponItems));}catch(e){}
+ renderCoupon();
+}
+function renderCoupon(){
+ const box=$("couponItems");
+ if(!box)return;
+ $("couponCount").textContent=couponItems.length+" seçim";
+ $("couponLegCount").value=String(couponItems.length);
+ if(!couponItems.length){
+  box.innerHTML='<div class="coupon-empty">Henüz kupona maç eklemedin.</div>';
+ }else{
+  box.innerHTML=couponItems.map((item,index)=>'<div class="coupon-leg"><div><strong>'+esc(item.home)+' – '+esc(item.away)+'</strong><small>'+esc(item.market)+' · '+esc(item.date||"Tarih yok")+'</small></div><b>'+Number(item.odds).toFixed(2)+'</b><button class="coupon-remove" type="button" data-remove-coupon="'+index+'" aria-label="Seçimi sil">×</button></div>').join("");
+  box.querySelectorAll("[data-remove-coupon]").forEach(button=>button.addEventListener("click",()=>{
+   couponItems.splice(Number(button.dataset.removeCoupon),1);saveCoupon();
+  }));
+ }
+ const total=couponItems.reduce((product,item)=>product*Number(item.odds||1),1);
+ const stake=Math.max(0,Number($("couponStake").value)||0);
+ $("couponTotalOdds").textContent=total.toFixed(2);
+ $("couponReturn").textContent=(stake*total).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" ₺";
+}
+function addCouponSelection(button){
+ const card=button.closest(".match");
+ const market=card.querySelector(".coupon-market");
+ const oddsInput=card.querySelector(".coupon-odds");
+ const odds=Number(oddsInput.value);
+ if(!Number.isFinite(odds)||odds<=1){
+  $("status").textContent="Kupona eklemek için 1.00'dan büyük geçerli bir oran gir.";
+  oddsInput.focus();return;
+ }
+ const item={id:button.dataset.id,home:button.dataset.homeName,away:button.dataset.awayName,date:button.dataset.date,market:market.value,odds:Number(odds.toFixed(2))};
+ const existing=couponItems.findIndex(x=>String(x.id)===String(item.id)&&x.market===item.market);
+ if(existing>=0)couponItems[existing]=item;else couponItems.push(item);
+ saveCoupon();
+ $("status").textContent="Seçim kupona eklendi. Yeni API isteği gönderilmedi.";
+}
+$("couponStake").addEventListener("input",renderCoupon);
+$("couponClear").addEventListener("click",()=>{
+ couponItems=[];saveCoupon();$("status").textContent="Kupon temizlendi.";
+});
+renderCoupon();
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
