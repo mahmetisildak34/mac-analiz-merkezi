@@ -1480,6 +1480,7 @@ function renderMatches(){
   const statusNames={"NS":"Başlamadı","TBD":"Saat bekleniyor","1H":"1. yarı","HT":"Devre arası","2H":"2. yarı","ET":"Uzatmalar","BT":"Uzatma arası","P":"Penaltılar","SUSP":"Durduruldu","INT":"Kesildi","LIVE":"Canlı","FT":"Bitti","AET":"Uzatmalarda bitti","PEN":"Penaltılarla bitti","PST":"Ertelendi","CANC":"İptal","ABD":"Yarıda kaldı","AWD":"Hükmen","WO":"Hükmen"};
   const statusLabel=statusNames[statusCode]||statusCode||"Durum bilinmiyor";
   const isLiveStatus=["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(statusCode);
+  const isFinishedStatus=["FT","AET","PEN","AWD","WO"].includes(statusCode);
   const time=f.date?new Date(f.date).toLocaleTimeString("tr-TR",{
    hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"
   }):"";
@@ -1491,9 +1492,12 @@ function renderMatches(){
     <div class="team-block">${teamBadge(t.away)}<strong>${esc(t.away?.name)}</strong></div>
    </div>
    <div class="match-actions">
-    <span class="small">${isLiveStatus?"🔴 Canlı maç":"Maç ön analizi"}</span>
-    <button class="predBtn" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-league="${esc(l.id)}" data-date="${esc(f.date?.slice(0,10))}">✦ Maçı analiz et</button>
+    <span class="small">${isLiveStatus?"🔴 Canlı maç":isFinishedStatus?"✓ Maç tamamlandı":"Maç ön analizi"}</span>
+    ${isFinishedStatus
+      ? '<span class="small" style="font-weight:700;color:#687384">Maç önü tahmini kapalı</span>'
+      : '<button class="predBtn" data-id="'+esc(f.id)+'" data-home="'+esc(t.home?.id)+'" data-away="'+esc(t.away?.id)+'" data-home-name="'+esc(t.home?.name)+'" data-away-name="'+esc(t.away?.name)+'" data-league="'+esc(l.id)+'" data-date="'+esc(f.date?.slice(0,10))+'" data-status="'+esc(statusCode)+'">✦ Maçı analiz et</button>'}
    </div>
+   ${isFinishedStatus?'<div class="analysis-preview">✓ Gerçekleşen sonuç: <b>'+esc(g.home)+' – '+esc(g.away)+'</b>. Maç önü tahmini bu karşılaşma için artık üretilemez.</div>':""}
 
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9.]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9.]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
    <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
@@ -2128,6 +2132,11 @@ function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 /* ANALİZ */
 async function analyze(button){
  if(button.disabled)return;
+ if(["FT","AET","PEN","AWD","WO"].includes(String(button.dataset.status||""))){
+  const target=$("pred-"+button.dataset.id);
+  if(target)target.innerHTML='<span class="note">Bu maç tamamlandı. Sistem yalnızca maç başlamadan önce tahmin üretir; gerçekleşmiş sonuç için maç önü tahmini gösterilmez.</span>';
+  return;
+ }
  button.disabled=true;
  button.textContent="Hesaplanıyor...";
  const target=$("pred-"+button.dataset.id);
@@ -2213,11 +2222,12 @@ async function analyze(button){
     <div class="stat"><span>Model olasılığı</span><b>${pct(outcome.chance)}</b></div>
    </div>
    <p class="note">1-X-2 olasılıkları içindeki en yüksek sonuçtur; kesinlik veya garanti değildir.</p>
-   <div class="section-title">Beklenen gol</div>
+   <div class="section-title">Modelin tahmini gol ortalaması</div>
    <div class="statgrid">
     <div class="stat"><span>${esc(homeName)}</span><b>${lh.toFixed(2)}</b></div>
     <div class="stat"><span>${esc(awayName)}</span><b>${la.toFixed(2)}</b></div>
    </div>
+   <p class="note">Bu değerler geçmiş gol ortalamalarından üretilen model tahminidir; sağlayıcının maç içi gerçek xG verisi değildir.</p>
    <div class="section-title">Takım performansı</div>
    <div class="statgrid">
     <div class="stat"><span>${esc(homeName)} gol ortalaması</span><b>${hs.gf.toFixed(2)}</b></div>
