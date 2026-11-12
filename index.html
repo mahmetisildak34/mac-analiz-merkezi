@@ -2539,30 +2539,34 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   const folder=leagues[String(leagueId)];
   if(folder){
-    // Sadece güncel sezon değil, önceki iki sezon da taranır.
+    // Üç sezonun CSV arşivini paralel tara; iki ayna kaynağı da zaman aşımıyla sınırla.
+    // Eski seri istek düzeni iPhone'da uzun süre "geçmiş maçlar alınıyor" ekranında kalabiliyordu.
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const seasonStart=matchMonth>=7?matchYear:matchYear-1;
     const seasons=[seasonStart,seasonStart-1,seasonStart-2];
-    for(const year of seasons){
+    const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
       const path="data/"+folder+"/results_"+seasonCode+".csv";
       const urls=[
         "https://raw.githubusercontent.com/oladeeayo/open-matchday/master/"+path,
         "https://cdn.jsdelivr.net/gh/oladeeayo/open-matchday@master/"+path
       ];
-      let csvText=null;
-      for(const url of urls){
+      const attempts=urls.map(async url=>{
         const controller=new AbortController();
-        const timer=setTimeout(()=>controller.abort(),10000);
+        const timer=setTimeout(()=>controller.abort(),7000);
         try{
           const response=await fetch(url,{signal:controller.signal,cache:"no-store"});
           if(!response.ok)throw new Error("CSV HTTP "+response.status);
           const body=await response.text();
           if(!body||!body.includes("ft_home")||!body.includes("ft_away"))throw new Error("CSV başlıkları geçersiz");
-          csvText=body;break;
-        }catch(e){sourceError=String(e.message||e);}
-        finally{clearTimeout(timer);}
-      }
+          return body;
+        }finally{clearTimeout(timer);}
+      });
+      try{return await Promise.any(attempts);}
+      catch(e){sourceError+=" "+seasonCode+" CSV arşivi alınamadı.";return null;}
+    };
+    const csvSeasons=await Promise.all(seasons.map(fetchSeason));
+    for(const csvText of csvSeasons){
       if(!csvText)continue;
       for(const row of parseCSV(csvText)){
         const hm=isTarget(row.home),am=isTarget(row.away);
@@ -2600,7 +2604,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // ESPN yedek geçmişi: fikstür API-Football'dan gelse bile maç tarihindeki
   // ESPN skor tablosundan takımın ESPN ID'sini bul ve takım takvimini oku.
-  if(ESPN_LEAGUES[String(leagueId)]?.slug){
+  if(output.length<5&&ESPN_LEAGUES[String(leagueId)]?.slug){
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)].slug;
       let espnTeamId="";
