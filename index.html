@@ -2397,7 +2397,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
-  const key="mam_history_v30_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v31_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2532,7 +2532,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         "https://cdn.jsdelivr.net/gh/oladeeayo/open-matchday@master/"+path
       ];
       const fetchPromise=(async()=>{
-        const attempts=urls.map(async url=>{
+        const attempts=await Promise.allSettled(urls.map(async url=>{
           const controller=new AbortController();
           const timer=setTimeout(()=>controller.abort(),7000);
           try{
@@ -2542,8 +2542,13 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
             if(!body||!body.includes("ft_home")||!body.includes("ft_away"))throw new Error("CSV başlıkları geçersiz");
             return body;
           }finally{clearTimeout(timer);}
-        });
-        const body=await Promise.any(attempts);
+        }));
+        const successful=attempts.find(x=>x.status==="fulfilled");
+        if(!successful){
+          const reasons=attempts.map(x=>String(x.reason?.message||x.reason||"bilinmeyen hata")).join(" / ");
+          throw new Error("CSV kaynakları yanıt vermedi: "+reasons);
+        }
+        const body=successful.value;
         try{localStorage.setItem(archiveKey,JSON.stringify({time:Date.now(),csv:body}));}catch(e){}
         return body;
       })();
@@ -2845,13 +2850,18 @@ async function analyze(button){
   const awayOverall=teamStats(awayMatches,awayId,"all");
   const homeVenue=teamStats(homeMatches,homeId,"home");
   const awayVenue=teamStats(awayMatches,awayId,"away");
-  const hs=homeVenue.count?homeVenue:homeOverall;
-  const as=awayVenue.count?awayVenue:awayOverall;
-  const homeVenueFallback=!homeVenue.count,awayVenueFallback=!awayVenue.count;
-  if(homeOverall.count<1||awayOverall.count<1){
-   throw new Error("Geçmiş veri yetersiz. "+button.dataset.homeName+": "+homeOverall.count+" maç; "+button.dataset.awayName+": "+awayOverall.count+" maç. Kaynak eşleşmesini kontrol et.");
+  // Do not generate a match forecast from incomplete or venue-mismatched history.
+  // Minimum: 5 verified matches per team overall and 3 relevant venue matches.
+  if(homeOverall.count<5||awayOverall.count<5||homeVenue.count<3||awayVenue.count<3){
+   throw new Error("Güvenilir analiz için geçmiş veri yetersiz. "+
+    button.dataset.homeName+": "+homeOverall.count+" toplam / "+homeVenue.count+" iç saha maç; "+
+    button.dataset.awayName+": "+awayOverall.count+" toplam / "+awayVenue.count+" deplasman maç. "+
+    "Gerekli: her takımda en az 5 geçmiş maç ve ilgili sahada en az 3 maç. Veri tamamlanmadan tahmin gösterilmiyor.");
   }
-  const lowSample=hs.count<3||as.count<3;
+  const hs=homeVenue;
+  const as=awayVenue;
+  const homeVenueFallback=false,awayVenueFallback=false;
+  const lowSample=hs.count<5||as.count<5;
 
   const lh=Math.max(.15,Math.min(4,(hs.gf+as.ga)/2));
   const la=Math.max(.15,Math.min(4,(as.gf+hs.ga)/2));
