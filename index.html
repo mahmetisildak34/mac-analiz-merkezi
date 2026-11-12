@@ -556,6 +556,8 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 /* MAÇ DETAYI — uygulama tarzı arayüz */
 .mam-match-open{width:100%;margin-top:12px;padding:12px 14px;border-radius:13px;background:#14263a;color:#f7fbff;border:1px solid rgba(120,160,205,.22);box-shadow:none;font-weight:850}
 .match:not(.in-detail) .match-actions,
+.match:not(.in-detail) .match-detail-tabs,
+.match:not(.in-detail) .match-detail-pane,
 .match:not(.in-detail) .liveStatsBtn,
 .match:not(.in-detail) .liveStats,
 .match:not(.in-detail) .lineupBtn,
@@ -572,6 +574,7 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .match-detail-top strong{font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .match-detail-close{width:42px;min-height:42px;padding:0;border-radius:50%;background:#1d2b3d;color:#fff;box-shadow:none;font-size:21px}
 .match-detail-body{width:100%;max-width:760px;margin:0 auto}
+.match.in-detail .mam-match-open{display:none!important}
 .match.in-detail{margin:0!important;padding:15px!important;border-radius:20px!important;background:#111c2b!important;border:1px solid rgba(150,180,215,.18)!important;color:#f5f8fc!important;box-shadow:0 12px 38px rgba(0,0,0,.24)!important}
 .match.in-detail .match-head{border-bottom:1px solid rgba(150,180,215,.16);padding-bottom:12px}
 .match.in-detail .match-versus{padding:22px 4px}
@@ -1637,7 +1640,7 @@ function makeMamDetailTab(article){
  }
  const formButton=document.createElement("button");formButton.type="button";formButton.className="secondary mam-form-load";formButton.textContent="🕘 Son 5 maçı göster";
  formButton.dataset.homeId=analysisButton?.dataset.home||lineupButton?.dataset.home||"";
- formButton.dataset.awayId=analysisButton?.dataset.away||"";
+ formButton.dataset.awayId=analysisButton?.dataset.away||lineupButton?.dataset.away||"";
  formButton.dataset.homeName=analysisButton?.dataset.homeName||lineupButton?.dataset.homeName||"";
  formButton.dataset.awayName=analysisButton?.dataset.awayName||lineupButton?.dataset.awayName||"";
  formButton.dataset.date=analysisButton?.dataset.date||lineupButton?.dataset.date||"";
@@ -1744,7 +1747,7 @@ function renderMatches(){
    ${isFinishedStatus?'<div class="analysis-preview">✓ Gerçekleşen sonuç: <b>'+esc(g.home)+' – '+esc(g.away)+'</b>. Maç önü tahmini bu karşılaşma için artık üretilemez.</div>':""}
 
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
-   <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
+   <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
