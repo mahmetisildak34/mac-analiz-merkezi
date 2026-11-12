@@ -645,6 +645,19 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const seen=new Set();
   let sourceError="";
 
+  const addMatch=m=>{
+    const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
+    const hm=isTarget(h),am=isTarget(a);
+    if(hm===am)return;
+    const gh=m.goals?.home,ga=m.goals?.away;
+    if(gh===null||ga===null||gh===undefined||ga===undefined)return;
+    const d=String(m.fixture?.date||"").slice(0,10);
+    if(!d||d>=matchDate)return;
+    const id=[d,normalize(h),normalize(a),gh,ga].join("|");
+    if(seen.has(id))return;
+    seen.add(id);output.push(m);
+  };
+
   // Önce Cloudflare KV günlük arşivini kullan. API-Football ve Football-data
   // kimlikleri farklı olabileceği için hedef takımın ID'sini burada eşleştir.
   try{
@@ -674,19 +687,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   }
   const seen=new Set();
   let sourceError="";
-
-  const addMatch=m=>{
-    const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
-    const hm=isTarget(h),am=isTarget(a);
-    if(hm===am)return;
-    const gh=m.goals?.home,ga=m.goals?.away;
-    if(gh===null||ga===null||gh===undefined||ga===undefined)return;
-    const d=String(m.fixture?.date||"").slice(0,10);
-    if(!d||d>=matchDate)return;
-    const id=[d,normalize(h),normalize(a),gh,ga].join("|");
-    if(seen.has(id))return;
-    seen.add(id);output.push(m);
-  };
 
   const leagues={
     "39":"ENG_1_premier-league","140":"ESP_1_la-liga","78":"GER_1_bundesliga",
