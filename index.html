@@ -1422,13 +1422,13 @@ async function loadLiveMatches(){
 }
 
 
-async function loadLiveStats(button){
+async function loadLiveStats(button,forceRefresh=false){
  const fixtureId=String(button.dataset.liveId||"");
  const source=String(button.dataset.liveSource||"api");
  const leagueSlug=String(button.dataset.liveLeague||"");
  const panel=document.getElementById(button.dataset.livePanel||("live-stats-"+fixtureId));
  if(!panel||!fixtureId)return;
- if(!panel.hidden){panel.hidden=true;button.textContent="📊 Canlı istatistikler";return;}
+ if(!forceRefresh&&!panel.hidden){panel.hidden=true;button.textContent="📊 Canlı istatistikler";return;}
  panel.hidden=false;panel.innerHTML='<div class="small">Canlı istatistikler alınıyor…</div>';
  button.disabled=true;
  try{
@@ -1596,9 +1596,9 @@ async function loadLiveStats(button){
    }
   }
   const rows=statsRows.map(([label,left,right])=>'<div class="probline" style="padding:7px 0;border-bottom:1px solid var(--line)"><b>'+esc(left)+'</b><span>'+esc(label)+'</span><b>'+esc(right)+'</b></div>').join("");
-  panel.innerHTML='<div style="font-weight:800;margin-bottom:8px">📊 Canlı maç istatistikleri</div><div class="probline" style="padding:7px 0"><b>'+esc(homeTeam)+'</b><span>İstatistik</span><b>'+esc(awayTeam)+'</b></div>'+(rows||'<div class="small">Kaynak henüz istatistik paylaşmadı.</div>')+'<div class="small" style="margin-top:9px">Kaynak: '+sourceLabel+'. Veriler talep üzerine yenilenir.'+(!hasRealXg?' Model xG; şut sayılarına dayalı yaklaşık göstergedir, sağlayıcının gerçek xG verisi değildir.':' Gerçek xG sağlayıcıdan alınmıştır.')+'</div>';
+  panel.innerHTML='<div style="font-weight:800;margin-bottom:8px">📊 Canlı maç istatistikleri</div><div class="probline" style="padding:7px 0"><b>'+esc(homeTeam)+'</b><span>İstatistik</span><b>'+esc(awayTeam)+'</b></div>'+(rows||'<div class="small">Kaynak henüz istatistik paylaşmadı.</div>')+'<div class="small" style="margin-top:9px">Kaynak: '+sourceLabel+'. Açık istatistik paneli maç sürerken otomatik olarak 60 saniyede bir yenilenir.'+(!hasRealXg?' Model xG; şut sayılarına dayalı yaklaşık göstergedir, sağlayıcının gerçek xG verisi değildir.':' Gerçek xG sağlayıcıdan alınmıştır.')+'</div>';
  }catch(error){panel.innerHTML='<span class="error">'+esc(error.message||error)+'</span>';}
- finally{button.disabled=false;button.textContent="İstatistikleri gizle";}
+ finally{button.disabled=false;button.textContent=panel.hidden?"📊 Canlı istatistikler":"İstatistikleri gizle";}
 }
 
 function teamBadge(team){
@@ -2145,6 +2145,45 @@ if(!window.mamLineupAutoTimer){
  document.addEventListener("visibilitychange",()=>{if(!document.hidden)autoTrackUpcomingLineups();});
 }
 
+
+/* Canlı maç ve fikstür otomatik takibi.
+   İstatistik yalnızca kullanıcı ilgili maçın İstatistik sekmesini açtığında çağrılır;
+   açık panel maç devam ederken 60 saniyede bir yenilenir. */
+let mamLiveStatsRefreshBusy=false;
+async function refreshOpenLiveStats(){
+ if(document.hidden||mamLiveStatsRefreshBusy)return;
+ mamLiveStatsRefreshBusy=true;
+ try{
+  const buttons=[...document.querySelectorAll("#matches .liveStatsBtn")].filter(button=>{
+   const panel=document.getElementById(button.dataset.livePanel||"");
+   const pane=button.closest(".match-detail-pane");
+   return panel&&!panel.hidden&&(!pane||!pane.hidden)&&!button.disabled;
+  });
+  for(const button of buttons){
+   if(document.hidden)break;
+   await loadLiveStats(button,true);
+  }
+ }finally{mamLiveStatsRefreshBusy=false;}
+}
+let mamFixtureRefreshBusy=false;
+async function refreshVisibleFixtureLists(){
+ if(document.hidden||mamFixtureRefreshBusy)return;
+ if(mamScreenMode!=="live"&&mamScreenMode!=="upcoming")return;
+ // Açık istatistik panelini ve kullanıcının baktığı maçı yeniden çizerek kapatma.
+ if(document.querySelector("#matches .liveStatsBtn")&&[...document.querySelectorAll("#matches .liveStats")].some(panel=>!panel.hidden))return;
+ mamFixtureRefreshBusy=true;
+ try{
+  if(mamScreenMode==="live")await loadLiveMatches();
+  else await loadMatches();
+ }finally{mamFixtureRefreshBusy=false;}
+}
+if(!window.mamLiveStatsTimer){
+ window.mamLiveStatsTimer=setInterval(refreshOpenLiveStats,60*1000);
+ window.mamFixtureRefreshTimer=setInterval(refreshVisibleFixtureLists,60*1000);
+ document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden){refreshOpenLiveStats();refreshVisibleFixtureLists();}
+ });
+}
 
 /* KUPON OLUŞTURUCU — yalnızca ekrandaki maç verisini kullanır; API çağırmaz. */
 const COUPON_KEY="mam_coupon_v1";
