@@ -493,7 +493,7 @@ function renderMatches(){
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
-  const key="mam_history_v13_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v14_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached){
     try{
@@ -502,9 +502,9 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     }catch(e){}
   }
 
-  const normalize=name=>String(name||"").normalize("NFD")
+  const normalize=name=>String(name||"").normalize("NFD").toLowerCase()
     .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
-    .replace(/[^a-z0-9]+/g," ").trim().toLowerCase();
+    .replace(/[^a-z0-9]+/g," ").trim();
   const aliases={
     "manchester city":["man city","m city"],
     "man city":["manchester city","m city"],
