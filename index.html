@@ -829,6 +829,7 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
  <div class="mam-standings-group"><h3>🌍 Avrupa'nın Büyük Ligleri</h3><div class="mam-standings-leagues" id="mamStandingsEurope"></div></div>
  <div class="mam-standings-group"><h3>🏆 Avrupa Kupaları</h3><div class="mam-standings-leagues" id="mamStandingsCups"></div></div>
  <div class="mam-standings-group"><h3>🌐 Diğer Ülkeler ve Uluslararası Turnuvalar</h3><div class="mam-standings-leagues" id="mamStandingsWorld"></div></div>
+ <div class="mam-standings-group"><h3>🌍 Tüm desteklenen ligler ve kupalar</h3><p class="mam-standings-footnote">Veri sağlayıcısının güncel sezon için sunduğu tüm organizasyonları getir.</p><button type="button" class="secondary" id="mamLoadAllLeagues">Tüm ligleri yükle</button><div class="mam-standings-leagues" id="mamStandingsAll" style="margin-top:10px"></div></div>
  <p class="mam-standings-footnote">Liste, veri sağlayıcılarımızın desteklediği organizasyonlara göre genişletilir. Eleme usulü kupalarda puan tablosu bulunmayabilir; grup aşaması varsa grup tablosu gösterilir.</p>
  <div class="mam-standings-card"><div class="mam-standings-card-head"><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Bir lig veya turnuva seç</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosunu görmek için yukarıdan bir lig seç.</div></div></div>
 </section>
@@ -2908,7 +2909,8 @@ async function analyze(button){
   {id:"71",name:"Brezilya Serie A",flag:"🇧🇷",group:"world"},
   {id:"128",name:"Arjantin Primera División",flag:"🇦🇷",group:"world"}
  ];
- const groupTargets={popular:$("mamStandingsPopular"),turkey:$("mamStandingsTurkey"),europe:$("mamStandingsEurope"),cups:$("mamStandingsCups"),world:$("mamStandingsWorld")};
+ const groupTargets={popular:$("mamStandingsPopular"),turkey:$("mamStandingsTurkey"),europe:$("mamStandingsEurope"),cups:$("mamStandingsCups"),world:$("mamStandingsWorld"),all:$("mamStandingsAll")};
+ let allProviderLeagues=[];
  const renderStandingButtons=(filter="")=>{
   Object.values(groupTargets).forEach(target=>{if(target)target.innerHTML=""});
   const q=filter.trim().toLocaleLowerCase("tr-TR");
@@ -2920,8 +2922,22 @@ async function analyze(button){
   Object.values(groupTargets).forEach(target=>{const section=target?.closest(".mam-standings-group");if(section)section.hidden=!target.children.length;});
  };
  renderStandingButtons();
- $("mamStandingsSearch")?.addEventListener("input",event=>renderStandingButtons(event.target.value));
- $("mamStandingsLeagues")?.addEventListener("click",async event=>{
+ $("mamStandingsSearch")?.addEventListener("input",event=>{renderStandingButtons(event.target.value);const q=event.target.value.trim().toLocaleLowerCase("tr-TR");$("mamStandingsAll")?.querySelectorAll("[data-standing-league]").forEach(button=>button.hidden=!!q&&!button.textContent.toLocaleLowerCase("tr-TR").includes(q));});
+ $("mamLoadAllLeagues")?.addEventListener("click",async()=>{
+  const button=$("mamLoadAllLeagues"),target=$("mamStandingsAll");button.disabled=true;button.textContent="Ligler yükleniyor...";target.innerHTML='<div class="empty">Desteklenen organizasyonlar alınıyor...</div>';
+  try{
+   const now=new Date(),year=now.getFullYear(),season=now.getMonth()<=5?year-1:year;
+   const data=await api("leagues?"+qs({season}));allProviderLeagues=data.response||[];
+   if(!allProviderLeagues.length)throw new Error("Veri sağlayıcısı lig listesi döndürmedi.");
+   const q=$("mamStandingsSearch")?.value.trim().toLocaleLowerCase("tr-TR")||"";target.innerHTML="";
+   allProviderLeagues.sort((a,b)=>(a.country?.name||"").localeCompare(b.country?.name||"")||(a.league?.name||"").localeCompare(b.league?.name||""));
+   allProviderLeagues.forEach(item=>{const id=String(item.league?.id||"");if(!id)return;const name=(item.country?.name?item.country.name+" · ":"")+(item.league?.name||"Organizasyon");if(q&&!name.toLocaleLowerCase("tr-TR").includes(q))return;const b=document.createElement("button");b.type="button";b.dataset.standingLeague=id;b.textContent=(item.country?.flag?"":"🌍 ")+name;b.title=item.league?.type||"Lig";b.classList.toggle("active",id===selectedStandingsLeague);target.appendChild(b);});
+   if(!target.children.length)target.innerHTML='<div class="empty">Aramana uygun lig bulunamadı.</div>';
+   button.textContent=allProviderLeagues.length+" organizasyon yüklendi";
+  }catch(error){target.innerHTML='<div class="error">Tüm ligler yüklenemedi: '+esc(error.message||error)+'</div>';button.textContent="Tekrar dene";}
+  finally{button.disabled=false;}
+ });
+ $("mamStandingsScreen")?.addEventListener("click",async event=>{
   const button=event.target.closest("[data-standing-league]");if(!button)return;
   selectedStandingsLeague=button.dataset.standingLeague;
   document.querySelectorAll("#mamStandingsScreen [data-standing-league]").forEach(item=>item.classList.toggle("active",item.dataset.standingLeague===selectedStandingsLeague));
