@@ -491,6 +491,85 @@ function renderMatches(){
  });
 }
 
+/* MİLLİ TAKIM GEÇMİŞİ — kulüp ligi arşivinden bağımsız ESPN kaynağı */
+async function getESPNNationalHistory(teamId,teamName,matchDate){
+ const cacheKey="mam_national_history_v1_"+String(teamName).toLowerCase()+"_"+matchDate.slice(0,4);
+ try{
+  const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");
+  if(saved&&saved.time&&Date.now()-saved.time<CACHE_HOURS*60*60*1000&&Array.isArray(saved.matches)&&saved.matches.length)return saved.matches;
+ }catch(e){}
+ const normalize=value=>String(value||"").normalize("NFD").toLowerCase()
+  .replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i")
+  .replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim()
+  .replace(/\\s+/g," ");
+ const aliases={
+  "turkiye":["turkey","türkiye"],
+  "turkey":["turkiye","türkiye"],
+  "belgium":["belgie","belgique"],
+  "czechia":["czech republic"],
+  "north macedonia":["macedonia"],
+  "ivory coast":["cote d ivoire"]
+ };
+ const wanted=normalize(teamName);
+ const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize)]);
+ const matchesName=name=>accepted.has(normalize(name));
+ const teamsData=await api("espn/uefa.nations/teams?limit=500");
+ const candidates=[];
+ const walk=(node,depth=0)=>{
+  if(!node||typeof node!=="object"||depth>9)return;
+  if(Array.isArray(node)){node.forEach(x=>walk(x,depth+1));return;}
+  if(node.team&&typeof node.team==="object"){
+   const t=node.team;
+   if(t.id&&(t.displayName||t.name))candidates.push(t);
+  }
+  if(node.id&&(node.displayName||node.name)&&(node.abbreviation||node.uid||node.links||node.type))candidates.push(node);
+  Object.values(node).forEach(v=>walk(v,depth+1));
+ };
+ walk(teamsData);
+ const teamMap=new Map(candidates.map(t=>[String(t.id),t]));
+ const espnTeam=[...teamMap.values()].find(t=>matchesName(t.displayName||t.name)||matchesName(t.shortDisplayName)||matchesName(t.abbreviation));
+ if(!espnTeam)throw new Error(teamName+" ESPN milli takım listesinde bulunamadı.");
+ const scheduleData=await api("espn/uefa.nations/teams/"+encodeURIComponent(espnTeam.id)+"/schedule");
+ const events=Array.isArray(scheduleData.events)?scheduleData.events:
+  Array.isArray(scheduleData.schedule)?scheduleData.schedule:
+  Array.isArray(scheduleData.items)?scheduleData.items:[];
+ const output=[],seen=new Set();
+ for(const event of events){
+  const competition=(event.competitions||[])[0]||event;
+  const competitors=competition.competitors||[];
+  const home=competitors.find(x=>x.homeAway==="home")||competitors[0];
+  const away=competitors.find(x=>x.homeAway==="away")||competitors[1];
+  if(!home||!away)continue;
+  const state=String(event.status?.type?.state||competition.status?.type?.state||"").toLowerCase();
+  const completed=event.status?.type?.completed===true||competition.status?.type?.completed===true||state==="post";
+  if(!completed)continue;
+  const date=String(event.date||competition.date||"").slice(0,10);
+  if(!date||date>=matchDate)continue;
+  const homeName=home.team?.displayName||home.team?.name||home.displayName||home.name||"";
+  const awayName=away.team?.displayName||away.team?.name||away.displayName||away.name||"";
+  const isHome=matchesName(homeName),isAway=matchesName(awayName);
+  if(isHome===isAway)continue;
+  const homeGoals=Number(String(home.score??"").replace(/[^0-9-]/g,""));
+  const awayGoals=Number(String(away.score??"").replace(/[^0-9-]/g,""));
+  if(!Number.isFinite(homeGoals)||!Number.isFinite(awayGoals))continue;
+  const id=[date,normalize(homeName),normalize(awayName),homeGoals,awayGoals].join("|");
+  if(seen.has(id))continue;
+  seen.add(id);
+  output.push({
+   fixture:{id:"espn-national-"+(event.id||id),date:date+"T12:00:00Z",status:{short:"FT"}},
+   teams:{home:{id:isHome?Number(teamId):-1,name:homeName},away:{id:isAway?Number(teamId):-1,name:awayName}},
+   goals:{home:homeGoals,away:awayGoals},
+   score:{halftime:{home:null,away:null}},
+   statistics:{}
+  });
+ }
+ output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
+ const result=output.slice(0,20);
+ if(!result.length)throw new Error(teamName+" için ESPN geçmiş fikstüründe tamamlanmış maç bulunamadı.");
+ try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:result}));}catch(e){}
+ return result;
+}
+
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId){
   const key="mam_history_v16_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
@@ -587,7 +666,12 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   };
 
   const folder=leagues[String(leagueId)];
-  if(folder){
+  if(String(leagueId)==="5"){
+    try{
+      const nationalMatches=await getESPNNationalHistory(teamId,teamName,matchDate);
+      output.push(...nationalMatches);
+    }catch(e){sourceError="ESPN milli takım geçmişi: "+String(e.message||e);}
+  }else if(folder){
     const path="data/"+folder+"/results_2627.csv";
     const urls=[
       new URL("./"+path,window.location.href).href,
@@ -626,7 +710,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       }
     }
     if(!output.length&&!sourceError)sourceError="Dosya açıldı ancak "+teamName+" için "+matchDate+" öncesinde eşleşen tamamlanmış maç bulunamadı.";
-  }else{
+  }else if(String(leagueId)!=="5"){
     sourceError="Bu lig için Open Matchday arşiv eşlemesi henüz tanımlı değil (lig kodu: "+leagueId+").";
   }
 
