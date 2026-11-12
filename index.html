@@ -2015,12 +2015,16 @@ async function loadMamMatchForm(button,forceRefresh=false){
     const side=getTeamSide(m,teamId,name);
     return (venue==="all"||side===venue)&&Number.isFinite(Number(m.goals?.home))&&Number.isFinite(Number(m.goals?.away));
    }).slice(0,10);
-   let w=0,d=0,l=0,gf=0,ga=0;
+   let w=0,d=0,l=0,gf=0,ga=0,btts=0,over25=0,clean=0;
    valid.forEach(m=>{
     const side=getTeamSide(m,teamId,name),scored=Number(side==="home"?m.goals.home:m.goals.away),conceded=Number(side==="home"?m.goals.away:m.goals.home);
     gf+=scored;ga+=conceded;if(scored>conceded)w++;else if(scored===conceded)d++;else l++;
+    if(scored>0&&conceded>0)btts++;
+    if(scored+conceded>=3)over25++;
+    if(conceded===0)clean++;
    });
-   return {count:valid.length,w,d,l,gf:valid.length?gf/valid.length:0,ga:valid.length?ga/valid.length:0};
+   const n=valid.length||1;
+   return {count:valid.length,w,d,l,gf:gf/n,ga:ga/n,btts,over25,clean,bttsRate:btts/n*100,over25Rate:over25/n*100,cleanRate:clean/n*100};
   };
   const renderRows=(items,teamId,name)=>items.map(m=>{
    const h=m.teams?.home||{},a=m.teams?.away||{},gh=Number(m.goals?.home),ga=Number(m.goals?.away);
@@ -2033,8 +2037,9 @@ async function loadMamMatchForm(button,forceRefresh=false){
   }).join("");
   const renderTeam=(name,teamId,matches)=>{
    const ordered=sorted(matches),last=ordered.slice(0,10),summary=summarize(ordered,teamId,name),home=summarize(ordered,teamId,name,"home"),away=summarize(ordered,teamId,name,"away");
-   const metrics='<div class="mam-history-summary"><div class="mam-history-metric"><small>Son 10 · G-B-M</small><b>'+summary.w+'-'+summary.d+'-'+summary.l+'</b></div><div class="mam-history-metric"><small>Gol ort. / maç</small><b>'+summary.gf.toFixed(2)+'</b></div><div class="mam-history-metric"><small>Yenilen gol / maç</small><b>'+summary.ga.toFixed(2)+'</b></div></div>'+
-    '<div class="mam-history-summary"><div class="mam-history-metric"><small>İç saha · G-B-M</small><b>'+home.w+'-'+home.d+'-'+home.l+'</b><small>'+home.count+' maç</small></div><div class="mam-history-metric"><small>Deplasman · G-B-M</small><b>'+away.w+'-'+away.d+'-'+away.l+'</b><small>'+away.count+' maç</small></div><div class="mam-history-metric"><small>Bulunan kayıt</small><b>'+ordered.length+'</b><small>tamamlanmış maç</small></div></div>';
+   const metrics='<div class="mam-history-summary"><div class="mam-history-metric"><small>Son 10 · G-B-M</small><b>'+summary.w+'-'+summary.d+'-'+summary.l+'</b></div><div class="mam-history-metric"><small>Attığı gol / maç</small><b>'+summary.gf.toFixed(2)+'</b></div><div class="mam-history-metric"><small>Yediği gol / maç</small><b>'+summary.ga.toFixed(2)+'</b></div></div>'+
+    '<div class="mam-history-summary"><div class="mam-history-metric"><small>İç saha · G-B-M</small><b>'+home.w+'-'+home.d+'-'+home.l+'</b><small>'+home.count+' maç · '+home.gf.toFixed(2)+' gol / '+home.ga.toFixed(2)+' yedi</small></div><div class="mam-history-metric"><small>Deplasman · G-B-M</small><b>'+away.w+'-'+away.d+'-'+away.l+'</b><small>'+away.count+' maç · '+away.gf.toFixed(2)+' gol / '+away.ga.toFixed(2)+' yedi</small></div><div class="mam-history-metric"><small>Bulunan kayıt</small><b>'+ordered.length+'</b><small>tamamlanmış maç</small></div></div>'+
+    '<div class="mam-history-summary"><div class="mam-history-metric"><small>Karşılıklı gol</small><b>'+summary.bttsRate.toFixed(0)+'%</b><small>'+summary.btts+'/'+summary.count+' maç</small></div><div class="mam-history-metric"><small>2.5 üst</small><b>'+summary.over25Rate.toFixed(0)+'%</b><small>'+summary.over25+'/'+summary.count+' maç</small></div><div class="mam-history-metric"><small>Gol yemedi</small><b>'+summary.cleanRate.toFixed(0)+'%</b><small>'+summary.clean+'/'+summary.count+' maç</small></div></div>';
    const more=ordered.length>10?'<details class="mam-history-more"><summary>Önceki '+(ordered.length-10)+' maçı göster</summary>'+renderRows(ordered.slice(10),teamId,name)+'</details>':"";
    return '<section class="mam-form-team"><h4>'+esc(name)+' · Son '+last.length+' maç</h4>'+metrics+(last.length?renderRows(last,teamId,name):'<div class="match-detail-note">Doğrulanmış geçmiş maç bulunamadı.</div>')+more+'</section>';
   };
@@ -2342,7 +2347,7 @@ renderCoupon();
 
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
-  const key="mam_history_v24_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  const key="mam_history_v25_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
