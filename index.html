@@ -2713,7 +2713,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v54_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v55_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -4066,9 +4066,24 @@ async function analyze(button){
      const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
      const from=new Date();from.setHours(0,0,0,0);
      const to=new Date(2027,5,30,23,59,59,999);
-     const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:fmt(from)+"-"+fmt(to),limit:500}));
-     const events=Array.isArray(payload.events)?payload.events:[];
-     leagueFixtures=events.map(event=>{
+     // ESPN scoreboard rejects very long date ranges. Fetch one week at a time.
+     const ranges=[];
+     for(let cursor=new Date(from);cursor<=to;){
+      const last=new Date(cursor);last.setDate(last.getDate()+6);
+      if(last>to)last.setTime(to.getTime());
+      ranges.push({from:fmt(cursor),to:fmt(last)});
+      cursor=new Date(last);cursor.setDate(cursor.getDate()+1);cursor.setHours(0,0,0,0);
+     }
+     const events=[];
+     for(let offset=0;offset<ranges.length;offset+=4){
+      const batch=await Promise.all(ranges.slice(offset,offset+4).map(async range=>{
+       const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:range.from+"-"+range.to,limit:500}));
+       return Array.isArray(payload.events)?payload.events:[];
+      }));
+      for(const list of batch)events.push(...list);
+     }
+     const uniqueEvents=[...new Map(events.map(event=>[String(event.id),event])).values()];
+     leagueFixtures=uniqueEvents.map(event=>{
       const comp=event.competitions?.[0]||{},teams=comp.competitors||[];
       const h=teams.find(x=>x.homeAway==="home")||{},a=teams.find(x=>x.homeAway==="away")||{};
       const state=String(comp.status?.type?.state||event.status?.type?.state||"").toLowerCase();
