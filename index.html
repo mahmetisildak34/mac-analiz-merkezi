@@ -789,6 +789,27 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 .mam-standings-table td:nth-child(2){font-weight:750;color:#1d3028;max-width:145px;overflow:hidden;text-overflow:ellipsis}
 .mam-standings-table tr:last-child td{border-bottom:0}
 .mam-standings-table td:first-child{color:#149b66;font-weight:900}
+.mam-standing-team-row{cursor:pointer;transition:background .16s}
+.mam-standing-team-row:hover,.mam-standing-team-row.active{background:rgba(25,157,103,.11)}
+.mam-standing-team-row:focus-visible{outline:2px solid #18b879;outline-offset:-2px}
+.mam-standing-row-hint{float:right;color:#18a875;font-size:17px;font-weight:900}
+.mam-standing-team-history{margin-top:14px;padding:14px;border:1px solid rgba(34,180,130,.28);border-radius:16px;background:linear-gradient(145deg,rgba(16,43,52,.98),rgba(13,29,42,.98));color:#edf8f5}
+.mam-standing-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.mam-standing-history-head small{color:#65d8ad;font-size:10px;font-weight:900;letter-spacing:.7px}
+.mam-standing-history-head h3{margin:4px 0 0;color:#f1fbf7;font-size:17px}
+.mam-standing-history-head button{min-height:34px;padding:6px 11px}
+.mam-standing-history-loading{font-size:12px;color:#b9ccc8}
+.mam-standing-history-list{display:grid;gap:8px}
+.mam-standing-history-match{display:grid;grid-template-columns:27px minmax(0,1fr) auto;align-items:center;gap:9px;padding:10px;border:1px solid rgba(160,205,195,.13);border-radius:12px;background:rgba(255,255,255,.035)}
+.mam-standing-history-result{display:grid;place-items:center;width:25px;height:25px;border-radius:8px;font-size:11px;font-weight:900}
+.mam-standing-history-result.w{background:rgba(33,190,124,.2);color:#69e3ae}
+.mam-standing-history-result.d{background:rgba(180,190,200,.16);color:#d2dbe2}
+.mam-standing-history-result.l{background:rgba(239,90,90,.18);color:#ff9696}
+.mam-standing-history-teams{display:grid;min-width:0;gap:3px}
+.mam-standing-history-teams b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#f2faf7}
+.mam-standing-history-teams small{font-size:10px;color:#a9bfbb}
+.mam-standing-history-match>strong{font-size:15px;color:#f3fbf8;white-space:nowrap}
+.mam-standing-history-opponent{display:none}
 .mam-screen-standings .mam-home-intro,.mam-screen-standings>.panel,.mam-screen-standings .footer{display:none!important}
 .mam-screen-standings #mamStandingsScreen{display:block!important}
 .mam-screen-standings .mam-section-header{display:flex}
@@ -1169,7 +1190,7 @@ async function loadStandings(){
   try{
    const data=await api("standings?"+qs({league:leagueId,season}));
    const group=data.response?.[0]?.league?.standings?.[0]||[];
-   rows=group.map(x=>({rank:x.rank,name:x.team?.name,played:x.all?.played,win:x.all?.win,draw:x.all?.draw,lose:x.all?.lose,goals:x.all?.goals?.for,against:x.all?.goals?.against,points:x.points}));
+   rows=group.map(x=>({rank:x.rank,teamId:x.team?.id,name:x.team?.name,played:x.all?.played,win:x.all?.win,draw:x.all?.draw,lose:x.all?.lose,goals:x.all?.goals?.for,against:x.all?.goals?.against,points:x.points}));
    leagueName=data.response?.[0]?.league?.name||"Lig puan durumu";
   }catch(primaryError){
    try{
@@ -1230,7 +1251,7 @@ async function loadStandings(){
   }
   if(!rows.length)throw new Error("Kaynak bu lig için puan tablosu döndürmedi.");
   $("mamStandingsLeagueTitle").textContent=leagueName;
-  box.innerHTML='<div style="overflow-x:auto"><table class="mam-standings-table"><thead><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.rank)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan. Güncel veri sağlayıcısından alınır.</p>';
+  box.innerHTML='<div style="overflow-x:auto"><table class="mam-standings-table"><thead><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr'+(String(leagueId)==="203"?' class="mam-standing-team-row" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" role="button" tabindex="0" aria-label="'+esc(x.name)+' geçmiş maçlarını göster"':'')+'><td>'+esc(x.rank)+'</td><td>'+esc(x.name)+(String(leagueId)==="203"?' <span class="mam-standing-row-hint">›</span>':'')+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan.'+(String(leagueId)==="203"?' Takımın son 10 maçını görmek için satırına dokun.':' Güncel veri sağlayıcısından alınır.')+'</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
  }catch(e){
   box.innerHTML='<div class="error">'+esc(e.message||e)+'</div>';
  }finally{button.disabled=false}
@@ -3243,6 +3264,44 @@ async function analyze(button){
  });
  $("mamStandingsBack")?.addEventListener("click",()=>{$("mamStandingsCard").hidden=true;$("mamStandingsPicker").hidden=false;$("mamStandingsPicker")?.scrollIntoView({behavior:"smooth",block:"start"});});
  $("mamStandingsRefresh")?.addEventListener("click",loadStandings);
+ const openStandingTeamHistory=async row=>{
+  if(String(selectedStandingsLeague)!=="203"||!row)return;
+  const teamName=row.dataset.standingTeam||"";
+  const teamId=row.dataset.standingTeamId||"";
+  const panel=$("mamStandingTeamHistory");
+  if(!panel||!teamName)return;
+  document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.toggle("active",x===row));
+  panel.hidden=false;
+  panel.innerHTML='<div class="mam-standing-history-head"><div><small>SÜPER LİG · TAKIM GEÇMİŞİ</small><h3>'+esc(teamName)+'</h3></div><span class="mam-standing-history-loading">Yükleniyor...</span></div><div class="empty">Son 10 tamamlanmış maç aranıyor.</div>';
+  panel.scrollIntoView({behavior:"smooth",block:"nearest"});
+  try{
+   const d=new Date();d.setDate(d.getDate()+1);
+   const cutoff=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+   const matches=await getTeamFixtures(teamId,cutoff,teamName,"203","",false);
+   const recent=matches.slice(0,10);
+   if(!recent.length)throw new Error("Bu takım için tamamlanmış maç bulunamadı.");
+   panel.innerHTML='<div class="mam-standing-history-head"><div><small>SON '+recent.length+' TAMAMLANMIŞ MAÇ</small><h3>'+esc(teamName)+'</h3></div><button type="button" class="secondary" id="mamStandingHistoryClose">Kapat</button></div><div class="mam-standing-history-list">'+recent.map(m=>{
+    const home=m.teams?.home||{},away=m.teams?.away||{};
+    const isHome=Number(home.id)===Number(teamId)||String(home.name)===teamName;
+    const opponent=isHome?(away.name||"Rakip"):(home.name||"Rakip");
+    const gf=Number(isHome?m.goals?.home:m.goals?.away),ga=Number(isHome?m.goals?.away:m.goals?.home);
+    const outcome=gf>ga?"W":gf<ga?"L":"D";
+    const date=String(m.fixture?.date||"").slice(0,10);
+    const dateLabel=date?new Date(date+"T12:00:00").toLocaleDateString("tr-TR",{day:"2-digit",month:"short",year:"numeric"}):"";
+    return '<div class="mam-standing-history-match"><span class="mam-standing-history-result '+outcome.toLowerCase()+'">'+outcome+'</span><span class="mam-standing-history-teams"><b>'+esc(isHome?teamName:opponent)+'</b><small>'+esc(isHome?"İç saha":"Deplasman")+' · '+esc(dateLabel)+'</small></span><strong>'+gf+' – '+ga+'</strong><span class="mam-standing-history-opponent">'+esc(isHome?opponent:teamName)+'</span></div>';
+   }).join("")+'</div>';
+   $("mamStandingHistoryClose")?.addEventListener("click",()=>{panel.hidden=true;document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));});
+  }catch(error){
+   panel.innerHTML='<div class="mam-standing-history-head"><div><small>TAKIM GEÇMİŞİ</small><h3>'+esc(teamName)+'</h3></div><button type="button" class="secondary" id="mamStandingHistoryClose">Kapat</button></div><div class="error">'+esc(error.message||error)+'</div>';
+   $("mamStandingHistoryClose")?.addEventListener("click",()=>{panel.hidden=true;document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));});
+  }
+ };
+ $("mamStandingsTable")?.addEventListener("click",event=>{
+  const row=event.target.closest(".mam-standing-team-row");if(row)openStandingTeamHistory(row);
+ });
+ $("mamStandingsTable")?.addEventListener("keydown",event=>{
+  if((event.key==="Enter"||event.key===" ")&&event.target.closest(".mam-standing-team-row")){event.preventDefault();openStandingTeamHistory(event.target.closest(".mam-standing-team-row"));}
+ });
  const dateInput=$("date"),strip=$("mamDateStrip");
  if(!dateInput||!strip)return;
  const localDate=(offset)=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
