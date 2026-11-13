@@ -1198,7 +1198,7 @@ async function loadStandings(){
     if(!code)throw primaryError;
     const data=await api("football-data/competitions/"+code+"/standings");
     const table=data.standings?.find(x=>x.type==="TOTAL")?.table||data.standings?.[0]?.table||[];
-    rows=table.map(x=>({rank:x.position,name:x.team?.name,played:x.playedGames,win:x.won,draw:x.draw,lose:x.lost,goals:x.goalsFor,against:x.goalsAgainst,points:x.points}));
+    rows=table.map(x=>({rank:x.position,teamId:x.team?.id,name:x.team?.name,played:x.playedGames,win:x.won,draw:x.draw,lose:x.lost,goals:x.goalsFor,against:x.goalsAgainst,points:x.points}));
     leagueName=data.competition?.name||"Lig puan durumu";
     if(!rows.length)throw new Error("Football-data.org puan tablosu döndürmedi.");
    }catch(secondaryError){
@@ -1236,6 +1236,7 @@ async function loadStandings(){
     };
     rows=entries.map((entry,index)=>({
      rank:stat(entry,["rank","playoffseed"])||index+1,
+     teamId:entry.team?.id,
      name:entry.team?.displayName||entry.team?.name||entry.team?.shortDisplayName||"Takım",
      played:stat(entry,["gamesplayed","played","gp"]),
      win:stat(entry,["wins","win","w"]),
