@@ -1050,6 +1050,85 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
  .mam-screen-live #matches .match:not(.in-detail) .team-block strong{font-size:9px!important}
 }
 
+
+
+/* LIVE MATCHES — extra-dense mobile list; visual-only override */
+main.mam-screen-live #matches .mam-league-group{
+ margin:4px 0 5px!important;
+ padding:0 4px 3px!important;
+ border-radius:10px!important;
+}
+main.mam-screen-live #matches .mam-league-heading{
+ min-height:24px!important;
+ margin:0 -4px 2px!important;
+ padding:0 6px!important;
+ gap:4px!important;
+}
+main.mam-screen-live #matches .mam-league-globe{
+ width:16px!important;height:16px!important;font-size:11px!important;
+}
+main.mam-screen-live #matches .mam-league-heading strong{font-size:9px!important;line-height:1.1!important}
+main.mam-screen-live #matches .mam-league-heading small{font-size:8px!important}
+main.mam-screen-live #matches .mam-league-count{font-size:7px!important;letter-spacing:0!important}
+main.mam-screen-live #matches .mam-league-group article.match.match-modern:not(.in-detail){
+ margin:3px 0!important;
+ padding:4px 5px!important;
+ border-radius:8px!important;
+}
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-head{
+ gap:2px!important;
+ padding:0 0 2px!important;
+ margin:0!important;
+ line-height:1.05!important;
+}
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .league-label,
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-time{
+ font-size:8px!important;line-height:1.1!important;
+}
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{
+ grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr)!important;
+ gap:2px!important;
+ padding:2px 0!important;
+ margin:0!important;
+}
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block{
+ gap:1px!important;
+}
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-logo,
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-placeholder{
+ width:20px!important;height:20px!important;max-width:20px!important;max-height:20px!important;
+}
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block strong{
+ font-size:8px!important;line-height:1.05!important;
+}
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-clock{
+ font-size:12px!important;line-height:1!important;
+}
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-center small{
+ font-size:7px!important;line-height:1!important;
+}
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-actions{
+ margin:2px 0 0!important;padding:0!important;gap:2px!important;
+}
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-actions .small{
+ font-size:7px!important;line-height:1!important;
+}
+main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .mam-match-open{
+ display:block!important;
+ min-height:24px!important;
+ margin:2px 0 0!important;
+ padding:3px 6px!important;
+ border-radius:6px!important;
+ font-size:8px!important;
+ line-height:1!important;
+}
+@media(max-width:600px){
+ main.mam-screen-live #matches .mam-league-group{margin:3px 0 4px!important}
+ main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{
+  grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr)!important;
+ }
+}
+
 </style>
 
 
