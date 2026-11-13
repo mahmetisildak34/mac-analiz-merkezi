@@ -2812,9 +2812,35 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       if(String(sourceFixtureId||"").startsWith("espn-")&&/^\d+$/.test(String(teamId))){
         espnTeamId=String(teamId);
       }else{
-        const scoreboard=await api("espn/"+espnLeagueSlug+"/scoreboard?"+qs({
-          dates:String(matchDate||"").replace(/-/g,""),limit:500
-        }));
+        // Önce lig takım rehberinden ESPN takım kimliğini bul.
+        // Yalnızca hedef maç gününün skor tablosuna bakmak, o gün oynamayan Hull City gibi takımları kaçırır.
+        try{
+          const directory=await api("espn/"+espnLeagueSlug+"/teams?"+qs({limit:500}));
+          const directoryTeams=[];
+          const collectTeams=value=>{
+            if(!value||typeof value!=="object")return;
+            if(Array.isArray(value)){value.forEach(collectTeams);return;}
+            if(value.team&&typeof value.team==="object")directoryTeams.push(value.team);
+            if(value.id&& (value.displayName||value.name||value.shortDisplayName))directoryTeams.push(value);
+            for(const [key,child] of Object.entries(value)){
+              if(key==="team")continue;
+              if(child&&typeof child==="object")collectTeams(child);
+            }
+          };
+          collectTeams(directory);
+          const uniqueTeams=[...new Map(directoryTeams.filter(t=>t.id).map(t=>[String(t.id),t])).values()];
+          const found=uniqueTeams.find(team=>
+            [team.displayName,team.name,team.shortDisplayName,team.abbreviation].filter(Boolean).some(isTarget)
+          );
+          if(found&&/^\\d+$/.test(String(found.id)))espnTeamId=String(found.id);
+        }catch(directoryError){
+          sourceError+=" ESPN takım rehberi: "+String(directoryError?.message||directoryError);
+        }
+        // Eski ESPN yedeği: takım rehberi yanıt vermezse hedef maç gününün skor tablosuna bak.
+        if(!espnTeamId){
+          const scoreboard=await api("espn/"+espnLeagueSlug+"/scoreboard?"+qs({
+            dates:String(matchDate||"").replace(/-/g,""),limit:500
+          }));
         for(const event of (Array.isArray(scoreboard.events)?scoreboard.events:[])){
           for(const competitor of (event.competitions?.[0]?.competitors||[])){
             const names=[competitor.team?.displayName,competitor.team?.name,competitor.team?.shortDisplayName,competitor.team?.abbreviation].filter(Boolean);
@@ -2823,6 +2849,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
             }
           }
           if(espnTeamId)break;
+        }
         }
       }
       if(espnTeamId){
