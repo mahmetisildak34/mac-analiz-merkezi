@@ -1099,7 +1099,7 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 <div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
 <section class="mam-home-shortcuts" aria-label="Hızlı erişim">
  <button type="button" class="mam-home-shortcut live" data-home-action="live"><span class="shortcut-icon">◉</span><strong>Canlı Maçlar</strong><small>Devam eden karşılaşmaları takip et</small></button>
- <button type="button" class="mam-home-shortcut" data-home-action="upcoming"><span class="shortcut-icon">▦</span><strong>Gelecek Maçlar</strong><small>Fikstürü ve maç saatlerini incele</small></button>
+ <button type="button" class="mam-home-shortcut" data-home-action="fixtures"><span class="shortcut-icon">▦</span><strong>Gelecek Maçlar</strong><small>Fikstürü ve maç saatlerini incele</small></button>
  <button type="button" class="mam-home-shortcut analysis" data-home-action="analysis"><span class="shortcut-icon">▥</span><strong>Maç Analizi</strong><small>Takım formu ve tahminlere ulaş</small></button>
  <button type="button" class="mam-home-shortcut archive" data-home-action="archive"><span class="shortcut-icon">▤</span><strong>İstatistik Arşivi</strong><small>Geçmiş maçları ve sonuçları incele</small></button>
  </section>
@@ -5296,7 +5296,7 @@ main{background:transparent!important}
 
 <nav class="mam-bottom-tabs" aria-label="Ana gezinme">
  <button type="button" data-bottom-tab="live"><span>🔴</span>Canlı Maçlar</button>
- <button type="button" data-bottom-tab="upcoming"><span>📅</span>Gelecek Maçlar</button>
+ <button type="button" data-bottom-tab="fixtures"><span>📅</span>Gelecek Maçlar</button>
  <button type="button" data-bottom-tab="analysis"><span>📊</span>Analiz</button>
 </nav>
 <script>
@@ -5307,7 +5307,7 @@ main{background:transparent!important}
  nav.addEventListener("click",function(event){
   const button=event.target.closest("[data-bottom-tab]");
   if(!button)return;
-  const target=document.querySelector('[data-mam-nav="'+button.dataset.bottomTab+'"]');
+  const target=document.querySelector('[data-mam-nav="'+(button.dataset.bottomTab==="fixtures"?"fixtures":button.dataset.bottomTab)+'"]');
   if(target)target.click();
   nav.querySelectorAll("button").forEach(item=>{
    const active=item===button;
@@ -5332,7 +5332,7 @@ main{background:transparent!important}
  tabs.dataset.activeSync="1";
  const sync=()=>{
   const mode=(location.hash||"").replace("#mam-","");
-  const active=mode==="live"?"live":mode==="upcoming"?"upcoming":"analysis";
+  const active=mode==="live"?"live":mode==="home"?"fixtures":"analysis";
   tabs.querySelectorAll("[data-bottom-tab]").forEach(button=>button.classList.toggle("is-active",button.dataset.bottomTab===active));
  };
  window.addEventListener("hashchange",sync);sync();
