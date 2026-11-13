@@ -2425,8 +2425,6 @@ $("couponBuildRisky").addEventListener("click",()=>buildSuggestedCoupon("risky")
 renderCoupon();
 
 // Geçmiş maç arşivi: KV yazma kotası koruması için otomatik backfill kapalıdır.
-// CSV arşivi isteklerini aynı anda tekrarlamamak için paylaşılan önbellek.
-const MAM_LEAGUE_ARCHIVE_PROMISES=new Map();
 const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
@@ -2594,14 +2592,11 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
       const archiveKey="mam_league_csv_v1_"+folder+"_"+seasonCode;
       if(!forceRefresh){
-        const pending=MAM_LEAGUE_ARCHIVE_PROMISES.get(archiveKey);
-        if(pending)return pending;
         try{
           const saved=JSON.parse(localStorage.getItem(archiveKey)||"null");
           if(saved?.csv&&Date.now()-saved.time<MAM_LEAGUE_ARCHIVE_TTL)return saved.csv;
         }catch(e){}
       }else{
-        MAM_LEAGUE_ARCHIVE_PROMISES.delete(archiveKey);
         try{localStorage.removeItem(archiveKey);}catch(e){}
       }
       const path="data/"+folder+"/results_"+seasonCode+".csv";
@@ -2630,10 +2625,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         try{localStorage.setItem(archiveKey,JSON.stringify({time:Date.now(),csv:body}));}catch(e){}
         return body;
       })();
-      MAM_LEAGUE_ARCHIVE_PROMISES.set(archiveKey,fetchPromise);
       try{return await fetchPromise;}
       catch(e){
-        if(MAM_LEAGUE_ARCHIVE_PROMISES.get(archiveKey)===fetchPromise)MAM_LEAGUE_ARCHIVE_PROMISES.delete(archiveKey);
         sourceError+=" "+seasonCode+" CSV arşivi alınamadı.";
         return null;
       }
