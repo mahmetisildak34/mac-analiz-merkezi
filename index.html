@@ -3840,6 +3840,28 @@ async function analyze(button){
    let all=requests.flatMap(x=>x.status==="fulfilled"?x.value:[]);
    // Coppa Italia is not part of football-data.org's standard competition feed;
    // retrieve its fixtures from API-Football independently so failures never hide Serie A.
+   const apiFootballCompetitions=[
+    {id:135,name:"Serie A",country:"Italy",icon:"🇮🇹"},
+    {id:137,name:"Coppa Italia",country:"Italy",icon:"🇮🇹"},
+    {id:2,name:"UEFA Champions League",country:"Europe",icon:"⭐"},
+    {id:3,name:"UEFA Europa League",country:"Europe",icon:"🏆"},
+    {id:848,name:"UEFA Conference League",country:"Europe",icon:"🏆"}
+   ];
+   const apiFootballResults=await Promise.allSettled(apiFootballCompetitions.map(async comp=>{
+    const payload=await api("fixtures?"+qs({league:comp.id,season:2026}));
+    return {comp,fixtures:Array.isArray(payload.response)?payload.response:[]};
+   }));
+   for(const result of apiFootballResults){
+    if(result.status!=="fulfilled")continue;
+    const {comp,fixtures}=result.value;
+    all.push(...fixtures.map(x=>({
+     fixture:{id:"apif-"+comp.id+"-"+x.fixture.id,date:x.fixture.date,status:{short:x.fixture.status?.short||"NS"}},
+     league:{id:String(comp.id),name:comp.name,country:comp.country,icon:comp.icon},
+     teams:{home:{id:Number(x.teams?.home?.id)||-1,name:x.teams?.home?.name||"",logo:x.teams?.home?.logo||""},away:{id:Number(x.teams?.away?.id)||-1,name:x.teams?.away?.name||"",logo:x.teams?.away?.logo||""}},
+     goals:{home:x.goals?.home??null,away:x.goals?.away??null}
+    })));
+   }
+   /* legacy single-competition cup fetch removed */
    try{
     const cup=await api("fixtures?"+qs({league:137,season:2026}));
     const teams=Array.isArray(cup.response)?cup.response:[];
@@ -3849,7 +3871,7 @@ async function analyze(button){
      teams:{home:{id:Number(x.teams?.home?.id)||-1,name:x.teams?.home?.name||"",logo:x.teams?.home?.logo||""},away:{id:Number(x.teams?.away?.id)||-1,name:x.teams?.away?.name||"",logo:x.teams?.away?.logo||""}},
      goals:{home:x.goals?.home??null,away:x.goals?.away??null}
     })));
-   }catch(cupError){console.warn("Coppa Italia fikstürü alınamadı; diğer organizasyonlar gösterilmeye devam edecek.",cupError);}
+   }catch(cupError){console.warn("Ek Coppa Italia yedek isteği başarısız.",cupError);}
    const normalize=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
    const aliases=[
     ["bologna","bologna1909","bolognafc1909"],["parma","parmacalcio","parmacalcio1913"],
