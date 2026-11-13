@@ -3853,8 +3853,22 @@ async function analyzeLiveMatch(button){
    const slug=button.dataset.liveLeague;if(!slug||!/^\d+$/.test(id))throw new Error("ESPN maç kimliği eksik.");
    const payload=await api("espn/"+slug+"/summary?"+qs({event:id}));
    const teams=[...(payload.boxscore?.teams||[]),...(payload.header?.competitions?.[0]?.competitors||[]),...(payload.competitions?.[0]?.competitors||[])];
-   const read=side=>{const team=teams.find(x=>x.homeAway===side),out={};for(const z of team?.statistics||[]){const k=String(z.name||z.label||z.abbreviation||"").toLowerCase().replace(/[^a-z]/g,""),raw=z.displayValue??z.value,v=Number(String(raw??"").replace(/[% ,]/g,""));if(!Number.isFinite(v))continue;if(k.includes("possession"))out.possession=v;else if(k.includes("shotsontarget")||k.includes("shotsongoal"))out.sot=v;else if(k.includes("totalshots")||k==="shots")out.shots=v;else if(k.includes("corner"))out.corners=v;}return out;};
-   rows=[read("home"),read("away")];
+   const read=team=>{const out={};for(const z of team?.statistics||[]){const k=String(z.name||z.label||z.abbreviation||z.type||"").toLowerCase().replace(/[^a-z]/g,""),raw=z.displayValue??z.value,v=Number(String(raw??"").replace(/[% ,]/g,""));if(!Number.isFinite(v))continue;if(k.includes("possession"))out.possession=v;else if(k.includes("shotsontarget")||k.includes("shotsongoal")||k==="ontarget")out.sot=v;else if(k.includes("totalshots")||k==="shots"||k==="totalshot")out.shots=v;else if(k.includes("corner"))out.corners=v;}return out;};
+   let home=teams.find(x=>x.homeAway==="home"),away=teams.find(x=>x.homeAway==="away");
+   let h=read(home),a=read(away);
+   // ESPN bazı maçlarda takım istatistiklerini summary yerine scoreboard event'inde döndürüyor.
+   if(!Object.keys(h).length&&!Object.keys(a).length){
+    const date=String(button.dataset.liveDate||"").replace(/-/g,"").slice(0,8);
+    if(/^\d{8}$/.test(date)){
+     const board=await api("espn/"+slug+"/scoreboard?"+qs({dates:date,limit:500}));
+     const event=(board.events||[]).find(ev=>String(ev.id)===id);
+     const competitors=event?.competitions?.[0]?.competitors||[];
+     home=competitors.find(x=>x.homeAway==="home")||home;
+     away=competitors.find(x=>x.homeAway==="away")||away;
+     h=read(home);a=read(away);
+    }
+   }
+   rows=[h,a];
   }else{
    if(!/^\d+$/.test(id))throw new Error("API-Football maç kimliği geçersiz.");
    const payload=await api("fixtures/statistics?"+qs({fixture:id})),data=Array.isArray(payload.response)?payload.response:[];
