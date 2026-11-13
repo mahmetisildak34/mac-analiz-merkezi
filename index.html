@@ -1029,7 +1029,8 @@ async function api(path){
   const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||isEspnSummary;
   const isLineupRequest=cleanPath.startsWith("fixtures?id=")||cleanPath.startsWith("fixtures/lineups?")||cleanPath.startsWith("fixtures/players?");
   const isArchive=cleanPath.startsWith("archive/");
-   const isPrimaryApi=!isArchive&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
+  const isTffFixtures=cleanPath==="superlig/fixtures";
+  const isPrimaryApi=!isArchive&&!isTffFixtures&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
   const cacheKey="mam_api_cache_v2_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
   let cachedEntry=null;
@@ -1039,7 +1040,7 @@ async function api(path){
   // gereksiz API-Football isteği gönderilmesin. Hata halinde son başarılı veri korunur.
   const isArchiveBackfill=cleanPath.startsWith("archive/backfill-all?");
   if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLive&&!isLineupRequest&&!isArchiveBackfill){
-    const cacheAge=isLiveStats?(isEspnSummary?60*1000:60*1000):(isEspnSummary?5*60*1000:30*60*1000);
+    const cacheAge=isTffFixtures?2*60*1000:isLiveStats?(isEspnSummary?60*1000:60*1000):(isEspnSummary?5*60*1000:30*60*1000);
     if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
   }
 
