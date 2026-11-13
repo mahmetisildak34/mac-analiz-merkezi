@@ -3134,7 +3134,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const currentSeasonStart=matchMonth>=7?matchYear:matchYear-1;
     const uefaYears=[currentSeasonStart,currentSeasonStart-1,currentSeasonStart-2].filter(y=>y>=2024);
     const loadUefaFeed=async(slug,year)=>{
-      const cacheKey="mam_uefa_fixture_archive_"+slug+"_"+year+"_v3";
+      const cacheKey="mam_uefa_fixture_archive_"+slug+"_"+year+"_v4";
       try{
         const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
         if(Array.isArray(cached?.matches)&&Date.now()-cached.time<24*60*60*1000)return cached.matches;
@@ -4246,7 +4246,7 @@ async function analyze(button){
      // Böylece Football-data.org ücretsiz planındaki UEFA erişim kısıtları fikstürü bozmaz.
      const feedSlug=({"2":"champions-league","3":"europa-league","848":"conference-league"})[String(selectedStandingsLeague)];
      const now=new Date(),seasonStart=now.getMonth()>=6?now.getFullYear():now.getFullYear()-1;
-     const feedCacheKey="mam_uefa_fixture_archive_"+feedSlug+"_"+seasonStart+"_v3";
+     const feedCacheKey="mam_uefa_fixture_archive_"+feedSlug+"_"+seasonStart+"_v4";
      let feedRows=null;
      try{
       const saved=JSON.parse(localStorage.getItem(feedCacheKey)||"null");
@@ -4260,8 +4260,8 @@ async function analyze(button){
        dateTime:String(item.DateUtc||"").replace(" ","T"),
        home:String(item.HomeTeam||"").trim(),
        away:String(item.AwayTeam||"").trim(),
-       homeGoals:item.HomeTeamScore===null||item.HomeTeamScore===""?null:Number(item.HomeTeamScore),
-       awayGoals:item.AwayTeamScore===null||item.AwayTeamScore===""?null:Number(item.AwayTeamScore),
+       homeGoals:item.HomeTeamScore==null||item.HomeTeamScore===""?null:Number(item.HomeTeamScore),
+       awayGoals:item.AwayTeamScore==null||item.AwayTeamScore===""?null:Number(item.AwayTeamScore),
        matchNumber:item.MatchNumber??null
       })).filter(item=>item.date&&item.home&&item.away);
       try{localStorage.setItem(feedCacheKey,JSON.stringify({time:Date.now(),matches:feedRows}));}catch(_){}
