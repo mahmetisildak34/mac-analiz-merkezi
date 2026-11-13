@@ -2708,12 +2708,22 @@ $("couponBuildSafe").addEventListener("click",()=>buildSuggestedCoupon("safe"));
 $("couponBuildRisky").addEventListener("click",()=>buildSuggestedCoupon("risky"));
 renderCoupon();
 
+// UEFA 2026/27: takım isimlerini tüm veri sağlayıcılarında tek kimliğe bağla.
+const MAM_UEFA_TEAM_GROUPS=[["AEK Athens","AEK","AEK Athens FC"],["Arsenal","Arsenal FC"],["Aston Villa","Aston Villa FC"],["Atletico Madrid","Atlético de Madrid","Atletico de Madrid","Atleti"],["Barcelona","FC Barcelona","Barça"],["Bayern Munich","Bayern München","FC Bayern München","Bayern"],["Bodo Glimt","Bodø/Glimt","Bodo/Glimt"],["Borussia Dortmund","Dortmund","BVB"],["Club Brugge","Club Brugge KV","Brugge"],["Como","Como 1907"],["Fenerbahce","Fenerbahçe","Fenerbahçe SK"],["Feyenoord","Feyenoord Rotterdam"],["Galatasaray","Galatasaray SK"],["Inter","Internazionale","Inter Milan","FC Internazionale Milano"],["LASK","LASK Linz"],["Leipzig","RB Leipzig","RasenBallsport Leipzig"],["Lens","RC Lens"],["Lille","LOSC Lille","Lille OSC"],["Liverpool","Liverpool FC"],["Manchester City","Man City","Man City FC"],["Manchester United","Man United","Man Utd","Man U","Manchester Utd"],["Napoli","SSC Napoli"],["Paris","Paris Saint-Germain","Paris SG","PSG"],["Porto","FC Porto"],["PSV","PSV Eindhoven"],["Real Betis","Real Betis Balompie","Betis"],["Real Madrid","Real Madrid CF"],["Roma","AS Roma"],["Sabah","Sabah FC"],["Shakhtar","Shakhtar Donetsk","FC Shakhtar"],["Slavia Praha","Slavia Prague","SK Slavia Praha"],["Slovan Bratislava","ŠK Slovan Bratislava"],["Sporting CP","Sporting Lisbon","Sporting Clube de Portugal","Sporting"],["Stuttgart","VfB Stuttgart"],["Viking","Viking FK"],["Villarreal","Villarreal CF"],["Ararat-Armenia","FC Ararat-Armenia"],["Sparta Praha","Sparta Prague","AC Sparta Praha"],["Omonia","Omonia Nicosia","AC Omonia"],["Celta","Celta Vigo","RC Celta de Vigo"],["Milan","AC Milan","AC Milan"],["Benfica","SL Benfica"],["Leverkusen","Bayer Leverkusen","Bayer 04 Leverkusen"],["Celje","NK Celje"],["Hapoel Beer-Sheva","Hapoel Be'er Sheva","Hapoel Beer Sheva"],["GNK Dinamo","Dinamo Zagreb","GNK Dinamo Zagreb"],["Olympiacos","Olympiacos FC"],["Jagiellonia","Jagiellonia Bialystok","Jagiellonia Białystok"],["Anderlecht","RSC Anderlecht"],["Lyon","Olympique Lyonnais","Olympique Lyon"],["Sturm Graz","SK Sturm Graz"],["Rennes","Stade Rennais","Stade Rennais FC"],["Sunderland","Sunderland AFC"],["AZ Alkmaar","AZ"],["OFI Crete","OFI"],["Levski Sofia","Levski"],["Salzburg","Red Bull Salzburg","FC Red Bull Salzburg"],["Besiktas","Beşiktaş","Beşiktaş JK"],["Marseille","Olympique de Marseille","OM"],["Celtic","Celtic FC"],["Ferencvaros","Ferencváros","Ferencvarosi TC"],["Crystal Palace","Crystal Palace FC"],["Lech Poznan","Lech Poznań"],["Viktoria Plzen","Viktoria Plzeň"],["Union SG","Union Saint-Gilloise","Royale Union Saint-Gilloise"],["Juventus","Juventus FC"],["NEC Nijmegen","N.E.C.","NEC"],["Lillestrom","Lillestrøm","Lillestrøm SK"],["Torreense","SCU Torreense"],["Real Sociedad","Real Sociedad de Futbol"],["Bournemouth","AFC Bournemouth"],["Hoffenheim","TSG Hoffenheim"],["Lugano","FC Lugano"],["Crvena Zvezda","Red Star Belgrade","Red Star","FK Crvena Zvezda"],["Hajduk Split","Hajduk"],["Ajax","AFC Ajax"],["Gent","KAA Gent"],["Aarhus","AGF Aarhus","AGF"],["Egnatia","KF Egnatia"],["Midtjylland","FC Midtjylland"],["KuPS Kuopio","KuPS"],["Trabzonspor","Trabzonspor FK"],["Mjallby","Mjällby","Mjällby AIF"],["Inter Escaldes","Inter Club d'Escaldes"],["Panathinaikos","Panathinaikos FC"],["Borac","Borac Banja Luka","FK Borac"],["CSKA Sofia","CSKA 1948 Sofia"],["Monaco","AS Monaco"],["Riga","Riga FC"],["Kairat Almaty","Kairat"],["Universitatea Craiova","U Craiova","CS Universitatea Craiova"],["Getafe","Getafe CF"],["Atalanta","Atalanta BC"],["Pafos","Pafos FC"],["Brighton","Brighton & Hove Albion","Brighton and Hove Albion"],["Kauno Zalgiris","Kauno Žalgiris"],["Copenhagen","FC Copenhagen","FC København","Kobenhavn"],["Braga","SC Braga"],["Twente","FC Twente"],["Thun","FC Thun"],["Hearts","Heart of Midlothian"],["Nordsjaelland","Nordsjælland","FC Nordsjaelland"],["Sint-Truidense","Sint-Truiden","STVV"],["Iberia Tbilisi","Iberia 1999","FC Iberia 1999"],["Freiburg","SC Freiburg"],["Jablonec","FK Jablonec"],["Brann","SK Brann"],["Lincoln Red Imps","Lincoln Red Imps FC"]];
+function mamUefaTeamMatch(a,b){
+ const norm=v=>String(v||"").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+ const x=norm(a),y=norm(b);
+ if(!x||!y)return false;
+ if(x===y)return true;
+ return MAM_UEFA_TEAM_GROUPS.some(group=>{const names=group.map(norm);return names.includes(x)&&names.includes(y);});
+}
+
 // Geçmiş maç arşivi: KV yazma kotası koruması için otomatik backfill kapalıdır.
 const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v59_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v60_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2946,14 +2956,14 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     return n;
   };
   const targetCanonical=serieACanonical(teamName);
-  const isTarget=name=>accepted.has(normalize(name))||serieACanonical(name)===targetCanonical;
+  const isTarget=name=>accepted.has(normalize(name))||serieACanonical(name)===targetCanonical||mamUefaTeamMatch(name,teamName);
   const output=[];
   const seen=new Set();
   let sourceError="";
 
   const addMatch=m=>{
     const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
-    const hm=isTarget(h),am=isTarget(a);
+    const hm=(m.mamSource==="football-data-team"&&Number(m.teams?.home?.id)===Number(teamId))||isTarget(h),am=(m.mamSource==="football-data-team"&&Number(m.teams?.away?.id)===Number(teamId))||isTarget(a);
     if(hm===am)return;
     const gh=m.goals?.home,ga=m.goals?.away;
     if(gh===null||ga===null||gh===undefined||ga===undefined)return;
@@ -3143,6 +3153,37 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         if(String(match.fixture?.status?.short).toUpperCase()!=="FINISHED")continue;
         addMatch(match);
       }
+    }
+  }
+
+  // Football-data team endpoint: UEFA takımlarının yalnızca Avrupa maçlarını değil,
+  // aynı kulübün lig ve kupa maçlarını da tek bir doğrulanmış takım ID'siyle getir.
+  // Böylece yeni katılan veya önceki sezonlarda Avrupa'da az maç yapan takımlar da analiz edilebilir.
+  if(["2","3","848"].includes(String(leagueId))&&String(sourceFixtureId||"").startsWith("fd-")&&/^\\d+$/.test(String(teamId))){
+    try{
+      const endDate=matchDate;
+      const startDate=new Date(matchDate+"T12:00:00Z");
+      startDate.setUTCFullYear(startDate.getUTCFullYear()-2);
+      const startText=startDate.toISOString().slice(0,10);
+      const payload=await api("football-data/teams/"+teamId+"/matches?"+qs({
+        dateFrom:startText,dateTo:endDate,status:"FINISHED",limit:100
+      }));
+      for(const m of (Array.isArray(payload.matches)?payload.matches:[])){
+        const home=m.homeTeam||{},away=m.awayTeam||{};
+        const homeId=Number(home.id)||-1,awayId=Number(away.id)||-1;
+        const gh=m.score?.fullTime?.home,ga=m.score?.fullTime?.away;
+        if(gh===null||gh===undefined||ga===null||ga===undefined)continue;
+        addMatch({
+          mamSource:"football-data-team",
+          fixture:{id:"fd-team-"+m.id,date:m.utcDate||"",status:{short:m.status||"FINISHED"}},
+          league:{id:String(m.competition?.id||""),name:m.competition?.name||"Kulüp maçı"},
+          teams:{home:{id:homeId,name:home.name||home.shortName||""},away:{id:awayId,name:away.name||away.shortName||""}},
+          goals:{home:Number(gh),away:Number(ga)},
+          score:{halftime:{home:m.score?.halfTime?.home??null,away:m.score?.halfTime?.away??null}}
+        });
+      }
+    }catch(teamHistoryError){
+      sourceError+=" Football-data takım geçmişi: "+String(teamHistoryError?.message||teamHistoryError);
     }
   }
 
@@ -4156,7 +4197,7 @@ async function analyze(button){
     const aliases={"bologna1909":["bologna","bolognafc1909"],"bologna":["bologna1909","bolognafc1909"],"parmacalcio1913":["parma","parmacalcio"],"parma":["parmacalcio1913","parmacalcio"],"ussassuolocalcio":["sassuolo","sassuolocalcio"],"sassuolo":["ussassuolocalcio","sassuolocalcio"],"internazionale":["inter","intermilan"],"inter":["internazionale","intermilan"],"hellasverona":["verona"],"verona":["hellasverona"],"bayernmunchen":["bayernmunich","bayern"],"bayernmunich":["bayernmunchen","bayern"],"werderbremen":["svwerderbremen"],"svwerderbremen":["werderbremen"],"borussiamonchengladbach":["monchengladbach","gladbach"],"monchengladbach":["borussiamonchengladbach","gladbach"],"eintrachtfrankfurt":["frankfurt"],"frankfurt":["eintrachtfrankfurt"],"borussiadortmund":["dortmund"],"dortmund":["borussiadortmund"],"bayer04leverkusen":["bayerleverkusen","leverkusen"],"bayerleverkusen":["bayer04leverkusen","leverkusen"],"caykurrizespor":["caykurrizesporas","rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"],"rcdeportivolacoruna":["rcdeportivo","deportivo"],"realracingclubdesantander":["rracingclub","racingclub","racingsantander"],"rcceltadevigo":["celta","celtavigo","rccelta"],"clubatleticodemadrid":["atleticodemadrid","atleticomadrid","atlmad"],"realsociedaddefutbol":["realsociedad","sociedad"],"realbetisbalompie":["realbetis","betis"],"rayovallecanodemadrid":["rayovallecano","vallecano"],"parissaintgermain":["parissg","psg"],"parissg":["parissaintgermain","psg"],"staderennaisfc":["staderennais","rennes","rennais","staderennais1901"],"staderennais":["staderennaisfc","rennes","rennais","staderennais1901"],"staderennais1901":["staderennaisfc","staderennais","rennes","rennais"],"stadebretois29":["stadebretois","brest"],"stadebretois":["stadebretois29","brest"],"havreatlanticclub":["havreac","lehavre","lehavreac"],"estactroyes":["troyes"],"losclille":["lilleosc","lille"],"olympiquelyonnais":["olympiquelyon","lyon"],"olympiquedemarseille":["marseille","om"],"rclens":["lens","racingclubdelens"],"rcstrasbourgalsace":["rcstrasbourg","strasbourg"],"fclorient":["lorient"],"asmonaco":["monaco"],"ajauxerre":["auxerre"],"angerssco":["angers"],"lemansfc":["lemans"],"parisfc":["parisfootballclub"],"ogcnice":["nice"]};
     const wanted=norm(teamName);
     const accepted=new Set([wanted,...(aliases[wanted]||[])].map(norm));
-    const matchesTeam=name=>{const candidate=norm(name);return accepted.has(candidate)||(aliases[candidate]||[]).map(norm).some(alias=>accepted.has(alias))||(aliases[wanted]||[]).map(norm).includes(candidate);};
+    const matchesTeam=name=>{const candidate=norm(name);return accepted.has(candidate)||(aliases[candidate]||[]).map(norm).some(alias=>accepted.has(alias))||(aliases[wanted]||[]).map(norm).includes(candidate)||mamUefaTeamMatch(name,teamName);};
     upcoming=leagueFixtures.filter(m=>matchesTeam(m.teams?.home?.name)||matchesTeam(m.teams?.away?.name)).map(m=>({...m,mamSelectedTeamHome:matchesTeam(m.teams?.home?.name)}));
    }catch(error){upcomingError=String(error?.message||"TFF gelecek fikstürü alınamadı.");}
    if(!recent.length&&!upcoming.length)throw new Error("Geçmiş maç: "+(historyError||"kayıt bulunamadı")+". Gelecek maç: "+(upcomingError||"kayıt bulunamadı"));
