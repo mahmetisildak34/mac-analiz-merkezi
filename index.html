@@ -1532,16 +1532,13 @@ async function loadSuperLigFixtures(){
   let fixtures=[];
   try{const c=JSON.parse(localStorage.getItem(cacheKey)||"null");if(c?.time&&Date.now()-c.time<10*60*1000&&Array.isArray(c.matches))fixtures=c.matches;}catch(e){}
   if(!fixtures.length){
-   const batches=[];
-   for(let cursor=new Date(now);cursor<=end;){
-    const batchEnd=new Date(cursor);batchEnd.setDate(batchEnd.getDate()+6);
-    if(batchEnd>end)batchEnd.setTime(end.getTime());
-    batches.push({from:fmt(cursor),to:fmt(batchEnd)});
-    cursor=new Date(batchEnd);cursor.setDate(cursor.getDate()+1);
-   }
+   const calendar=await api("espn/tur.1/scoreboard");
+   const dates=(Array.isArray(calendar?.leagues?.[0]?.calendar)?calendar.leagues[0].calendar:[])
+    .map(v=>String(v).slice(0,10).replace(/-/g,""))
+    .filter(v=>/^\\d{8}$/.test(v)&&v>=fmt(now)&&v<=fmt(end));
    const events=[];
-   for(const batch of batches){
-    const data=await api("espn/tur.1/scoreboard?dates="+batch.from+"-"+batch.to);
+   for(const date of dates){
+    const data=await api("espn/tur.1/scoreboard?dates="+date);
     if(Array.isArray(data?.events))events.push(...data.events);
    }
    const seen=new Set();
@@ -3358,22 +3355,34 @@ async function analyze(button){
    let upcoming=[];
    let upcomingError="";
    try{
-    const cacheKey="mam_superlig_espn_upcoming_v3";
+    const cacheKey="mam_superlig_espn_upcoming_v4";
     let leagueFixtures=[];
     try{const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))leagueFixtures=cached.matches;}catch(e){}
     if(!leagueFixtures.length){
-     const now=new Date();const end=new Date(now);end.setDate(end.getDate()+60);
+     const now=new Date();now.setHours(0,0,0,0);
+     const end=new Date(now);end.setDate(end.getDate()+60);
      const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
-     const data=await api("espn/tur.1/scoreboard?dates="+fmt(now)+"-"+fmt(end));
-     const events=Array.isArray(data?.events)?data.events:[];
+     const calendar=await api("espn/tur.1/scoreboard");
+     const dates=(Array.isArray(calendar?.leagues?.[0]?.calendar)?calendar.leagues[0].calendar:[])
+      .map(v=>String(v).slice(0,10).replace(/-/g,""))
+      .filter(v=>/^\\d{8}$/.test(v)&&v>=fmt(now)&&v<=fmt(end));
+     const events=[];
+     for(const date of dates){
+      const data=await api("espn/tur.1/scoreboard?dates="+date);
+      if(Array.isArray(data?.events))events.push(...data.events);
+     }
+     const seen=new Set();
      leagueFixtures=events.map(ev=>{
       const comp=ev.competitions?.[0]||{};
       const competitors=Array.isArray(comp.competitors)?comp.competitors:[];
-      const h=competitors.find(c=>c.homeAway==="home")||competitors[0]||{};
-      const a=competitors.find(c=>c.homeAway==="away")||competitors[1]||{};
+      const home=competitors.find(c=>c.homeAway==="home")||competitors[0]||{};
+      const away=competitors.find(c=>c.homeAway==="away")||competitors[1]||{};
       const state=String(comp.status?.type?.state||ev.status?.type?.state||"pre");
-      return {fixture:{date:ev.date,status:{short:state==="pre"?"NS":state==="in"?"LIVE":"FT"}},teams:{home:{id:h.team?.id,name:h.team?.displayName||h.team?.name||""},away:{id:a.team?.id,name:a.team?.displayName||a.team?.name||""}},_source:"ESPN"};
-     }).filter(m=>m.fixture.date&&m.teams.home.name&&m.teams.away.name);
+      const date=ev.date||comp.date||"";
+      const id=String(ev.id||comp.id||date+home.team?.id+away.team?.id);
+      if(seen.has(id))return null;seen.add(id);
+      return {fixture:{id,date,status:{short:state==="pre"?"NS":state==="in"?"LIVE":"FT"}},teams:{home:{id:home.team?.id,name:home.team?.displayName||home.team?.name||""},away:{id:away.team?.id,name:away.team?.displayName||away.team?.name||""}},_source:"ESPN"};
+     }).filter(m=>m&&m.fixture.date&&m.teams.home.name&&m.teams.away.name);
      try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:leagueFixtures}));}catch(e){}
     }
     const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
