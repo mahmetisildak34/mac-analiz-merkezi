@@ -2723,7 +2723,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v62_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v63_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -3115,6 +3115,71 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
             }
           }
         });
+      }
+    }
+  }
+
+  // UEFA ortak Avrupa arşivi: seçili turnuvadan bağımsız olarak üç kupanın
+  // 2024/25, 2025/26 ve mevcut sezon sonuçlarını birlikte tara.
+  // Örnek: Fenerbahçe 2025/26'da Avrupa Ligi'nde oynadığı için CL analizinde de
+  // bu gerçek maçlar takım geçmişine katılmalıdır.
+  if(["2","3","848"].includes(String(leagueId))){
+    const uefaFeeds=["champions-league","europa-league","conference-league"];
+    const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
+    const currentSeasonStart=matchMonth>=7?matchYear:matchYear-1;
+    const uefaYears=[currentSeasonStart,currentSeasonStart-1,currentSeasonStart-2].filter(y=>y>=2024);
+    const loadUefaFeed=async(slug,year)=>{
+      const cacheKey="mam_uefa_fixture_archive_"+slug+"_"+year+"_v2";
+      try{
+        const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
+        if(Array.isArray(cached?.matches)&&Date.now()-cached.time<24*60*60*1000)return cached.matches;
+      }catch(_){}
+      const payload=await api("fixturesdownload/"+slug+"-"+year);
+      if(!Array.isArray(payload))throw new Error(slug+" "+year+" JSON feed geçersiz");
+      const rows=payload.map(item=>({
+        date:String(item.DateUtc||"").slice(0,10),
+        home:String(item.HomeTeam||""),
+        away:String(item.AwayTeam||""),
+        homeGoals:item.HomeTeamScore,
+        awayGoals:item.AwayTeamScore,
+        round:item.RoundNumber??null,
+        matchNumber:item.MatchNumber??null
+      })).filter(item=>item.date&&item.home&&item.away);
+      try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:rows}));}catch(_){}
+      return rows;
+    };
+    const feedJobs=[];
+    for(const slug of uefaFeeds)for(const year of uefaYears)feedJobs.push({slug,year});
+    // Aynı anda en fazla üç dış istek gönder; iPhone/Worker yükünü sınırlı tut.
+    for(let offset=0;offset<feedJobs.length;offset+=3){
+      const batch=await Promise.allSettled(feedJobs.slice(offset,offset+3).map(job=>
+        loadUefaFeed(job.slug,job.year).then(matches=>({job,matches}))
+      ));
+      for(const result of batch){
+        if(result.status!=="fulfilled"){
+          sourceError+=" UEFA ortak arşiv feed hatası: "+String(result.reason?.message||result.reason);
+          continue;
+        }
+        const {job,matches}=result.value;
+        for(const row of matches){
+          if(row.date>=matchDate)continue;
+          const homeGoals=num(row.homeGoals),awayGoals=num(row.awayGoals);
+          if(homeGoals===null||awayGoals===null)continue;
+          const homeTarget=isTarget(row.home),awayTarget=isTarget(row.away);
+          if(homeTarget===awayTarget)continue;
+          addMatch({
+            mamSource:"fixture-download-uefa",
+            fixture:{id:"fd-uefa-"+job.slug+"-"+job.year+"-"+(row.matchNumber??row.date),date:row.date+"T12:00:00Z",status:{short:"FT"}},
+            league:{id:String(leagueId),name:job.slug+" "+job.year},
+            teams:{
+              home:{id:homeTarget?Number(teamId):-1,name:row.home},
+              away:{id:awayTarget?Number(teamId):-1,name:row.away}
+            },
+            goals:{home:homeGoals,away:awayGoals},
+            score:null,
+            statistics:null
+          });
+        }
       }
     }
   }
