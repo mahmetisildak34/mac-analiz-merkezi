@@ -3272,7 +3272,9 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     }
   }
 
-  // UEFA ortak Avrupa arşivi: seçili turnuvadan bağımsız olarak üç kupanın
+  // Seçili UEFA turnuvasının kendi arşivi: kupa verileri birbirine karıştırılmaz.
+  // Konferans Ligi (848) yalnızca conference-league kaynaklarını okur.
+  // Eski ortak arşiv yaklaşımı kaldırıldı.
   // 2024/25, 2025/26 ve mevcut sezon sonuçlarını birlikte tara.
   // Örnek: Fenerbahçe 2025/26'da Avrupa Ligi'nde oynadığı için CL analizinde de
   // bu gerçek maçlar takım geçmişine katılmalıdır.
@@ -3340,8 +3342,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // UEFA geçmiş sezonları: tüm turnuvayı tek sefer indirip yerel ortak önbellekte tut.
   // Böylece her takım için ayrı ayrı API çağrısı yapılmaz; bütün takımlar aynı doğrulanmış arşivi kullanır.
-  if(["2","3","848"].includes(String(leagueId))){
-    const competitionCode=({"2":"CL","3":"EL","848":"UCL"})[String(leagueId)];
+  if(["2","3"].includes(String(leagueId))){
+    const competitionCode=({"2":"CL","3":"EL"})[String(leagueId)];
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const seasonStart=matchMonth>=7?matchYear:matchYear-1;
     const historySeasons=[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024);
@@ -3378,7 +3380,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // Football-data team endpoint: UEFA takımlarının yalnızca Avrupa maçlarını değil,
   // aynı kulübün lig ve kupa maçlarını da tek bir doğrulanmış takım ID'siyle getir.
   // Böylece yeni katılan veya önceki sezonlarda Avrupa'da az maç yapan takımlar da analiz edilebilir.
-  if(["2","3","848"].includes(String(leagueId))&&String(sourceFixtureId||"").startsWith("fd-")&&/^\d+$/.test(String(teamId))){
+  if(["2","3"].includes(String(leagueId))&&String(sourceFixtureId||"").startsWith("fd-")&&/^\d+$/.test(String(teamId))){
     try{
       const endDate=matchDate;
       const startDate=new Date(matchDate+"T12:00:00Z");
