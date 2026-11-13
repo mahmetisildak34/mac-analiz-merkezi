@@ -2459,7 +2459,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v39_"+leagueId+"_"+teamId+"_"+matchDate;
+   const key="mam_history_v40_"+leagueId+"_"+teamId+"_"+matchDate;
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2471,7 +2471,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const normalize=name=>String(name||"").normalize("NFD").toLowerCase()
     .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
     .replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim()
-    .replace(/\b(football club|fc|cf|afc)\b/g,"").replace(/\s+/g," ").trim();
+    .replace(/\b(football club|fc|cf|afc|a s|as|anonim sirketi|sirketi)\b/g,"").replace(/\s+/g," ").trim();
   const aliases={
     "manchester city":["man city","m city","manchester city fc","man city fc"],
     "man city":["manchester city","m city","manchester city fc"],
@@ -2542,7 +2542,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     "trabzonspor":["trabzonspor a s","trabzonspor fk"]
   };
   const wanted=normalize(teamName);
-  const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize)]);
+  const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize),...Object.entries(aliases).filter(([,variants])=>variants.some(value=>normalize(value)===wanted)).map(([canonical])=>normalize(canonical))]);
   const isTarget=name=>accepted.has(normalize(name));
   const output=[];
   const seen=new Set();
