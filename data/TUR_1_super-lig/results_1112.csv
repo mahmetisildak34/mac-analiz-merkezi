@@ -1,0 +1,307 @@
+gw,date,time,home,away,ft_home,ft_away,ft_result,ht_home,ht_away,ht_result,home_shots,away_shots,home_target,away_target,home_fouls,away_fouls,home_corners,away_corners,home_corners_1h,away_corners_1h,home_corners_2h,away_corners_2h,home_yellow,away_yellow,home_red,away_red,goal_minutes,source
+,2011-09-10,12:00,Ankaragucu,Mersin İdmanyurdu,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-10,12:00,Eskişehirspor,Beşiktaş İstanbul JK,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-10,12:00,Manisaspor,Trabzonspor AŞ,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-10,12:00,Samsunspor,Gençlerbirliği Ankara SK,3,2,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-11,12:00,Antalyaspor,Gaziantepspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-11,12:00,Bursaspor,Kayserispor,3,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-11,12:00,İstanbul Başakşehir,Galatasaray İstanbul AŞ,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-11,12:00,Kardemir Karabükspor,Sivasspor,2,1,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-12,12:00,Fenerbahçe İstanbul SK,Orduspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-16,12:00,Gaziantepspor,Fenerbahçe İstanbul SK,1,3,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-16,12:00,Kayserispor,Antalyaspor,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-17,12:00,Gençlerbirliği Ankara SK,Kardemir Karabükspor,2,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-17,12:00,Orduspor,Manisaspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-17,12:00,Trabzonspor AŞ,İstanbul Başakşehir,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-18,12:00,Galatasaray İstanbul AŞ,Samsunspor,3,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-18,12:00,Mersin İdmanyurdu,Bursaspor,1,3,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-18,12:00,Sivasspor,Eskişehirspor,0,4,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-19,12:00,Beşiktaş İstanbul JK,Ankaragucu,3,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-20,12:00,İstanbul Başakşehir,Orduspor,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-20,12:00,Fenerbahçe İstanbul SK,Manisaspor,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-20,12:00,Gaziantepspor,Kayserispor,1,2,A,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-21,12:00,Antalyaspor,Mersin İdmanyurdu,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-21,12:00,Eskişehirspor,Gençlerbirliği Ankara SK,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-21,12:00,Kardemir Karabükspor,Galatasaray İstanbul AŞ,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-21,12:00,Samsunspor,Trabzonspor AŞ,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-22,12:00,Ankaragucu,Sivasspor,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-22,12:00,Bursaspor,Beşiktaş İstanbul JK,1,2,A,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-23,12:00,Kayserispor,Fenerbahçe İstanbul SK,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-24,12:00,Manisaspor,İstanbul Başakşehir,0,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-24,12:00,Mersin İdmanyurdu,Gaziantepspor,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-24,12:00,Trabzonspor AŞ,Kardemir Karabükspor,3,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-25,12:00,Beşiktaş İstanbul JK,Antalyaspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-25,12:00,Gençlerbirliği Ankara SK,Ankaragucu,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-25,12:00,Orduspor,Samsunspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-25,12:00,Sivasspor,Bursaspor,3,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-26,12:00,Galatasaray İstanbul AŞ,Eskişehirspor,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-09-30,12:00,Bursaspor,Gençlerbirliği Ankara SK,4,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-01,12:00,Antalyaspor,Sivasspor,2,2,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-01,12:00,Fenerbahçe İstanbul SK,İstanbul Başakşehir,4,2,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-01,12:00,Kardemir Karabükspor,Orduspor,1,2,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-02,12:00,Ankaragucu,Galatasaray İstanbul AŞ,0,3,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-02,12:00,Eskişehirspor,Trabzonspor AŞ,0,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-02,12:00,Kayserispor,Mersin İdmanyurdu,2,2,D,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-02,12:00,Samsunspor,Manisaspor,1,2,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-03,12:00,Gaziantepspor,Beşiktaş İstanbul JK,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-14,12:00,Trabzonspor AŞ,Ankaragucu,3,2,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-15,12:00,Beşiktaş İstanbul JK,Kayserispor,0,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-15,12:00,Orduspor,Eskişehirspor,2,1,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-15,12:00,Sivasspor,Gaziantepspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-16,12:00,İstanbul Başakşehir,Samsunspor,3,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-16,12:00,Galatasaray İstanbul AŞ,Bursaspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-16,12:00,Gençlerbirliği Ankara SK,Antalyaspor,3,0,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-16,12:00,Manisaspor,Kardemir Karabükspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-17,12:00,Mersin İdmanyurdu,Fenerbahçe İstanbul SK,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-21,12:00,Antalyaspor,Galatasaray İstanbul AŞ,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-22,12:00,Bursaspor,Trabzonspor AŞ,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-22,12:00,Eskişehirspor,Manisaspor,0,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-22,12:00,Kardemir Karabükspor,İstanbul Başakşehir,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-23,12:00,Ankaragucu,Orduspor,0,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-23,12:00,Fenerbahçe İstanbul SK,Samsunspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-23,12:00,Gaziantepspor,Gençlerbirliği Ankara SK,3,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-23,12:00,Kayserispor,Sivasspor,6,2,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-24,12:00,Mersin İdmanyurdu,Beşiktaş İstanbul JK,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-26,12:00,İstanbul Başakşehir,Eskişehirspor,2,2,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-26,12:00,Galatasaray İstanbul AŞ,Gaziantepspor,2,4,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-26,12:00,Orduspor,Bursaspor,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-26,12:00,Samsunspor,Kardemir Karabükspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-26,12:00,Trabzonspor AŞ,Antalyaspor,2,2,D,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-27,12:00,Beşiktaş İstanbul JK,Fenerbahçe İstanbul SK,2,2,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-27,12:00,Gençlerbirliği Ankara SK,Kayserispor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-27,12:00,Manisaspor,Ankaragucu,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-27,12:00,Sivasspor,Mersin İdmanyurdu,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-29,12:00,Antalyaspor,Orduspor,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-29,12:00,Eskişehirspor,Samsunspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-29,12:00,Gaziantepspor,Trabzonspor AŞ,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-30,12:00,Ankaragucu,İstanbul Başakşehir,1,2,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-30,12:00,Beşiktaş İstanbul JK,Sivasspor,3,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-30,12:00,Bursaspor,Manisaspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-30,12:00,Kayserispor,Galatasaray İstanbul AŞ,0,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-31,12:00,Fenerbahçe İstanbul SK,Kardemir Karabükspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-10-31,12:00,Mersin İdmanyurdu,Gençlerbirliği Ankara SK,2,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-04,12:00,Samsunspor,Ankaragucu,2,2,D,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-04,12:00,Sivasspor,Fenerbahçe İstanbul SK,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-05,12:00,Galatasaray İstanbul AŞ,Mersin İdmanyurdu,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-05,12:00,Kardemir Karabükspor,Eskişehirspor,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-05,12:00,Manisaspor,Antalyaspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-05,12:00,Orduspor,Gaziantepspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-06,12:00,İstanbul Başakşehir,Bursaspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-06,12:00,Gençlerbirliği Ankara SK,Beşiktaş İstanbul JK,4,2,H,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-06,12:00,Trabzonspor AŞ,Kayserispor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-18,12:00,Mersin İdmanyurdu,Trabzonspor AŞ,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-19,12:00,Ankaragucu,Kardemir Karabükspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-19,12:00,Fenerbahçe İstanbul SK,Eskişehirspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-19,12:00,Kayserispor,Orduspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-20,12:00,Antalyaspor,İstanbul Başakşehir,2,1,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-20,12:00,Beşiktaş İstanbul JK,Galatasaray İstanbul AŞ,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-20,12:00,Gaziantepspor,Manisaspor,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-20,12:00,Sivasspor,Gençlerbirliği Ankara SK,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-21,12:00,Bursaspor,Samsunspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-25,12:00,Gençlerbirliği Ankara SK,Fenerbahçe İstanbul SK,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-26,12:00,Galatasaray İstanbul AŞ,Sivasspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-26,12:00,Orduspor,Mersin İdmanyurdu,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-26,12:00,Samsunspor,Antalyaspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-27,12:00,İstanbul Başakşehir,Gaziantepspor,3,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-27,12:00,Eskişehirspor,Ankaragucu,3,2,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-27,12:00,Manisaspor,Kayserispor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-27,12:00,Trabzonspor AŞ,Beşiktaş İstanbul JK,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-11-28,12:00,Kardemir Karabükspor,Bursaspor,3,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-02,12:00,Sivasspor,Trabzonspor AŞ,2,2,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-03,12:00,Fenerbahçe İstanbul SK,Ankaragucu,4,2,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-03,12:00,Gaziantepspor,Samsunspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-03,12:00,Gençlerbirliği Ankara SK,Galatasaray İstanbul AŞ,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-04,12:00,Antalyaspor,Kardemir Karabükspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-04,12:00,Bursaspor,Eskişehirspor,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-04,12:00,Kayserispor,İstanbul Başakşehir,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-04,12:00,Mersin İdmanyurdu,Manisaspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-05,12:00,Beşiktaş İstanbul JK,Orduspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-07,12:00,Eskişehirspor,Antalyaspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-07,12:00,Galatasaray İstanbul AŞ,Fenerbahçe İstanbul SK,3,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-07,12:00,Kardemir Karabükspor,Gaziantepspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-08,12:00,Ankaragucu,Bursaspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-08,12:00,İstanbul Başakşehir,Mersin İdmanyurdu,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-08,12:00,Manisaspor,Beşiktaş İstanbul JK,1,4,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-08,12:00,Orduspor,Sivasspor,1,2,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-08,12:00,Samsunspor,Kayserispor,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-10,12:00,Gaziantepspor,Eskişehirspor,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-11,12:00,Antalyaspor,Ankaragucu,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-11,12:00,Beşiktaş İstanbul JK,İstanbul Başakşehir,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-11,12:00,Gençlerbirliği Ankara SK,Orduspor,3,1,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-11,12:00,Mersin İdmanyurdu,Samsunspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-11,12:00,Trabzonspor AŞ,Galatasaray İstanbul AŞ,0,3,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-12,12:00,Bursaspor,Fenerbahçe İstanbul SK,0,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-12,12:00,Kayserispor,Kardemir Karabükspor,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-12,12:00,Sivasspor,Manisaspor,2,2,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-14,12:00,Trabzonspor AŞ,Gençlerbirliği Ankara SK,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-16,12:00,Orduspor,Galatasaray İstanbul AŞ,0,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-17,12:00,Ankaragucu,Gaziantepspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-17,12:00,Bursaspor,Antalyaspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-17,12:00,Eskişehirspor,Kayserispor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-17,12:00,Kardemir Karabükspor,Mersin İdmanyurdu,3,5,A,3,2,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-18,12:00,İstanbul Başakşehir,Sivasspor,1,1,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-18,12:00,Fenerbahçe İstanbul SK,Trabzonspor AŞ,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-18,12:00,Manisaspor,Gençlerbirliği Ankara SK,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-18,12:00,Samsunspor,Beşiktaş İstanbul JK,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-21,12:00,Antalyaspor,Fenerbahçe İstanbul SK,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-21,12:00,Galatasaray İstanbul AŞ,Manisaspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-21,12:00,Kayserispor,Ankaragucu,3,0,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-21,12:00,Mersin İdmanyurdu,Eskişehirspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-21,12:00,Sivasspor,Samsunspor,3,2,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-22,12:00,Beşiktaş İstanbul JK,Kardemir Karabükspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-22,12:00,Gaziantepspor,Bursaspor,2,2,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-22,12:00,Gençlerbirliği Ankara SK,İstanbul Başakşehir,4,0,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2011-12-22,12:00,Trabzonspor AŞ,Orduspor,4,1,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-03,12:00,Galatasaray İstanbul AŞ,İstanbul Başakşehir,4,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-03,12:00,Kayserispor,Bursaspor,0,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-03,12:00,Mersin İdmanyurdu,Ankaragucu,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-03,12:00,Sivasspor,Kardemir Karabükspor,3,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-03,12:00,Trabzonspor AŞ,Manisaspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-04,12:00,Beşiktaş İstanbul JK,Eskişehirspor,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-04,12:00,Gaziantepspor,Antalyaspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-04,12:00,Gençlerbirliği Ankara SK,Samsunspor,1,1,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-04,12:00,Orduspor,Fenerbahçe İstanbul SK,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-07,12:00,Bursaspor,Mersin İdmanyurdu,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-07,12:00,İstanbul Başakşehir,Trabzonspor AŞ,0,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-07,12:00,Samsunspor,Galatasaray İstanbul AŞ,2,4,A,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-08,12:00,Ankaragucu,Beşiktaş İstanbul JK,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-08,12:00,Antalyaspor,Kayserispor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-08,12:00,Eskişehirspor,Sivasspor,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-08,12:00,Kardemir Karabükspor,Gençlerbirliği Ankara SK,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-08,12:00,Manisaspor,Orduspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-09,12:00,Fenerbahçe İstanbul SK,Gaziantepspor,3,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-14,12:00,Galatasaray İstanbul AŞ,Kardemir Karabükspor,5,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-14,12:00,Gençlerbirliği Ankara SK,Eskişehirspor,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-15,12:00,Beşiktaş İstanbul JK,Bursaspor,3,1,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-15,12:00,Mersin İdmanyurdu,Antalyaspor,0,2,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-15,12:00,Orduspor,İstanbul Başakşehir,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-15,12:00,Sivasspor,Ankaragucu,3,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-15,12:00,Trabzonspor AŞ,Samsunspor,4,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-16,12:00,Kayserispor,Gaziantepspor,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-16,12:00,Manisaspor,Fenerbahçe İstanbul SK,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-20,12:00,Antalyaspor,Beşiktaş İstanbul JK,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-20,12:00,Gaziantepspor,Mersin İdmanyurdu,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-21,12:00,Bursaspor,Sivasspor,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-21,12:00,İstanbul Başakşehir,Manisaspor,3,2,H,3,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-21,12:00,Fenerbahçe İstanbul SK,Kayserispor,4,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-21,12:00,Kardemir Karabükspor,Trabzonspor AŞ,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-21,12:00,Samsunspor,Orduspor,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-22,12:00,Ankaragucu,Gençlerbirliği Ankara SK,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-22,12:00,Eskişehirspor,Galatasaray İstanbul AŞ,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-24,12:00,Beşiktaş İstanbul JK,Gaziantepspor,3,2,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-24,12:00,Manisaspor,Samsunspor,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-24,12:00,Mersin İdmanyurdu,Kayserispor,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-24,12:00,Sivasspor,Antalyaspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-25,12:00,İstanbul Başakşehir,Fenerbahçe İstanbul SK,3,2,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-25,12:00,Galatasaray İstanbul AŞ,Ankaragucu,4,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-25,12:00,Gençlerbirliği Ankara SK,Bursaspor,2,2,D,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-25,12:00,Orduspor,Kardemir Karabükspor,3,2,H,3,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-25,12:00,Trabzonspor AŞ,Eskişehirspor,4,1,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-28,12:00,Antalyaspor,Gençlerbirliği Ankara SK,2,2,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-28,12:00,Bursaspor,Galatasaray İstanbul AŞ,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-29,12:00,Ankaragucu,Trabzonspor AŞ,0,4,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-29,12:00,Eskişehirspor,Orduspor,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-29,12:00,Fenerbahçe İstanbul SK,Mersin İdmanyurdu,2,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-29,12:00,Gaziantepspor,Sivasspor,2,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-29,12:00,Kardemir Karabükspor,Manisaspor,2,1,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-29,12:00,Samsunspor,İstanbul Başakşehir,2,4,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-01-30,12:00,Kayserispor,Beşiktaş İstanbul JK,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-01,12:00,Galatasaray İstanbul AŞ,Antalyaspor,1,1,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-01,12:00,Gençlerbirliği Ankara SK,Gaziantepspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-01,12:00,Orduspor,Ankaragucu,2,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-01,12:00,Trabzonspor AŞ,Bursaspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-02,12:00,Beşiktaş İstanbul JK,Mersin İdmanyurdu,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-02,12:00,Manisaspor,Eskişehirspor,2,3,A,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-02,12:00,Samsunspor,Fenerbahçe İstanbul SK,3,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-02,12:00,Sivasspor,Kayserispor,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-04,12:00,Antalyaspor,Trabzonspor AŞ,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-04,12:00,Gaziantepspor,Galatasaray İstanbul AŞ,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-05,12:00,Bursaspor,Orduspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-05,12:00,Fenerbahçe İstanbul SK,Beşiktaş İstanbul JK,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-05,12:00,Kayserispor,Gençlerbirliği Ankara SK,2,3,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-05,12:00,Mersin İdmanyurdu,Sivasspor,1,5,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-06,12:00,Ankaragucu,Manisaspor,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-06,12:00,Eskişehirspor,İstanbul Başakşehir,3,1,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-06,12:00,Kardemir Karabükspor,Samsunspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-09,12:00,İstanbul Başakşehir,Kardemir Karabükspor,2,2,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-09,12:00,Sivasspor,Beşiktaş İstanbul JK,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-10,12:00,Trabzonspor AŞ,Gaziantepspor,4,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-11,12:00,Galatasaray İstanbul AŞ,Kayserispor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-11,12:00,Gençlerbirliği Ankara SK,Mersin İdmanyurdu,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-12,12:00,İstanbul Başakşehir,Ankaragucu,3,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-12,12:00,Kardemir Karabükspor,Fenerbahçe İstanbul SK,2,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-12,12:00,Manisaspor,Bursaspor,1,3,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-12,12:00,Orduspor,Antalyaspor,3,2,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-12,12:00,Samsunspor,Eskişehirspor,3,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-17,12:00,Mersin İdmanyurdu,Galatasaray İstanbul AŞ,1,3,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-18,12:00,Ankaragucu,Samsunspor,0,3,A,0,3,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-18,12:00,Antalyaspor,Manisaspor,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-18,12:00,Fenerbahçe İstanbul SK,Sivasspor,4,2,H,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-19,12:00,Beşiktaş İstanbul JK,Gençlerbirliği Ankara SK,3,2,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-19,12:00,Eskişehirspor,Kardemir Karabükspor,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-19,12:00,Gaziantepspor,Orduspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-19,12:00,Kayserispor,Trabzonspor AŞ,3,3,D,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-20,12:00,Bursaspor,İstanbul Başakşehir,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-24,12:00,Orduspor,Kayserispor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-25,12:00,Eskişehirspor,Fenerbahçe İstanbul SK,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-25,12:00,Kardemir Karabükspor,Ankaragucu,3,2,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-25,12:00,Manisaspor,Gaziantepspor,0,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-25,12:00,Samsunspor,Bursaspor,0,3,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-26,12:00,İstanbul Başakşehir,Antalyaspor,4,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-26,12:00,Galatasaray İstanbul AŞ,Beşiktaş İstanbul JK,3,2,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-26,12:00,Gençlerbirliği Ankara SK,Sivasspor,3,3,D,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-02-26,12:00,Trabzonspor AŞ,Mersin İdmanyurdu,2,3,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-03,12:00,Ankaragucu,Eskişehirspor,2,5,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-03,12:00,Antalyaspor,Samsunspor,0,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-03,12:00,Fenerbahçe İstanbul SK,Gençlerbirliği Ankara SK,6,1,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-03,12:00,Mersin İdmanyurdu,Orduspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-04,12:00,Beşiktaş İstanbul JK,Trabzonspor AŞ,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-04,12:00,Bursaspor,Kardemir Karabükspor,3,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-04,12:00,Gaziantepspor,İstanbul Başakşehir,5,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-04,12:00,Kayserispor,Manisaspor,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-05,12:00,Sivasspor,Galatasaray İstanbul AŞ,0,4,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-09,12:00,Ankaragucu,Fenerbahçe İstanbul SK,0,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-10,12:00,İstanbul Başakşehir,Kayserispor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-10,12:00,Galatasaray İstanbul AŞ,Gençlerbirliği Ankara SK,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-11,12:00,Eskişehirspor,Bursaspor,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-11,12:00,Kardemir Karabükspor,Antalyaspor,2,1,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-11,12:00,Manisaspor,Mersin İdmanyurdu,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-11,12:00,Orduspor,Beşiktaş İstanbul JK,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-11,12:00,Samsunspor,Gaziantepspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-12,12:00,Trabzonspor AŞ,Sivasspor,2,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-16,12:00,Gençlerbirliği Ankara SK,Trabzonspor AŞ,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-17,12:00,Antalyaspor,Eskişehirspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-17,12:00,Bursaspor,Ankaragucu,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-17,12:00,Fenerbahçe İstanbul SK,Galatasaray İstanbul AŞ,2,2,D,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-17,12:00,Sivasspor,Orduspor,1,1,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-18,12:00,Gaziantepspor,Kardemir Karabükspor,3,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-18,12:00,Kayserispor,Samsunspor,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-18,12:00,Mersin İdmanyurdu,İstanbul Başakşehir,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-19,12:00,Beşiktaş İstanbul JK,Manisaspor,4,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-24,12:00,Fenerbahçe İstanbul SK,Bursaspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-25,12:00,Ankaragucu,Antalyaspor,0,3,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-25,12:00,Eskişehirspor,Gaziantepspor,0,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-25,12:00,Galatasaray İstanbul AŞ,Trabzonspor AŞ,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-25,12:00,Kardemir Karabükspor,Kayserispor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-25,12:00,Manisaspor,Sivasspor,1,3,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-25,12:00,Orduspor,Gençlerbirliği Ankara SK,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-25,12:00,Samsunspor,Mersin İdmanyurdu,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-26,12:00,İstanbul Başakşehir,Beşiktaş İstanbul JK,2,2,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-30,12:00,Gaziantepspor,Ankaragucu,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-30,12:00,Mersin İdmanyurdu,Kardemir Karabükspor,0,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-31,12:00,Galatasaray İstanbul AŞ,Orduspor,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-31,12:00,Gençlerbirliği Ankara SK,Manisaspor,3,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-31,12:00,Kayserispor,Eskişehirspor,2,2,D,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-03-31,12:00,Sivasspor,İstanbul Başakşehir,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-01,12:00,Antalyaspor,Bursaspor,1,3,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-01,12:00,Beşiktaş İstanbul JK,Samsunspor,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-01,12:00,Trabzonspor AŞ,Fenerbahçe İstanbul SK,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-06,12:00,Kardemir Karabükspor,Beşiktaş İstanbul JK,1,1,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-07,12:00,Ankaragucu,Kayserispor,0,5,A,0,3,A,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-07,12:00,Bursaspor,Gaziantepspor,0,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-07,12:00,İstanbul Başakşehir,Gençlerbirliği Ankara SK,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-07,12:00,Eskişehirspor,Mersin İdmanyurdu,2,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-07,12:00,Fenerbahçe İstanbul SK,Antalyaspor,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-07,12:00,Samsunspor,Sivasspor,1,2,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-08,12:00,Manisaspor,Galatasaray İstanbul AŞ,0,4,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2012-04-08,12:00,Orduspor,Trabzonspor AŞ,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
