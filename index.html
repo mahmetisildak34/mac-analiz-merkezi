@@ -2326,9 +2326,9 @@ function setMamScreen(mode){
  main.classList.add("mam-screen-"+mode);
  const standingsScreen=$("mamStandingsScreen");if(standingsScreen)standingsScreen.hidden=mode!=="standings";
  const header=$("mamSectionHeader");
- if(header){header.hidden=mode==="home";$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="standings"?"LİG MERKEZİ":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="standings"?"Puan Durumu":"Başlamayan Maçlar";}
+ if(header){header.hidden=mode==="home";const back=$("mamSectionBack");if(back){back.hidden=mode==="live";back.style.display=mode==="live"?"none":"";back.textContent="← Geri";}$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="standings"?"LİG MERKEZİ":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="standings"?"Puan Durumu":"Başlamayan Maçlar";}
  const intro=document.querySelector(".mam-home-intro");if(intro)intro.hidden=mode!=="home";
- const superLigButton=$("loadSuperLigFixtures");if(superLigButton)superLigButton.hidden=mode!=="home";
+ const superLigButton=$("loadSuperLigFixtures");if(superLigButton){superLigButton.hidden=mode!=="home";superLigButton.style.display=mode==="home"?"":"none";}
  const sourcePanel=document.querySelector("main>.panel");if(sourcePanel)sourcePanel.hidden=mode!=="home";
  const filterRow=$("date")?.closest(".row");if(filterRow)filterRow.hidden=mode==="live";
  const dateStrip=$("mamDateStrip");if(dateStrip)dateStrip.hidden=mode==="live";
