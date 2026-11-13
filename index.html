@@ -3329,25 +3329,32 @@ async function analyze(button){
  $("mamStandingsBack")?.addEventListener("click",()=>{$("mamStandingsCard").hidden=true;$("mamStandingsPicker").hidden=false;$("mamStandingsPicker")?.scrollIntoView({behavior:"smooth",block:"start"});});
  $("mamStandingsRefresh")?.addEventListener("click",loadStandings);
  async function getPremierLeagueUpcoming(){
-  const cacheKey="mam_epl_upcoming_2627_v1";
-  try{const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");if(saved?.time&&Date.now()-saved.time<15*60*1000&&Array.isArray(saved.matches))return saved.matches;}catch(e){}
-  const payload=await api("espn/eng.1/scoreboard?"+qs({dates:"20260801-20270531",limit:500}));
+  const cacheKey="mam_epl_upcoming_2627_v2";
+  try{const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");if(saved?.time&&Date.now()-saved.time<10*60*1000&&Array.isArray(saved.matches))return saved.matches;}catch(e){}
+  const competitions=[
+   {code:"PL",id:"39",name:"Premier League",icon:"🏴"},
+   {code:"CL",id:"2",name:"UEFA Şampiyonlar Ligi",icon:"🏆"},
+   {code:"EL",id:"3",name:"UEFA Avrupa Ligi",icon:"🥈"},
+   {code:"ECL",id:"848",name:"UEFA Konferans Ligi",icon:"🥉"}
+  ];
+  const results=await Promise.allSettled(competitions.map(async comp=>{
+   const data=await api("football-data/competitions/"+comp.code+"/matches?"+qs({status:"SCHEDULED"}));
+   return (data.matches||[]).map(m=>({
+    fixture:{id:"fd-"+comp.code+"-"+m.id,date:m.utcDate||"",status:{short:m.status||"NS"}},
+    league:{id:comp.id,name:comp.name,country:comp.code==="PL"?"England":"Europe",icon:comp.icon},
+    teams:{home:{id:m.homeTeam?.id||-1,name:m.homeTeam?.name||m.homeTeam?.shortName||""},away:{id:m.awayTeam?.id||-1,name:m.awayTeam?.name||m.awayTeam?.shortName||""}},
+    goals:{home:m.score?.fullTime?.home??null,away:m.score?.fullTime?.away??null}
+   }));
+  }));
+  const matches=results.flatMap(x=>x.status==="fulfilled"?x.value:[]);
   const now=Date.now();
-  const events=Array.isArray(payload.events)?payload.events:[];
-  const matches=events.map(event=>{
-   const competition=(event.competitions||[])[0]||{};
-   const teams=competition.competitors||[];
-   const home=teams.find(x=>x.homeAway==="home")||{};
-   const away=teams.find(x=>x.homeAway==="away")||{};
-   const state=String(event.status?.type?.state||"").toLowerCase();
-   const completed=event.status?.type?.completed===true||state==="post";
-   const live=state==="in";
-   return {fixture:{id:"espn-eng.1-"+event.id,date:event.date||"",status:{short:completed?"FT":live?"LIVE":"NS"}},league:{id:39,name:"Premier League",country:"England"},teams:{home:{id:Number(home.team?.id)||-1,name:home.team?.displayName||home.team?.name||""},away:{id:Number(away.team?.id)||-1,name:away.team?.displayName||away.team?.name||""}},goals:{home:home.score==null?null:Number(home.score),away:away.score==null?null:Number(away.score)}};
-  }).filter(m=>m.teams.home.name&&m.teams.away.name&&!["FT","AET","PEN"].includes(m.fixture.status.short)&&Date.parse(m.fixture.date)>=now-60*60*1000)
-   .sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
-  if(!matches.length)throw new Error("ESPN Premier League gelecek fikstürünü döndürmedi.");
-  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(e){}
-  return matches;
+  const upcoming=matches.filter(m=>m.teams.home.name&&m.teams.away.name&&Date.parse(m.fixture.date)>=now-60*60*1000).sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
+  if(!upcoming.some(m=>String(m.league.id)==="39")){
+   const errors=results.map((x,i)=>x.status==="rejected"?competitions[i].code+": "+(x.reason?.message||x.reason):"").filter(Boolean);
+   throw new Error("Premier League gelecek fikstürü alınamadı. "+errors.join(" | "));
+  }
+  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:upcoming}));}catch(e){}
+  return upcoming;
  }
  const openStandingTeamHistory=async row=>{
   if(!["203","39"].includes(String(selectedStandingsLeague))||!row)return;
@@ -3395,14 +3402,15 @@ async function analyze(button){
     const color=outcome==="W"?"#67e4b0":outcome==="L"?"#ff9696":"#d2dce3";
     return '<article style="display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;padding:11px 10px;border:1px solid rgba(160,205,195,.16);border-radius:13px;background:linear-gradient(145deg,#142f3c,#102532);"><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:'+bg+';color:'+color+';font-weight:950;font-size:12px;">'+outcome+'</span><span style="display:grid;gap:4px;min-width:0;"><b style="font-size:12px;line-height:1.3;color:#f4faf8;">'+esc(home.name||"Ev sahibi")+' – '+esc(away.name||"Deplasman")+'</b><small style="font-size:10px;color:#a9c0c4;">'+(isHome?"İç saha":"Deplasman")+' · '+esc(dateLabel)+'</small></span><strong style="font-size:15px;white-space:nowrap;color:#fff;">'+gf+' – '+ga+'</strong></article>';
    }).join("")+'</div></section>':'<p style="font-size:12px;color:#a9c0c4;">Henüz tamamlanmış maç kaydı bulunamadı.</p>';
-   const futureHtml=upcoming.length?'<section style="margin-top:22px;"><div style="display:flex;align-items:center;justify-content:space-between;margin:0 2px 10px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">GELECEK MAÇLAR</span><span style="font-size:10px;color:#9eb2bc;">'+upcoming.length+' MAÇ</span></div><div style="overflow:hidden;border:1px solid rgba(160,205,195,.16);border-radius:14px;background:#171f26;"><div style="display:flex;align-items:center;gap:9px;padding:11px 12px;background:#27323a;color:#f2f7f8;font-size:12px;font-weight:800;"><span style="font-size:17px;">'+(String(selectedStandingsLeague)==="39"?"🏴":"🇹🇷")+'</span>'+(String(selectedStandingsLeague)==="39"?"England · Premier League":"Türkiye · Trendyol Süper Lig")+'</div><div style="padding:0 9px;">'+upcoming.map(m=>{
+   const futureHtml=upcoming.length?'<section style="margin-top:22px;"><div style="display:flex;align-items:center;justify-content:space-between;margin:0 2px 10px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">GELECEK MAÇLAR</span><span style="font-size:10px;color:#9eb2bc;">'+upcoming.length+' MAÇ</span></div><div style="overflow:hidden;border:1px solid rgba(160,205,195,.16);border-radius:14px;background:#171f26;"><div style="display:flex;align-items:center;gap:9px;padding:11px 12px;background:#27323a;color:#f2f7f8;font-size:12px;font-weight:800;"><span style="font-size:17px;">'+(String(selectedStandingsLeague)==="39"?"🏴":"🇹🇷")+'</span>'+(String(selectedStandingsLeague)==="39"?"Premier League ve UEFA maçları":"Türkiye · Trendyol Süper Lig")+'</div><div style="padding:0 9px;">'+upcoming.map(m=>{
     const home=m.teams?.home||{},away=m.teams?.away||{};
     const isHome=Number(home.id)===Number(teamId)||String(home.name)===teamName;
     const date=String(m.fixture?.date||"");
     const dt=date?new Date(date):null;
     const dateLabel=dt?dt.toLocaleDateString("tr-TR",{day:"2-digit",month:"2-digit",timeZone:"Europe/Istanbul"}):"--/--";
     const time=dt?dt.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"}):"—:—";
-    return '<div style="display:grid;grid-template-columns:48px minmax(0,1fr) 48px minmax(0,1fr);align-items:center;gap:5px;min-height:55px;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.09);"><span style="font-size:10px;color:#c0c9ce;white-space:nowrap;">'+dateLabel+'</span><b style="font-size:11px;line-height:1.25;text-align:right;color:#f1f4f5;overflow-wrap:anywhere;">'+esc(home.name||"Ev sahibi")+'</b><strong style="font-size:11px;text-align:center;color:#75dcb6;white-space:nowrap;">'+time+'</strong><b style="font-size:11px;line-height:1.25;text-align:left;color:#f1f4f5;overflow-wrap:anywhere;">'+esc(away.name||"Deplasman")+'</b></div>';
+    const competition=m.league?.name||"Premier League",icon=m.league?.icon||(String(m.league?.id)==="39"?"🏴":"🏆");
+     return '<div style="display:grid;grid-template-columns:48px minmax(0,1fr) 48px minmax(0,1fr);align-items:center;gap:5px;min-height:55px;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.09);"><span style="font-size:10px;color:#c0c9ce;white-space:nowrap;">'+dateLabel+'</span><b style="font-size:11px;line-height:1.25;text-align:right;color:#f1f4f5;overflow-wrap:anywhere;">'+esc(home.name||"Ev sahibi")+'</b><strong style="font-size:11px;text-align:center;color:#75dcb6;white-space:nowrap;">'+time+'</strong><b style="font-size:11px;line-height:1.25;text-align:left;color:#f1f4f5;overflow-wrap:anywhere;">'+esc(away.name||"Deplasman")+'</b><small style="grid-column:2/5;text-align:right;font-size:9px;color:#78dcb8;">'+icon+' '+esc(competition)+'</small></div>';
    }).join("")+'</div></div></section>':'<section style="margin-top:22px;"><div style="font-size:12px;font-weight:900;color:#65dcb1;margin:0 2px 10px;">GELECEK MAÇLAR</div><p style="font-size:12px;color:#a9c0c4;">'+(upcomingError?"Gelecek fikstürü alınamadı: "+esc(upcomingError):"Şu an listelenecek gelecek maç bulunamadı.")+'</p></section>';
    const switchBar='<div style="display:flex;gap:7px;margin:0 0 12px;padding:4px;border:1px solid rgba(160,205,195,.16);border-radius:12px;background:#102431;"><button type="button" data-history-view="past" style="flex:1;min-height:34px;padding:7px 10px;border-radius:9px;background:#287c68;color:#fff;font-size:11px;font-weight:850;">Geçmiş maçlar</button><button type="button" data-history-view="upcoming" style="flex:1;min-height:34px;padding:7px 10px;border-radius:9px;background:#1b3441;color:#c6d6dc;font-size:11px;font-weight:850;">Gelecek maçlar</button></div>';
    content.innerHTML=switchBar+'<div id="mamHistoryPastView">'+pastHtml+'</div><div id="mamHistoryUpcomingView" hidden>'+futureHtml+'</div>';
