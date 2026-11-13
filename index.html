@@ -2627,7 +2627,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v42_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v43_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2778,7 +2778,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     // Eski seri istek düzeni iPhone'da uzun süre "geçmiş maçlar alınıyor" ekranında kalabiliyordu.
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const seasonStart=matchMonth>=7?matchYear:matchYear-1;
-    const seasons=[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024); // Güncel sezon + 2024/25 ve 2025/26: tahmin için yakın dönem formu.
+    const seasons=["2","3","848"].includes(String(leagueId))?[seasonStart]:[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024); // Yerel liglerde 2024/25'ten itibaren üç sezon; Avrupa kupalarında yalnızca 2026/27.
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
       const archiveKey="mam_league_csv_v8_"+folder+"_"+seasonCode;
@@ -2868,7 +2868,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // ESPN yedek geçmişi: fikstür API-Football'dan gelse bile maç tarihindeki
   // ESPN skor tablosundan takımın ESPN ID'sini bul ve takım takvimini oku.
-  if(!archiveOnly&&ESPN_LEAGUES[String(leagueId)]?.slug&&(String(leagueId)==="203"||output.length<10)){
+  if(!archiveOnly&&ESPN_LEAGUES[String(leagueId)]?.slug&&["39","140","78","135","61","2","3","848","203"].includes(String(leagueId))){
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)].slug;
       let espnTeamId="";
@@ -2937,7 +2937,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         // Mevcut sezon CSV'sinde 10'dan az maç varsa ESPN'den son üç sezonu tamamla.
         const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
         const seasonStart=matchMonth>=7?matchYear:matchYear-1;
-        const scheduleYears=[seasonStart,seasonStart-1,seasonStart-2];
+        const scheduleYears=["2","3","848"].includes(String(leagueId))?[seasonStart]:[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024);
         const scheduleResults=await Promise.allSettled(scheduleYears.map(season=>
           api("espn/"+espnHistorySlug+"/teams/"+espnTeamId+"/schedule?"+qs({season}))
         ));
