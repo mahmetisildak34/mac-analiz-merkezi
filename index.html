@@ -2932,6 +2932,20 @@ async function mamSaveMatchesToD1(matches, leagueId){
     console.warn("D1 maç arşivi yazılamadı:",error);
   }
 }
+// D1 merkezi arşivini takım geçmişi analizinden önce oku.
+async function mamLoadD1LeagueArchive(leagueId, matchDate){
+  const cacheKey="mam_d1_archive_v1_"+String(leagueId)+"_"+String(matchDate);
+  try{
+    const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
+    if(Array.isArray(cached?.matches)&&Date.now()-cached.time<10*60*1000)return cached.matches;
+  }catch(_){}
+  const payload=await api("archive/matches?"+qs({
+    league:String(leagueId||""),before:String(matchDate||""),limit:2000
+  }));
+  const matches=Array.isArray(payload?.response)?payload.response:[];
+  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
+  return matches;
+}
 const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
@@ -2941,7 +2955,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   if(cached&&!forceRefresh){
     try{
       const saved=JSON.parse(cached);
-      if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<(String(leagueId)==="203"?30*60*1000:(saved.matches.length>=5?CACHE_HOURS*60*60*1000:10*60*1000))){
+      if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<10*60*1000){
         await mamSaveMatchesToD1(saved.matches,leagueId);
         return saved.matches;
       }
@@ -3236,6 +3250,14 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   };
 
   // Cloudflare KV ücretsiz yazma kotası doluysa bu analiz akışında KV'ye hiç dokunma.
+  // Önce kalıcı D1 arşivini oku; yerel CSV ve canlı sağlayıcılar eksik kalan maçları tamamlar.
+  try{
+    const d1Matches=await mamLoadD1LeagueArchive(leagueId,matchDate);
+    for(const match of d1Matches)addMatch(match);
+  }catch(d1Error){
+    sourceError+=" D1 arşivi: "+String(d1Error?.message||d1Error);
+  }
+
   const folder=leagues[String(leagueId)];
   if(folder){
     // Sekiz sezonun CSV arşivini paralel tara; iki ayna kaynağı da zaman aşımıyla sınırla.
