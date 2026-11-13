@@ -4062,10 +4062,44 @@ async function analyze(button){
     else if(["2","3","848"].includes(String(selectedStandingsLeague))){
      const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
      if(!league?.slug)throw new Error("UEFA fikstür kaynağı tanımlı değil.");
-     if(!/^\\d+$/.test(String(teamId)))throw new Error("Takımın ESPN kimliği bulunamadı.");
-     // Avrupa kupalarında yalnızca 30 günlük skor tablosu yerine takımın
+     // Standings kimliği farklı sağlayıcıdan gelebileceği için ESPN takım
+     // rehberinden kulübün gerçek ESPN ID'sini ismiyle bul.
+     const teamNorm=value=>String(value||"").normalize("NFD").toLowerCase()
+      .replace(/[\\u0300-\\u036f]/g,"").replace(/&/g," and ")
+      .replace(/\\b(football club|fc|afc|cf)\\b/g,"").replace(/[^a-z0-9]+/g,"").trim();
+     const wantedTeam=teamNorm(teamName);
+     const directory=await api("espn/"+league.slug+"/teams?"+qs({limit:500}));
+     const directoryTeams=[];
+     const collectDirectory=value=>{
+      if(!value||typeof value!=="object")return;
+      if(Array.isArray(value)){value.forEach(collectDirectory);return;}
+      if(value.team&&typeof value.team==="object")directoryTeams.push(value.team);
+      if(value.id&&(value.displayName||value.name||value.shortDisplayName||value.abbreviation))directoryTeams.push(value);
+      for(const [key,child] of Object.entries(value)){if(key!=="team"&&child&&typeof child==="object")collectDirectory(child);}
+     };
+     collectDirectory(directory);
+     const uniqueDirectory=[...new Map(directoryTeams.filter(t=>t.id).map(t=>[String(t.id),t])).values()];
+     const teamAliases={
+      "parissaintgermain":["psg","parissg"],"psg":["parissaintgermain","parissg"],
+      "atleticomadrid":["atleticodemadrid","atletic"],"inter":["internazionale","intermilan"],
+      "internazionale":["inter","intermilan"],"manchestercity":["mancity"],
+      "manchesterunited":["manutd"],"sportingcp":["sportinglisbon"],
+      "tottenhamhotspur":["tottenham","spurs"],"borussiadortmund":["dortmund"],
+      "bayernmunich":["bayernmunchen","bayern"],"redbullsalzburg":["salzburg"],
+      "olympiquedemarseille":["marseille"],"olympiquelyonnais":["lyon"],
+      "realbetisbalompie":["realbetis","betis"],"realsociedaddefutbol":["realsociedad"]
+     };
+     const teamNameMatches=value=>{
+      const candidate=teamNorm(value);
+      return candidate===wantedTeam||(teamAliases[wantedTeam]||[]).includes(candidate)||
+       (teamAliases[candidate]||[]).includes(wantedTeam);
+     };
+     const espnTeam=uniqueDirectory.find(t=>
+      [t.displayName,t.name,t.shortDisplayName,t.abbreviation].filter(Boolean).some(teamNameMatches)
+     );
+     if(!espnTeam||!/^\\d+$/.test(String(espnTeam.id)))throw new Error(teamName+" için ESPN takım kimliği bulunamadı.");
      // 2026/27 sezon takvimini çek; böylece sezonun tüm gelecek maçları listelenir.
-     const schedule=await api("espn/"+league.slug+"/teams/"+String(teamId)+"/schedule?"+qs({season:2026}));
+     const schedule=await api("espn/"+league.slug+"/teams/"+String(espnTeam.id)+"/schedule?"+qs({season:2026}));
      leagueFixtures=(Array.isArray(schedule.events)?schedule.events:[]).map(event=>{
       const comp=event.competitions?.[0]||{},teams=comp.competitors||[];
       const h=teams.find(x=>x.homeAway==="home")||{},a=teams.find(x=>x.homeAway==="away")||{};
