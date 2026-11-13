@@ -2713,7 +2713,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v58_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v59_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -3105,6 +3105,43 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
             }
           }
         });
+      }
+    }
+  }
+
+  // UEFA geçmiş sezonları: tüm turnuvayı tek sefer indirip yerel ortak önbellekte tut.
+  // Böylece her takım için ayrı ayrı API çağrısı yapılmaz; bütün takımlar aynı doğrulanmış arşivi kullanır.
+  if(["2","3","848"].includes(String(leagueId))){
+    const competitionCode=({"2":"CL","3":"EL","848":"UCL"})[String(leagueId)];
+    const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
+    const seasonStart=matchMonth>=7?matchYear:matchYear-1;
+    const historySeasons=[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024);
+    const fetchCompetitionSeason=async year=>{
+      const cacheKey="mam_uefa_history_"+competitionCode+"_"+year+"_v1";
+      try{
+        const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");
+        if(Array.isArray(saved?.matches)&&Date.now()-saved.time<24*60*60*1000)return saved.matches;
+      }catch(_){}
+      const payload=await api("football-data/competitions/"+competitionCode+"/matches?"+qs({season:year}));
+      const matches=(Array.isArray(payload.matches)?payload.matches:[]).map(m=>({
+        mamSource:"football-data-uefa",
+        fixture:{id:"fd-uefa-"+competitionCode+"-"+m.id,date:m.utcDate||"",status:{short:m.status||""}},
+        league:{id:String(leagueId),name:m.competition?.name||ESPN_LEAGUES[String(leagueId)]?.name||"UEFA"},
+        teams:{
+          home:{id:Number(m.homeTeam?.id)||-1,name:m.homeTeam?.name||m.homeTeam?.shortName||""},
+          away:{id:Number(m.awayTeam?.id)||-1,name:m.awayTeam?.name||m.awayTeam?.shortName||""}
+        },
+        goals:{home:m.score?.fullTime?.home??null,away:m.score?.fullTime?.away??null}
+      }));
+      try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
+      return matches;
+    };
+    const seasonResults=await Promise.allSettled(historySeasons.map(fetchCompetitionSeason));
+    for(const result of seasonResults){
+      if(result.status!=="fulfilled"){sourceError+=" Football-data.org UEFA sezon arşivi alınamadı.";continue;}
+      for(const match of result.value){
+        if(String(match.fixture?.status?.short).toUpperCase()!=="FINISHED")continue;
+        addMatch(match);
       }
     }
   }
