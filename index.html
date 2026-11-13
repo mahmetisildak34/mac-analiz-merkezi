@@ -2619,10 +2619,10 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     // Eski seri istek düzeni iPhone'da uzun süre "geçmiş maçlar alınıyor" ekranında kalabiliyordu.
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const seasonStart=matchMonth>=7?matchYear:matchYear-1;
-    const seasons=Array.from({length:seasonStart-2009+1},(_,i)=>seasonStart-i).filter(y=>y>=2009); // 2009/10 sezonundan itibaren mevcut tarihsel arşivler.
+    const seasons=[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024); // Güncel sezon + 2024/25 ve 2025/26: tahmin için yakın dönem formu.
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
-      const archiveKey="mam_league_csv_v5_"+folder+"_"+seasonCode;
+      const archiveKey="mam_league_csv_v6_"+folder+"_"+seasonCode;
       if(!forceRefresh){
         try{
           const saved=JSON.parse(localStorage.getItem(archiveKey)||"null");
