@@ -2065,19 +2065,21 @@ async function mamSportScoreLiveStats(button){
  const clean=value=>String(value||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
  const homeName=clean(button.dataset.liveHomeName),awayName=clean(button.dataset.liveAwayName);
  if(!homeName||!awayName)throw new Error("SportScore eşleştirmesi için takım adları eksik.");
- const cacheKey="mam_sportscore_match_"+homeName+"_"+awayName;
+ const date=String(button.dataset.liveDate||new Date().toISOString().slice(0,10)).slice(0,10);
+ const cacheKey="mam_sportscore_live_day_"+date;
  let envelope=null;
  try{
   const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
   if(cached?.time&&Date.now()-cached.time<55000)envelope=cached.data;
  }catch(_){}
  if(!envelope){
-  const response=await fetch(base+"matches/?sport=football&limit=50&src=mac-analiz-merkezi");
-  if(!response.ok)throw new Error("SportScore canlı maç listesi HTTP "+response.status);
+  const url="https://sportscore.com/api/v1/fixtures/?sport=football&date="+encodeURIComponent(date)+"&status=live&limit=200&src=mac-analiz-merkezi";
+  const response=await fetch(url);
+  if(!response.ok)throw new Error("SportScore günlük canlı fikstür HTTP "+response.status);
   envelope=await response.json();
   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data:envelope}));}catch(_){}
  }
- const matches=Array.isArray(envelope.matches)?envelope.matches:[];
+ const matches=Array.isArray(envelope.matches)?envelope.matches:Array.isArray(envelope.fixtures)?envelope.fixtures:Array.isArray(envelope.data)?envelope.data:[];
  const match=matches.find(item=>{
   const h=clean(item.home||item.home_team?.name),a=clean(item.away||item.away_team?.name);
   return (h===homeName&&a===awayName)||(h.includes(homeName)&&a.includes(awayName))||(homeName.includes(h)&&awayName.includes(a));
