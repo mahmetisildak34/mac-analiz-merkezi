@@ -2650,6 +2650,15 @@ function mamRestorePendingDetail(){
   String(b.dataset.liveId||"")===String(saved.id||"")&&
   String(b.dataset.liveSource||"")===String(saved.source||"")&&
   String(b.dataset.liveLeagueId||"")===String(saved.league||""));
+ if(!button&&saved.match){
+  const exists=allMatches.some(m=>String(m.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===String(saved.id||"")&&String(m.league?.id||"")===String(saved.league||""));
+  if(!exists)allMatches=[saved.match,...allMatches];
+  renderMatches();
+  button=[...document.querySelectorAll("#matches .liveStatsBtn")].find(b=>
+   String(b.dataset.liveId||"")===String(saved.id||"")&&
+   String(b.dataset.liveSource||"")===String(saved.source||"")&&
+   String(b.dataset.liveLeagueId||"")===String(saved.league||""));
+ }
  if(!button)return;
  const article=button.closest(".match");if(!article)return;
  activateMamFixture(article);
@@ -2696,7 +2705,7 @@ function openMamMatchDetail(article){
  overlay.querySelector(".match-detail-top strong").textContent=home+" – "+away;
  overlay.hidden=false;document.body.style.overflow="hidden";
  const liveButton=article.querySelector(".liveStatsBtn");
- if(liveButton){try{localStorage.setItem("mam_open_live_detail",JSON.stringify({id:liveButton.dataset.liveId||"",source:liveButton.dataset.liveSource||"",league:liveButton.dataset.liveLeagueId||"",tab:"stats"}));}catch(_){}}
+ if(liveButton){try{const rawId=String(liveButton.dataset.liveId||"");const source=String(liveButton.dataset.liveSource||"");const league=String(liveButton.dataset.liveLeagueId||"");const match=allMatches.find(m=>String(m.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId&&String(m.league?.id||"")===league)||null;localStorage.setItem("mam_open_live_detail",JSON.stringify({id:rawId,source,league,tab:"stats",match}));}catch(_){}}
  try{history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
  const first=article.querySelector('.match-detail-tab[data-pane="analysis"]')||article.querySelector(".match-detail-tab");
  if(first)first.click();
