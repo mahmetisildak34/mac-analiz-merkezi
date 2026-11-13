@@ -3269,45 +3269,40 @@ async function analyze(button){
   if(String(selectedStandingsLeague)!=="203"||!row)return;
   const teamName=row.dataset.standingTeam||"";
   const teamId=row.dataset.standingTeamId||"";
-  const panel=$("mamStandingTeamHistory");
-  if(!panel||!teamName)return;
-  // Portal the history panel directly under body so transformed app wrappers cannot trap position:fixed.
-  if(!panel.dataset.portal){
-   const placeholder=document.createComment("mam-standing-history-placeholder");
-   panel.parentNode.insertBefore(placeholder,panel);
-   panel._mamPlaceholder=placeholder;
-   panel.dataset.portal="1";
-  }
-  if(panel.parentNode!==document.body)document.body.appendChild(panel);
-  const closeHistory=()=>{
-   panel.hidden=true;
-   document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));
-   if(panel._mamPlaceholder?.parentNode)panel._mamPlaceholder.parentNode.insertBefore(panel,panel._mamPlaceholder);
-  };
+  if(!teamName)return;
+  document.getElementById("mamTeamHistoryScreen")?.remove();
   document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.toggle("active",x===row));
-  panel.hidden=false;
-  panel.innerHTML='<div class="mam-standing-history-head"><div><small>SÜPER LİG · TAKIM GEÇMİŞİ</small><h3>'+esc(teamName)+'</h3></div><span class="mam-standing-history-loading">Yükleniyor...</span></div><div class="empty">Son 10 tamamlanmış maç aranıyor.</div>';
-  window.scrollTo({top:0,behavior:"smooth"});
+  const previousOverflow=document.body.style.overflow;
+  const screen=document.createElement("div");
+  screen.id="mamTeamHistoryScreen";
+  screen.setAttribute("role","dialog");
+  screen.setAttribute("aria-modal","true");
+  screen.style.cssText="position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;max-height:100dvh!important;z-index:2147483647!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;margin:0!important;padding:0!important;background:#07131d!important;color:#f4faf8!important;font-family:inherit!important;box-sizing:border-box!important;";
+  screen.innerHTML='<header style="flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top) + 12px) 16px 14px;background:#0d1c29;border-bottom:1px solid rgba(255,255,255,.12);"><button type="button" id="mamTeamHistoryBack" style="width:44px;height:44px;min-height:44px;border-radius:50%;background:#203345;color:#fff;border:1px solid rgba(255,255,255,.16);font-size:23px;">‹</button><div style="flex:1;min-width:0;"><small style="display:block;color:#66dcb2;font-size:10px;font-weight:900;letter-spacing:1px;">SÜPER LİG · TAKIM MAÇLARI</small><strong style="display:block;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(teamName)+'</strong></div><span style="font-size:11px;color:#a9bac6;">SON 10</span></header><main id="mamTeamHistoryContent" style="flex:1 1 auto;min-height:0;overflow-y:auto!important;-webkit-overflow-scrolling:touch;padding:16px 14px calc(env(safe-area-inset-bottom) + 24px);background:linear-gradient(180deg,#0b1c29,#07131d);"><div style="padding:16px;border-radius:14px;background:#132b38;color:#b9cbd0;">Son 10 tamamlanmış maç aranıyor…</div></main>';
+  document.body.appendChild(screen);
+  document.body.style.overflow="hidden";
+  const close=()=>{screen.remove();document.body.style.overflow=previousOverflow;document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));};
+  screen.querySelector("#mamTeamHistoryBack").addEventListener("click",close);
   try{
    const d=new Date();d.setDate(d.getDate()+1);
    const cutoff=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
    const matches=await getTeamFixtures(teamId,cutoff,teamName,"203","",false);
    const recent=matches.slice(0,10);
+   const content=screen.querySelector("#mamTeamHistoryContent");
    if(!recent.length)throw new Error("Bu takım için tamamlanmış maç bulunamadı.");
-   panel.innerHTML='<div class="mam-standing-history-head"><div><small>SON '+recent.length+' TAMAMLANMIŞ MAÇ</small><h3>'+esc(teamName)+'</h3></div><button type="button" class="secondary" id="mamStandingHistoryClose">← Puan durumuna dön</button></div><div class="mam-standing-history-list">'+recent.map(m=>{
+   content.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin:0 2px 14px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">'+recent.length+' TAMAMLANMIŞ MAÇ</span><span style="font-size:11px;color:#9eb2bc;">2026/27 · 2025/26 · 2024/25</span></div><div style="display:grid;gap:10px;">'+recent.map(m=>{
     const home=m.teams?.home||{},away=m.teams?.away||{};
     const isHome=Number(home.id)===Number(teamId)||String(home.name)===teamName;
-    const opponent=isHome?(away.name||"Rakip"):(home.name||"Rakip");
     const gf=Number(isHome?m.goals?.home:m.goals?.away),ga=Number(isHome?m.goals?.away:m.goals?.home);
     const outcome=gf>ga?"W":gf<ga?"L":"D";
     const date=String(m.fixture?.date||"").slice(0,10);
     const dateLabel=date?new Date(date+"T12:00:00").toLocaleDateString("tr-TR",{day:"2-digit",month:"short",year:"numeric"}):"";
-    return '<div class="mam-standing-history-match"><span class="mam-standing-history-result '+outcome.toLowerCase()+'">'+outcome+'</span><span class="mam-standing-history-teams"><b>'+esc(home.name||"Ev sahibi")+' – '+esc(away.name||"Deplasman")+'</b><small>'+esc(isHome?"İç saha":"Deplasman")+' · '+esc(dateLabel)+'</small></span><strong>'+gf+' – '+ga+'</strong></div>';
+    const bg=outcome==="W"?"rgba(34,197,126,.18)":outcome==="L"?"rgba(239,83,80,.18)":"rgba(160,177,190,.16)";
+    const color=outcome==="W"?"#67e4b0":outcome==="L"?"#ff9696":"#d2dce3";
+    return '<article style="display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;padding:14px 12px;border:1px solid rgba(160,205,195,.16);border-radius:15px;background:linear-gradient(145deg,#142f3c,#102532);box-shadow:0 6px 16px rgba(0,0,0,.12);"><span style="display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:'+bg+';color:'+color+';font-weight:950;">'+outcome+'</span><span style="display:grid;gap:5px;min-width:0;"><b style="font-size:13px;line-height:1.35;color:#f4faf8;">'+esc(home.name||"Ev sahibi")+' – '+esc(away.name||"Deplasman")+'</b><small style="font-size:11px;color:#a9c0c4;">'+(isHome?"İç saha":"Deplasman")+' · '+esc(dateLabel)+'</small></span><strong style="font-size:17px;white-space:nowrap;color:#fff;">'+gf+' – '+ga+'</strong></article>';
    }).join("")+'</div>';
-   $("mamStandingHistoryClose")?.addEventListener("click",closeHistory);
   }catch(error){
-   panel.innerHTML='<div class="mam-standing-history-head"><div><small>TAKIM GEÇMİŞİ</small><h3>'+esc(teamName)+'</h3></div><button type="button" class="secondary" id="mamStandingHistoryClose">Kapat</button></div><div class="error">'+esc(error.message||error)+'</div>';
-   $("mamStandingHistoryClose")?.addEventListener("click",closeHistory);
+   screen.querySelector("#mamTeamHistoryContent").innerHTML='<div style="padding:16px;border-radius:14px;background:#132b38;color:#ffc2c2;">'+esc(error.message||error)+'</div>';
   }
  };
  $("mamStandingsTable")?.addEventListener("click",event=>{
