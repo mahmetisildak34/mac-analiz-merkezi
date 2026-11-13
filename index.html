@@ -2083,11 +2083,20 @@ async function loadLiveMatches(){
    if(fallback.length)await mamSaveMatchesToD1(fallback);
    const fallbackLive=fallback.filter(isLive);
    if(fallbackLive.length){
-    allMatches=fallbackLive;
-    mamSaveLiveMatchCache(fallbackLive);
+    // API-Football kota hatasında ESPN daha az lig döndürebilir.
+    // Son 10 dakikada başarıyla alınan ana canlı listeyi silme; ESPN sonuçlarıyla birleştir.
+    const recentCachedLive=savedLiveCache&&Date.now()-Number(savedLiveCache.savedAt||0)<=10*60*1000
+     ?savedLiveCache.matches.filter(isLive):[];
+    const liveById=new Map();
+    recentCachedLive.forEach(match=>liveById.set(String(match.fixture?.id??match.id),match));
+    fallbackLive.forEach(match=>liveById.set(String(match.fixture?.id??match.id),match));
+    const combinedLive=[...liveById.values()];
+    const keptRecentCache=recentCachedLive.length>fallbackLive.length;
+    allMatches=keptRecentCache?combinedLive:fallbackLive;
+    if(!keptRecentCache)mamSaveLiveMatchCache(fallbackLive);
     renderMatches();
     warmLiveTeamHistories(allMatches);
-    $("status").textContent=fallbackLive.length+" canlı maç bulundu · ESPN yedek kaynağı · API-Football: "+primaryErrorText;
+    $("status").textContent=allMatches.length+" canlı maç gösteriliyor · ESPN yedek kaynağı"+(keptRecentCache?" · Son başarılı API canlı listesi de korundu (önbellek "+new Date(savedLiveCache.savedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+")":"")+" · API-Football: "+primaryErrorText;
     return;
    }
    espnErrorText="ESPN taraması tamamlandı; desteklenen liglerde canlı maç döndürmedi.";
