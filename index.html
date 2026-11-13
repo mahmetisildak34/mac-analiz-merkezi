@@ -2656,7 +2656,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v44_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v45_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2708,6 +2708,22 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     "cote divoire":["ivory coast"],
     "north macedonia":["macedonia"],
     "cape verde":["cabo verde"],
+    // La Liga: current-season names and historical CSV spellings.
+    "rc celta de vigo":["celta vigo","celta","rc celta"],
+    "celta vigo":["rc celta de vigo","celta"],
+    "real racing club de santander":["r racing club","racing club","racing santander"],
+    "r racing club":["real racing club de santander","racing club","racing santander"],
+    "rc deportivo la coruna":["rc deportivo","deportivo la coruna","deportivo"],
+    "rc deportivo":["rc deportivo la coruna","deportivo la coruna"],
+    "club atletico de madrid":["atletico madrid","atletico de madrid","atl madrid"],
+    "atletico de madrid":["club atletico de madrid","atletico madrid","atl madrid"],
+    "real sociedad de futbol":["real sociedad","sociedad"],
+    "ath bilbao":["athletic bilbao","athletic club"],
+    "ath madrid":["atletico madrid","atletico de madrid"],
+    "vallecano":["rayo vallecano"],
+    "espanol":["espanyol","rcd espanyol"],
+    "real betis balompie":["real betis","betis"],
+    "real madrid cf":["real madrid"],
     // La Liga: standings/API and ESPN schedule spellings for all 20 clubs.
     "alaves":["deportivo alaves","deportivo alaves"],
     "deportivo alaves":["alaves"],
@@ -2840,7 +2856,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const seasons=["2","3","848"].includes(String(leagueId))?[seasonStart]:[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024); // Yerel liglerde 2024/25'ten itibaren üç sezon; Avrupa kupalarında yalnızca 2026/27.
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
-      const archiveKey="mam_league_csv_v9_"+folder+"_"+seasonCode;
+      const archiveKey="mam_league_csv_v10_"+folder+"_"+seasonCode;
       if(!forceRefresh){
         try{
           const saved=JSON.parse(localStorage.getItem(archiveKey)||"null");
@@ -2927,7 +2943,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // ESPN yedek geçmişi: fikstür API-Football'dan gelse bile maç tarihindeki
   // ESPN skor tablosundan takımın ESPN ID'sini bul ve takım takvimini oku.
-  if(!archiveOnly&&ESPN_LEAGUES[String(leagueId)]?.slug&&["39","140","78","135","61","2","3","848","203"].includes(String(leagueId))){
+  if(!archiveOnly&&output.length<10&&ESPN_LEAGUES[String(leagueId)]?.slug&&["39","140","78","135","61","2","3","848","203"].includes(String(leagueId))){
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)].slug;
       let espnTeamId="";
@@ -3592,6 +3608,59 @@ async function analyze(button){
    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:upcoming}));}catch(e){}
    return upcoming;
   }
+  async function getLaLigaUpcoming(){
+   const cacheKey="mam_laliga_fixtures_2627_v1";
+   try{
+    const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
+    if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))return cached.matches;
+   }catch(e){}
+   const response=await fetch("./data/ESP_1_la-liga/fixtures_2627.csv?build=20261113-a",{cache:"no-store"});
+   if(!response.ok)throw new Error("La Liga 2026/27 fikstür arşivi alınamadı (HTTP "+response.status+").");
+   const csv=await response.text();
+   const lines=csv.trim().split(/\r?\n/);
+   const standings=[...document.querySelectorAll("#mamStandingsTable [data-standing-team]")];
+   const normalizeName=value=>String(value||"").normalize("NFD").toLowerCase().replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();
+   const aliases={
+    "deportivo alaves":["alaves"],
+    "real betis balompie":["real betis","betis"],
+    "rc celta de vigo":["celta","celta vigo","rc celta"],
+    "rc deportivo la coruna":["rc deportivo","deportivo","deportivo la coruna"],
+    "real racing club de santander":["r racing club","racing club","racing santander"],
+    "club atletico de madrid":["atletico madrid","atletico de madrid","atl madrid"],
+    "real sociedad de futbol":["real sociedad","sociedad"],
+    "rayo vallecano de madrid":["rayo vallecano","vallecano"],
+    "real madrid cf":["real madrid"]
+   };
+   const canonical=value=>{
+    const key=normalizeName(value);
+    for(const [canonicalName,variants] of Object.entries(aliases)){
+     if(key===normalizeName(canonicalName)||variants.some(v=>key===normalizeName(v)))return normalizeName(canonicalName);
+    }
+    return key;
+   };
+   const idFor=name=>{
+    const key=canonical(name);
+    const found=standings.find(row=>canonical(row.dataset.standingTeam)===key);
+    return Number(found?.dataset.standingTeamId)||-1;
+   };
+   const now=Date.now();
+   const matches=lines.slice(1).map(line=>{
+    const [round,date,time,home,away]=line.split(",");
+    if(!date||!home||!away)return null;
+    // Source times are Spain local time: CET in winter, CEST from 28 March 2027.
+    const offset=date>="2027-03-28"?"+02:00":"+01:00";
+    const kickoff=date+"T"+(time||"12:00")+":00"+offset;
+    if(Date.parse(kickoff)<now-60*60*1000)return null;
+    return {
+     fixture:{id:"laliga-csv-"+round+"-"+date+"-"+normalizeName(home)+"-"+normalizeName(away),date:kickoff,status:{short:"NS"}},
+     league:{id:"140",name:"La Liga",country:"Spain"},
+     teams:{home:{id:idFor(home),name:home},away:{id:idFor(away),name:away}},
+     goals:{home:null,away:null}
+    };
+   }).filter(Boolean).sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
+   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(e){}
+   return matches;
+  }
   const openStandingTeamHistory=async row=>{
   if(!row||(!ESPN_LEAGUES[String(selectedStandingsLeague)]&&!["203","39"].includes(String(selectedStandingsLeague))))return;
   const teamName=row.dataset.standingTeam||"";
@@ -3628,6 +3697,7 @@ async function analyze(button){
     let leagueFixtures=[];
     if(String(selectedStandingsLeague)==="39")leagueFixtures=await getPremierLeagueUpcoming();
     else if(String(selectedStandingsLeague)==="203")leagueFixtures=await getTFFSuperLigUpcoming();
+    else if(String(selectedStandingsLeague)==="140")leagueFixtures=await getLaLigaUpcoming();
     else{
      const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
      if(!league?.slug)throw new Error("Bu lig için henüz gelecek fikstür kaynağı tanımlı değil.");
@@ -3644,10 +3714,11 @@ async function analyze(button){
      }).filter(m=>String(m.fixture.status.short)==="NS"&&Date.parse(m.fixture.date)>=Date.now());
     }
     const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc)\b/g,"").replace(/[^a-z0-9]/g,"");
-    const aliases={"caykurrizespor":["caykurrizesporas","rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"]};
+    const aliases={"caykurrizespor":["caykurrizesporas","rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"],"rcdeportivolacoruna":["rcdeportivo","deportivo"],"realracingclubdesantander":["rracingclub","racingclub","racingsantander"],"rcceltadevigo":["celta","celtavigo","rccelta"],"clubatleticodemadrid":["atleticodemadrid","atleticomadrid","atlmad"],"realsociedaddefutbol":["realsociedad","sociedad"],"realbetisbalompie":["realbetis","betis"],"rayovallecanodemadrid":["rayovallecano","vallecano"]};
     const wanted=norm(teamName);
     const accepted=new Set([wanted,...(aliases[wanted]||[])].map(norm));
-    upcoming=leagueFixtures.filter(m=>accepted.has(norm(m.teams?.home?.name))||accepted.has(norm(m.teams?.away?.name)));
+    const matchesTeam=(name,id)=>Number(id)===Number(teamId)||accepted.has(norm(name))||(aliases[norm(name)]||[]).map(norm).includes(wanted);
+    upcoming=leagueFixtures.filter(m=>matchesTeam(m.teams?.home?.name,m.teams?.home?.id)||matchesTeam(m.teams?.away?.name,m.teams?.away?.id));
    }catch(error){upcomingError=String(error?.message||"TFF gelecek fikstürü alınamadı.");}
    if(!recent.length&&!upcoming.length)throw new Error("Geçmiş maç: "+(historyError||"kayıt bulunamadı")+". Gelecek maç: "+(upcomingError||"kayıt bulunamadı"));
    const pastHtml=recent.length?'<section style="margin-bottom:22px;"><div style="display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">SON '+recent.length+' TAMAMLANMIŞ MAÇ</span><span style="font-size:10px;color:#9eb2bc;">GEÇMİŞ</span></div><div style="display:grid;gap:10px;">'+recent.map(m=>{
