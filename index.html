@@ -1030,7 +1030,7 @@ async function api(path){
   const cleanPath=String(path).replace(/^\/+/, "");
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings")||/^espn\/[a-zA-Z0-9._-]+\/standings\?/.test(cleanPath);
-  const isLive=cleanPath.includes("live=all");
+  const isLive=cleanPath.includes("live=all")||(/^football-data\/matches\?/.test(cleanPath)&&/(?:^|&)status=LIVE(?:&|$)/.test(cleanPath.split("?")[1]||""));
   const isEspnSummary=/^espn\/[^/]+\/summary\?/.test(cleanPath);
   const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||isEspnSummary;
   const isLineupRequest=cleanPath.startsWith("fixtures?id=")||cleanPath.startsWith("fixtures/lineups?")||cleanPath.startsWith("fixtures/players?");
