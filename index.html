@@ -3820,78 +3820,65 @@ async function analyze(button){
    return matches;
   }
   async function getSerieAUpcoming(teamName){
-   const cacheKey="mam_seriea_all_competitions_upcoming_v1_"+String(teamName||"").toLowerCase().replace(/[^a-z0-9]/g,"");
-   try{
-    const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
-    if(cached?.time&&Date.now()-cached.time<5*60*1000&&Array.isArray(cached.matches))return cached.matches;
-   }catch(e){}
+   const cacheKey="mam_seriea_all_competitions_upcoming_v2_"+String(teamName||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+   try{const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");if(saved?.time&&Date.now()-saved.time<5*60*1000&&Array.isArray(saved.matches))return saved.matches;}catch(e){}
    const competitions=[
-    {slug:"ita.1",name:"Serie A",country:"Italy",id:"135",icon:"🇮🇹"},
-    {slug:"ita.coppa_italia",name:"Coppa Italia",country:"Italy",id:"143",icon:"🇮🇹"},
-    {slug:"ita.super_cup",name:"Supercoppa Italiana",country:"Italy",id:"144",icon:"🇮🇹"},
-    {slug:"uefa.champions",name:"UEFA Champions League",country:"Europe",id:"2",icon:"⭐"},
-    {slug:"uefa.europa",name:"UEFA Europa League",country:"Europe",id:"3",icon:"🏆"},
-    {slug:"uefa.europa.conf",name:"UEFA Conference League",country:"Europe",id:"848",icon:"🏆"}
+    {code:"SA",id:"135",name:"Serie A",country:"Italy",icon:"🇮🇹"},
+    {code:"CL",id:"2",name:"UEFA Champions League",country:"Europe",icon:"⭐"},
+    {code:"EL",id:"3",name:"UEFA Europa League",country:"Europe",icon:"🏆"},
+    {code:"ECL",id:"848",name:"UEFA Conference League",country:"Europe",icon:"🏆"}
    ];
-   const start=new Date();start.setHours(0,0,0,0);
-   const end=new Date(start);end.setDate(end.getDate()+75);
-   const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
-   const ranges=[];
-   for(let cursor=new Date(start);cursor<=end;){
-    const last=new Date(cursor);last.setDate(last.getDate()+29);if(last>end)last.setTime(end.getTime());
-    ranges.push({from:fmt(cursor),to:fmt(last)});
-    cursor=new Date(last);cursor.setDate(cursor.getDate()+1);
+   const requests=await Promise.allSettled(competitions.map(async comp=>{
+    const data=await api("football-data/competitions/"+comp.code+"/matches");
+    return (data.matches||[]).map(m=>({
+     fixture:{id:"fd-"+comp.code+"-"+m.id,date:m.utcDate||"",status:{short:m.status||"NS"}},
+     league:{id:comp.id,name:comp.name,country:comp.country,icon:comp.icon},
+     teams:{home:{id:Number(m.homeTeam?.id)||-1,name:m.homeTeam?.name||m.homeTeam?.shortName||""},away:{id:Number(m.awayTeam?.id)||-1,name:m.awayTeam?.name||m.awayTeam?.shortName||""}},
+     goals:{home:m.score?.fullTime?.home??null,away:m.score?.fullTime?.away??null}
+    }));
+   }));
+   let all=requests.flatMap(x=>x.status==="fulfilled"?x.value:[]);
+   // Coppa Italia is not part of football-data.org's standard competition feed;
+   // retrieve its fixtures from API-Football independently so failures never hide Serie A.
+   try{
+    const cup=await api("fixtures?"+qs({league:137,season:2026}));
+    const teams=Array.isArray(cup.response)?cup.response:[];
+    all.push(...teams.map(x=>({
+     fixture:{id:"apif-ita-cup-"+x.fixture.id,date:x.fixture.date,status:{short:x.fixture.status?.short||"NS"}},
+     league:{id:"137",name:"Coppa Italia",country:"Italy",icon:"🇮🇹"},
+     teams:{home:{id:Number(x.teams?.home?.id)||-1,name:x.teams?.home?.name||"",logo:x.teams?.home?.logo||""},away:{id:Number(x.teams?.away?.id)||-1,name:x.teams?.away?.name||"",logo:x.teams?.away?.logo||""}},
+     goals:{home:x.goals?.home??null,away:x.goals?.away??null}
+    })));
+   }catch(cupError){console.warn("Coppa Italia fikstürü alınamadı; diğer organizasyonlar gösterilmeye devam edecek.",cupError);}
+   const normalize=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+   const aliases=[
+    ["bologna","bologna1909","bolognafc1909"],["parma","parmacalcio","parmacalcio1913"],
+    ["sassuolo","sassuolocalcio","ussassuolocalcio"],["inter","internazionale","intermilan","fcinternazionale"],
+    ["verona","hellasverona"],["milan","acmilan"],["roma","asroma"],["lazio","sslazio"],
+    ["napoli","sscnapoli"],["juventus","juventusfc"],["atalanta","atalantabc"],
+    ["fiorentina","acffiorentina"],["genoa","genoacfc"],["torino","torinofc"],
+    ["udinese","udinesecalcio"],["cagliari","cagliaricalcio"],["lecce","uslecce"],
+    ["como","como1907"],["pisa","pisasportingclub"],["cremonese","uscremonese"]
+   ];
+   const canonical=value=>{const n=normalize(value);return aliases.find(group=>group.includes(n))?.[0]||n;};
+   const wanted=canonical(teamName);
+   const valid=new Set(["SCHEDULED","TIMED","POSTPONED","SUSPENDED","NS","TBD"]);
+   const seen=new Set();
+   const upcoming=all.filter(m=>{
+    const date=Date.parse(m.fixture?.date||"");
+    if(!m.teams?.home?.name||!m.teams?.away?.name||!Number.isFinite(date)||date<Date.now()-60*60*1000)return false;
+    if(!valid.has(String(m.fixture?.status?.short||"").toUpperCase()))return false;
+    if(canonical(m.teams.home.name)!==wanted&&canonical(m.teams.away.name)!==wanted)return false;
+    const key=[m.fixture.date.slice(0,16),canonical(m.teams.home.name),canonical(m.teams.away.name),m.league.id].join("|");
+    if(seen.has(key))return false;seen.add(key);return true;
+   }).sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
+   const leagueMatches=upcoming.filter(m=>String(m.league.id)==="135");
+   if(!leagueMatches.length){
+    const errors=requests.map((x,i)=>x.status==="rejected"?competitions[i].code+": "+(x.reason?.message||x.reason):"").filter(Boolean);
+    throw new Error("Serie A sezon fikstürü alınamadı. "+errors.join(" | "));
    }
-   const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
-   const canon=v=>{
-    const n=norm(v);
-    const groups=[
-     ["bologna","bologna1909","bolognafc1909"],
-     ["parma","parmacalcio","parmacalcio1913"],
-     ["sassuolo","sassuolocalcio","ussassuolocalcio"],
-     ["inter","internazionale","intermilan","fcinternazionale"],
-     ["verona","hellasverona"],
-     ["milan","acmilan"],["roma","asroma"],["lazio","sslazio"],
-     ["napoli","sscnapoli"],["juventus","juventusfc"],["atalanta","atalantabc"],
-     ["fiorentina","acffiorentina"],["genoa","genoacfc"],["torino","torinofc"],
-     ["udinese","udinesecalcio"],["cagliari","cagliaricalcio"],["lecce","uslecce"],
-     ["como","como1907"],["pisa","pisasportingclub"],["cremonese","uscremonese"]
-    ];
-    return groups.find(g=>g.includes(n))?.[0]||n;
-   };
-   const wanted=canon(teamName);
-   const requests=[];
-   for(const competition of competitions)for(const range of ranges)requests.push({competition,range});
-   const all=[];
-   for(let i=0;i<requests.length;i+=4){
-    const batch=await Promise.allSettled(requests.slice(i,i+4).map(({competition,range})=>
-     api("espn/"+competition.slug+"/scoreboard?"+qs({dates:range.from+"-"+range.to,limit:500}))
-    ));
-    batch.forEach((result,index)=>{
-     if(result.status!=="fulfilled")return;
-     const {competition}=requests[i+index];
-     for(const event of (result.value.events||[])){
-      const comp=(event.competitions||[])[0]||{},competitors=comp.competitors||[];
-      const h=competitors.find(x=>x.homeAway==="home")||{},a=competitors.find(x=>x.homeAway==="away")||{};
-      const homeName=h.team?.displayName||h.team?.name||h.team?.shortDisplayName||"";
-      const awayName=a.team?.displayName||a.team?.name||a.team?.shortDisplayName||"";
-      const state=String(comp.status?.type?.state||event.status?.type?.state||"").toLowerCase();
-      const date=event.date||comp.date||"";
-      if(!homeName||!awayName||!date||Date.parse(date)<Date.now()-60*1000||state==="post"||state==="in")continue;
-      if(canon(homeName)!==wanted&&canon(awayName)!==wanted)continue;
-      all.push({
-       fixture:{id:"espn-"+competition.slug+"-"+event.id,date,status:{short:"NS"}},
-       league:{id:competition.id,name:competition.name,country:competition.country,icon:competition.icon},
-       teams:{home:{id:Number(h.team?.id)||-1,name:homeName,logo:h.team?.logos?.[0]?.href||""},away:{id:Number(a.team?.id)||-1,name:awayName,logo:a.team?.logos?.[0]?.href||""}},
-       goals:{home:null,away:null}
-      });
-     }
-    });
-   }
-   const unique=[...new Map(all.map(m=>[String(m.fixture.id),m])).values()].sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
-   if(!unique.length)throw new Error("Serie A, Coppa Italia ve UEFA kupalarında bu takım için gelecek 75 günlük fikstür bulunamadı.");
-   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:unique}));}catch(e){}
-   return unique;
+   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:upcoming}));}catch(e){}
+   return upcoming;
   }
   async function getBundesligaUpcoming(){
    const cacheKey="mam_bundesliga_team_upcoming_2627_v3";
