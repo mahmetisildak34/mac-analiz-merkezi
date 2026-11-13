@@ -2053,7 +2053,7 @@ async function loadLiveStats(button,forceRefresh=false){
    }catch(primaryStatsError){
     teams=[];
    }
-   if(teams.length>=2){
+   if(teams.length>=2&&teams.some(team=>Array.isArray(team.statistics)&&team.statistics.length>0)){
     homeTeam=teams[0]?.team?.name||"Ev sahibi";
     awayTeam=teams[1]?.team?.name||"Deplasman";
     const keys=[["Ball Possession","Topla oynama"],["Total Shots","Toplam şut"],["Shots on Goal","İsabetli şut"],["Shots off Goal","İsabetsiz şut"],["Blocked Shots","Engellenen şut"],["Corner Kicks","Korner"],["Fouls","Faul"],["Offsides","Ofsayt"],["Yellow Cards","Sarı kart"],["Red Cards","Kırmızı kart"],["Goalkeeper Saves","Kurtarış"],["Total passes","Pas"],["Passes accurate","İsabetli pas"]];
@@ -2094,9 +2094,13 @@ async function loadLiveStats(button,forceRefresh=false){
     });
     if(!event?.id)throw new Error("API-Football kotası dolu; ESPN bu lig/tarih için eşleşen canlı maçı bulamadı.");
     const summary=await api("espn/"+slug+"/summary?"+qs({event:String(event.id)}));
-    const box=Array.isArray(summary.boxscore?.teams)?summary.boxscore.teams:[];
-    const h=box.find(x=>x.homeAway==="home"),a=box.find(x=>x.homeAway==="away");
-    if(!h||!a)throw new Error("ESPN bu karşılaşma için henüz istatistik yayınlamıyor.");
+    const candidates=[
+     ...(Array.isArray(summary.boxscore?.teams)?summary.boxscore.teams:[]),
+     ...(Array.isArray(summary.header?.competitions?.[0]?.competitors)?summary.header.competitions[0].competitors:[]),
+     ...(Array.isArray(summary.competitions?.[0]?.competitors)?summary.competitions[0].competitors:[])
+    ];
+    const h=candidates.find(x=>x.homeAway==="home"),a=candidates.find(x=>x.homeAway==="away");
+    if(!h||!a)throw new Error("ESPN bu karşılaşmanın takım istatistiklerini henüz yayınlamıyor.");
     homeTeam=h.team?.displayName||button.dataset.liveHomeName||"Ev sahibi";
     awayTeam=a.team?.displayName||button.dataset.liveAwayName||"Deplasman";
     const normalize=v=>String(v||"").toLowerCase().replace(/[^a-z0-9]/g,"");
