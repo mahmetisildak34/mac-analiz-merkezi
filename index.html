@@ -1271,7 +1271,7 @@ async function loadStandings(){
     progress.textContent="0 / "+rows.length+" takım işlendi.";
     for(let i=0;i<rows.length;i+=3){
      const batch=rows.slice(i,i+3);
-     const results=await Promise.allSettled(batch.map(team=>getTeamFixtures(team.teamId,cutoff,team.name,"78","",true)));
+     const results=await Promise.allSettled(batch.map(team=>getTeamFixtures(team.teamId,cutoff,team.name,"78","",false)));
      results.forEach((result,index)=>{
       done++;
       if(result.status==="fulfilled"&&result.value.length>=10)ready++;
