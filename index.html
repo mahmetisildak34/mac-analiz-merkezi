@@ -2713,7 +2713,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v55_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v56_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -4066,16 +4066,17 @@ async function analyze(button){
      const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
      const from=new Date();from.setHours(0,0,0,0);
      const to=new Date(2027,5,30,23,59,59,999);
-     // ESPN scoreboard currently accepts a single YYYYMMDD date, not date ranges.
-     // UEFA men's club fixtures are played Tue/Wed/Thu; query those dates individually.
+     // ESPN retired YYYYMMDD-YYYYMMDD ranges. Its documented/observed
+     // replacement is month granularity: dates=YYYYMM. Query each remaining
+     // month once instead of hundreds of daily scoreboard calls.
      const events=[];
-     const queryDates=[];
-     for(let cursor=new Date(from);cursor<=to;cursor.setDate(cursor.getDate()+1)){
-      if([2,3,4].includes(cursor.getDay()))queryDates.push(fmt(cursor));
+     const queryMonths=[];
+     for(let cursor=new Date(from.getFullYear(),from.getMonth(),1);cursor<=to;cursor.setMonth(cursor.getMonth()+1)){
+      queryMonths.push(String(cursor.getFullYear())+String(cursor.getMonth()+1).padStart(2,"0"));
      }
-     for(let offset=0;offset<queryDates.length;offset+=5){
-      const batch=await Promise.all(queryDates.slice(offset,offset+5).map(async date=>{
-       const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:date,limit:500}));
+     for(let offset=0;offset<queryMonths.length;offset+=2){
+      const batch=await Promise.all(queryMonths.slice(offset,offset+2).map(async month=>{
+       const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:month,limit:500}));
        return Array.isArray(payload.events)?payload.events:[];
       }));
       for(const list of batch)events.push(...list);
