@@ -2459,7 +2459,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v35_"+leagueId+"_"+teamId+"_"+matchDate;
+   const key="mam_history_v36_"+leagueId+"_"+teamId+"_"+matchDate;
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2566,19 +2566,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     output.push(normalizedMatch);
   };
 
-  // Load the shared Cloudflare KV history for every Süper Lig club.
-  // The bulk backfill is shared by all teams; aliases cover provider naming variants.
-  if(String(leagueId)==="203"){
-    const archiveNames=[teamName,...(aliases[wanted]||[])];
-    const archiveResults=await Promise.allSettled(
-      [...new Set(archiveNames)].map(name=>api("archive/team?name="+encodeURIComponent(name)))
-    );
-    for(const item of archiveResults){
-      if(item.status!=="fulfilled")continue;
-      const rows=Array.isArray(item.value?.response)?item.value.response:[];
-      for(const match of rows)addMatch(match);
-    }
-  }
+  // Süper Lig geçmişi için doğrudan uygulamadaki sezon CSV arşivini kullan.
+  // Cloudflare KV geçmiş sorguları beklemeye neden olabildiği için bu ligde atlanır.
 
   const leagues={
     "39":"ENG_1_premier-league","140":"ESP_1_la-liga","78":"GER_1_bundesliga",
@@ -2622,7 +2611,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const seasons=[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024); // Güncel sezon + 2024/25 ve 2025/26: tahmin için yakın dönem formu.
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
-      const archiveKey="mam_league_csv_v6_"+folder+"_"+seasonCode;
+      const archiveKey="mam_league_csv_v7_"+folder+"_"+seasonCode;
       if(!forceRefresh){
         try{
           const saved=JSON.parse(localStorage.getItem(archiveKey)||"null");
