@@ -1030,7 +1030,7 @@ async function api(path){
   const isLineupRequest=cleanPath.startsWith("fixtures?id=")||cleanPath.startsWith("fixtures/lineups?")||cleanPath.startsWith("fixtures/players?");
   const isArchive=cleanPath.startsWith("archive/");
   const isTffFixtures=cleanPath==="superlig/fixtures";
-  const isPrimaryApi=!isArchive&&!isTffFixtures&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/");
+  const isPrimaryApi=!isArchive&&!isTffFixtures&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/")&&!cleanPath.startsWith("fixturesdownload/");
   const cacheKey="mam_api_cache_v2_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
   let cachedEntry=null;
@@ -2713,7 +2713,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v57_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v58_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -3055,13 +3055,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         // UEFA turnuvaları için yedek: FixtureDownload sezon JSON beslemesi.
         if(["2","3","848"].includes(String(leagueId))){
           const feedSlug={"2":"champions-league","3":"europa-league","848":"conference-league"}[String(leagueId)];
-          const feedUrl="https://fixturedownload.com/feed/json/"+feedSlug+"-"+year;
-          const controller=new AbortController();
-          const timer=setTimeout(()=>controller.abort(),15000);
           try{
-            const response=await fetch(feedUrl,{signal:controller.signal,cache:"no-store"});
-            if(!response.ok)throw new Error("JSON feed HTTP "+response.status);
-            const matches=await response.json();
+            const matches=await api("fixturesdownload/"+feedSlug+"-"+year);
             if(!Array.isArray(matches)||!matches.length)throw new Error("JSON feed boş veya biçimi geçersiz");
             const csv=["date,home,away,ft_home,ft_away,ht_home,ht_away"];
             for(const match of matches){
@@ -3078,7 +3073,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
             return body;
           }catch(jsonError){
             sourceError+=" "+seasonCode+" JSON arşivi alınamadı: "+String(jsonError?.message||jsonError);
-          }finally{clearTimeout(timer);}
+          }
         }
         sourceError+=" "+seasonCode+" CSV arşivi alınamadı.";
         return null;
