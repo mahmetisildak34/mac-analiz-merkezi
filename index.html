@@ -899,6 +899,38 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 .mam-live-stats-foot{padding:12px 16px;color:#78837d;font-size:10px;line-height:1.5}
 @media(max-width:420px){.match.in-detail .match-detail-tabs{gap:13px}.match.in-detail .match-detail-tab{font-size:12px!important}}
 
+
+/* MOBİL CANLI DETAY — daha sıkı, tek ekranda daha fazla veri */
+@media(max-width:600px){
+ .match-detail-overlay{padding:0 0 calc(env(safe-area-inset-bottom) + 8px)!important}
+ .match-detail-top{padding:7px 12px 9px!important;min-height:48px!important}
+ .match-detail-top strong{font-size:12px!important}
+ .match-detail-close{width:34px!important;min-height:34px!important;font-size:18px!important}
+ .match-detail-body{max-width:100%!important}
+ .match.in-detail{padding:8px 10px 14px!important}
+ .match.in-detail .match-head{padding:5px 2px 8px!important;font-size:11px!important}
+ .match.in-detail .match-clock{font-size:12px!important;padding:5px 9px!important}
+ .match.in-detail .match-versus{padding:10px 4px 12px!important;border-radius:12px!important}
+ .match.in-detail .team-block strong{font-size:13px!important}
+ .match.in-detail .team-crest,.match.in-detail .team-logo{max-width:38px!important;max-height:38px!important}
+ .match.in-detail .match-center{font-size:25px!important}
+ .match.in-detail .match-center small{font-size:10px!important}
+ .match.in-detail .match-detail-tabs{margin:0 -10px!important;padding:5px 10px 6px!important;gap:12px!important;border-bottom-width:2px!important}
+ .match.in-detail .match-detail-tab{min-height:36px!important;padding:6px 2px!important;font-size:11px!important}
+ .match.in-detail .match-detail-pane{padding:8px 0 2px!important}
+ .match.in-detail .match-detail-pane[data-pane="stats"]{margin:0 -10px!important;padding:8px 9px 12px!important;min-height:0!important}
+ .match.in-detail .match-detail-pane .liveStatsBtn{min-height:38px!important;margin:4px 0 7px!important;padding:8px!important;font-size:12px!important}
+ .mam-live-stats-title{font-size:15px!important;padding:10px 12px!important}
+ .mam-live-stat-row{padding:8px 11px 7px!important}
+ .mam-live-stat-values{font-size:12px!important;gap:5px!important}
+ .mam-live-stat-label{font-size:9px!important;letter-spacing:.15px!important}
+ .mam-live-stat-track{height:4px!important;margin-top:5px!important}
+ .mam-live-stats-foot{padding:8px 11px!important;font-size:9px!important;line-height:1.35!important}
+ .match.in-detail .match-detail-pane[data-pane="stats"] .liveStats.mam-live-stats-view{border-radius:8px!important}
+ .match.in-detail .match-detail-pane .liveStatsBtn.secondary{width:100%!important}
+ .match.in-detail .liveAnalysis{font-size:12px!important}
+}
+
 </style>
 
 
