@@ -2618,10 +2618,10 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     // Eski seri istek düzeni iPhone'da uzun süre "geçmiş maçlar alınıyor" ekranında kalabiliyordu.
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const seasonStart=matchMonth>=7?matchYear:matchYear-1;
-    const seasons=[seasonStart,seasonStart-1,seasonStart-2,seasonStart-3,seasonStart-4,seasonStart-5,seasonStart-6,seasonStart-7].filter(y=>y>=2019); // 2019/20 sezonundan itibaren sekiz sezonluk tamamlanmış maç arşivi.
+    const seasons=Array.from({length:seasonStart-2017+1},(_,i)=>seasonStart-i).filter(y=>y>=2017); // 2017/18 sezonundan itibaren mevcut tüm sezon arşivleri.
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
-      const archiveKey="mam_league_csv_v3_"+folder+"_"+seasonCode;
+      const archiveKey="mam_league_csv_v4_"+folder+"_"+seasonCode;
       if(!forceRefresh){
         try{
           const saved=JSON.parse(localStorage.getItem(archiveKey)||"null");
