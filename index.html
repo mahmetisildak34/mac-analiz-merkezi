@@ -2916,10 +2916,10 @@ async function analyze(button){
   const date=button.dataset.date;
   if(!homeId||!awayId||!date)throw new Error("Maç bilgileri eksik. Fikstürü yeniden yükle.");
 
-  const homeMatches=await getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id);
+  const homeMatches=(await getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id)).slice(0,10);
   target.textContent="İkinci takımın geçmiş maçları alınıyor...";
   await wait(250);
-  const awayMatches=await getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id);
+  const awayMatches=(await getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id)).slice(0,10);
 
   const homeOverall=teamStats(homeMatches,homeId,"all");
   const awayOverall=teamStats(awayMatches,awayId,"all");
