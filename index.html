@@ -1094,8 +1094,16 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
  </div>
  <div class="mam-standings-card" id="mamStandingsCard" hidden><div class="mam-standings-card-head"><button type="button" id="mamStandingsBack" class="secondary">← Liglere dön</button><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Lig puan durumu</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosu yükleniyor...</div></div></div>
  </section>
-<div class="mam-home-intro">
+
+ <div class="mam-home-intro">
 <div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
+<section class="mam-home-shortcuts" aria-label="Hızlı erişim">
+ <button type="button" class="mam-home-shortcut live" data-home-action="live"><span class="shortcut-icon">◉</span><strong>Canlı Maçlar</strong><small>Devam eden karşılaşmaları takip et</small></button>
+ <button type="button" class="mam-home-shortcut" data-home-action="fixtures"><span class="shortcut-icon">▦</span><strong>Gelecek Maçlar</strong><small>Fikstürü ve maç saatlerini incele</small></button>
+ <button type="button" class="mam-home-shortcut analysis" data-home-action="analysis"><span class="shortcut-icon">▥</span><strong>Maç Analizi</strong><small>Takım formu ve tahminlere ulaş</small></button>
+ <button type="button" class="mam-home-shortcut archive" data-home-action="archive"><span class="shortcut-icon">▤</span><strong>İstatistik Arşivi</strong><small>Geçmiş maçları ve sonuçları incele</small></button>
+ </section>
+ <div class="mam-home-section-label">GÜNÜN MAÇLARI</div>
 <h1>Futbolun nabzı burada.</h1>
 <p>Canlı maçları takip et, gelecek karşılaşmaları incele ve kendi analiz motorumuzla detaylara gir.</p>
 </div>
@@ -4921,7 +4929,132 @@ async function analyze(button){
   screen.setAttribute("role","dialog");
   screen.setAttribute("aria-modal","true");
   screen.style.cssText="position:fixed!important;top:0!important;right:0!important;bottom:0!important;left:0!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;z-index:2147483000!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;transform:none!important;contain:none!important;background:#07131d!important;color:#f4faf8!important;font-family:Arial,sans-serif!important;font-size:14px!important;line-height:1.35!important;-webkit-text-size-adjust:100%!important;box-sizing:border-box!important;";
-  screen.innerHTML='<style>#mamTeamHistoryScreen,#mamTeamHistoryScreen *{box-sizing:border-box!important;-webkit-text-size-adjust:100%!important;letter-spacing:normal!important}#mamTeamHistoryScreen header{flex:0 0 auto!important;min-height:64px!important;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px!important;gap:10px!important}#mamTeamHistoryScreen header button{flex:0 0 38px!important;width:38px!important;height:38px!important;min-height:38px!important;padding:0!important;font-size:22px!important;line-height:1!important}#mamTeamHistoryScreen header small{font-size:9px!important;line-height:1.2!important}#mamTeamHistoryScreen header strong{font-size:16px!important;line-height:1.25!important}#mamTeamHistoryScreen header span{font-size:10px!important}#mamTeamHistoryContent{flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px)!important}#mamTeamHistoryContent article{min-height:64px!important;padding:10px!important;gap:8px!important;border-radius:12px!important}#mamTeamHistoryContent article b{font-size:12px!important;line-height:1.3!important}#mamTeamHistoryContent article small{font-size:10px!important;line-height:1.2!important}#mamTeamHistoryContent article strong{font-size:15px!important;line-height:1!important}#mamTeamHistoryContent article>span:first-child{width:28px!important;height:28px!important;font-size:12px!important}</style><header style="flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px;background:#0d1c29;border-bottom:1px solid rgba(255,255,255,.12);"><button type="button" id="mamTeamHistoryBack" style="width:38px;height:38px;min-height:38px;border-radius:50%;background:#203345;color:#fff;border:1px solid rgba(255,255,255,.16);font-size:22px;">‹</button><div style="flex:1;min-width:0;"><small style="display:block;color:#66dcb2;font-size:9px;font-weight:900;">'+(esc(standingCompetitionNames[String(selectedStandingsLeague)]||ESPN_LEAGUES[String(selectedStandingsLeague)]?.name||"LİG")+" · TAKIM MAÇLARI")+'</small><strong style="display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(teamName)+'</strong></div><span style="font-size:10px;color:#a9bac6;">SON 10</span></header><main id="mamTeamHistoryContent" style="flex:1 1 0;min-height:0;overflow-y:auto!important;-webkit-overflow-scrolling:touch;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px);background:linear-gradient(180deg,#0b1c29,#07131d);"><div style="padding:12px;border-radius:12px;background:#132b38;color:#b9cbd0;font-size:12px;">Son 10 tamamlanmış maç aranıyor…</div></main>';
+  screen.innerHTML='<style>#mamTeamHistoryScreen,#mamTeamHistoryScreen *{box-sizing:border-box!important;-webkit-text-size-adjust:100%!important;letter-spacing:normal!important}#mamTeamHistoryScreen header{flex:0 0 auto!important;min-height:64px!important;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px!important;gap:10px!important}#mamTeamHistoryScreen header button{flex:0 0 38px!important;width:38px!important;height:38px!important;min-height:38px!important;padding:0!important;font-size:22px!important;line-height:1!important}#mamTeamHistoryScreen header small{font-size:9px!important;line-height:1.2!important}#mamTeamHistoryScreen header strong{font-size:16px!important;line-height:1.25!important}#mamTeamHistoryScreen header span{font-size:10px!important}#mamTeamHistoryContent{flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px)!important}#mamTeamHistoryContent article{min-height:64px!important;padding:10px!important;gap:8px!important;border-radius:12px!important}#mamTeamHistoryContent article b{font-size:12px!important;line-height:1.3!important}#mamTeamHistoryContent article small{font-size:10px!important;line-height:1.2!important}#mamTeamHistoryContent article strong{font-size:15px!important;line-height:1!important}#mamTeamHistoryContent article>span:first-child{width:28px!important;height:28px!important;font-size:12px!important}
+/* ===== MAM SIMPLE BOTTOM NAV · PREVIEW BRANCH ===== */
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
+.mam-bottom-tabs{
+ position:fixed;left:0;right:0;bottom:0;z-index:9000;
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
+ padding:9px 12px calc(9px + env(safe-area-inset-bottom));
+ background:rgba(255,255,255,.96);border-top:1px solid #e3e8ed;
+ box-shadow:0 -8px 24px rgba(20,35,50,.09);backdrop-filter:blur(16px)
+}
+.mam-bottom-tabs button{
+ min-height:48px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;
+ padding:10px 8px;border-radius:13px;background:#f3f7f4;color:#43505e;
+ border:1px solid #e3ebe5;box-shadow:none;font-size:13px;font-weight:850
+}
+.mam-bottom-tabs button span{font-size:17px;line-height:1}
+.mam-bottom-tabs button:active{transform:scale(.98)}
+@media(min-width:760px){.mam-bottom-tabs{left:50%;right:auto;width:min(100%,560px);transform:translateX(-50%);border:1px solid #e3e8ed;border-bottom:0;border-radius:18px 18px 0 0}}
+.match-detail-overlay:not([hidden])~.mam-bottom-tabs{display:none}
+
+
+/* ===== HOME DASHBOARD REDESIGN · PREVIEW ONLY ===== */
+:root{--mam-green:#18df70;--mam-green-soft:#0b3a29}
+body{background:#050d0b!important;color:#f3faf6!important}
+main{background:transparent!important}
+.mam-appbar{background:linear-gradient(135deg,#071b14,#0b2b1d)!important;border:1px solid rgba(45,230,125,.2)!important}
+.mam-brand{color:#f4fff8!important}
+.mam-brand-ball{filter:drop-shadow(0 0 8px rgba(24,223,112,.5))}
+.mam-home-intro{
+ position:relative;overflow:hidden;margin:12px 0 14px;padding:22px 18px 20px!important;
+ border:1px solid rgba(42,224,119,.3);border-radius:22px;
+ background:radial-gradient(ellipse at 85% 10%,rgba(24,223,112,.2),transparent 48%),linear-gradient(135deg,#0b2b1d,#071710 75%);
+ box-shadow:0 14px 34px rgba(0,0,0,.22)
+}
+.mam-home-intro:after{content:"⚽";position:absolute;right:16px;top:22px;font-size:42px;opacity:.16}
+.mam-home-intro>div{color:#67e9a0!important;font-size:10px!important;letter-spacing:1.4px}
+.mam-home-intro h1{font-size:clamp(27px,7vw,36px)!important;line-height:1.08;margin:13px 0 8px!important;max-width:270px}
+.mam-home-intro p{color:#b4cbbd!important;max-width:300px}
+.mam-home-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 16px}
+.mam-home-shortcut{min-height:116px;padding:15px 14px;border-radius:18px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(145deg,#10271d,#0b1913);color:#f4fff8;text-align:left;box-shadow:0 9px 22px rgba(0,0,0,.17)}
+.mam-home-shortcut strong{display:block;font-size:15px;margin:9px 0 4px}
+.mam-home-shortcut small{display:block;color:#a7bdaf;font-size:11px;line-height:1.4}
+.mam-home-shortcut .shortcut-icon{font-size:23px;color:#35e883}
+.mam-home-shortcut.live{border-color:rgba(255,80,95,.32)}
+.mam-home-shortcut.live .shortcut-icon{color:#ff6570}
+.mam-home-shortcut.analysis{background:linear-gradient(145deg,#172b3b,#0c1a25);border-color:rgba(76,170,255,.25)}
+.mam-home-shortcut.analysis .shortcut-icon{color:#69baff}
+.mam-home-shortcut.archive{background:linear-gradient(145deg,#30250d,#191507);border-color:rgba(255,192,64,.25)}
+.mam-home-shortcut.archive .shortcut-icon{color:#ffd05a}
+.mam-home-section-label{margin:18px 3px 9px;color:#a9c2b2;font-size:11px;font-weight:900;letter-spacing:1.1px}
+.mam-bottom-tabs{background:rgba(5,18,12,.96)!important;border-top:1px solid rgba(47,222,117,.25)!important;box-shadow:0 -8px 26px rgba(0,0,0,.3)!important}
+.mam-bottom-tabs button{background:#10271c!important;color:#b9d0c1!important;border-color:rgba(108,157,123,.18)!important}
+.mam-bottom-tabs button.is-active{background:linear-gradient(135deg,#18df70,#0fb85b)!important;color:#052313!important;border-color:transparent!important}
+.mam-section-header{background:#0d2117!important;border:1px solid rgba(46,216,111,.18)!important}
+.mam-nav-item{background:#10251a!important;border-color:rgba(67,190,105,.13)!important}
+.mam-nav-item span:first-child{color:#3fe889!important}
+@media(max-width:390px){.mam-home-shortcut{min-height:108px;padding:12px}.mam-home-shortcut strong{font-size:14px}}
+
+
+/* ===== MATCH LIST + MATCH DETAIL FINISH · PREVIEW ONLY ===== */
+.mam-home-intro{margin-top:12px!important}
+.mam-home-shortcuts{margin-top:12px!important}
+.mam-home-section-label{margin-top:18px!important}
+.mam-league-group{margin:16px 0 20px!important}
+.mam-league-heading{
+ display:flex!important;align-items:center!important;gap:8px!important;
+ padding:11px 12px!important;margin:0 0 9px!important;border-radius:13px!important;
+ background:linear-gradient(100deg,#102c1e,#0b1b13)!important;
+ border:1px solid rgba(57,218,117,.17)!important;color:#f1fff5!important
+}
+.mam-league-heading strong{font-size:12px!important;font-weight:900!important}
+.mam-league-heading small{color:#9db8a5!important;font-size:10px!important}
+.mam-league-count{margin-left:auto!important;color:#5be58e!important;font-size:9px!important;font-weight:900!important}
+.match-modern,.match{
+ position:relative!important;overflow:hidden!important;
+ border-radius:17px!important;padding:14px!important;margin:9px 0!important;
+ background:linear-gradient(145deg,#10271c,#091810)!important;
+ border:1px solid rgba(90,190,120,.19)!important;
+ box-shadow:0 8px 22px rgba(0,0,0,.19)!important
+}
+.match-modern:after,.match:after{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 4px 4px 0;background:rgba(48,224,112,.48)}
+.match-head{padding-bottom:9px!important;margin-bottom:9px!important;border-bottom:1px solid rgba(160,205,174,.1)!important}
+.league-label{font-size:10px!important;letter-spacing:.2px!important;color:#a9c4b0!important}
+.match-time{font-weight:900!important;color:#5ce88f!important}
+.match-versus{padding:9px 0!important}
+.team-block strong{font-size:13px!important;font-weight:850!important;color:#f2fff5!important}
+.team-block img{object-fit:contain!important}
+.match-clock{font-size:21px!important;font-weight:950!important;color:#f6fff8!important}
+.match-center small{font-size:9px!important;color:#98b3a0!important}
+.match-actions{padding-top:10px!important;border-top:1px solid rgba(160,205,174,.1)!important}
+.mam-match-open{min-height:42px!important;margin-top:10px!important;border-radius:12px!important;background:rgba(29,220,105,.1)!important;border:1px solid rgba(54,223,117,.28)!important;color:#7af0a5!important;font-weight:850!important}
+.match.in-detail{
+ background:linear-gradient(160deg,#102b1e,#07150e)!important;
+ border:1px solid rgba(70,220,115,.2)!important;border-radius:0 0 20px 20px!important;
+ box-shadow:none!important
+}
+.match-detail-overlay{background:#050e09!important}
+.match-detail-top{background:rgba(7,28,17,.97)!important;border-bottom:1px solid rgba(68,214,112,.2)!important;backdrop-filter:blur(16px)!important}
+.match-detail-top strong{color:#f4fff7!important}
+.match-detail-close{background:#153522!important;color:#baf5cb!important;border:1px solid rgba(77,218,121,.2)!important}
+.match.in-detail .match-head{border-bottom:1px solid rgba(165,211,175,.14)!important}
+.match.in-detail .team-block strong{color:#f3fff6!important}
+.match.in-detail .match-clock{color:#fff!important;font-size:clamp(25px,7vw,34px)!important}
+.match-detail-tabs{padding:13px 2px!important;gap:8px!important}
+.match-detail-tab{background:#10291b!important;color:#b7d4bf!important;border:1px solid rgba(107,179,124,.2)!important;border-radius:12px!important}
+.match-detail-tab.active{background:#1cdb70!important;color:#052511!important;border-color:#1cdb70!important}
+.match-detail-pane{border-top:1px solid rgba(135,195,149,.16)!important;color:#eaf8ed!important}
+.match-detail-pane .match-actions{background:transparent!important}
+.match-detail-pane .pred,.match-detail-pane .analysis-preview,.match-detail-pane .liveStats,.match-detail-pane .lineup-panel{
+ background:#0d2418!important;border:1px solid rgba(100,190,122,.17)!important;border-radius:14px!important;padding:13px!important;color:#d8eee0!important
+}
+.match-detail-pane .stat{background:#102c1d!important;border:1px solid rgba(75,196,108,.17)!important;border-radius:12px!important}
+.match-detail-pane .stat b{color:#68ed98!important}
+.match-detail-note,.lineup-empty{background:#10291b!important;border:1px solid rgba(110,190,130,.18)!important;border-radius:12px!important;color:#bad5c1!important}
+.mam-standing-card,.mam-standings-card{background:#0d2418!important;border-color:rgba(70,210,110,.2)!important}
+.mam-standings-intro{background:linear-gradient(135deg,#102e1d,#08160e)!important;border:1px solid rgba(55,215,108,.2)!important;border-radius:18px!important}
+.mam-standings-leagues button{background:#10291b!important;color:#e7f8eb!important;border:1px solid rgba(87,185,111,.2)!important}
+.mam-bottom-tabs button{transition:background .18s ease,color .18s ease,border-color .18s ease}
+@media(max-width:560px){
+ .match-modern,.match{padding:12px!important}
+ .mam-league-heading{padding:10px!important}
+ .match.in-detail{padding:12px!important}
+ .match-detail-body{padding-bottom:18px!important}
+}
+
+</style><header style="flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px;background:#0d1c29;border-bottom:1px solid rgba(255,255,255,.12);"><button type="button" id="mamTeamHistoryBack" style="width:38px;height:38px;min-height:38px;border-radius:50%;background:#203345;color:#fff;border:1px solid rgba(255,255,255,.16);font-size:22px;">‹</button><div style="flex:1;min-width:0;"><small style="display:block;color:#66dcb2;font-size:9px;font-weight:900;">'+(esc(standingCompetitionNames[String(selectedStandingsLeague)]||ESPN_LEAGUES[String(selectedStandingsLeague)]?.name||"LİG")+" · TAKIM MAÇLARI")+'</small><strong style="display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(teamName)+'</strong></div><span style="font-size:10px;color:#a9bac6;">SON 10</span></header><main id="mamTeamHistoryContent" style="flex:1 1 0;min-height:0;overflow-y:auto!important;-webkit-overflow-scrolling:touch;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px);background:linear-gradient(180deg,#0b1c29,#07131d);"><div style="padding:12px;border-radius:12px;background:#132b38;color:#b9cbd0;font-size:12px;">Son 10 tamamlanmış maç aranıyor…</div></main>';
   document.body.appendChild(screen);
   document.body.style.overflow="hidden";
   const close=()=>{screen.remove();document.body.style.overflow=previousOverflow;document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));};
@@ -5160,5 +5293,50 @@ async function analyze(button){
 })();
 </script>
 
+
+<nav class="mam-bottom-tabs" aria-label="Ana gezinme">
+ <button type="button" data-bottom-tab="live"><span>🔴</span>Canlı Maçlar</button>
+ <button type="button" data-bottom-tab="fixtures"><span>📅</span>Gelecek Maçlar</button>
+ <button type="button" data-bottom-tab="analysis"><span>📊</span>Analiz</button>
+</nav>
+<script>
+(function(){
+ const nav=document.querySelector(".mam-bottom-tabs");
+ if(!nav||nav.dataset.ready)return;
+ nav.dataset.ready="1";
+ nav.addEventListener("click",function(event){
+  const button=event.target.closest("[data-bottom-tab]");
+  if(!button)return;
+  const target=document.querySelector('[data-mam-nav="'+(button.dataset.bottomTab==="fixtures"?"fixtures":button.dataset.bottomTab)+'"]');
+  if(target)target.click();
+  nav.querySelectorAll("button").forEach(item=>{
+   const active=item===button;
+   item.style.background=active?"#e4f7eb":"#f3f7f4";
+   item.style.color=active?"#087f3c":"#43505e";
+   item.style.borderColor=active?"#bfe8cc":"#e3ebe5";
+  });
+ });
+})();
+</script>
+
+<script>
+/* HOME SHORTCUT ACTIONS */
+(function(){
+ document.querySelectorAll("[data-home-action]").forEach(button=>button.addEventListener("click",()=>{
+  const action=button.dataset.homeAction;
+  if(action==="archive"){document.querySelector('[data-mam-nav="standings"]')?.click();return;}
+  document.querySelector('[data-mam-nav="'+action+'"]')?.click();
+ }));
+ const tabs=document.querySelector(".mam-bottom-tabs");
+ if(!tabs||tabs.dataset.activeSync)return;
+ tabs.dataset.activeSync="1";
+ const sync=()=>{
+  const mode=(location.hash||"").replace("#mam-","");
+  const active=mode==="live"?"live":mode==="home"?"fixtures":"analysis";
+  tabs.querySelectorAll("[data-bottom-tab]").forEach(button=>button.classList.toggle("is-active",button.dataset.bottomTab===active));
+ };
+ window.addEventListener("hashchange",sync);sync();
+})();
+</script>
 </body>
 </html>
