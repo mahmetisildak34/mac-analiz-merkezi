@@ -1046,7 +1046,7 @@ async function api(path){
   // gereksiz API-Football isteği gönderilmesin. Hata halinde son başarılı veri korunur.
   const isArchiveBackfill=cleanPath.startsWith("archive/backfill-all?");
   if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLive&&!isLineupRequest&&!isArchiveBackfill){
-    const cacheAge=isTffFixtures?2*60*1000:isLiveStats?(isEspnSummary?60*1000:60*1000):(isEspnSummary?5*60*1000:30*60*1000);
+    const cacheAge=isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?(isEspnSummary?60*1000:60*1000):(isEspnSummary?5*60*1000:30*60*1000);
     if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
   }
 
