@@ -2713,7 +2713,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v51_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v52_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2918,7 +2918,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         ["marseille","olympique de marseille","om"],
         ["lens","rc lens","racing club de lens"],
         ["strasbourg","rc strasbourg","rc strasbourg alsace","racing club de strasbourg alsace"],
-        ["rennes","stade rennais","stade rennais fc"],
+        ["rennes","stade rennais","stade rennais fc","stade rennais fc 1901","stade rennais 1901"],
         ["lorient","fc lorient"],
         ["monaco","as monaco"],
         ["auxerre","aj auxerre"],
@@ -3849,7 +3849,7 @@ async function analyze(button){
    return matches;
   }
   async function getLigue1Upcoming(){
-   const cacheKey="mam_ligue1_fixtures_2627_v2";
+   const cacheKey="mam_ligue1_fixtures_2627_v3";
    try{
     const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
     if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))return cached.matches;
@@ -3862,7 +3862,7 @@ async function analyze(button){
    const normalizeName=value=>String(value||"").normalize("NFD").toLowerCase().replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();
    const groups=[
     ["paris saint germain","paris sg","psg"],
-    ["stade rennais fc","stade rennais","rennes","rennais"],
+    ["stade rennais fc","stade rennais","stade rennais fc 1901","stade rennais 1901","rennes","rennais"],
     ["stade brestois 29","stade brestois","brest"],
     ["havre athletic club","havre ac","le havre","le havre ac"],
     ["estac troyes","troyes"],
