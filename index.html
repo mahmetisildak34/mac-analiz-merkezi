@@ -3329,34 +3329,36 @@ async function analyze(button){
  $("mamStandingsBack")?.addEventListener("click",()=>{$("mamStandingsCard").hidden=true;$("mamStandingsPicker").hidden=false;$("mamStandingsPicker")?.scrollIntoView({behavior:"smooth",block:"start"});});
  $("mamStandingsRefresh")?.addEventListener("click",loadStandings);
  async function getPremierLeagueUpcoming(){
-  const cacheKey="mam_epl_upcoming_2627_v2";
-  try{const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");if(saved?.time&&Date.now()-saved.time<10*60*1000&&Array.isArray(saved.matches))return saved.matches;}catch(e){}
-  const competitions=[
-   {code:"PL",id:"39",name:"Premier League",icon:"🏴"},
-   {code:"CL",id:"2",name:"UEFA Şampiyonlar Ligi",icon:"🏆"},
-   {code:"EL",id:"3",name:"UEFA Avrupa Ligi",icon:"🥈"},
-   {code:"ECL",id:"848",name:"UEFA Konferans Ligi",icon:"🥉"}
-  ];
-  const results=await Promise.allSettled(competitions.map(async comp=>{
-   const data=await api("football-data/competitions/"+comp.code+"/matches?"+qs({status:"SCHEDULED"}));
-   return (data.matches||[]).map(m=>({
-    fixture:{id:"fd-"+comp.code+"-"+m.id,date:m.utcDate||"",status:{short:m.status||"NS"}},
-    league:{id:comp.id,name:comp.name,country:comp.code==="PL"?"England":"Europe",icon:comp.icon},
-    teams:{home:{id:m.homeTeam?.id||-1,name:m.homeTeam?.name||m.homeTeam?.shortName||""},away:{id:m.awayTeam?.id||-1,name:m.awayTeam?.name||m.awayTeam?.shortName||""}},
-    goals:{home:m.score?.fullTime?.home??null,away:m.score?.fullTime?.away??null}
+   const cacheKey="mam_epl_upcoming_2627_v3";
+   try{const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");if(saved?.time&&Date.now()-saved.time<10*60*1000&&Array.isArray(saved.matches))return saved.matches;}catch(e){}
+   const competitions=[
+    {code:"PL",id:"39",name:"Premier League",icon:"🏴"},
+    {code:"CL",id:"2",name:"UEFA Şampiyonlar Ligi",icon:"🏆"},
+    {code:"EL",id:"3",name:"UEFA Avrupa Ligi",icon:"🥈"},
+    {code:"ECL",id:"848",name:"UEFA Konferans Ligi",icon:"🥉"}
+   ];
+   const results=await Promise.allSettled(competitions.map(async comp=>{
+    // Fetch all season fixtures: the provider may label future games TIMED as well as SCHEDULED.
+    const data=await api("football-data/competitions/"+comp.code+"/matches");
+    return (data.matches||[]).map(m=>({
+     fixture:{id:"fd-"+comp.code+"-"+m.id,date:m.utcDate||"",status:{short:m.status||"NS"}},
+     league:{id:comp.id,name:comp.name,country:comp.code==="PL"?"England":"Europe",icon:comp.icon},
+     teams:{home:{id:m.homeTeam?.id||-1,name:m.homeTeam?.name||m.homeTeam?.shortName||""},away:{id:m.awayTeam?.id||-1,name:m.awayTeam?.name||m.awayTeam?.shortName||""}},
+     goals:{home:m.score?.fullTime?.home??null,away:m.score?.fullTime?.away??null}
+    }));
    }));
-  }));
-  const matches=results.flatMap(x=>x.status==="fulfilled"?x.value:[]);
-  const now=Date.now();
-  const upcoming=matches.filter(m=>m.teams.home.name&&m.teams.away.name&&Date.parse(m.fixture.date)>=now-60*60*1000).sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
-  if(!upcoming.some(m=>String(m.league.id)==="39")){
-   const errors=results.map((x,i)=>x.status==="rejected"?competitions[i].code+": "+(x.reason?.message||x.reason):"").filter(Boolean);
-   throw new Error("Premier League gelecek fikstürü alınamadı. "+errors.join(" | "));
+   const matches=results.flatMap(x=>x.status==="fulfilled"?x.value:[]);
+   const now=Date.now(),futureStatuses=new Set(["SCHEDULED","TIMED","POSTPONED","SUSPENDED"]);
+   const upcoming=matches.filter(m=>m.teams.home.name&&m.teams.away.name&&Date.parse(m.fixture.date)>=now-60*60*1000&&futureStatuses.has(String(m.fixture.status.short).toUpperCase()))
+    .sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
+   if(!upcoming.some(m=>String(m.league.id)==="39")){
+    const errors=results.map((x,i)=>x.status==="rejected"?competitions[i].code+": "+(x.reason?.message||x.reason):"").filter(Boolean);
+    throw new Error("Premier League gelecek fikstürü alınamadı. "+errors.join(" | "));
+   }
+   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:upcoming}));}catch(e){}
+   return upcoming;
   }
-  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:upcoming}));}catch(e){}
-  return upcoming;
- }
- const openStandingTeamHistory=async row=>{
+  const openStandingTeamHistory=async row=>{
   if(!["203","39"].includes(String(selectedStandingsLeague))||!row)return;
   const teamName=row.dataset.standingTeam||"";
   const teamId=row.dataset.standingTeamId||"";
@@ -3384,11 +3386,11 @@ async function analyze(button){
    let upcomingError="";
    try{
     const leagueFixtures=String(selectedStandingsLeague)==="39"?await getPremierLeagueUpcoming():await getTFFSuperLigUpcoming();
-    const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+    const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/\\b(football club|fc|afc)\\b/g,"").replace(/[^a-z0-9]/g,"");
     const aliases={"caykurrizespor":["caykurrizesporas","rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"]};
     const wanted=norm(teamName);
     const accepted=new Set([wanted,...(aliases[wanted]||[])].map(norm));
-    upcoming=leagueFixtures.filter(m=>accepted.has(norm(m.teams?.home?.name))||accepted.has(norm(m.teams?.away?.name))).slice(0,10);
+    upcoming=leagueFixtures.filter(m=>accepted.has(norm(m.teams?.home?.name))||accepted.has(norm(m.teams?.away?.name)));
    }catch(error){upcomingError=String(error?.message||"TFF gelecek fikstürü alınamadı.");}
    if(!recent.length&&!upcoming.length)throw new Error("Geçmiş ve gelecek maç verisi alınamadı. "+upcomingError);
    const pastHtml=recent.length?'<section style="margin-bottom:22px;"><div style="display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">SON '+recent.length+' TAMAMLANMIŞ MAÇ</span><span style="font-size:10px;color:#9eb2bc;">GEÇMİŞ</span></div><div style="display:grid;gap:10px;">'+recent.map(m=>{
