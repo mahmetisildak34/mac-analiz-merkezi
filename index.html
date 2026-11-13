@@ -3280,7 +3280,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const uefaFeeds=["champions-league","europa-league","conference-league"];
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const currentSeasonStart=matchMonth>=7?matchYear:matchYear-1;
-    const uefaYears=[currentSeasonStart,currentSeasonStart-1,currentSeasonStart-2].filter(y=>y>=2024);
+    const uefaYears=String(leagueId)==="848"?[2027,2026,2025]:[currentSeasonStart,currentSeasonStart-1,currentSeasonStart-2].filter(y=>y>=2024);
     const loadUefaFeed=async(slug,year)=>{
       const cacheKey="mam_uefa_fixture_archive_"+slug+"_"+year+"_v5";
       try{
