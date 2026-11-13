@@ -1250,7 +1250,13 @@ $("loadStandings").addEventListener("click",loadStandings);
  syncLeaguePicker();
 })();
 
-$("league").addEventListener("change",renderMatches);
+$("league").addEventListener("change",()=>{
+ try{const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"{}");localStorage.setItem("mam_app_view_state",JSON.stringify({...saved,league:$("league").value}));}catch(_){}
+ renderMatches();
+});
+$("date").addEventListener("change",()=>{
+ try{const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"{}");localStorage.setItem("mam_app_view_state",JSON.stringify({...saved,date:$("date").value}));}catch(_){}
+});
 
 let selectedStandingsLeague="";
 let standingCompetitionNames={};
@@ -2887,6 +2893,7 @@ window.addEventListener("popstate",()=>{if(mamActiveMatch)closeMamMatchDetail();
 let mamScreenMode="home";
 function setMamScreen(mode){
  mamScreenMode=mode;
+ try{const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"{}");localStorage.setItem("mam_app_view_state",JSON.stringify({...saved,mode,updatedAt:Date.now()}));}catch(_){}
  const main=document.querySelector("main");
  main.classList.remove("mam-screen-home","mam-screen-live","mam-screen-upcoming","mam-screen-standings");
  main.classList.add("mam-screen-"+mode);
@@ -4460,6 +4467,7 @@ async function analyze(button){
  $("mamStandingsScreen")?.addEventListener("click",async event=>{
   const button=event.target.closest("[data-standing-league]");if(!button)return;
   selectedStandingsLeague=button.dataset.standingLeague;
+  try{const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"{}");localStorage.setItem("mam_app_view_state",JSON.stringify({...saved,mode:"standings",standingsLeague:selectedStandingsLeague}));}catch(_){}
   document.querySelectorAll("#mamStandingsScreen [data-standing-league]").forEach(item=>item.classList.toggle("active",item.dataset.standingLeague===selectedStandingsLeague));
   $("mamStandingsPicker").hidden=true;$("mamStandingsCard").hidden=false;
   await loadStandings();
@@ -4919,8 +4927,29 @@ async function analyze(button){
  });
  const sync=()=>{strip.querySelectorAll(".mam-date-chip").forEach(chip=>chip.classList.toggle("active",dateInput.value===localDate(Number(chip.dataset.dayOffset))));};
  dateInput.addEventListener("change",sync);sync();
- // Yenileme sonrası son açık canlı maçı tekrar yükle.
- try{if(localStorage.getItem("mam_open_live_detail")){setMamScreen("live");loadLiveMatches();}}catch(_){}
+ // Genel ekran durumunu yenileme sonrası geri yükle.
+ try{
+  const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"null");
+  if(saved&&["home","live","upcoming","standings"].includes(saved.mode)){
+   if(saved.date&&$("date"))$("date").value=saved.date;
+   if(saved.league&&$("league")){$("league").value=saved.league;$("league").dispatchEvent(new Event("change"));}
+   setMamScreen(saved.mode);
+   if(saved.mode==="live")loadLiveMatches();
+   else if(saved.mode==="upcoming"||saved.mode==="home")loadMatches();
+   else if(saved.mode==="standings"&&saved.standingsLeague){
+    selectedStandingsLeague=saved.standingsLeague;
+    $("mamStandingsPicker").hidden=true;$("mamStandingsCard").hidden=false;
+    loadStandings();
+   }
+   if(Number.isFinite(Number(saved.scrollY)))requestAnimationFrame(()=>window.scrollTo(0,Number(saved.scrollY)));
+  }
+ }catch(_){}
+ // Kullanıcı ekranı aşağı/yukarı kaydırdıkça konumu da sakla.
+ let mamScrollSavePending=false;
+ window.addEventListener("scroll",()=>{
+  if(mamScrollSavePending)return;mamScrollSavePending=true;
+  requestAnimationFrame(()=>{mamScrollSavePending=false;try{const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"{}");localStorage.setItem("mam_app_view_state",JSON.stringify({...saved,scrollY:window.scrollY}));}catch(_){}});
+ },{passive:true});
 })();
 </script>
 <a href="https://sportscore.com/" rel="dofollow">Powered by SportScore</a>
