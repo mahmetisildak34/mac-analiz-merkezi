@@ -3289,7 +3289,7 @@ async function analyze(button){
     const outcome=gf>ga?"W":gf<ga?"L":"D";
     const date=String(m.fixture?.date||"").slice(0,10);
     const dateLabel=date?new Date(date+"T12:00:00").toLocaleDateString("tr-TR",{day:"2-digit",month:"short",year:"numeric"}):"";
-    return '<div class="mam-standing-history-match"><span class="mam-standing-history-result '+outcome.toLowerCase()+'">'+outcome+'</span><span class="mam-standing-history-teams"><b>'+esc(isHome?teamName:opponent)+'</b><small>'+esc(isHome?"İç saha":"Deplasman")+' · '+esc(dateLabel)+'</small></span><strong>'+gf+' – '+ga+'</strong><span class="mam-standing-history-opponent">'+esc(isHome?opponent:teamName)+'</span></div>';
+    return '<div class="mam-standing-history-match"><span class="mam-standing-history-result '+outcome.toLowerCase()+'">'+outcome+'</span><span class="mam-standing-history-teams"><b>'+esc(home.name||"Ev sahibi")+' – '+esc(away.name||"Deplasman")+'</b><small>'+esc(isHome?"İç saha":"Deplasman")+' · '+esc(dateLabel)+'</small></span><strong>'+gf+' – '+ga+'</strong></div>';
    }).join("")+'</div>';
    $("mamStandingHistoryClose")?.addEventListener("click",()=>{panel.hidden=true;document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));});
   }catch(error){
