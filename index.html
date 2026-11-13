@@ -690,10 +690,6 @@ main{max-width:1040px;padding-top:15px}
 .panel,.panel:first-of-type{background:linear-gradient(145deg,#102432,#0b1b27)!important;border:1px solid rgba(128,170,190,.18)!important;box-shadow:0 12px 30px rgba(0,0,0,.2)!important;color:#edf8f5!important}
 .hint,label,.note,.small,.footer{color:#9bb0bd!important}
 input,select{background:#091923!important;color:#f3fbf8!important;border-color:#2a4654!important}
-/* iPhone Safari: keep the native date control visible with its selected value. */
-#date{appearance:auto!important;-webkit-appearance:auto!important;color-scheme:dark;color:#f3fbf8!important;min-height:52px}
-#date::-webkit-datetime-edit{color:#f3fbf8!important}
-#date::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.85}
 input:focus,select:focus{border-color:#19e0a5!important;box-shadow:0 0 0 3px rgba(25,224,165,.12)!important}
 button{background:linear-gradient(135deg,#19dfa2,#08a979)!important;color:#04241b!important;box-shadow:0 6px 17px rgba(0,190,137,.16)!important}
 button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,.22)!important;color:#e9f7f4!important;box-shadow:none!important}
@@ -1260,7 +1256,7 @@ async function loadStandings(){
   if(!rows.length)throw new Error("Kaynak bu lig için puan tablosu döndürmedi.");
   $("mamStandingsLeagueTitle").textContent=leagueName;
   const supportsTeamHistory=["203","39"].includes(String(leagueId));
-  box.innerHTML='<div style="overflow-x:auto"><table class="mam-standings-table"><thead><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr'+(supportsTeamHistory?' class="mam-standing-team-row" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" tabindex="0"':'')+'><td>'+esc(x.rank)+'</td><td>'+(supportsTeamHistory?'<button type="button" class="mam-standing-team-open" data-standing-team-open="1" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını aç" style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:38px;padding:4px 0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;font-weight:800;cursor:pointer;"><span>'+esc(x.name)+'</span><span class="mam-standing-row-hint" aria-hidden="true">›</span></button>':esc(x.name))+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan.'+(String(leagueId)==="203"?' Takımın son 10 maçını görmek için satırına dokun.':' Güncel veri sağlayıcısından alınır.')+'</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
+  box.innerHTML='<div style="overflow-x:auto"><table class="mam-standings-table"><thead><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr'+(supportsTeamHistory?' class="mam-standing-team-row" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" role="button" tabindex="0" aria-label="'+esc(x.name)+' geçmiş maçlarını göster"':'')+'><td>'+esc(x.rank)+'</td><td>'+esc(x.name)+(supportsTeamHistory?' <span class="mam-standing-row-hint">›</span>':'')+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan.'+(String(leagueId)==="203"?' Takımın son 10 maçını görmek için satırına dokun.':' Güncel veri sağlayıcısından alınır.')+'</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
  }catch(e){
   box.innerHTML='<div class="error">'+esc(e.message||e)+'</div>';
  }finally{button.disabled=false}
@@ -3423,13 +3419,10 @@ async function analyze(button){
   }
  };
  $("mamStandingsTable")?.addEventListener("click",event=>{
-  const trigger=event.target.closest("[data-standing-team-open]");
-  const row=trigger?.closest(".mam-standing-team-row")||event.target.closest(".mam-standing-team-row");
-  if(row)openStandingTeamHistory(row);
+  const row=event.target.closest(".mam-standing-team-row");if(row)openStandingTeamHistory(row);
  });
  $("mamStandingsTable")?.addEventListener("keydown",event=>{
-  const row=event.target.closest(".mam-standing-team-row");
-  if(row&&event.target===row&&(event.key==="Enter"||event.key===" ")){event.preventDefault();openStandingTeamHistory(row);}
+  if((event.key==="Enter"||event.key===" ")&&event.target.closest(".mam-standing-team-row")){event.preventDefault();openStandingTeamHistory(event.target.closest(".mam-standing-team-row"));}
  });
  const dateInput=$("date"),strip=$("mamDateStrip");
  if(!dateInput||!strip)return;
