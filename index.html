@@ -1981,6 +1981,7 @@ function mamSaveLiveMatchCache(matches){
  try{if(Array.isArray(matches)&&matches.length)localStorage.setItem(MAM_LIVE_MATCH_CACHE_KEY,JSON.stringify({savedAt:Date.now(),matches}));}catch(_){}
 }
 async function loadLiveMatches(){
+ try{if(localStorage.getItem("mam_open_live_detail"))setMamScreen("live");}catch(_){}
  const button=$("loadLive");
  button.disabled=true;
  $("status").textContent="Canlı maç akışı kontrol ediliyor...";
@@ -2638,7 +2639,21 @@ function closeMamMatchDetail(){
  mamActiveMatch=null;mamActivePlaceholder=null;
  if(mamDetailOverlay){mamDetailOverlay.hidden=true;mamDetailOverlay.querySelector(".match-detail-body").innerHTML="";}
  document.body.style.overflow="";
+ try{localStorage.removeItem("mam_open_live_detail");}catch(_){}
  if(history.state?.mamMatchDetail)history.back();
+}
+function mamRestorePendingDetail(){
+ let saved=null;
+ try{saved=JSON.parse(localStorage.getItem("mam_open_live_detail")||"null");}catch(_){}
+ if(!saved||mamActiveMatch||mamScreenMode!=="live")return;
+ const button=[...document.querySelectorAll("#matches .liveStatsBtn")].find(b=>
+  String(b.dataset.liveId||"")===String(saved.id||"")&&
+  String(b.dataset.liveSource||"")===String(saved.source||"")&&
+  String(b.dataset.liveLeagueId||"")===String(saved.league||""));
+ if(!button)return;
+ const article=button.closest(".match");if(!article)return;
+ activateMamFixture(article);
+ if(saved.tab&&saved.tab!=="stats")article.querySelector('.match-detail-tab[data-pane="'+saved.tab+'"]')?.click();
 }
 function activateMamFixture(article){
  if(!article)return;
@@ -2680,6 +2695,8 @@ function openMamMatchDetail(article){
  const away=article.querySelector(".team-block:last-child strong")?.textContent||"Deplasman";
  overlay.querySelector(".match-detail-top strong").textContent=home+" – "+away;
  overlay.hidden=false;document.body.style.overflow="hidden";
+ const liveButton=article.querySelector(".liveStatsBtn");
+ if(liveButton){try{localStorage.setItem("mam_open_live_detail",JSON.stringify({id:liveButton.dataset.liveId||"",source:liveButton.dataset.liveSource||"",league:liveButton.dataset.liveLeagueId||"",tab:"stats"}));}catch(_){}}
  try{history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
  const first=article.querySelector('.match-detail-tab[data-pane="analysis"]')||article.querySelector(".match-detail-tab");
  if(first)first.click();
@@ -2713,6 +2730,8 @@ function makeMamDetailTab(article){
   tab.addEventListener("click",()=>{
    tabs.querySelectorAll(".match-detail-tab").forEach(x=>x.classList.toggle("active",x===tab));
    panes.querySelectorAll(".match-detail-pane").forEach(x=>x.hidden=x!==pane);
+   const liveButton=article.querySelector(".liveStatsBtn");
+   if(liveButton){try{const saved=JSON.parse(localStorage.getItem("mam_open_live_detail")||"{}");saved.tab=def.id;localStorage.setItem("mam_open_live_detail",JSON.stringify({...saved,id:liveButton.dataset.liveId||"",source:liveButton.dataset.liveSource||"",league:liveButton.dataset.liveLeagueId||""}));}catch(_){}}
   });
  });
  if(actions){
@@ -2951,6 +2970,7 @@ function renderMatches(){
  });
  document.querySelectorAll(".liveAnalyzeBtn").forEach(b=>b.addEventListener("click",()=>analyzeLiveMatch(b)));
  document.querySelectorAll("#matches .match").forEach(makeMamDetailTab);
+ mamRestorePendingDetail();
  autoTrackUpcomingLineups();
 }
 
