@@ -2452,8 +2452,18 @@ function activateMamFixture(article){
  if(!article)return;
  if(mamActiveMatch&&mamActiveMatch!==article)closeMamMatchDetail();
  makeMamDetailTab(article);
- const analysisButton=article.querySelector(".predBtn");
+ const analysisButton=article.querySelector(".predBtn:not(.liveAnalyzeBtn)");
+ const liveStatsButton=article.querySelector(".liveStatsBtn");
  openMamMatchDetail(article);
+ // Canlı maçta detay ekranı doğrudan istatistik sekmesini açar ve veriyi yükler.
+ // Böylece kullanıcı ayrıca gizli bir düğme aramak zorunda kalmaz.
+ if(liveStatsButton){
+  const statsTab=article.querySelector('.match-detail-tab[data-pane="stats"]');
+  if(statsTab)statsTab.click();
+  const panel=document.getElementById(liveStatsButton.dataset.livePanel||"");
+  if(panel&&panel.hidden&&!liveStatsButton.disabled)liveStatsButton.click();
+  return;
+ }
  const analysisTab=article.querySelector('.match-detail-tab[data-pane="analysis"]');
  if(analysisTab)analysisTab.click();
  if(analysisButton&&!analysisButton.disabled)analyze(analysisButton);
