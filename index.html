@@ -2459,7 +2459,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v37_"+leagueId+"_"+teamId+"_"+matchDate;
+   const key="mam_history_v38_"+leagueId+"_"+teamId+"_"+matchDate;
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2685,7 +2685,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // API-Football son çare: arşiv ve CSV beş maçın altında kaldıysa dene.
   // Ücretsiz plan geçmiş tarihleri reddedebilir; hata diğer kaynakları durdurmaz.
-  if(output.length<5&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))){
+  if(String(leagueId)!=="203"&&output.length<5&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))){
     try{
       const data=await api("fixtures?"+qs({team:teamId,last:20,status:"FT",timezone:"Europe/Istanbul"}));
       const cutoff=new Date(matchDate+"T00:00:00");
@@ -2698,7 +2698,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // ESPN yedek geçmişi: fikstür API-Football'dan gelse bile maç tarihindeki
   // ESPN skor tablosundan takımın ESPN ID'sini bul ve takım takvimini oku.
-  if(output.length<10&&ESPN_LEAGUES[String(leagueId)]?.slug){
+  if(String(leagueId)!=="203"&&output.length<10&&ESPN_LEAGUES[String(leagueId)]?.slug){
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)].slug;
       let espnTeamId="";
@@ -2770,7 +2770,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const result=output.slice(0,20);
   // Son geçmiş maçların gerçek istatistiklerini doğru sağlayıcıdan tamamla.
   // İstek sayısını sınırlı tutuyoruz; bulunan sonuçlar yerel önbelleğe alınır.
-  const candidates=result.filter(m=>!m.statistics&&new RegExp("^\\d+$").test(String(m.fixture?.id||""))).slice(0,8);
+  const candidates=String(leagueId)==="203"?[]:result.filter(m=>!m.statistics&&new RegExp("^\\d+$").test(String(m.fixture?.id||""))).slice(0,8);
   await Promise.all(candidates.map(async match=>{
     try{
       const stats=match.mamSource==="espn"
