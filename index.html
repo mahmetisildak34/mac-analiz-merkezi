@@ -1426,7 +1426,7 @@ async function loadStandings(){
     if(bulk.disabled)return;
     bulk.disabled=true;
     const officialTeams=["Aarhus","Ajax","Atalanta","Borac","Braga","Brann","Brighton","Copenhagen","Crvena Zvezda","CSKA Sofia","Egnatia","Freiburg","Gent","Getafe","Hajduk Split","Hearts","Iberia Tbilisi","Inter Escaldes","Jablonec","Kairat Almaty","Kauno Zalgiris","KuPS Kuopio","Lincoln Red Imps","Lugano","Midtjylland","Mjallby","Monaco","Nordsjaelland","Pafos","Panathinaikos","Riga","Sint-Truidense","Thun","Trabzonspor","Twente","Universitatea Craiova"];
-    let done=0,historyReady=0,historyMatches=0,upcomingMatches=0,upcomingTeams=0;
+    let done=0,historyReady=0,historyMatches=0,statsReady=0,statsMissing=0,upcomingMatches=0,upcomingTeams=0;
     const missing=[];
     const d=new Date();d.setDate(d.getDate()+1);
     const cutoff=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
@@ -1471,16 +1471,18 @@ async function loadStandings(){
        if(result.status==="fulfilled"){
         const count=result.value.length;
         historyMatches+=count;
+        const withStats=result.value.filter(match=>match.statistics&&Object.keys(match.statistics.home||{}).length&&Object.keys(match.statistics.away||{}).length).length;
+        statsReady+=withStats;statsMissing+=Math.max(0,count-withStats);
         if(count>0)historyReady++;
        }else{
         missing.push(batch[index].official+" (geçmiş: "+String(result.reason?.message||"hata")+")");
        }
       });
-      progress.textContent=done+"/36 takımın geçmişi kontrol edildi · "+historyReady+" takımda geçmiş maç bulundu · "+upcomingTeams+"/36 takımın gelecek fikstürü eşleşti.";
+      progress.textContent=done+"/36 takımın geçmişi kontrol edildi · "+historyReady+" takımda geçmiş maç bulundu · "+statsReady+" maçta istatistik bulundu · "+upcomingTeams+"/36 takımın gelecek fikstürü eşleşti.";
       bulk.textContent="Kontrol ediliyor… "+done+"/36";
      }
      bulk.textContent="↻ Konferans Ligi 36 takımını yeniden kontrol et";
-     progress.textContent="Tamamlandı: "+historyReady+"/36 takımda geçmiş maç bulundu ("+historyMatches+" takım-maç kaydı); gelecek fikstürde "+upcomingMatches+" maç ve "+upcomingTeams+"/36 takım eşleşti."+(missing.length?" Kontrol gerekenler: "+missing.join(", "):" Takım adı eşleşmelerinin tamamı doğrulandı.");
+     progress.textContent="Tamamlandı: "+historyReady+"/36 takımda geçmiş maç bulundu ("+historyMatches+" takım-maç kaydı); "+statsReady+" maçta takım istatistiği bulundu, "+statsMissing+" maçta istatistik eksik; gelecek fikstürde "+upcomingMatches+" maç ve "+upcomingTeams+"/36 takım eşleşti."+(missing.length?" Kontrol gerekenler: "+missing.join(", "):" Takım adı eşleşmelerinin tamamı doğrulandı.");
     }catch(error){
      bulk.textContent="↻ Konferans Ligi kontrolünü yeniden başlat";
      progress.textContent="Kontrol tamamlanamadı: "+String(error?.message||error);
