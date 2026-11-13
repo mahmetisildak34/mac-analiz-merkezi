@@ -2595,12 +2595,12 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v41_"+leagueId+"_"+teamId+"_"+matchDate;
+   const key="mam_history_v42_"+leagueId+"_"+teamId+"_"+matchDate;
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
       const saved=JSON.parse(cached);
-      if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<(saved.matches.length>=5?CACHE_HOURS*60*60*1000:10*60*1000))return saved.matches;
+      if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<(String(leagueId)==="203"?30*60*1000:(saved.matches.length>=5?CACHE_HOURS*60*60*1000:10*60*1000)))return saved.matches;
     }catch(e){}
   }
 
@@ -2836,7 +2836,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // ESPN yedek geçmişi: fikstür API-Football'dan gelse bile maç tarihindeki
   // ESPN skor tablosundan takımın ESPN ID'sini bul ve takım takvimini oku.
-  if(String(leagueId)!=="203"&&output.length<10&&ESPN_LEAGUES[String(leagueId)]?.slug){
+  if(ESPN_LEAGUES[String(leagueId)]?.slug&&(String(leagueId)==="203"||output.length<10)){
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)].slug;
       let espnTeamId="";
