@@ -2713,7 +2713,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v52_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v53_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2907,6 +2907,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // absent from football-data CSVs. Canonicalize both sides before comparison.
   const serieACanonical=value=>{
     const n=normalize(value);
+    if(String(leagueId)==="61" && (n==="stade rennais 1901" || n==="stade rennais fc 1901"))return "rennes";
     if(String(leagueId)==="61"){
       const groups=[
         ["paris saint germain","paris saint-germain","paris sg","psg","paris saint germain fc"],
@@ -3849,7 +3850,7 @@ async function analyze(button){
    return matches;
   }
   async function getLigue1Upcoming(){
-   const cacheKey="mam_ligue1_fixtures_2627_v3";
+   const cacheKey="mam_ligue1_fixtures_2627_v4";
    try{
     const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
     if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))return cached.matches;
@@ -4074,7 +4075,7 @@ async function analyze(button){
      }).filter(m=>String(m.fixture.status.short)==="NS"&&Date.parse(m.fixture.date)>=Date.now());
     }
     const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc)\b/g,"").replace(/[^a-z0-9]/g,"");
-    const aliases={"bologna1909":["bologna","bolognafc1909"],"bologna":["bologna1909","bolognafc1909"],"parmacalcio1913":["parma","parmacalcio"],"parma":["parmacalcio1913","parmacalcio"],"ussassuolocalcio":["sassuolo","sassuolocalcio"],"sassuolo":["ussassuolocalcio","sassuolocalcio"],"internazionale":["inter","intermilan"],"inter":["internazionale","intermilan"],"hellasverona":["verona"],"verona":["hellasverona"],"bayernmunchen":["bayernmunich","bayern"],"bayernmunich":["bayernmunchen","bayern"],"werderbremen":["svwerderbremen"],"svwerderbremen":["werderbremen"],"borussiamonchengladbach":["monchengladbach","gladbach"],"monchengladbach":["borussiamonchengladbach","gladbach"],"eintrachtfrankfurt":["frankfurt"],"frankfurt":["eintrachtfrankfurt"],"borussiadortmund":["dortmund"],"dortmund":["borussiadortmund"],"bayer04leverkusen":["bayerleverkusen","leverkusen"],"bayerleverkusen":["bayer04leverkusen","leverkusen"],"caykurrizespor":["caykurrizesporas","rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"],"rcdeportivolacoruna":["rcdeportivo","deportivo"],"realracingclubdesantander":["rracingclub","racingclub","racingsantander"],"rcceltadevigo":["celta","celtavigo","rccelta"],"clubatleticodemadrid":["atleticodemadrid","atleticomadrid","atlmad"],"realsociedaddefutbol":["realsociedad","sociedad"],"realbetisbalompie":["realbetis","betis"],"rayovallecanodemadrid":["rayovallecano","vallecano"],"parissaintgermain":["parissg","psg"],"parissg":["parissaintgermain","psg"],"staderennaisfc":["staderennais","rennes","rennais"],"staderennais":["staderennaisfc","rennes","rennais"],"stadebretois29":["stadebretois","brest"],"stadebretois":["stadebretois29","brest"],"havreatlanticclub":["havreac","lehavre","lehavreac"],"estactroyes":["troyes"],"losclille":["lilleosc","lille"],"olympiquelyonnais":["olympiquelyon","lyon"],"olympiquedemarseille":["marseille","om"],"rclens":["lens","racingclubdelens"],"rcstrasbourgalsace":["rcstrasbourg","strasbourg"],"fclorient":["lorient"],"asmonaco":["monaco"],"ajauxerre":["auxerre"],"angerssco":["angers"],"lemansfc":["lemans"],"parisfc":["parisfootballclub"],"ogcnice":["nice"]};
+    const aliases={"bologna1909":["bologna","bolognafc1909"],"bologna":["bologna1909","bolognafc1909"],"parmacalcio1913":["parma","parmacalcio"],"parma":["parmacalcio1913","parmacalcio"],"ussassuolocalcio":["sassuolo","sassuolocalcio"],"sassuolo":["ussassuolocalcio","sassuolocalcio"],"internazionale":["inter","intermilan"],"inter":["internazionale","intermilan"],"hellasverona":["verona"],"verona":["hellasverona"],"bayernmunchen":["bayernmunich","bayern"],"bayernmunich":["bayernmunchen","bayern"],"werderbremen":["svwerderbremen"],"svwerderbremen":["werderbremen"],"borussiamonchengladbach":["monchengladbach","gladbach"],"monchengladbach":["borussiamonchengladbach","gladbach"],"eintrachtfrankfurt":["frankfurt"],"frankfurt":["eintrachtfrankfurt"],"borussiadortmund":["dortmund"],"dortmund":["borussiadortmund"],"bayer04leverkusen":["bayerleverkusen","leverkusen"],"bayerleverkusen":["bayer04leverkusen","leverkusen"],"caykurrizespor":["caykurrizesporas","rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"],"rcdeportivolacoruna":["rcdeportivo","deportivo"],"realracingclubdesantander":["rracingclub","racingclub","racingsantander"],"rcceltadevigo":["celta","celtavigo","rccelta"],"clubatleticodemadrid":["atleticodemadrid","atleticomadrid","atlmad"],"realsociedaddefutbol":["realsociedad","sociedad"],"realbetisbalompie":["realbetis","betis"],"rayovallecanodemadrid":["rayovallecano","vallecano"],"parissaintgermain":["parissg","psg"],"parissg":["parissaintgermain","psg"],"staderennaisfc":["staderennais","rennes","rennais","staderennais1901"],"staderennais":["staderennaisfc","rennes","rennais","staderennais1901"],"staderennais1901":["staderennaisfc","staderennais","rennes","rennais"],"stadebretois29":["stadebretois","brest"],"stadebretois":["stadebretois29","brest"],"havreatlanticclub":["havreac","lehavre","lehavreac"],"estactroyes":["troyes"],"losclille":["lilleosc","lille"],"olympiquelyonnais":["olympiquelyon","lyon"],"olympiquedemarseille":["marseille","om"],"rclens":["lens","racingclubdelens"],"rcstrasbourgalsace":["rcstrasbourg","strasbourg"],"fclorient":["lorient"],"asmonaco":["monaco"],"ajauxerre":["auxerre"],"angerssco":["angers"],"lemansfc":["lemans"],"parisfc":["parisfootballclub"],"ogcnice":["nice"]};
     const wanted=norm(teamName);
     const accepted=new Set([wanted,...(aliases[wanted]||[])].map(norm));
     const matchesTeam=(name,id)=>Number(id)===Number(teamId)||accepted.has(norm(name))||(aliases[norm(name)]||[]).map(norm).includes(wanted);
