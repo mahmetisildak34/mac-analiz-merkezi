@@ -2425,6 +2425,9 @@ $("couponBuildRisky").addEventListener("click",()=>buildSuggestedCoupon("risky")
 renderCoupon();
 
 // Geçmiş maç arşivi: KV yazma kotası koruması için otomatik backfill kapalıdır.
+// CSV arşivi isteklerini aynı anda tekrarlamamak için paylaşılan önbellek.
+const MAM_LEAGUE_ARCHIVE_PROMISES=new Map();
+const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
   const key="mam_history_v33_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
