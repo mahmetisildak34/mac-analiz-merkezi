@@ -2392,7 +2392,8 @@ function renderMatches(){
    </div>
    ${isFinishedStatus?'<div class="analysis-preview">✓ Gerçekleşen sonuç: <b>'+esc(g.home)+' – '+esc(g.away)+'</b>. Maç önü tahmini bu karşılaşma için artık üretilemez.</div>':""}
 
-   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
+   \${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-minute="'+esc(elapsed??"")+'" data-live-home-score="'+esc(g.home??0)+'" data-live-away-score="'+esc(g.away??0)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
+   \${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
    <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
@@ -2409,6 +2410,7 @@ function renderMatches(){
  document.querySelectorAll(".liveStatsBtn").forEach(b=>{
   b.addEventListener("click",()=>loadLiveStats(b));
  });
+ document.querySelectorAll(".liveAnalyzeBtn").forEach(b=>b.addEventListener("click",()=>analyzeLiveMatch(b)));
  document.querySelectorAll("#matches .match").forEach(makeMamDetailTab);
  autoTrackUpcomingLineups();
 }
@@ -3095,6 +3097,46 @@ function topScores(lh,la){
 
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 
+
+
+/* CANLI MAÇ ANALİZ MOTORU */
+async function analyzeLiveMatch(button){
+ if(!button||button.disabled)return;
+ const card=button.closest(".match"),panel=card?.querySelector(".liveAnalysis");
+ const id=String(button.dataset.liveId||""),espn=button.dataset.liveSource==="espn";
+ if(!panel||!id)return;
+ button.disabled=true;const old=button.textContent;button.textContent="Canlı veriler hesaplanıyor…";
+ panel.innerHTML='<p class="note">Canlı istatistikler alınıyor…</p>';
+ try{
+  let rows=[];
+  if(espn){
+   const slug=button.dataset.liveLeague;if(!slug||!/^\d+$/.test(id))throw new Error("ESPN maç kimliği eksik.");
+   const payload=await api("espn/"+slug+"/summary?"+qs({event:id}));
+   const teams=[...(payload.boxscore?.teams||[]),...(payload.header?.competitions?.[0]?.competitors||[]),...(payload.competitions?.[0]?.competitors||[])];
+   const read=side=>{const team=teams.find(x=>x.homeAway===side),out={};for(const z of team?.statistics||[]){const k=String(z.name||z.label||z.abbreviation||"").toLowerCase().replace(/[^a-z]/g,""),raw=z.displayValue??z.value,v=Number(String(raw??"").replace(/[% ,]/g,""));if(!Number.isFinite(v))continue;if(k.includes("possession"))out.possession=v;else if(k.includes("shotsontarget")||k.includes("shotsongoal"))out.sot=v;else if(k.includes("totalshots")||k==="shots")out.shots=v;else if(k.includes("corner"))out.corners=v;}return out;};
+   rows=[read("home"),read("away")];
+  }else{
+   if(!/^\d+$/.test(id))throw new Error("API-Football maç kimliği geçersiz.");
+   const payload=await api("fixtures/statistics?"+qs({fixture:id})),data=Array.isArray(payload.response)?payload.response:[];
+   const read=team=>{const out={};for(const z of team?.statistics||[]){const k=String(z.type||"").toLowerCase().replace(/[^a-z]/g,""),v=Number(String(z.value??"").replace(/[% ,]/g,""));if(!Number.isFinite(v))continue;if(k==="ballpossession")out.possession=v;else if(k==="shotsongoal"||k==="shotsontarget")out.sot=v;else if(k==="totalshots")out.shots=v;else if(k==="cornerkicks")out.corners=v;}return out;};
+   rows=[read(data[0]),read(data[1])];
+  }
+  const [h,a]=rows;if(!h||!a||(!Object.keys(h).length&&!Object.keys(a).length))throw new Error("Bu maç için henüz canlı istatistik verisi yayınlanmıyor. Veri gelmeden tahmin üretmedim.");
+  const minuteValue=Number(button.dataset.liveMinute),minute=Number.isFinite(minuteValue)&&minuteValue>0?Math.min(120,minuteValue):45;
+  const remaining=Math.max(0,(minute<=45?90:120)-minute),homeScore=Number(button.dataset.liveHomeScore||0),awayScore=Number(button.dataset.liveAwayScore||0);
+  const rate=x=>{const sot=Number(x.sot||0),shots=Number(x.shots||0),pos=Number(x.possession??50),shotSignal=sot*.115+Math.max(0,shots-sot)*.018,posFactor=1+(Math.max(0,Math.min(100,pos))-50)/250;return Math.max(.04,Math.min(1.35,(.13+shotSignal/Math.max(15,minute)*45)*posFactor));};
+  const lh=remaining/45*rate(h),la=remaining/45*rate(a),pois=(l,k)=>Math.exp(-l)*Math.pow(l,k)/factorialLive(k);
+  let win=0,draw=0,lose=0,o15=0,o25=0,o35=0,btts=0;
+  for(let x=0;x<=8;x++)for(let y=0;y<=8;y++){const p=pois(lh,x)*pois(la,y),fh=homeScore+x,fa=awayScore+y;if(fh>fa)win+=p;else if(fh===fa)draw+=p;else lose+=p;if(fh+fa>=2)o15+=p;if(fh+fa>=3)o25+=p;if(fh+fa>=4)o35+=p;if(fh>0&&fa>0)btts+=p;}
+  const next=1-Math.exp(-(lh+la)),nextH=lh+la?next*lh/(lh+la):0,nextA=lh+la?next*la/(lh+la):0,noGoal=1-next,pct=x=>(x*100).toFixed(1)+"%";
+  const bar=(label,v)=>'<div style="margin:8px 0"><div style="display:flex;justify-content:space-between"><span>'+label+'</span><b>'+pct(v)+'</b></div><div style="height:7px;background:#e7edf0;border-radius:8px;overflow:hidden"><div style="height:7px;width:'+Math.max(0,Math.min(100,v*100))+'%;background:#16a36a"></div></div></div>';
+  const cell=(label,x,y)=>'<div class="stat"><span>'+label+'</span><b>'+(x??"—")+' / '+(y??"—")+'</b></div>';
+  panel.innerHTML='<div class="section-title">⚡ Canlı analiz · '+minute+'\\'</div><p class="note">Skor '+homeScore+' – '+awayScore+' · Kalan süre yaklaşık '+remaining+' dk</p><div class="statgrid">'+cell("İsabetli şut",h.sot,a.sot)+cell("Toplam şut",h.shots,a.shots)+cell("Topla oynama",h.possession==null?"—":h.possession+"%",a.possession==null?"—":a.possession+"%")+cell("Korner",h.corners,a.corners)+'</div><div class="section-title">Maç sonu sonucu</div>'+bar("Ev sahibi kazanır",win)+bar("Beraberlik",draw)+bar("Deplasman kazanır",lose)+'<div class="section-title">Toplam gol</div>'+bar("1.5 Üst",o15)+bar("2.5 Üst",o25)+bar("3.5 Üst",o35)+bar("Karşılıklı gol",btts)+'<div class="section-title">Bir sonraki gol</div>'+bar("Ev sahibi sonraki gol",nextH)+bar("Deplasman sonraki gol",nextA)+bar("Maçta başka gol olmaz",noGoal)+'<p class="note">Canlı şut, isabetli şut, topa sahip olma, skor ve kalan süreye dayalı ilk model sürümüdür. xG ve kırmızı kart etkisi henüz dahil değildir. Olasılıklar tahmindir; kesinlik garantisi değildir.</p>';
+  button.textContent="↻ Canlı analizi yenile";
+ }catch(error){panel.innerHTML='<div class="match-detail-note"><b>Canlı analiz yapılamadı</b><p>'+esc(error.message||error)+'</p></div>';button.textContent=old;
+ }finally{button.disabled=false;}
+}
+function factorialLive(n){let x=1;for(let i=2;i<=n;i++)x*=i;return x;}
 
 /* ANALİZ */
 async function analyze(button){
