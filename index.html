@@ -3740,46 +3740,30 @@ async function analyze(button){
    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(e){}
    return matches;
   }
-  async function getBundesligaUpcoming(){
-   const cacheKey="mam_bundesliga_upcoming_2627_v1";
+  async function getBundesligaUpcoming(teamId){
+   const cacheKey="mam_bundesliga_team_upcoming_2627_v2_"+String(teamId);
    try{
     const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
     if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))return cached.matches;
    }catch(e){}
-   const start=new Date();start.setHours(0,0,0,0);
-   const end=new Date(start.getFullYear()+(start.getMonth()>=6?1:0),6,30,23,59,59);
-   const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
-   const ranges=[];
-   for(let cursor=new Date(start);cursor<=end;){
-    const rangeEnd=new Date(cursor);rangeEnd.setDate(rangeEnd.getDate()+29);
-    if(rangeEnd>end)rangeEnd.setTime(end.getTime());
-    ranges.push({from:fmt(cursor),to:fmt(rangeEnd)});
-    cursor=new Date(rangeEnd);cursor.setDate(cursor.getDate()+1);
-   }
-   const batches=[];
-   for(let i=0;i<ranges.length;i+=3){
-    const part=await Promise.allSettled(ranges.slice(i,i+3).map(range=>
-     api("espn/ger.1/scoreboard?"+qs({dates:range.from+"-"+range.to,limit:500}))
-    ));
-    batches.push(...part);
-   }
-   const events=batches.flatMap(x=>x.status==="fulfilled"?(x.value.events||[]):[]);
+   if(!/^\\d+$/.test(String(teamId||"")))throw new Error("Bundesliga takım kimliği geçersiz.");
+   // ESPN'in sezonluk takım takvimi, scoreboard tarih aralığından daha güvenilir:
+   // tek takım için oynanmış ve henüz oynanmamış tüm sezon maçlarını döndürür.
+   const payload=await api("espn/ger.1/teams/"+encodeURIComponent(String(teamId))+"/schedule?"+qs({season:2026}));
+   const events=Array.isArray(payload.events)?payload.events:[];
    const matches=events.map(event=>{
     const comp=(event.competitions||[])[0]||{},competitors=comp.competitors||[];
     const h=competitors.find(x=>x.homeAway==="home")||{},a=competitors.find(x=>x.homeAway==="away")||{};
     const state=String(comp.status?.type?.state||event.status?.type?.state||"").toLowerCase();
-    if(!h.team||!a.team||state==="post"||state==="in")return null;
+    const date=event.date||comp.date||"";
+    if(!h.team||!a.team||!date||state==="post"||state==="in"||Date.parse(date)<Date.now())return null;
     return {
-     fixture:{id:"espn-ger.1-"+event.id,date:event.date||comp.date||"",status:{short:"NS"}},
+     fixture:{id:"espn-ger.1-"+event.id,date,status:{short:"NS"}},
      league:{id:"78",name:"Bundesliga",country:"Germany"},
      teams:{home:{id:Number(h.team.id)||-1,name:h.team.displayName||h.team.name||h.team.shortDisplayName||""},away:{id:Number(a.team.id)||-1,name:a.team.displayName||a.team.name||a.team.shortDisplayName||""}},
      goals:{home:null,away:null}
     };
-   }).filter(m=>m&&Date.parse(m.fixture.date)>=Date.now()).sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
-   if(!matches.length){
-    const failed=batches.filter(x=>x.status==="rejected").length;
-    if(failed===batches.length)throw new Error("ESPN Bundesliga gelecek fikstürü alınamadı.");
-   }
+   }).filter(Boolean).sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(e){}
    return matches;
   }
@@ -3820,7 +3804,7 @@ async function analyze(button){
     if(String(selectedStandingsLeague)==="39")leagueFixtures=await getPremierLeagueUpcoming();
     else if(String(selectedStandingsLeague)==="203")leagueFixtures=await getTFFSuperLigUpcoming();
     else if(String(selectedStandingsLeague)==="140")leagueFixtures=await getLaLigaUpcoming();
-    else if(String(selectedStandingsLeague)==="78")leagueFixtures=await getBundesligaUpcoming();
+    else if(String(selectedStandingsLeague)==="78")leagueFixtures=await getBundesligaUpcoming(teamId);
     else{
      const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
      if(!league?.slug)throw new Error("Bu lig için henüz gelecek fikstür kaynağı tanımlı değil.");
