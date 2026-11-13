@@ -1257,6 +1257,34 @@ async function loadStandings(){
   $("mamStandingsLeagueTitle").textContent=leagueName;
   const supportsTeamHistory=Boolean(ESPN_LEAGUES[String(leagueId)])||["203","39"].includes(String(leagueId));
   box.innerHTML='<div style="overflow-x:auto"><table class="mam-standings-table"><thead><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr'+(supportsTeamHistory?' class="mam-standing-team-row" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" role="button" tabindex="0" onclick="window.mamOpenStandingTeamHistory(this)" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını göster"':'')+'><td>'+esc(x.rank)+'</td><td>'+esc(x.name)+(supportsTeamHistory?' <span class="mam-standing-row-hint">›</span>':'')+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan.'+(String(leagueId)==="203"?' Takımın son 10 maçını görmek için satırına dokun.':' Güncel veri sağlayıcısından alınır.')+'</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
+  if(String(leagueId)==="78"){
+   const bulk=document.createElement("button");
+   bulk.type="button";bulk.className="secondary";bulk.style.cssText="width:100%;margin-top:12px;";
+   bulk.textContent="↻ Bundesliga · 18 takımın geçmiş maçlarını güncelle";
+   const progress=document.createElement("p");progress.className="note";progress.textContent="18 takımın geçmişini tek tek kontrol edip en az 10 tamamlanmış maçı önbelleğe al.";
+   bulk.addEventListener("click",async()=>{
+    if(bulk.disabled)return;
+    bulk.disabled=true;let done=0,ready=0,failed=[];
+    const d=new Date();d.setDate(d.getDate()+1);
+    const cutoff=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    bulk.textContent="Bundesliga geçmişleri kontrol ediliyor…";
+    progress.textContent="0 / "+rows.length+" takım işlendi.";
+    for(let i=0;i<rows.length;i+=3){
+     const batch=rows.slice(i,i+3);
+     const results=await Promise.allSettled(batch.map(team=>getTeamFixtures(team.teamId,cutoff,team.name,"78","",true)));
+     results.forEach((result,index)=>{
+      done++;
+      if(result.status==="fulfilled"&&result.value.length>=10)ready++;
+      else failed.push(batch[index].name+(result.status==="fulfilled"?" ("+result.value.length+" maç)":" ("+(result.reason?.message||"hata")+")"));
+     });
+     progress.textContent=done+" / "+rows.length+" takım kontrol edildi · "+ready+" takımda en az 10 geçmiş maç hazır.";
+     bulk.textContent="Kontrol ediliyor… "+done+"/"+rows.length;
+    }
+    bulk.disabled=false;bulk.textContent="↻ Bundesliga geçmişlerini yeniden kontrol et";
+    progress.textContent=ready+" / "+rows.length+" takımda en az 10 maç hazır."+(failed.length?" Eksik kalanlar: "+failed.join(", "):" 18 takımın tamamı hazır.");
+   });
+   box.append(bulk,progress);
+  }
   if(String(leagueId)==="140"){
    const bulk=document.createElement("button");
    bulk.type="button";bulk.className="secondary";bulk.style.cssText="width:100%;margin-top:12px;";
@@ -2656,7 +2684,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v46_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v47_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2708,6 +2736,26 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     "cote divoire":["ivory coast"],
     "north macedonia":["macedonia"],
     "cape verde":["cabo verde"],
+    // Bundesliga: standings/API names versus football-data.co.uk and ESPN spellings.
+    "bayern munchen":["bayern munich","bayern","fc bayern"],
+    "bayern munich":["bayern munchen","bayern"],
+    "1 koln":["koln","cologne","fc koln","1 fc cologne"],
+    "koln":["1 koln","cologne","fc koln"],
+    "eintracht frankfurt":["ein frankfurt","frankfurt"],
+    "borussia monchengladbach":["m gladbach","gladbach","borussia m gladbach"],
+    "sv werder bremen":["werder bremen","werder"],
+    "1 fsv mainz 05":["mainz","mainz 05"],
+    "bayer 04 leverkusen":["leverkusen","bayer leverkusen"],
+    "sc freiburg":["freiburg"],
+    "fc augsburg":["augsburg"],
+    "vfb stuttgart":["stuttgart"],
+    "hamburger sv":["hamburg","hamburger"],
+    "tsg hoffenheim":["hoffenheim"],
+    "rb leipzig":["leipzig"],
+    "fc schalke 04":["schalke","schalke 04"],
+    "sc paderborn 07":["paderborn","paderborn 07"],
+    "sv 07 elversberg":["elversberg"],
+    "1 fc union berlin":["union berlin"],
     // La Liga: current-season names and historical CSV spellings.
     "rc celta de vigo":["celta vigo","celta","rc celta"],
     "celta vigo":["rc celta de vigo","celta"],
@@ -2857,7 +2905,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const seasons=["2","3","848"].includes(String(leagueId))?[seasonStart]:[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024); // Yerel liglerde 2024/25'ten itibaren üç sezon; Avrupa kupalarında yalnızca 2026/27.
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
-      const archiveKey="mam_league_csv_v10_"+folder+"_"+seasonCode;
+      const archiveKey="mam_league_csv_v11_"+folder+"_"+seasonCode;
       if(!forceRefresh){
         try{
           const saved=JSON.parse(localStorage.getItem(archiveKey)||"null");
@@ -3051,6 +3099,33 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
             });
           }
         }
+      // Bundesliga'da yeni yükselen takımların son sezon maçları 2. Bundesliga'da olabilir.
+      // Üst lig arşivinde 10 maç tamamlanmadıysa 2025/26 alt lig skor tablosunu da tara.
+      if(String(leagueId)==="78"&&output.length<10){
+        try{
+          const lower=await api("espn/ger.2/scoreboard?"+qs({dates:"20250801-20260531",limit:500}));
+          for(const event of (Array.isArray(lower.events)?lower.events:[])){
+            const competition=event.competitions?.[0],competitors=competition?.competitors||[];
+            const home=competitors.find(x=>x.homeAway==="home"),away=competitors.find(x=>x.homeAway==="away");
+            if(!home||!away)continue;
+            const state=String(competition.status?.type?.state||event.status?.type?.state||"").toLowerCase();
+            if(!(competition.status?.type?.completed===true||event.status?.type?.completed===true||state==="post"))continue;
+            const scoreValue=value=>Number(value&&typeof value==="object"?(value.value??value.displayValue):value);
+            const homeScore=scoreValue(home.score),awayScore=scoreValue(away.score);
+            if(!Number.isFinite(homeScore)||!Number.isFinite(awayScore))continue;
+            const homeName=home.team?.displayName||home.team?.name||home.team?.shortDisplayName||"";
+            const awayName=away.team?.displayName||away.team?.name||away.team?.shortDisplayName||"";
+            if(!isTarget(homeName)&&!isTarget(awayName))continue;
+            addMatch({
+              mamSource:"espn",
+              fixture:{id:event.id,date:event.date||competition.date,status:{short:"FT"}},
+              league:{id:"79",name:"2. Bundesliga"},
+              teams:{home:{id:isTarget(homeName)?Number(teamId):(Number(home.team?.id)||-1),name:homeName},away:{id:isTarget(awayName)?Number(teamId):(Number(away.team?.id)||-1),name:awayName}},
+              goals:{home:homeScore,away:awayScore},score:null,statistics:null
+            });
+          }
+        }catch(lowerError){sourceError+=" 2. Bundesliga geçmişi: "+String(lowerError?.message||lowerError);}
+      }
       }else if(!output.length){
         sourceError+=" ESPN skor tablosunda "+teamName+" için takım eşleşmesi bulunamadı.";
       }
