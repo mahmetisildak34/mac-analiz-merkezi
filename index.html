@@ -3819,6 +3819,80 @@ async function analyze(button){
    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(e){}
    return matches;
   }
+  async function getSerieAUpcoming(teamName){
+   const cacheKey="mam_seriea_all_competitions_upcoming_v1_"+String(teamName||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+   try{
+    const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
+    if(cached?.time&&Date.now()-cached.time<5*60*1000&&Array.isArray(cached.matches))return cached.matches;
+   }catch(e){}
+   const competitions=[
+    {slug:"ita.1",name:"Serie A",country:"Italy",id:"135",icon:"🇮🇹"},
+    {slug:"ita.coppa_italia",name:"Coppa Italia",country:"Italy",id:"143",icon:"🇮🇹"},
+    {slug:"ita.super_cup",name:"Supercoppa Italiana",country:"Italy",id:"144",icon:"🇮🇹"},
+    {slug:"uefa.champions",name:"UEFA Champions League",country:"Europe",id:"2",icon:"⭐"},
+    {slug:"uefa.europa",name:"UEFA Europa League",country:"Europe",id:"3",icon:"🏆"},
+    {slug:"uefa.europa.conf",name:"UEFA Conference League",country:"Europe",id:"848",icon:"🏆"}
+   ];
+   const start=new Date();start.setHours(0,0,0,0);
+   const end=new Date(start);end.setDate(end.getDate()+75);
+   const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+   const ranges=[];
+   for(let cursor=new Date(start);cursor<=end;){
+    const last=new Date(cursor);last.setDate(last.getDate()+29);if(last>end)last.setTime(end.getTime());
+    ranges.push({from:fmt(cursor),to:fmt(last)});
+    cursor=new Date(last);cursor.setDate(cursor.getDate()+1);
+   }
+   const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+   const canon=v=>{
+    const n=norm(v);
+    const groups=[
+     ["bologna","bologna1909","bolognafc1909"],
+     ["parma","parmacalcio","parmacalcio1913"],
+     ["sassuolo","sassuolocalcio","ussassuolocalcio"],
+     ["inter","internazionale","intermilan","fcinternazionale"],
+     ["verona","hellasverona"],
+     ["milan","acmilan"],["roma","asroma"],["lazio","sslazio"],
+     ["napoli","sscnapoli"],["juventus","juventusfc"],["atalanta","atalantabc"],
+     ["fiorentina","acffiorentina"],["genoa","genoacfc"],["torino","torinofc"],
+     ["udinese","udinesecalcio"],["cagliari","cagliaricalcio"],["lecce","uslecce"],
+     ["como","como1907"],["pisa","pisasportingclub"],["cremonese","uscremonese"]
+    ];
+    return groups.find(g=>g.includes(n))?.[0]||n;
+   };
+   const wanted=canon(teamName);
+   const requests=[];
+   for(const competition of competitions)for(const range of ranges)requests.push({competition,range});
+   const all=[];
+   for(let i=0;i<requests.length;i+=4){
+    const batch=await Promise.allSettled(requests.slice(i,i+4).map(({competition,range})=>
+     api("espn/"+competition.slug+"/scoreboard?"+qs({dates:range.from+"-"+range.to,limit:500}))
+    ));
+    batch.forEach((result,index)=>{
+     if(result.status!=="fulfilled")return;
+     const {competition}=requests[i+index];
+     for(const event of (result.value.events||[])){
+      const comp=(event.competitions||[])[0]||{},competitors=comp.competitors||[];
+      const h=competitors.find(x=>x.homeAway==="home")||{},a=competitors.find(x=>x.homeAway==="away")||{};
+      const homeName=h.team?.displayName||h.team?.name||h.team?.shortDisplayName||"";
+      const awayName=a.team?.displayName||a.team?.name||a.team?.shortDisplayName||"";
+      const state=String(comp.status?.type?.state||event.status?.type?.state||"").toLowerCase();
+      const date=event.date||comp.date||"";
+      if(!homeName||!awayName||!date||Date.parse(date)<Date.now()-60*1000||state==="post"||state==="in")continue;
+      if(canon(homeName)!==wanted&&canon(awayName)!==wanted)continue;
+      all.push({
+       fixture:{id:"espn-"+competition.slug+"-"+event.id,date,status:{short:"NS"}},
+       league:{id:competition.id,name:competition.name,country:competition.country,icon:competition.icon},
+       teams:{home:{id:Number(h.team?.id)||-1,name:homeName,logo:h.team?.logos?.[0]?.href||""},away:{id:Number(a.team?.id)||-1,name:awayName,logo:a.team?.logos?.[0]?.href||""}},
+       goals:{home:null,away:null}
+      });
+     }
+    });
+   }
+   const unique=[...new Map(all.map(m=>[String(m.fixture.id),m])).values()].sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
+   if(!unique.length)throw new Error("Serie A, Coppa Italia ve UEFA kupalarında bu takım için gelecek 75 günlük fikstür bulunamadı.");
+   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:unique}));}catch(e){}
+   return unique;
+  }
   async function getBundesligaUpcoming(){
    const cacheKey="mam_bundesliga_team_upcoming_2627_v3";
    try{
@@ -3878,6 +3952,7 @@ async function analyze(button){
     else if(String(selectedStandingsLeague)==="203")leagueFixtures=await getTFFSuperLigUpcoming();
     else if(String(selectedStandingsLeague)==="140")leagueFixtures=await getLaLigaUpcoming();
     else if(String(selectedStandingsLeague)==="78")leagueFixtures=await getBundesligaUpcoming();
+    else if(String(selectedStandingsLeague)==="135")leagueFixtures=await getSerieAUpcoming(teamName);
     else{
      const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
      if(!league?.slug)throw new Error("Bu lig için henüz gelecek fikstür kaynağı tanımlı değil.");
