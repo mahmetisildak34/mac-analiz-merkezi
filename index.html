@@ -2727,7 +2727,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v67_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v68_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -4241,20 +4241,39 @@ async function analyze(button){
      const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
      const code=({"2":"CL","3":"EL","848":"UCL"})[String(selectedStandingsLeague)];
      if(!league?.slug||!code)throw new Error("UEFA fikstür kaynağı tanımlı değil.");
-     // UEFA gelecek maçları ana fikstürle aynı Football-data.org kaynağından al.
-     // Resmî competition kodları: Champions League=CL, Europa League=EL, Conference League=UCL.
-     const data=await api("football-data/competitions/"+code+"/matches");
-     const futureStatuses=new Set(["SCHEDULED","TIMED","POSTPONED","SUSPENDED"]);
-     leagueFixtures=(data.matches||[]).map(m=>({
-      fixture:{id:"fd-"+code+"-"+m.id,date:m.utcDate||"",status:{short:m.status||"NS"}},
+     // UEFA gelecek fikstürünü de geçmiş arşivle aynı FixtureDownload kaynağından al.
+     // Böylece Football-data.org ücretsiz planındaki UEFA erişim kısıtları fikstürü bozmaz.
+     const feedSlug=({"2":"champions-league","3":"europa-league","848":"conference-league"})[String(selectedStandingsLeague)];
+     const now=new Date(),seasonStart=now.getMonth()>=6?now.getFullYear():now.getFullYear()-1;
+     const feedCacheKey="mam_uefa_fixture_archive_"+feedSlug+"_"+seasonStart+"_v2";
+     let feedRows=null;
+     try{
+      const saved=JSON.parse(localStorage.getItem(feedCacheKey)||"null");
+      if(Array.isArray(saved?.matches)&&Date.now()-saved.time<24*60*60*1000)feedRows=saved.matches;
+     }catch(_){}
+     if(!feedRows){
+      const payload=await api("fixturesdownload/"+feedSlug+"-"+seasonStart);
+      if(!Array.isArray(payload))throw new Error(league.name+" JSON fikstürü geçersiz.");
+      feedRows=payload.map(item=>({
+       date:String(item.DateUtc||"").replace(" ","T"),
+       home:String(item.HomeTeam||"").trim(),
+       away:String(item.AwayTeam||"").trim(),
+       homeGoals:item.HomeTeamScore===null||item.HomeTeamScore===""?null:Number(item.HomeTeamScore),
+       awayGoals:item.AwayTeamScore===null||item.AwayTeamScore===""?null:Number(item.AwayTeamScore),
+       matchNumber:item.MatchNumber??null
+      })).filter(item=>item.date&&item.home&&item.away);
+      try{localStorage.setItem(feedCacheKey,JSON.stringify({time:Date.now(),matches:feedRows}));}catch(_){}
+     }
+     leagueFixtures=feedRows.map(item=>({
+      fixture:{id:"fdownload-"+feedSlug+"-"+(item.matchNumber??item.date),date:item.date,status:{short:item.homeGoals===null||item.awayGoals===null?"NS":"FT"}},
       league:{id:String(selectedStandingsLeague),name:league.name,country:"Europe"},
-      teams:{home:{id:Number(m.homeTeam?.id)||-1,name:m.homeTeam?.name||m.homeTeam?.shortName||""},
-       away:{id:Number(m.awayTeam?.id)||-1,name:m.awayTeam?.name||m.awayTeam?.shortName||""}},
-      goals:{home:m.score?.fullTime?.home??null,away:m.score?.fullTime?.away??null}
+      teams:{home:{id:-1,name:item.home},away:{id:-1,name:item.away}},
+      goals:{home:item.homeGoals,away:item.awayGoals}
      })).filter(m=>m.teams.home.name&&m.teams.away.name&&m.fixture.date&&
-      Date.parse(m.fixture.date)>=Date.now()-60*60*1000&&futureStatuses.has(String(m.fixture.status.short).toUpperCase()))
+      Date.parse(m.fixture.date)>=Date.now()-60*60*1000&&
+      (m.goals.home===null||m.goals.away===null))
       .sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
-     if(!leagueFixtures.length)throw new Error(league.name+" için Football-data.org gelecek maç döndürmedi.");
+     if(!leagueFixtures.length)throw new Error(league.name+" FixtureDownload fikstüründe gelecek maç bulunamadı.");
     }else{
      const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
      if(!league?.slug)throw new Error("Bu lig için henüz gelecek fikstür kaynağı tanımlı değil.");
