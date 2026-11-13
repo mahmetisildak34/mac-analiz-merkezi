@@ -2401,7 +2401,7 @@ function renderMatches(){
  }).join("")+'</section>';
  }).join("");
 
- document.querySelectorAll(".predBtn").forEach(b=>{
+ document.querySelectorAll(".predBtn:not(.liveAnalyzeBtn)").forEach(b=>{
   b.addEventListener("click",()=>analyze(b));
  });
  document.querySelectorAll(".lineupBtn").forEach(b=>{
@@ -3123,7 +3123,7 @@ async function analyzeLiveMatch(button){
   }
   const [h,a]=rows;if(!h||!a||(!Object.keys(h).length&&!Object.keys(a).length))throw new Error("Bu maç için henüz canlı istatistik verisi yayınlanmıyor. Veri gelmeden tahmin üretmedim.");
   const minuteValue=Number(button.dataset.liveMinute),minute=Number.isFinite(minuteValue)&&minuteValue>0?Math.min(120,minuteValue):45;
-  const remaining=Math.max(0,(minute<=45?90:120)-minute),homeScore=Number(button.dataset.liveHomeScore||0),awayScore=Number(button.dataset.liveAwayScore||0);
+  const remaining=Math.max(0,90-minute),homeScore=Number(button.dataset.liveHomeScore||0),awayScore=Number(button.dataset.liveAwayScore||0);
   const rate=x=>{const sot=Number(x.sot||0),shots=Number(x.shots||0),pos=Number(x.possession??50),shotSignal=sot*.115+Math.max(0,shots-sot)*.018,posFactor=1+(Math.max(0,Math.min(100,pos))-50)/250;return Math.max(.04,Math.min(1.35,(.13+shotSignal/Math.max(15,minute)*45)*posFactor));};
   const lh=remaining/45*rate(h),la=remaining/45*rate(a),pois=(l,k)=>Math.exp(-l)*Math.pow(l,k)/factorialLive(k);
   let win=0,draw=0,lose=0,o15=0,o25=0,o35=0,btts=0;
