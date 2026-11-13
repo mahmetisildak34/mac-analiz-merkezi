@@ -3820,7 +3820,7 @@ async function analyze(button){
    return matches;
   }
   async function getSerieAUpcoming(teamName){
-   const cacheKey="mam_seriea_all_competitions_upcoming_v3_all";
+   const cacheKey="mam_seriea_all_competitions_upcoming_v4_all";
    try{const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");if(saved?.time&&Date.now()-saved.time<5*60*1000&&Array.isArray(saved.matches))return filterForTeam(saved.matches,teamName);}catch(e){}
    const competitions=[
     {code:"SA",id:"135",name:"Serie A",country:"Italy",icon:"🇮🇹"},
