@@ -867,6 +867,38 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 @media(max-height:740px){.mam-intro-player{transform:scale(.78);margin-top:-18px;margin-bottom:-6px}.mam-intro-title{font-size:clamp(25px,7vw,38px)}.mam-intro-welcome{margin:10px 0 6px}.mam-intro-line{margin-bottom:16px}}
 @media(prefers-reduced-motion:reduce){#mamWelcomeIntro:after,.mam-intro-ball,.mam-intro-leg{animation:none!important}}
 
+
+/* LIVE MATCH CENTER — kompakt yayın ekranı */
+.match-detail-overlay{background:#071b16!important;padding:0 0 calc(env(safe-area-inset-bottom) + 18px)!important}
+.match-detail-top{padding:calc(env(safe-area-inset-top) + 10px) 16px 12px!important;background:#09271f!important;border-bottom:1px solid rgba(255,255,255,.08)}
+.match-detail-top strong{font-size:14px!important;letter-spacing:.2px}
+.match-detail-body{max-width:760px!important;width:100%!important}
+.match.in-detail{border:0!important;border-radius:0!important;margin:0!important;padding:12px 14px 24px!important;background:#09271f!important;box-shadow:none!important;color:#f6fff9!important}
+.match.in-detail .match-head{border:0!important;padding:10px 4px 15px!important;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.match.in-detail .match-head>*{color:#a7d7c5!important}
+.match.in-detail .match-clock{font-size:15px!important;font-weight:900!important;color:#fff!important;background:#c92828;padding:8px 13px;border-radius:8px}
+.match.in-detail .match-versus{padding:22px 8px 24px!important;background:linear-gradient(180deg,rgba(13,62,45,.55),rgba(7,27,22,.2));border-radius:16px}
+.match.in-detail .team-block strong{color:#fff!important;font-size:17px!important}
+.match.in-detail .match-center{font-size:34px!important;color:#fff!important;font-weight:950}
+.match.in-detail .match-center small{color:#a8c8bb!important}
+.match.in-detail .match-detail-tabs{margin:0 -14px;padding:0 14px 10px;background:#0c3024;border-bottom:3px solid #d7d600;gap:18px}
+.match.in-detail .match-detail-tab{border:0!important;border-radius:0!important;background:transparent!important;color:#e4f1eb!important;min-height:48px;padding:10px 4px!important;font-size:13px!important}
+.match.in-detail .match-detail-tab.active{color:#f2e900!important;border-bottom:3px solid #e5df00!important}
+.match.in-detail .match-detail-pane{border:0!important;padding:16px 0!important}
+.match.in-detail .match-detail-pane[data-pane="stats"]{background:#f5f6f5!important;color:#26332e!important;margin:0 -14px!important;padding:16px 14px 24px!important;min-height:55vh}
+.match.in-detail .match-detail-pane[data-pane="stats"] .liveStatsBtn{background:#fff!important;color:#173b2c!important;border:1px solid #dce5df!important;box-shadow:0 2px 8px #0000000d!important}
+.match.in-detail .liveStats.mam-live-stats-view{display:block!important;background:#fff!important;color:#26332e!important;border-radius:10px!important;border:1px solid #dfe5e1!important;padding:0!important;overflow:hidden}
+.mam-live-stats-title{font-size:20px;font-weight:900;padding:18px 16px;border-bottom:1px solid #e4e8e5;color:#34413b}
+.mam-live-stat-row{padding:15px 16px 13px;border-bottom:1px solid #edf0ee}
+.mam-live-stat-values{display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:850;color:#17231d}
+.mam-live-stat-label{text-align:center;color:#56625c;font-size:11px;font-weight:750;letter-spacing:.35px;text-transform:uppercase}
+.mam-live-stat-track{height:5px;display:flex;gap:3px;margin-top:7px;background:#e8ece9;border-radius:8px;overflow:hidden}
+.mam-live-stat-home{height:100%;background:#078b4b;border-radius:8px 0 0 8px}
+.mam-live-stat-away{height:100%;background:#e4d900;border-radius:0 8px 8px 0}
+.mam-live-stat-section{padding:9px 16px;background:#eceeed;color:#4b5550;text-align:center;font-weight:850}
+.mam-live-stats-foot{padding:12px 16px;color:#78837d;font-size:10px;line-height:1.5}
+@media(max-width:420px){.match.in-detail .match-detail-tabs{gap:13px}.match.in-detail .match-detail-tab{font-size:12px!important}}
+
 </style>
 
 
@@ -2151,8 +2183,15 @@ async function loadLiveStats(button,forceRefresh=false){
     statsRows.push(["Model xG (yaklaşık)",estimate(0),estimate(1)]);
    }
   }
-  const rows=statsRows.map(([label,left,right])=>'<div class="probline" style="padding:7px 0;border-bottom:1px solid var(--line)"><b>'+esc(left)+'</b><span>'+esc(label)+'</span><b>'+esc(right)+'</b></div>').join("");
-  panel.innerHTML='<div style="font-weight:800;margin-bottom:8px">📊 Canlı maç istatistikleri</div><div class="probline" style="padding:7px 0"><b>'+esc(homeTeam)+'</b><span>İstatistik</span><b>'+esc(awayTeam)+'</b></div>'+(rows||'<div class="small">Kaynak henüz istatistik paylaşmadı.</div>')+'<div class="small" style="margin-top:9px">Kaynak: '+sourceLabel+'. Açık istatistik paneli maç sürerken otomatik olarak 60 saniyede bir yenilenir.'+(!hasRealXg?' Model xG; şut sayılarına dayalı yaklaşık göstergedir, sağlayıcının gerçek xG verisi değildir.':' Gerçek xG sağlayıcıdan alınmıştır.')+'</div>';
+  panel.classList.add("mam-live-stats-view");
+  const numeric=value=>{const n=Number(String(value??"").replace("%","").replace(",",".").trim());return Number.isFinite(n)?n:null;};
+  const rows=statsRows.map(([label,left,right])=>{
+   const l=numeric(left),r=numeric(right),isPercent=String(left).includes("%")||String(right).includes("%");
+   const total=l!==null&&r!==null?Math.max(0,l)+Math.max(0,r):0;
+   const homePct=total>0?Math.max(0,l)/total*100:50,awayPct=total>0?Math.max(0,r)/total*100:50;
+   return '<div class="mam-live-stat-row"><div class="mam-live-stat-values"><b>'+esc(left)+'</b><span class="mam-live-stat-label">'+esc(label)+'</span><b>'+esc(right)+'</b></div><div class="mam-live-stat-track"><span class="mam-live-stat-home" style="width:'+homePct+'%"></span><span class="mam-live-stat-away" style="width:'+awayPct+'%"></span></div></div>';
+  }).join("");
+  panel.innerHTML='<div class="mam-live-stats-title">Genel İstatistikler</div>'+(rows||'<div class="mam-live-stats-foot">Bu karşılaşma için sağlayıcı henüz istatistik paylaşmadı. Maç devam ederken tekrar kontrol edebilirsin.</div>')+'<div class="mam-live-stats-foot">Kaynak: '+sourceLabel+'. Panel açıkken maç sürerken 60 saniyede bir yenilenir.'+(!hasRealXg?' Model xG yaklaşık hesaplamadır; gerçek sağlayıcı xG verisi değildir.':' Gerçek xG sağlayıcıdan alınmıştır.')+'</div>';
  }catch(error){panel.innerHTML='<span class="error">'+esc(error.message||error)+'</span>';}
  finally{button.disabled=false;button.textContent=panel.hidden?"📊 Canlı istatistikler":"İstatistikleri gizle";}
 }
