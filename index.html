@@ -1887,13 +1887,28 @@ async function warmLiveTeamHistories(matches){
  await Promise.all(Array.from({length:Math.min(3,tasks.length)},worker));
 }
  
+async function footballDataLiveFixtures(){
+ const data=await api("football-data/matches?"+qs({status:"LIVE"}));
+ const idMap={"PL":"39","PD":"140","BL1":"78","SA":"135","FL1":"61","CL":"2","EL":"3","DED":"88","PPL":"94","BSA":"71","WC":"1"};
+ return (Array.isArray(data.matches)?data.matches:[]).map(m=>({
+  mamSource:"FOOTBALL_DATA",
+  fixture:{id:"football-data-"+m.id,date:m.utcDate,status:{short:String(m.status||"IN_PLAY"),displayClock:m.minute==null?"":String(m.minute)+"′"}},
+  league:{id:idMap[m.competition?.code]||String(m.competition?.id||""),name:m.competition?.name||"Football-data.org",country:m.area?.name||""},
+  teams:{
+   home:{id:m.homeTeam?.id==null?null:String(m.homeTeam.id),name:m.homeTeam?.name||"",logo:m.homeTeam?.crest||""},
+   away:{id:m.awayTeam?.id==null?null:String(m.awayTeam.id),name:m.awayTeam?.name||"",logo:m.awayTeam?.crest||""}
+  },
+  goals:{home:m.score?.fullTime?.home??m.score?.regularTime?.home??null,away:m.score?.fullTime?.away??m.score?.regularTime?.away??null}
+ })).filter(m=>m.teams.home.name&&m.teams.away.name);
+}
+
 async function loadLiveMatches(){
  const button=$("loadLive");
  button.disabled=true;
  $("status").textContent="Canlı maç akışı kontrol ediliyor...";
  const previousMatches=allMatches.slice();
  let primaryErrorText="",primaryCount=0,espnErrorText="";
- const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
+ const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"]);
  const isLive=match=>liveStatuses.has(String(match.fixture?.status?.short||"").toUpperCase());
  try{
   // Ana kaynak: API-Football live=all bütün ligleri döndürmelidir.
@@ -1930,9 +1945,23 @@ async function loadLiveMatches(){
    }
    espnErrorText="ESPN taraması tamamlandı; desteklenen liglerde canlı maç döndürmedi.";
   }catch(error){espnErrorText=String(error?.message||error);}
+  // İkinci yedek: football-data.org tek istekte desteklenen müsabakalardaki canlı maçları döndürür.
+  let footballDataErrorText="";
+  try{
+   const backupLive=(await footballDataLiveFixtures()).filter(isLive);
+   if(backupLive.length){
+    allMatches=backupLive;
+    renderMatches();
+    await mamSaveMatchesToD1(allMatches);
+    warmLiveTeamHistories(allMatches);
+    $("status").textContent=allMatches.length+" canlı maç bulundu · Football-data.org yedek kaynağı · API-Football kotası kullanılamıyor.";
+    return;
+   }
+   footballDataErrorText="Football-data.org desteklediği müsabakalarda şu anda canlı maç döndürmedi.";
+  }catch(error){footballDataErrorText=String(error?.message||error);}
   allMatches=[];
   renderMatches();
-  $("status").innerHTML='<span class="error">Canlı maç bulunamadı. API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+'</span>';
+  $("status").innerHTML='<span class="error">Şu anda canlı maç bulunamadı. API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+'</span>';
  }catch(unexpectedError){
   allMatches=previousMatches;
   renderMatches();
