@@ -3938,13 +3938,13 @@ async function analyze(button){
    return matches;
   }
   async function getSerieAUpcoming(teamName){
-   const cacheKey="mam_seriea_all_competitions_upcoming_v4_all";
+   const cacheKey="mam_seriea_all_competitions_upcoming_v5_all";
    try{const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");if(saved?.time&&Date.now()-saved.time<5*60*1000&&Array.isArray(saved.matches))return filterForTeam(saved.matches,teamName);}catch(e){}
    const competitions=[
     {code:"SA",id:"135",name:"Serie A",country:"Italy",icon:"🇮🇹"},
     {code:"CL",id:"2",name:"UEFA Champions League",country:"Europe",icon:"⭐"},
     {code:"EL",id:"3",name:"UEFA Europa League",country:"Europe",icon:"🏆"},
-    {code:"ECL",id:"848",name:"UEFA Conference League",country:"Europe",icon:"🏆"}
+    {code:"UCL",id:"848",name:"UEFA Conference League",country:"Europe",icon:"🏆"}
    ];
    const requests=await Promise.allSettled(competitions.map(async comp=>{
     const data=await api("football-data/competitions/"+comp.code+"/matches");
