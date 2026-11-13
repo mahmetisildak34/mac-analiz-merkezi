@@ -3406,7 +3406,8 @@ async function analyze(button){
     {code:"PL",id:"39",name:"Premier League",icon:"🏴"},
     {code:"CL",id:"2",name:"UEFA Şampiyonlar Ligi",icon:"🏆"},
     {code:"EL",id:"3",name:"UEFA Avrupa Ligi",icon:"🥈"},
-    {code:"ECL",id:"848",name:"UEFA Konferans Ligi",icon:"🥉"}
+    {code:"ECL",id:"848",name:"UEFA Konferans Ligi",icon:"🥉"},
+    {code:"ELC",id:"40",name:"EFL Championship",icon:"🏴"}
    ];
    const results=await Promise.allSettled(competitions.map(async comp=>{
     // Fetch all season fixtures: the provider may label future games TIMED as well as SCHEDULED.
@@ -3451,19 +3452,25 @@ async function analyze(button){
    const d=new Date();d.setDate(d.getDate()+1);
    const cutoff=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
    const content=screen.querySelector("#mamTeamHistoryContent");
-   const matches=await getTeamFixtures(teamId,cutoff,teamName,String(selectedStandingsLeague),"",false);
-   const recent=matches.slice(0,10);
+   let recent=[];
+   let historyError="";
+   try{
+    const matches=await getTeamFixtures(teamId,cutoff,teamName,String(selectedStandingsLeague),"",false);
+    recent=matches.slice(0,10);
+   }catch(error){
+    historyError=String(error?.message||"Geçmiş maç verisi alınamadı.");
+   }
    let upcoming=[];
    let upcomingError="";
    try{
     const leagueFixtures=String(selectedStandingsLeague)==="39"?await getPremierLeagueUpcoming():await getTFFSuperLigUpcoming();
-    const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/\\b(football club|fc|afc)\\b/g,"").replace(/[^a-z0-9]/g,"");
+    const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc)\b/g,"").replace(/[^a-z0-9]/g,"");
     const aliases={"caykurrizespor":["caykurrizesporas","rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"]};
     const wanted=norm(teamName);
     const accepted=new Set([wanted,...(aliases[wanted]||[])].map(norm));
     upcoming=leagueFixtures.filter(m=>accepted.has(norm(m.teams?.home?.name))||accepted.has(norm(m.teams?.away?.name)));
    }catch(error){upcomingError=String(error?.message||"TFF gelecek fikstürü alınamadı.");}
-   if(!recent.length&&!upcoming.length)throw new Error("Geçmiş ve gelecek maç verisi alınamadı. "+upcomingError);
+   if(!recent.length&&!upcoming.length)throw new Error("Geçmiş maç: "+(historyError||"kayıt bulunamadı")+". Gelecek maç: "+(upcomingError||"kayıt bulunamadı"));
    const pastHtml=recent.length?'<section style="margin-bottom:22px;"><div style="display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">SON '+recent.length+' TAMAMLANMIŞ MAÇ</span><span style="font-size:10px;color:#9eb2bc;">GEÇMİŞ</span></div><div style="display:grid;gap:10px;">'+recent.map(m=>{
     const home=m.teams?.home||{},away=m.teams?.away||{};
     const isHome=Number(home.id)===Number(teamId)||String(home.name)===teamName;
