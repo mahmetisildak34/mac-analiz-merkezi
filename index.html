@@ -1045,8 +1045,8 @@ async function api(path){
   // Canlı istatistikleri de kısa süreli önbellekten sun: aynı maç tekrar açıldığında
   // gereksiz API-Football isteği gönderilmesin. Hata halinde son başarılı veri korunur.
   const isArchiveBackfill=cleanPath.startsWith("archive/backfill-all?");
-  if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLive&&!isLineupRequest&&!isArchiveBackfill){
-    const cacheAge=isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?(isEspnSummary?60*1000:60*1000):(isEspnSummary?5*60*1000:30*60*1000);
+  if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLineupRequest&&!isArchiveBackfill){
+    const cacheAge=isLive?60*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?60*1000:(isEspnSummary?5*60*1000:30*60*1000);
     if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
   }
 
@@ -1918,6 +1918,8 @@ async function loadLiveMatches(){
   const date=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Istanbul"});
   try{
    const fallback=await espnFixtures(date,true);
+   // ESPN canlı taraması yalnızca ekranda gösterilmez; bulunan tüm maçlar merkezi D1 arşivine de yazılır.
+   if(fallback.length)await mamSaveMatchesToD1(fallback);
    const fallbackLive=fallback.filter(isLive);
    if(fallbackLive.length){
     allMatches=fallbackLive;
