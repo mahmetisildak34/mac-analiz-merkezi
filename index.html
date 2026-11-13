@@ -2723,7 +2723,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v61_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v62_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -3273,9 +3273,16 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         // Mevcut sezon CSV'sinde 10'dan az maç varsa ESPN'den son üç sezonu tamamla.
         const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
         const seasonStart=matchMonth>=7?matchYear:matchYear-1;
-        const scheduleYears=["2","3","848"].includes(String(leagueId))?[seasonStart]:[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024);
-        const scheduleResults=await Promise.allSettled(scheduleYears.map(season=>
-          api("espn/"+espnHistorySlug+"/teams/"+espnTeamId+"/schedule?"+qs({season}))
+        const isUefaCompetition=["2","3","848"].includes(String(leagueId));
+        // UEFA kulüpleri bir sezondan diğerine Şampiyonlar/Avrupa/Konferans Ligi arasında geçebilir.
+        // Sadece maçın mevcut turnuvasını taramak eski Avrupa maçlarını kaçırır.
+        const scheduleQueries=isUefaCompetition
+          ? ["uefa.champions","uefa.europa","uefa.europa.conf"].flatMap(slug=>
+              [seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024).map(season=>({slug,season}))
+            )
+          : [seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024).map(season=>({slug:espnHistorySlug,season}));
+        const scheduleResults=await Promise.allSettled(scheduleQueries.map(({slug,season})=>
+          api("espn/"+slug+"/teams/"+espnTeamId+"/schedule?"+qs({season}))
         ));
         for(const scheduleResult of scheduleResults){
           if(scheduleResult.status!=="fulfilled"){
