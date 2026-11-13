@@ -1,0 +1,36 @@
+name: Preview HTML validation
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate HTML structure and inline JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re, sys
+          html = Path("index.html").read_text(encoding="utf-8")
+          class Checker(HTMLParser):
+              def error(self, message):
+                  raise RuntimeError(message)
+          Checker(convert_charrefs=True).feed(html)
+          scripts = re.findall(r"<script\\b[^>]*>([\\s\\S]*?)</script\\s*>", html, re.I)
+          if not scripts:
+              raise SystemExit("No inline scripts found")
+          Path("/tmp/mam-inline.js").write_text("\\n;\\n".join(scripts), encoding="utf-8")
+          print(f"HTML parsed; {len(scripts)} script blocks extracted")
+          PY
+          node --check /tmp/mam-inline.js
