@@ -1800,6 +1800,7 @@ async function loadLineups(button){
    let cachedEspn=null;
    try{const saved=JSON.parse(localStorage.getItem(espnCacheKey)||"null");if(saved?.time&&Date.now()-saved.time<30*60*1000)cachedEspn=saved.data;}catch(e){}
    const summary=cachedEspn||await api("espn/"+leagueSlug+"/summary?"+qs({event:eventId}));
+   if(!cachedEspn){try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),data:summary}));}catch(e){}}
    const rosters=Array.isArray(summary.rosters)?summary.rosters:[];
    const forms=Array.isArray(summary.boxscore?.form)?summary.boxscore.form:[];
    const competitors=summary.header?.competitions?.[0]?.competitors||[];
@@ -1886,6 +1887,7 @@ async function loadLineups(button){
     let cachedEspn=null;
     try{const saved=JSON.parse(localStorage.getItem(espnCacheKey)||"null");if(saved?.time&&Date.now()-saved.time<30*60*1000)cachedEspn=saved.data;}catch(e){}
     const summary=cachedEspn||await api("espn/"+leagueSlug+"/summary?"+qs({event:String(event.id)}));
+    if(!cachedEspn){try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),data:summary}));}catch(e){}}
     const rosters=Array.isArray(summary.rosters)?summary.rosters:[];
     const forms=Array.isArray(summary.boxscore?.form)?summary.boxscore.form:[];
     const competitors=summary.header?.competitions?.[0]?.competitors||[];
