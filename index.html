@@ -3335,14 +3335,15 @@ async function analyze(button){
    let upcoming=[];
    let upcomingError="";
    try{
-    const today=new Date();today.setHours(12,0,0,0);
-    const from=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
-    const payload=await api("fixtures?"+qs({league:203,season:2026,from,to:"2027-06-01",timezone:"Europe/Istanbul"}));
+    const cacheKey="mam_superlig_all_upcoming_2026_v2";
+    let leagueFixtures=[];
+    try{const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");if(cached?.time&&Date.now()-cached.time<900000&&Array.isArray(cached.matches))leagueFixtures=cached.matches;}catch(e){}
+    if(!leagueFixtures.length){const payload=await api("fixtures?"+qs({league:203,season:2026,next:99,timezone:"Europe/Istanbul"}));leagueFixtures=Array.isArray(payload?.response)?payload.response:[];try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:leagueFixtures}));}catch(e){}}
     const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
     const wanted=norm(teamName);
     const aliases={"caykurrizespor":["rizespor"],"erzurum bb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"]};
     const accepted=new Set([wanted,...(aliases[wanted]||[])]);
-    upcoming=(Array.isArray(payload?.response)?payload.response:[]).filter(m=>{
+    upcoming=leagueFixtures.filter(m=>{
      const code=String(m.fixture?.status?.short||"");
      if(!m.fixture?.date||!["NS","TBD","PST"].includes(code))return false;
      const home=m.teams?.home||{},away=m.teams?.away||{};
