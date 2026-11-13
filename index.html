@@ -3494,14 +3494,12 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         // Mevcut sezon CSV'sinde 10'dan az maç varsa ESPN'den son üç sezonu tamamla.
         const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
         const seasonStart=matchMonth>=7?matchYear:matchYear-1;
-        const isUefaCompetition=["2","3","848"].includes(String(leagueId));
-        // UEFA kulüpleri bir sezondan diğerine Şampiyonlar/Avrupa/Konferans Ligi arasında geçebilir.
-        // Sadece maçın mevcut turnuvasını taramak eski Avrupa maçlarını kaçırır.
-        const scheduleQueries=isUefaCompetition
-          ? ["uefa.champions","uefa.europa","uefa.europa.conf"].flatMap(slug=>
-              [seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024).map(season=>({slug,season}))
-            )
-          : [seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024).map(season=>({slug:espnHistorySlug,season}));
+        const uefaSlugByLeague={"2":"uefa.champions","3":"uefa.europa","848":"uefa.europa.conf"};
+        // Her UEFA kupasının arşivi kesin olarak kendi turnuvasıyla sınırlı tutulur.
+        // Konferans Ligi geçmişine Şampiyonlar Ligi veya Avrupa Ligi maçları karıştırılmaz.
+        const scheduleSlug=uefaSlugByLeague[String(leagueId)]||espnHistorySlug;
+        const scheduleQueries=[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024)
+          .map(season=>({slug:scheduleSlug,season}));
         const scheduleResults=await Promise.allSettled(scheduleQueries.map(({slug,season})=>
           api("espn/"+slug+"/teams/"+espnTeamId+"/schedule?"+qs({season}))
         ));
@@ -3576,7 +3574,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const result=output.slice(0,20);
   // Son geçmiş maçların gerçek istatistiklerini doğru sağlayıcıdan tamamla.
   // İstek sayısını sınırlı tutuyoruz; bulunan sonuçlar yerel önbelleğe alınır.
-  const candidates=String(leagueId)==="203"?[]:result.filter(m=>!m.statistics&&/^[0-9]+$/.test(String(m.fixture?.id||""))).slice(0,8);
+  const candidates=String(leagueId)==="203"?[]:result.filter(m=>!m.statistics&&/^[0-9]+$/.test(String(m.fixture?.id||""))).slice(0,String(leagueId)==="848"?20:8);
   await Promise.all(candidates.map(async match=>{
     try{
       const stats=match.mamSource==="espn"
