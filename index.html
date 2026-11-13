@@ -2873,7 +2873,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v70_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v71_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -3574,7 +3574,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const result=output.slice(0,20);
   // Son geçmiş maçların gerçek istatistiklerini doğru sağlayıcıdan tamamla.
   // İstek sayısını sınırlı tutuyoruz; bulunan sonuçlar yerel önbelleğe alınır.
-  const candidates=String(leagueId)==="203"?[]:result.filter(m=>!m.statistics&&new RegExp("^\d+$").test(String(m.fixture?.id||""))).slice(0,8);
+  const candidates=String(leagueId)==="203"?[]:result.filter(m=>!m.statistics&&/^[0-9]+$/.test(String(m.fixture?.id||""))).slice(0,8);
   await Promise.all(candidates.map(async match=>{
     try{
       const stats=match.mamSource==="espn"
