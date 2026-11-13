@@ -1800,7 +1800,7 @@ async function loadLineups(button){
    let cachedEspn=null;
    try{const saved=JSON.parse(localStorage.getItem(espnCacheKey)||"null");if(saved?.time&&Date.now()-saved.time<30*60*1000)cachedEspn=saved.data;}catch(e){}
    const summary=cachedEspn||await api("espn/"+leagueSlug+"/summary?"+qs({event:eventId}));
-   if(!cachedEspn){try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),data:summary}));}catch(e){}}
+   if(!cachedEspn&&Array.isArray(summary.rosters)&&summary.rosters.some(r=>Array.isArray(r.roster)&&r.roster.length)){try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),data:summary}));}catch(e){}}
    const rosters=Array.isArray(summary.rosters)?summary.rosters:[];
    const forms=Array.isArray(summary.boxscore?.form)?summary.boxscore.form:[];
    const competitors=summary.header?.competitions?.[0]?.competitors||[];
@@ -1862,10 +1862,12 @@ async function loadLineups(button){
      throw new Error("API-Football bu maç için ilk 11 verisi döndürmedi; yedek kaynak deneniyor.");
     }
    }catch(primaryLineupError){
-    const rateLimited=/rate.?limit|too many requests|request limit|requests limit|quota/i.test(String(primaryLineupError.message||primaryLineupError));
-    const noPrimaryLineup=/ilk 11 verisi döndürmedi|lineup|squad/i.test(String(primaryLineupError.message||primaryLineupError));
-    if(!rateLimited&&!noPrimaryLineup)throw primaryLineupError;
-    if(!leagueSlug)throw new Error("API-Football isteği sınırladı; bu karşılaşmanın ligi ESPN yedek kaynağıyla henüz eşleştirilmedi. Lig adı: "+String(button.dataset.leagueName||"bilinmiyor")+".");
+    const primaryErrorText=String(primaryLineupError?.message||primaryLineupError||"");
+    const rateLimited=/rate.?limit|too many requests|request limit|requests limit|quota/i.test(primaryErrorText);
+    const noPrimaryLineup=/ilk 11 verisi döndürmedi|lineup|squad/i.test(primaryErrorText);
+    // API-Football 403/plan/network failures must not block a known ESPN fallback.
+    if(!leagueSlug)throw new Error("Birincil kadro kaynağı yanıt vermedi ve bu lig için ESPN eşlemesi yok. Lig: "+String(button.dataset.leagueName||"bilinmiyor")+". Kaynak hatası: "+primaryErrorText);
+    if(!rateLimited&&!noPrimaryLineup)console.warn("API-Football kadro kaynağı başarısız; ESPN yedeği deneniyor:",primaryErrorText);
     const matchDate=String(button.dataset.date||"").replace(/-/g,"").slice(0,8);
     if(!/^\d{8}$/.test(matchDate))throw primaryLineupError;
     const scoreboard=await api("espn/"+leagueSlug+"/scoreboard?"+qs({dates:matchDate,limit:500}));
@@ -1887,7 +1889,7 @@ async function loadLineups(button){
     let cachedEspn=null;
     try{const saved=JSON.parse(localStorage.getItem(espnCacheKey)||"null");if(saved?.time&&Date.now()-saved.time<30*60*1000)cachedEspn=saved.data;}catch(e){}
     const summary=cachedEspn||await api("espn/"+leagueSlug+"/summary?"+qs({event:String(event.id)}));
-    if(!cachedEspn){try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),data:summary}));}catch(e){}}
+    if(!cachedEspn&&Array.isArray(summary.rosters)&&summary.rosters.some(r=>Array.isArray(r.roster)&&r.roster.length)){try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),data:summary}));}catch(e){}}
     const rosters=Array.isArray(summary.rosters)?summary.rosters:[];
     const forms=Array.isArray(summary.boxscore?.form)?summary.boxscore.form:[];
     const competitors=summary.header?.competitions?.[0]?.competitors||[];
