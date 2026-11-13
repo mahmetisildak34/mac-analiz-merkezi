@@ -4921,7 +4921,27 @@ async function analyze(button){
   screen.setAttribute("role","dialog");
   screen.setAttribute("aria-modal","true");
   screen.style.cssText="position:fixed!important;top:0!important;right:0!important;bottom:0!important;left:0!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;z-index:2147483000!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;transform:none!important;contain:none!important;background:#07131d!important;color:#f4faf8!important;font-family:Arial,sans-serif!important;font-size:14px!important;line-height:1.35!important;-webkit-text-size-adjust:100%!important;box-sizing:border-box!important;";
-  screen.innerHTML='<style>#mamTeamHistoryScreen,#mamTeamHistoryScreen *{box-sizing:border-box!important;-webkit-text-size-adjust:100%!important;letter-spacing:normal!important}#mamTeamHistoryScreen header{flex:0 0 auto!important;min-height:64px!important;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px!important;gap:10px!important}#mamTeamHistoryScreen header button{flex:0 0 38px!important;width:38px!important;height:38px!important;min-height:38px!important;padding:0!important;font-size:22px!important;line-height:1!important}#mamTeamHistoryScreen header small{font-size:9px!important;line-height:1.2!important}#mamTeamHistoryScreen header strong{font-size:16px!important;line-height:1.25!important}#mamTeamHistoryScreen header span{font-size:10px!important}#mamTeamHistoryContent{flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px)!important}#mamTeamHistoryContent article{min-height:64px!important;padding:10px!important;gap:8px!important;border-radius:12px!important}#mamTeamHistoryContent article b{font-size:12px!important;line-height:1.3!important}#mamTeamHistoryContent article small{font-size:10px!important;line-height:1.2!important}#mamTeamHistoryContent article strong{font-size:15px!important;line-height:1!important}#mamTeamHistoryContent article>span:first-child{width:28px!important;height:28px!important;font-size:12px!important}</style><header style="flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px;background:#0d1c29;border-bottom:1px solid rgba(255,255,255,.12);"><button type="button" id="mamTeamHistoryBack" style="width:38px;height:38px;min-height:38px;border-radius:50%;background:#203345;color:#fff;border:1px solid rgba(255,255,255,.16);font-size:22px;">‹</button><div style="flex:1;min-width:0;"><small style="display:block;color:#66dcb2;font-size:9px;font-weight:900;">'+(esc(standingCompetitionNames[String(selectedStandingsLeague)]||ESPN_LEAGUES[String(selectedStandingsLeague)]?.name||"LİG")+" · TAKIM MAÇLARI")+'</small><strong style="display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(teamName)+'</strong></div><span style="font-size:10px;color:#a9bac6;">SON 10</span></header><main id="mamTeamHistoryContent" style="flex:1 1 0;min-height:0;overflow-y:auto!important;-webkit-overflow-scrolling:touch;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px);background:linear-gradient(180deg,#0b1c29,#07131d);"><div style="padding:12px;border-radius:12px;background:#132b38;color:#b9cbd0;font-size:12px;">Son 10 tamamlanmış maç aranıyor…</div></main>';
+  screen.innerHTML='<style>#mamTeamHistoryScreen,#mamTeamHistoryScreen *{box-sizing:border-box!important;-webkit-text-size-adjust:100%!important;letter-spacing:normal!important}#mamTeamHistoryScreen header{flex:0 0 auto!important;min-height:64px!important;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px!important;gap:10px!important}#mamTeamHistoryScreen header button{flex:0 0 38px!important;width:38px!important;height:38px!important;min-height:38px!important;padding:0!important;font-size:22px!important;line-height:1!important}#mamTeamHistoryScreen header small{font-size:9px!important;line-height:1.2!important}#mamTeamHistoryScreen header strong{font-size:16px!important;line-height:1.25!important}#mamTeamHistoryScreen header span{font-size:10px!important}#mamTeamHistoryContent{flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px)!important}#mamTeamHistoryContent article{min-height:64px!important;padding:10px!important;gap:8px!important;border-radius:12px!important}#mamTeamHistoryContent article b{font-size:12px!important;line-height:1.3!important}#mamTeamHistoryContent article small{font-size:10px!important;line-height:1.2!important}#mamTeamHistoryContent article strong{font-size:15px!important;line-height:1!important}#mamTeamHistoryContent article>span:first-child{width:28px!important;height:28px!important;font-size:12px!important}
+/* ===== MAM SIMPLE BOTTOM NAV · PREVIEW BRANCH ===== */
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
+.mam-bottom-tabs{
+ position:fixed;left:0;right:0;bottom:0;z-index:9000;
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
+ padding:9px 12px calc(9px + env(safe-area-inset-bottom));
+ background:rgba(255,255,255,.96);border-top:1px solid #e3e8ed;
+ box-shadow:0 -8px 24px rgba(20,35,50,.09);backdrop-filter:blur(16px)
+}
+.mam-bottom-tabs button{
+ min-height:48px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;
+ padding:10px 8px;border-radius:13px;background:#f3f7f4;color:#43505e;
+ border:1px solid #e3ebe5;box-shadow:none;font-size:13px;font-weight:850
+}
+.mam-bottom-tabs button span{font-size:17px;line-height:1}
+.mam-bottom-tabs button:active{transform:scale(.98)}
+@media(min-width:760px){.mam-bottom-tabs{left:50%;right:auto;width:min(100%,560px);transform:translateX(-50%);border:1px solid #e3e8ed;border-bottom:0;border-radius:18px 18px 0 0}}
+.match-detail-overlay:not([hidden])~.mam-bottom-tabs{display:none}
+
+</style><header style="flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px;background:#0d1c29;border-bottom:1px solid rgba(255,255,255,.12);"><button type="button" id="mamTeamHistoryBack" style="width:38px;height:38px;min-height:38px;border-radius:50%;background:#203345;color:#fff;border:1px solid rgba(255,255,255,.16);font-size:22px;">‹</button><div style="flex:1;min-width:0;"><small style="display:block;color:#66dcb2;font-size:9px;font-weight:900;">'+(esc(standingCompetitionNames[String(selectedStandingsLeague)]||ESPN_LEAGUES[String(selectedStandingsLeague)]?.name||"LİG")+" · TAKIM MAÇLARI")+'</small><strong style="display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(teamName)+'</strong></div><span style="font-size:10px;color:#a9bac6;">SON 10</span></header><main id="mamTeamHistoryContent" style="flex:1 1 0;min-height:0;overflow-y:auto!important;-webkit-overflow-scrolling:touch;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px);background:linear-gradient(180deg,#0b1c29,#07131d);"><div style="padding:12px;border-radius:12px;background:#132b38;color:#b9cbd0;font-size:12px;">Son 10 tamamlanmış maç aranıyor…</div></main>';
   document.body.appendChild(screen);
   document.body.style.overflow="hidden";
   const close=()=>{screen.remove();document.body.style.overflow=previousOverflow;document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));};
@@ -5156,6 +5176,32 @@ async function analyze(button){
    localStorage.setItem(key,data.token);gate.remove();
    location.reload();
   }catch(err){msg.textContent=err.message||"Bağlantı hatası";submit.disabled=false;}
+ });
+})();
+</script>
+
+
+<nav class="mam-bottom-tabs" aria-label="Ana gezinme">
+ <button type="button" data-bottom-tab="live"><span>🔴</span>Canlı Maçlar</button>
+ <button type="button" data-bottom-tab="upcoming"><span>📅</span>Gelecek Maçlar</button>
+ <button type="button" data-bottom-tab="analysis"><span>📊</span>Analiz</button>
+</nav>
+<script>
+(function(){
+ const nav=document.querySelector(".mam-bottom-tabs");
+ if(!nav||nav.dataset.ready)return;
+ nav.dataset.ready="1";
+ nav.addEventListener("click",function(event){
+  const button=event.target.closest("[data-bottom-tab]");
+  if(!button)return;
+  const target=document.querySelector('[data-mam-nav="'+button.dataset.bottomTab+'"]');
+  if(target)target.click();
+  nav.querySelectorAll("button").forEach(item=>{
+   const active=item===button;
+   item.style.background=active?"#e4f7eb":"#f3f7f4";
+   item.style.color=active?"#087f3c":"#43505e";
+   item.style.borderColor=active?"#bfe8cc":"#e3ebe5";
+  });
  });
 })();
 </script>
