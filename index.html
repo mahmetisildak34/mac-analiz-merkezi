@@ -1314,6 +1314,35 @@ async function loadStandings(){
    box.append(bulk,progress);
   }
 
+  if(String(leagueId)==="135"){
+   const bulk=document.createElement("button");
+   bulk.type="button";bulk.className="secondary";bulk.style.cssText="width:100%;margin-top:12px;";
+   bulk.textContent="↻ Serie A · 20 takımın geçmiş maçlarını güncelle";
+   const progress=document.createElement("p");progress.className="note";progress.textContent="20 takımın geçmişini kontrol edip her takım için en az 10 tamamlanmış maçı önbelleğe al.";
+   bulk.addEventListener("click",async()=>{
+    if(bulk.disabled)return;
+    bulk.disabled=true;let done=0,ready=0,failed=[];
+    const d=new Date();d.setDate(d.getDate()+1);
+    const cutoff=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    bulk.textContent="Serie A geçmişleri kontrol ediliyor…";
+    progress.textContent="0 / "+rows.length+" takım işlendi.";
+    for(let i=0;i<rows.length;i+=4){
+     const batch=rows.slice(i,i+4);
+     const results=await Promise.allSettled(batch.map(team=>getTeamFixtures(team.teamId,cutoff,team.name,"135","",false)));
+     results.forEach((result,index)=>{
+      done++;
+      if(result.status==="fulfilled"&&result.value.length>=10)ready++;
+      else failed.push(batch[index].name+(result.status==="fulfilled"?" ("+result.value.length+" maç)":" ("+(result.reason?.message||"hata")+")"));
+     });
+     progress.textContent=done+" / "+rows.length+" takım kontrol edildi · "+ready+" takımda en az 10 geçmiş maç hazır.";
+     bulk.textContent="Kontrol ediliyor… "+done+"/"+rows.length;
+    }
+    bulk.disabled=false;bulk.textContent="↻ Serie A geçmişlerini yeniden kontrol et";
+    progress.textContent=ready+" / "+rows.length+" takımda en az 10 maç hazır."+(failed.length?" Eksik kalanlar: "+failed.join(", "):" 20 takımın tamamı hazır.");
+   });
+   box.append(bulk,progress);
+  }
+
  }catch(e){
   box.innerHTML='<div class="error">'+esc(e.message||e)+'</div>';
  }finally{button.disabled=false}
@@ -2684,7 +2713,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v47_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v48_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2807,6 +2836,32 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     "rayo":["rayo vallecano"],
     "iran":["ir iran"],
     "ir iran":["iran"],
+    // Serie A: ESPN/API names and football-data.co.uk historical spellings.
+    "internazionale":["inter","inter milan","fc internazionale","inter milano"],
+    "inter":["internazionale","inter milan"],
+    "milan":["ac milan","acmilan"],
+    "ac milan":["milan"],
+    "roma":["as roma"],
+    "as roma":["roma"],
+    "hellas verona":["verona"],
+    "verona":["hellas verona"],
+    "lazio":["ss lazio"],
+    "ss lazio":["lazio"],
+    "napoli":["ssc napoli","s s c napoli"],
+    "atalanta":["atalanta bc"],
+    "bologna":["bologna fc"],
+    "fiorentina":["acf fiorentina"],
+    "genoa":["genoa cfc"],
+    "torino":["torino fc"],
+    "udinese":["udinese calcio"],
+    "cagliari":["cagliari calcio"],
+    "lecce":["us lecce"],
+    "como":["como 1907"],
+    "parma":["parma calcio"],
+    "sassuolo":["us sassuolo"],
+    "monza":["ac monza"],
+    "venezia":["venezia fc"],
+    "frosinone":["frosinone calcio"],
     // Süper Lig 2026/27: provider and archive spellings for all 18 clubs.
     "alanyaspor":["corendon alanyaspor"],
     "amedspor":["amed sportif faaliyetler","amed sporti̇f faaliyetler","amed sportif faaliyetler futbol kulubu"],
@@ -2907,7 +2962,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const seasons=["2","3","848"].includes(String(leagueId))?[seasonStart]:[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024); // Yerel liglerde 2024/25'ten itibaren üç sezon; Avrupa kupalarında yalnızca 2026/27.
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
-      const archiveKey="mam_league_csv_v11_"+folder+"_"+seasonCode;
+      const archiveKey="mam_league_csv_v12_"+folder+"_"+seasonCode;
       if(!forceRefresh){
         try{
           const saved=JSON.parse(localStorage.getItem(archiveKey)||"null");
