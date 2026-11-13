@@ -2096,24 +2096,37 @@ function mamReadLiveMatchCache(){
 function mamSaveLiveMatchCache(matches){
  try{if(Array.isArray(matches)&&matches.length)localStorage.setItem(MAM_LIVE_MATCH_CACHE_KEY,JSON.stringify({savedAt:Date.now(),matches}));}catch(_){}
 }
-async function loadLiveMatches(){
+let mamLiveLoadPromise=null;
+function loadLiveMatches(){
+ if(mamLiveLoadPromise)return mamLiveLoadPromise;
+ mamLiveLoadPromise=loadLiveMatchesNow().finally(()=>{mamLiveLoadPromise=null;});
+ return mamLiveLoadPromise;
+}
+async function loadLiveMatchesNow(){
  try{if(localStorage.getItem("mam_open_live_detail"))setMamScreen("live");}catch(_){}
  const button=$("loadLive");
  button.disabled=true;
  $("status").textContent="Canlı maç akışı kontrol ediliyor...";
  const previousMatches=allMatches.slice();
  const savedLiveCache=mamReadLiveMatchCache();
- const cachedMatches=previousMatches.length?previousMatches:(savedLiveCache?.matches||[]);
- // Önceki başarılı canlı maç listesini API çağrısını beklemeden hemen göster.
- // Böylece yenilemede kısa süreli boş ekran veya kota hatasında maçların kaybolması önlenir.
- if(!previousMatches.length&&cachedMatches.length){
+ const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"]);
+ const isLive=match=>liveStatuses.has(String(match?.fixture?.status?.short||"").toUpperCase());
+ // Ana sayfadaki gelecek/geçmiş maçlar canlı önbelleğin yerine geçemez.
+ // Önce ekrandaki gerçek canlı maçları, ardından cihazdaki son başarılı canlı kaydı birleştir.
+ const liveById=new Map();
+ previousMatches.filter(isLive).forEach(match=>liveById.set(String(match.fixture?.id??match.id),match));
+ (savedLiveCache?.matches||[]).filter(isLive).forEach(match=>{
+  const key=String(match.fixture?.id??match.id);
+  if(!liveById.has(key))liveById.set(key,match);
+ });
+ const cachedMatches=[...liveById.values()];
+ // Son başarılı canlı listeyi API isteğini beklemeden göster.
+ if(cachedMatches.length){
   allMatches=cachedMatches;
   renderMatches();
   $("status").textContent="Son kayıtlı canlı maçlar yükleniyor; güncel skorlar kontrol ediliyor...";
  }
  let primaryErrorText="",primaryCount=0,espnErrorText="";
- const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"]);
- const isLive=match=>liveStatuses.has(String(match.fixture?.status?.short||"").toUpperCase());
  try{
   // Ana kaynak: API-Football live=all bütün ligleri döndürmelidir.
   try{
@@ -2179,9 +2192,9 @@ async function loadLiveMatches(){
   // Geçici API/kota hatası veya desteklenmeyen lig taraması mevcut fikstürü silmemeli.
   allMatches=cachedMatches;
   renderMatches();
-  const cacheNote=savedLiveCache&&cachedMatches===savedLiveCache.matches
+  const cacheNote=savedLiveCache&&cachedMatches.length
    ?' Son başarılı canlı liste cihazda kayıtlı ('+new Date(savedLiveCache.savedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+'); maç durumları yenilenemediği için eski olabilir.'
-   :cachedMatches.length?' Ekrandaki son maç listesi korundu.':' Henüz bu cihazda kaydedilmiş canlı maç listesi yok.';
+   :cachedMatches.length?' Ekrandaki son canlı maç listesi korundu.':' Henüz bu cihazda kaydedilmiş canlı maç listesi yok.';
   $("status").innerHTML='<span class="error">Canlı veri kaynağı şu an yanıt vermiyor; '+(cachedMatches.length?'son kayıtlı maçlar gösteriliyor.':'şu an gösterilecek kayıtlı canlı maç yok.')+' API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+esc(cacheNote)+'</span>';
  }catch(unexpectedError){
   allMatches=cachedMatches;
