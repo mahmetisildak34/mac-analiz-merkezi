@@ -1366,7 +1366,7 @@ async function loadStandings(){
      if(missing.length)throw new Error("Puan tablosunda eşleşmeyen takımlar: "+missing.join(", "));
      const seasonStart=new Date().getMonth()>=6?new Date().getFullYear():new Date().getFullYear()-1;
      const feedSlug="europa-league";
-     const feedCacheKey="mam_uefa_fixture_archive_"+feedSlug+"_"+seasonStart+"_v4";
+     const feedCacheKey="mam_uefa_fixture_archive_"+feedSlug+"_"+seasonStart+"_v5";
      let feedRows=null;
      try{
       const saved=JSON.parse(localStorage.getItem(feedCacheKey)||"null");
@@ -3049,7 +3049,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     if(!d||d>=matchDate)return;
     const opponent=hm?a:h;
     const competition=String(m.league?.id||m.league?.name||"");
-    const id=[String(m.fixture?.id||""),d,competition,hm?"target-home":"target-away",mamUefaTeamMatch(opponent,teamName)?"same-target":opponent.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]/g,""),gh,ga].join("|");
+    const id=[String(m.fixture?.id||""),d,competition,hm?"target-home":"target-away",normalize(opponent),gh,ga].join("|");
     if(seen.has(id))return;
     seen.add(id);
     // Normalize the target club to the fixture provider's ID so statistics
@@ -4328,7 +4328,7 @@ async function analyze(button){
      ];
      const now=new Date(),seasonStart=now.getMonth()>=6?now.getFullYear():now.getFullYear()-1;
      const feedResults=await Promise.allSettled(feedMap.map(async comp=>{
-      const feedCacheKey="mam_uefa_fixture_archive_"+comp.slug+"_"+seasonStart+"_v4";
+      const feedCacheKey="mam_uefa_fixture_archive_"+comp.slug+"_"+seasonStart+"_v5";
       let rows=null;
       try{
        const saved=JSON.parse(localStorage.getItem(feedCacheKey)||"null");
