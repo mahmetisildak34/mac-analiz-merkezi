@@ -1520,7 +1520,7 @@ async function loadMatches(){
 }
 
 async function getTFFSuperLigUpcoming(){
- const key="mam_tff_superlig_upcoming_live_v2";
+ const key="mam_tff_superlig_upcoming_analysis_v3";
  try{
   const cached=JSON.parse(localStorage.getItem(key)||"null");
   if(cached?.time&&Date.now()-cached.time<2*60*1000&&Array.isArray(cached.matches))return cached.matches;
@@ -1543,6 +1543,19 @@ async function getTFFSuperLigUpcoming(){
    goals:{home:null,away:null},_source:"TFF"
   }));
  }
+ // TFF feed currently supplies team names but may omit API-Football IDs.
+ // Assign stable numeric IDs so the shared pre-match engine can request archived form by team name.
+ const stableTeamId=name=>{
+  const normalized=String(name||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+  let hash=2166136261;
+  for(let i=0;i<normalized.length;i++){hash^=normalized.charCodeAt(i);hash=Math.imul(hash,16777619);}
+  return 1000000000+(hash>>>0);
+ };
+ fixtures=fixtures.map(match=>({...match,teams:{
+  ...match.teams,
+  home:{...match.teams?.home,id:Number(match.teams?.home?.id)||stableTeamId(match.teams?.home?.name)},
+  away:{...match.teams?.away,id:Number(match.teams?.away?.id)||stableTeamId(match.teams?.away?.name)}
+ }}));
  const now=Date.now();
  const matches=fixtures.filter(x=>{
   const date=Date.parse(x.fixture?.date||"");
