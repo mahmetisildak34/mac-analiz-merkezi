@@ -2727,7 +2727,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v66_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v67_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -3143,13 +3143,13 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       if(!Array.isArray(payload))throw new Error(slug+" "+year+" JSON feed geçersiz");
       const rows=payload.map(item=>({
         date:String(item.DateUtc||"").slice(0,10),
-        home:String(item.HomeTeam||""),
-        away:String(item.AwayTeam||""),
-        homeGoals:item.HomeTeamScore,
-        awayGoals:item.AwayTeamScore,
+        home:String(item.HomeTeam||"").trim(),
+        away:String(item.AwayTeam||"").trim(),
+        homeGoals:item.HomeTeamScore===null||item.HomeTeamScore===""?null:Number(item.HomeTeamScore),
+        awayGoals:item.AwayTeamScore===null||item.AwayTeamScore===""?null:Number(item.AwayTeamScore),
         round:item.RoundNumber??null,
         matchNumber:item.MatchNumber??null
-      })).filter(item=>item.date&&item.home&&item.away);
+      })).filter(item=>item.date&&item.home&&item.away&&item.homeGoals!==null&&item.awayGoals!==null&&Number.isFinite(item.homeGoals)&&Number.isFinite(item.awayGoals));
       try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:rows}));}catch(_){}
       return rows;
     };
