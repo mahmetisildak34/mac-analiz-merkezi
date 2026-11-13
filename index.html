@@ -1609,6 +1609,33 @@ async function loadSuperLigFixtures(){
  }
 }
 
+async function warmLiveTeamHistories(matches){
+ const live=[...(matches||[])];
+ if(!live.length)return;
+ const seen=new Set(),tasks=[];
+ const cutoff=new Date(Date.now()+24*60*60*1000).toISOString().slice(0,10);
+ for(const match of live){
+  const leagueId=String(match.league?.id||"");
+  const home=match.teams?.home||{},away=match.teams?.away||{};
+  for(const team of [home,away]){
+   const teamId=String(team.id||""),name=String(team.name||"");
+   const key=leagueId+"_"+teamId;
+   if(!teamId||!name||!/^\d+$/.test(teamId)||seen.has(key))continue;
+   seen.add(key);tasks.push({teamId,name,leagueId,fixtureId:match.fixture?.id});
+  }
+ }
+ // Yerel CSV geçmişlerini arşivler; API-Football/ESPN kotasını tüketmez.
+ let cursor=0;
+ const worker=async()=>{
+  while(cursor<tasks.length){
+   const task=tasks[cursor++];
+   try{await getTeamFixtures(task.teamId,cutoff,task.name,task.leagueId,task.fixtureId,false,true);}
+   catch(error){/* Bu lig için kayıtlı CSV geçmişi yoksa canlı akış devam eder. */}
+  }
+ };
+ await Promise.all(Array.from({length:Math.min(3,tasks.length)},worker));
+}
+ 
 async function loadLiveMatches(){
  const button=$("loadLive");
  button.disabled=true;
@@ -1621,6 +1648,7 @@ async function loadLiveMatches(){
   if(primaryLive.length){
    allMatches=primaryLive;
    renderMatches();
+   warmLiveTeamHistories(allMatches);
    $("status").textContent=allMatches.length+" canlı maç bulundu. Kaynak: API-Football. Tüm ligler gösteriliyor.";
   }else{
    $("status").textContent="API-Football canlı akışında maç bulunamadı. Tüm desteklenen ESPN ligleri taranıyor...";
@@ -1628,6 +1656,7 @@ async function loadLiveMatches(){
    const fallback=await espnFixtures(date,true);
    allMatches=fallback.filter(m=>String(m.fixture?.status?.short||"")==="LIVE");
    renderMatches();
+   warmLiveTeamHistories(allMatches);
    $("status").textContent=allMatches.length
     ? allMatches.length+" canlı maç bulundu. Kaynak: ESPN (çoklu lig taraması)."
     : "API-Football ve ESPN kaynaklarında şu an canlı maç bulunamadı.";
@@ -2596,9 +2625,9 @@ renderCoupon();
 // Geçmiş maç arşivi: KV yazma kotası koruması için otomatik backfill kapalıdır.
 const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
-async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
+async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v42_"+leagueId+"_"+teamId+"_"+matchDate;
+   const key="mam_history_v42_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2826,7 +2855,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // API-Football son çare: arşiv ve CSV beş maçın altında kaldıysa dene.
   // Ücretsiz plan geçmiş tarihleri reddedebilir; hata diğer kaynakları durdurmaz.
-  if(String(leagueId)!=="203"&&output.length<5&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))){
+  if(!archiveOnly&&String(leagueId)!=="203"&&output.length<5&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))){
     try{
       const data=await api("fixtures?"+qs({team:teamId,last:20,status:"FT",timezone:"Europe/Istanbul"}));
       const cutoff=new Date(matchDate+"T00:00:00");
@@ -2839,7 +2868,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // ESPN yedek geçmişi: fikstür API-Football'dan gelse bile maç tarihindeki
   // ESPN skor tablosundan takımın ESPN ID'sini bul ve takım takvimini oku.
-  if(ESPN_LEAGUES[String(leagueId)]?.slug&&(String(leagueId)==="203"||output.length<10)){
+  if(!archiveOnly&&ESPN_LEAGUES[String(leagueId)]?.slug&&(String(leagueId)==="203"||output.length<10)){
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)].slug;
       let espnTeamId="";
