@@ -2456,7 +2456,8 @@ renderCoupon();
 const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
-  const key="mam_history_v33_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
+  // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
+   const key="mam_history_v34_"+leagueId+"_"+teamId+"_"+matchDate;
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
