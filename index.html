@@ -2092,11 +2092,18 @@ function activateMamFixture(article){
  if(analysisButton&&!analysisButton.disabled)analyze(analysisButton);
 }
 function openMamMatchDetail(article){
- if(!article||mamActiveMatch)return;
+ if(!article)return;
+ if(mamActiveMatch&&mamActiveMatch!==article)closeMamMatchDetail();
  makeMamDetailTab(article);
  const overlay=ensureMamDetailOverlay(),body=overlay.querySelector(".match-detail-body");
+ if(mamActiveMatch===article){
+  body.appendChild(article);
+  overlay.hidden=false;
+  document.body.style.overflow="hidden";
+  return;
+ }
  mamActivePlaceholder=document.createComment("match-card-position");
- article.parentNode.insertBefore(mamActivePlaceholder,article);
+ if(article.parentNode)article.parentNode.insertBefore(mamActivePlaceholder,article);
  article.classList.add("in-detail");
  mamActiveMatch=article;
  body.appendChild(article);
@@ -3457,17 +3464,25 @@ async function analyze(button){
    // Bind controls directly before moving each card into the detail overlay.
    // Direct listeners remain attached when the card is re-parented out of this screen.
    upcomingView.querySelectorAll(".mam-upcoming-match").forEach(article=>{
+    makeMamDetailTab(article);
     const openAnalysis=event=>{
-     event?.preventDefault();event?.stopPropagation();
+     if(event){event.preventDefault();event.stopPropagation();}
      activateMamFixture(article);
     };
-    article.querySelector(".predBtn")?.addEventListener("click",openAnalysis);
+    const analysisButton=article.querySelector(".predBtn");
+    if(analysisButton){
+     analysisButton.onclick=openAnalysis;
+     analysisButton.addEventListener("click",openAnalysis,true);
+    }
     const versus=article.querySelector(".match-versus");
-    versus?.addEventListener("click",openAnalysis);
-    versus?.addEventListener("keydown",event=>{
-     if(event.key==="Enter"||event.key===" "){event.preventDefault();openAnalysis(event);}
-    });
-    makeMamDetailTab(article);
+    if(versus){
+     versus.onclick=openAnalysis;
+     versus.addEventListener("keydown",event=>{
+      if(event.key==="Enter"||event.key===" "){event.preventDefault();openAnalysis(event);}
+     });
+    }
+    const openButton=article.querySelector(".mam-match-open");
+    if(openButton)openButton.onclick=openAnalysis;
    });
   }catch(error){
    screen.querySelector("#mamTeamHistoryContent").innerHTML='<div style="padding:16px;border-radius:14px;background:#132b38;color:#ffc2c2;">'+esc(error.message||error)+'</div>';
