@@ -1030,7 +1030,7 @@ async function api(path){
   const cleanPath=String(path).replace(/^\/+/, "");
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings")||/^espn\/[a-zA-Z0-9._-]+\/standings\?/.test(cleanPath);
-  const isLive=cleanPath.includes("live=all")||(/^football-data\/matches\?/.test(cleanPath)&&/(?:^|&)status=LIVE(?:&|$)/.test(cleanPath.split("?")[1]||""));
+  const isLive=cleanPath.includes("live=all")||(/^football-data\/matches\?/.test(cleanPath)&&/(?:^|&)status=/.test(cleanPath.split("?")[1]||""));
   const isEspnSummary=/^espn\/[^/]+\/summary\?/.test(cleanPath);
   const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||isEspnSummary;
   const isLineupRequest=cleanPath.startsWith("fixtures?id=")||cleanPath.startsWith("fixtures/lineups?")||cleanPath.startsWith("fixtures/players?");
@@ -1888,7 +1888,7 @@ async function warmLiveTeamHistories(matches){
 }
  
 async function footballDataLiveFixtures(){
- const data=await api("football-data/matches?"+qs({status:"LIVE"}));
+ const data=await api("football-data/matches?"+qs({status:"IN_PLAY,PAUSED,LIVE"}));
  const idMap={"PL":"39","PD":"140","BL1":"78","SA":"135","FL1":"61","CL":"2","EL":"3","DED":"88","PPL":"94","BSA":"71","WC":"1"};
  return (Array.isArray(data.matches)?data.matches:[]).map(m=>({
   mamSource:"FOOTBALL_DATA",
