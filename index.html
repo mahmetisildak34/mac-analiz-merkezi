@@ -4910,6 +4910,8 @@ async function analyze(button){
  });
  const sync=()=>{strip.querySelectorAll(".mam-date-chip").forEach(chip=>chip.classList.toggle("active",dateInput.value===localDate(Number(chip.dataset.dayOffset))));};
  dateInput.addEventListener("change",sync);sync();
+ // Yenileme sonrası son açık canlı maçı tekrar yükle.
+ try{if(localStorage.getItem("mam_open_live_detail")){setMamScreen("live");loadLiveMatches();}}catch(_){}
 })();
 </script>
 <a href="https://sportscore.com/" rel="dofollow">Powered by SportScore</a>
