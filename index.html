@@ -3458,13 +3458,24 @@ async function analyze(button){
      const active=x===tab;x.style.background=active?"#287c68":"#1b3441";x.style.color=active?"#fff":"#c6d6dc";
     });
    }));
-   upcomingView.querySelectorAll(".mam-upcoming-match").forEach(article=>{
-    makeMamDetailTab(article);
-    const open=()=>activateMamFixture(article);
-    article.querySelector(".match-versus")?.addEventListener("click",open);
-    article.querySelector(".match-versus")?.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();open();}});
-    article.querySelector(".predBtn")?.addEventListener("click",event=>{event.stopPropagation();analyze(event.currentTarget);});
-   });
+   // Delegate events from the stable container; cards are rebuilt after tab changes.
+   content.onclick=event=>{
+    const article=event.target.closest?.(".mam-upcoming-match");
+    if(!article||!content.contains(article))return;
+    const trigger=event.target.closest?.(".match-versus,.mam-match-open,.predBtn");
+    if(!trigger)return;
+    event.preventDefault();event.stopPropagation();
+    if(mamActiveMatch&&mamActiveMatch!==article)closeMamMatchDetail();
+    activateMamFixture(article);
+   };
+   content.onkeydown=event=>{
+    if(event.key!=="Enter"&&event.key!==" ")return;
+    const article=event.target.closest?.(".mam-upcoming-match");
+    if(!article||!event.target.closest?.(".match-versus"))return;
+    event.preventDefault();
+    if(mamActiveMatch&&mamActiveMatch!==article)closeMamMatchDetail();
+    activateMamFixture(article);
+   };
   }catch(error){
    screen.querySelector("#mamTeamHistoryContent").innerHTML='<div style="padding:16px;border-radius:14px;background:#132b38;color:#ffc2c2;">'+esc(error.message||error)+'</div>';
   }
