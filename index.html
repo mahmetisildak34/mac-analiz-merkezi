@@ -599,6 +599,12 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .mam-form-row b{font-size:13px;text-align:center;white-space:nowrap}
 .mam-form-result{font-size:10px;font-weight:900;padding:4px 7px;border-radius:9px;background:#26384c;color:#e8f1fa}
 .mam-form-result.win{background:#174c3b;color:#8df0c4}.mam-form-result.draw{background:#4c421c;color:#ffe18a}.mam-form-result.loss{background:#542b35;color:#ffadb7}
+.mam-outcome{display:inline-flex;align-items:center;justify-content:center;min-width:23px;height:23px;padding:0 6px;border-radius:8px;font-size:11px;font-weight:950;line-height:1}
+.mam-outcome.win{background:#174c3b;color:#8df0c4;border:1px solid rgba(75,220,160,.28)}
+.mam-outcome.loss{background:#542b35;color:#ffadb7;border:1px solid rgba(255,120,140,.25)}
+.mam-outcome.draw{background:#4c421c;color:#ffe18a;border:1px solid rgba(255,220,100,.25)}
+.team-block .mam-outcome{margin-top:2px}
+
 .mam-history-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:12px 0}
 .mam-history-tab{min-height:40px;padding:8px 6px!important;border-radius:10px!important;background:#172b39!important;color:#b9cbd0!important;border:1px solid rgba(130,175,193,.18)!important;box-shadow:none!important;font-size:12px!important}
 .mam-history-tab.active{background:#087d60!important;color:#fff!important;border-color:#20d6a6!important}
@@ -2353,6 +2359,14 @@ async function loadLineups(button){
 let mamActiveMatch=null;
 let mamActivePlaceholder=null;
 let mamDetailOverlay=null;
+function mamOutcomeBadge(goalsFor,goalsAgainst){
+ const a=Number(goalsFor),b=Number(goalsAgainst);
+ if(!Number.isFinite(a)||!Number.isFinite(b))return "";
+ const result=a>b?"G":a<b?"M":"B";
+ const cls=result==="G"?"win":result==="M"?"loss":"draw";
+ const label=result==="G"?"Galibiyet":result==="M"?"Mağlubiyet":"Beraberlik";
+ return '<span class="mam-outcome '+cls+'" title="'+label+'" aria-label="'+label+'">'+result+'</span>';
+}
 function ensureMamDetailOverlay(){
  if(mamDetailOverlay)return mamDetailOverlay;
  mamDetailOverlay=document.createElement("div");
@@ -2644,9 +2658,9 @@ function renderMatches(){
   return `<article class="match match-modern">
    <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span></div>
    <div class="match-versus">
-    <div class="team-block">${teamBadge(t.home)}<strong>${esc(t.home?.name)}</strong></div>
+    <div class="team-block">${teamBadge(t.home)}<strong>${esc(t.home?.name)}</strong>${isFinishedStatus?mamOutcomeBadge(g.home,g.away):""}</div>
     <div class="match-center"><span class="match-clock">${g.home!=null?esc(g.home)+" – "+esc(g.away):esc(time||"VS")}</span><small>${statusCode==="NS"?"Karşılaşma":esc(statusLabel)}</small></div>
-    <div class="team-block">${teamBadge(t.away)}<strong>${esc(t.away?.name)}</strong></div>
+    <div class="team-block">${teamBadge(t.away)}<strong>${esc(t.away?.name)}</strong>${isFinishedStatus?mamOutcomeBadge(g.away,g.home):""}</div>
    </div>
    <div class="match-actions">
     <span class="small">${isLiveStatus?"🔴 Canlı maç":isFinishedStatus?"✓ Maç tamamlandı":"Maç ön analizi"}</span>
