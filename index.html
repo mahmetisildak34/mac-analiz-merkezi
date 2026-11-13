@@ -1257,6 +1257,35 @@ async function loadStandings(){
   $("mamStandingsLeagueTitle").textContent=leagueName;
   const supportsTeamHistory=Boolean(ESPN_LEAGUES[String(leagueId)])||["203","39"].includes(String(leagueId));
   box.innerHTML='<div style="overflow-x:auto"><table class="mam-standings-table"><thead><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr'+(supportsTeamHistory?' class="mam-standing-team-row" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" role="button" tabindex="0" onclick="window.mamOpenStandingTeamHistory(this)" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını göster"':'')+'><td>'+esc(x.rank)+'</td><td>'+esc(x.name)+(supportsTeamHistory?' <span class="mam-standing-row-hint">›</span>':'')+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan.'+(String(leagueId)==="203"?' Takımın son 10 maçını görmek için satırına dokun.':' Güncel veri sağlayıcısından alınır.')+'</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
+  if(String(leagueId)==="140"){
+   const bulk=document.createElement("button");
+   bulk.type="button";bulk.className="secondary";bulk.style.cssText="width:100%;margin-top:12px;";
+   bulk.textContent="↻ La Liga · 20 takımın geçmiş maçlarını güncelle";
+   const progress=document.createElement("p");progress.className="note";progress.textContent="Takım geçmişlerini topluca önbelleğe almak için düğmeye bas. Ardından takım adına dokunarak son 10 maçı açabilirsin.";
+   bulk.addEventListener("click",async()=>{
+    if(bulk.disabled)return;
+    bulk.disabled=true;let done=0,ready=0,failed=[];
+    const d=new Date();d.setDate(d.getDate()+1);
+    const cutoff=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    bulk.textContent="Geçmişler güncelleniyor…";
+    progress.textContent="0 / "+rows.length+" takım işlendi.";
+    for(let i=0;i<rows.length;i+=4){
+     const batch=rows.slice(i,i+4);
+     const results=await Promise.allSettled(batch.map(team=>getTeamFixtures(team.teamId,cutoff,team.name,"140","",false)));
+     results.forEach((result,index)=>{
+      done++;
+      if(result.status==="fulfilled"&&result.value.length>=10)ready++;
+      else failed.push(batch[index].name);
+     });
+     progress.textContent=done+" / "+rows.length+" takım işlendi · "+ready+" takımda en az 10 geçmiş maç hazır.";
+     bulk.textContent="Güncelleniyor… "+done+"/"+rows.length;
+    }
+    bulk.disabled=false;bulk.textContent="↻ Geçmişleri yeniden güncelle";
+    progress.textContent=ready+" / "+rows.length+" takımda 10 maç hazır."+ (failed.length?" Eksik kalanlar: "+failed.join(", "):" Tüm takımların geçmişleri önbelleğe alındı.");
+   });
+   box.append(bulk,progress);
+  }
+
  }catch(e){
   box.innerHTML='<div class="error">'+esc(e.message||e)+'</div>';
  }finally{button.disabled=false}
