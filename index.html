@@ -1517,59 +1517,44 @@ async function loadMatches(){
  }finally{button.disabled=false}
 }
 
+async function getTFFSuperLigUpcoming(){
+ const key="mam_tff_superlig_upcoming_20261113_v1";
+ try{
+  const cached=JSON.parse(localStorage.getItem(key)||"null");
+  if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))return cached.matches;
+ }catch(e){}
+ const response=await fetch("./data/TUR_1_super-lig/upcoming_2627.json?build=20261113",{cache:"no-store"});
+ if(!response.ok)throw new Error("TFF fikstür dosyası alınamadı ("+response.status+").");
+ const data=await response.json();
+ if(!Array.isArray(data?.fixtures)||!data.fixtures.length)throw new Error("TFF fikstür kaynağında maç bulunamadı.");
+ const now=Date.now();
+ const matches=data.fixtures.filter(x=>Date.parse(x.date)>=now).map(x=>({
+  fixture:{id:x.id,date:x.date,status:{short:"NS",elapsed:null}},
+  league:{id:203,name:"Trendyol Süper Lig",country:"Türkiye",round:String(x.round)+". Hafta"},
+  teams:{home:{id:null,name:x.home},away:{id:null,name:x.away}},
+  goals:{home:null,away:null},
+  _source:"TFF"
+ })).sort((x,y)=>Date.parse(x.fixture.date)-Date.parse(y.fixture.date));
+ try{localStorage.setItem(key,JSON.stringify({time:Date.now(),matches}));}catch(e){}
+ return matches;
+}
 async function loadSuperLigFixtures(){
  const button=$("loadSuperLigFixtures");
  if(!button)return;
  const oldText=button.textContent;
  button.disabled=true;
  button.textContent="Süper Lig fikstürü alınıyor…";
- $("status").textContent="18 takımın tamamının gelecek maçları getiriliyor…";
+ $("status").textContent="TFF resmî fikstüründen tüm açıklanmış Süper Lig maçları getiriliyor…";
  try{
-  const now=new Date();now.setHours(0,0,0,0);
-  const end=new Date(now);end.setDate(end.getDate()+60);
-  const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
-  const cacheKey="mam_superlig_all_fixtures_espn_v4";
-  let fixtures=[];
-  try{const c=JSON.parse(localStorage.getItem(cacheKey)||"null");if(c?.time&&Date.now()-c.time<10*60*1000&&Array.isArray(c.matches))fixtures=c.matches;}catch(e){}
-  if(!fixtures.length){
-   const calendar=await api("espn/tur.1/scoreboard");
-   const dates=(Array.isArray(calendar?.leagues?.[0]?.calendar)?calendar.leagues[0].calendar:[])
-    .map(v=>String(v).slice(0,10).replace(/-/g,""))
-    .filter(v=>/^\d{8}$/.test(v)&&v>=fmt(now)&&v<=fmt(end));
-   const events=[];
-   for(const date of dates){
-    const data=await api("espn/tur.1/scoreboard?dates="+date);
-    if(Array.isArray(data?.events))events.push(...data.events);
-   }
-   const seen=new Set();
-   fixtures=events.map(ev=>{
-    const comp=ev.competitions?.[0]||{};
-    const competitors=Array.isArray(comp.competitors)?comp.competitors:[];
-    const home=competitors.find(c=>c.homeAway==="home")||competitors[0]||{};
-    const away=competitors.find(c=>c.homeAway==="away")||competitors[1]||{};
-    const state=String(comp.status?.type?.state||ev.status?.type?.state||"pre");
-    const date=ev.date||comp.date||"";
-    const id=String(ev.id||comp.id||date+home.team?.id+away.team?.id);
-    if(seen.has(id))return null;seen.add(id);
-    return {
-     fixture:{id,date,status:{short:state==="pre"?"NS":state==="in"?"LIVE":"FT",elapsed:null}},
-     league:{id:203,name:"Trendyol Süper Lig",country:"Türkiye",round:"2026/2027"},
-     teams:{home:{id:home.team?.id,name:home.team?.displayName||home.team?.name||""},away:{id:away.team?.id,name:away.team?.displayName||away.team?.name||""}},
-     goals:{home:null,away:null}
-    };
-   }).filter(m=>m&&m.fixture.date&&m.teams.home.name&&m.teams.away.name);
-   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:fixtures}));}catch(e){}
-  }
-  const futureCodes=new Set(["NS","TBD","PST"]);
-  allMatches=fixtures.filter(m=>futureCodes.has(String(m.fixture?.status?.short||"NS"))&&m.fixture?.date)
-   .sort((x,y)=>String(x.fixture.date).localeCompare(String(y.fixture.date)));
+  const fixtures=await getTFFSuperLigUpcoming();
+  allMatches=fixtures;
   $("league").value="203";
   $("league").dispatchEvent(new Event("change",{bubbles:true}));
   if(typeof mamScreenMode!=="undefined")mamScreenMode="upcoming";
   renderMatches();
-  $("status").textContent=allMatches.length
-   ? allMatches.length+" Süper Lig gelecek maçı listelendi. 18 takımın tüm fikstürü gösteriliyor."
-   : "ESPN kaynağından gelecek Süper Lig maçı dönmedi. Lütfen daha sonra tekrar dene.";
+  $("status").textContent=fixtures.length
+   ? fixtures.length+" resmî Süper Lig gelecek maçı listelendi. Kaynak: TFF. Fikstürü açıklanmayan haftalar geldikçe veri güncellenecek."
+   : "TFF'ye göre şu anda tarihi açıklanmış gelecek Süper Lig maçı bulunmuyor.";
  }catch(error){
   $("status").innerHTML='<span class="error">Süper Lig fikstürü alınamadı: '+esc(error.message||error)+'</span>';
  }finally{
@@ -3355,49 +3340,13 @@ async function analyze(button){
    let upcoming=[];
    let upcomingError="";
    try{
-    const cacheKey="mam_superlig_espn_upcoming_v4";
-    let leagueFixtures=[];
-    try{const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))leagueFixtures=cached.matches;}catch(e){}
-    if(!leagueFixtures.length){
-     const now=new Date();now.setHours(0,0,0,0);
-     const end=new Date(now);end.setDate(end.getDate()+60);
-     const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
-     const calendar=await api("espn/tur.1/scoreboard");
-     const dates=(Array.isArray(calendar?.leagues?.[0]?.calendar)?calendar.leagues[0].calendar:[])
-      .map(v=>String(v).slice(0,10).replace(/-/g,""))
-      .filter(v=>/^\d{8}$/.test(v)&&v>=fmt(now)&&v<=fmt(end));
-     const events=[];
-     for(const date of dates){
-      const data=await api("espn/tur.1/scoreboard?dates="+date);
-      if(Array.isArray(data?.events))events.push(...data.events);
-     }
-     const seen=new Set();
-     leagueFixtures=events.map(ev=>{
-      const comp=ev.competitions?.[0]||{};
-      const competitors=Array.isArray(comp.competitors)?comp.competitors:[];
-      const home=competitors.find(c=>c.homeAway==="home")||competitors[0]||{};
-      const away=competitors.find(c=>c.homeAway==="away")||competitors[1]||{};
-      const state=String(comp.status?.type?.state||ev.status?.type?.state||"pre");
-      const date=ev.date||comp.date||"";
-      const id=String(ev.id||comp.id||date+home.team?.id+away.team?.id);
-      if(seen.has(id))return null;seen.add(id);
-      return {fixture:{id,date,status:{short:state==="pre"?"NS":state==="in"?"LIVE":"FT"}},teams:{home:{id:home.team?.id,name:home.team?.displayName||home.team?.name||""},away:{id:away.team?.id,name:away.team?.displayName||away.team?.name||""}},_source:"ESPN"};
-     }).filter(m=>m&&m.fixture.date&&m.teams.home.name&&m.teams.away.name);
-     try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:leagueFixtures}));}catch(e){}
-    }
+    const leagueFixtures=await getTFFSuperLigUpcoming();
     const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+    const aliases={"caykurrizespor":["caykurrizesporas","rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"]};
     const wanted=norm(teamName);
-    const aliases={"caykurrizespor":["rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"]};
     const accepted=new Set([wanted,...(aliases[wanted]||[])].map(norm));
-    const nowMs=Date.now();
-    upcoming=leagueFixtures.filter(m=>{
-     const code=String(m.fixture?.status?.short||"");
-     const when=Date.parse(m.fixture?.date||"");
-     if(!Number.isFinite(when)||when<nowMs-60*60*1000||!["NS","TBD","PST"].includes(code))return false;
-     const home=m.teams?.home||{},away=m.teams?.away||{};
-     return accepted.has(norm(home.name))||accepted.has(norm(away.name));
-    }).sort((x,y)=>String(x.fixture.date).localeCompare(String(y.fixture.date))).slice(0,10);
-   }catch(error){upcomingError=String(error?.message||"ESPN gelecek fikstürü alınamadı.");}
+    upcoming=leagueFixtures.filter(m=>accepted.has(norm(m.teams?.home?.name))||accepted.has(norm(m.teams?.away?.name))).slice(0,10);
+   }catch(error){upcomingError=String(error?.message||"TFF gelecek fikstürü alınamadı.");}
    if(!recent.length&&!upcoming.length)throw new Error("Geçmiş ve gelecek maç verisi alınamadı. "+upcomingError);
    const pastHtml=recent.length?'<section style="margin-bottom:22px;"><div style="display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">SON '+recent.length+' TAMAMLANMIŞ MAÇ</span><span style="font-size:10px;color:#9eb2bc;">GEÇMİŞ</span></div><div style="display:grid;gap:10px;">'+recent.map(m=>{
     const home=m.teams?.home||{},away=m.teams?.away||{};
