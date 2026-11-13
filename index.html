@@ -2713,7 +2713,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v48_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v49_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2787,6 +2787,17 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     "sc paderborn 07":["paderborn","paderborn 07"],
     "sv 07 elversberg":["elversberg"],
     "1 fc union berlin":["union berlin"],
+    // Serie A: standings names include sponsor/legal suffixes; archives use short club names.
+    "bologna 1909":["bologna","bologna fc","bologna fc 1909","bologna 1909"],
+    "bologna":["bologna 1909","bologna fc 1909","bologna fc"],
+    "parma calcio 1913":["parma","parma calcio"],
+    "parma":["parma calcio 1913","parma calcio"],
+    "us sassuolo calcio":["sassuolo","sassuolo calcio"],
+    "sassuolo":["us sassuolo calcio","sassuolo calcio"],
+    "internazionale":["inter","inter milan","fc internazionale"],
+    "inter":["internazionale","inter milan"],
+    "hellas verona":["verona"],
+    "verona":["hellas verona"],
     // La Liga: current-season names and historical CSV spellings.
     "rc celta de vigo":["celta vigo","celta","rc celta"],
     "celta vigo":["rc celta de vigo","celta"],
