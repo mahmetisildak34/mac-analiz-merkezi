@@ -5251,5 +5251,24 @@ main{background:transparent!important}
 })();
 </script>
 
+<script>
+/* HOME SHORTCUT ACTIONS */
+(function(){
+ document.querySelectorAll("[data-home-action]").forEach(button=>button.addEventListener("click",()=>{
+  const action=button.dataset.homeAction;
+  if(action==="archive"){document.querySelector('[data-mam-nav="standings"]')?.click();return;}
+  document.querySelector('[data-mam-nav="'+action+'"]')?.click();
+ }));
+ const tabs=document.querySelector(".mam-bottom-tabs");
+ if(!tabs||tabs.dataset.activeSync)return;
+ tabs.dataset.activeSync="1";
+ const sync=()=>{
+  const mode=(location.hash||"").replace("#mam-","");
+  const active=mode==="live"?"live":mode==="upcoming"?"upcoming":"analysis";
+  tabs.querySelectorAll("[data-bottom-tab]").forEach(button=>button.classList.toggle("is-active",button.dataset.bottomTab===active));
+ };
+ window.addEventListener("hashchange",sync);sync();
+})();
+</script>
 </body>
 </html>
