@@ -1966,11 +1966,26 @@ async function footballDataLiveFixtures(){
  })).filter(m=>m.teams.home.name&&m.teams.away.name);
 }
 
+const MAM_LIVE_MATCH_CACHE_KEY="mam_live_matches_cache_v1";
+function mamReadLiveMatchCache(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(MAM_LIVE_MATCH_CACHE_KEY)||"null");
+  if(!saved||!Array.isArray(saved.matches)||!saved.matches.length)return null;
+  const age=Date.now()-Number(saved.savedAt||0);
+  if(!Number.isFinite(age)||age>6*60*60*1000)return null;
+  return saved;
+ }catch(_){return null;}
+}
+function mamSaveLiveMatchCache(matches){
+ try{if(Array.isArray(matches)&&matches.length)localStorage.setItem(MAM_LIVE_MATCH_CACHE_KEY,JSON.stringify({savedAt:Date.now(),matches}));}catch(_){}
+}
 async function loadLiveMatches(){
  const button=$("loadLive");
  button.disabled=true;
  $("status").textContent="Canlı maç akışı kontrol ediliyor...";
  const previousMatches=allMatches.slice();
+ const savedLiveCache=mamReadLiveMatchCache();
+ const cachedMatches=previousMatches.length?previousMatches:(savedLiveCache?.matches||[]);
  let primaryErrorText="",primaryCount=0,espnErrorText="";
  const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"]);
  const isLive=match=>liveStatuses.has(String(match.fixture?.status?.short||"").toUpperCase());
@@ -1982,6 +1997,7 @@ async function loadLiveMatches(){
    const primaryLive=(data.response||[]).filter(isLive);
    if(primaryLive.length){
     allMatches=primaryLive;
+    mamSaveLiveMatchCache(primaryLive);
     renderMatches();
     warmLiveTeamHistories(allMatches);
     $("status").textContent=allMatches.length+" canlı maç bulundu · API-Football · Son kontrol: "+new Date().toLocaleTimeString("tr-TR",{timeZone:"Europe/Istanbul"});
@@ -2002,6 +2018,7 @@ async function loadLiveMatches(){
    const fallbackLive=fallback.filter(isLive);
    if(fallbackLive.length){
     allMatches=fallbackLive;
+    mamSaveLiveMatchCache(fallbackLive);
     renderMatches();
     warmLiveTeamHistories(allMatches);
     $("status").textContent=fallbackLive.length+" canlı maç bulundu · ESPN yedek kaynağı · API-Football: "+primaryErrorText;
@@ -2015,6 +2032,7 @@ async function loadLiveMatches(){
    const backupLive=(await footballDataLiveFixtures()).filter(isLive);
    if(backupLive.length){
     allMatches=backupLive;
+    mamSaveLiveMatchCache(backupLive);
     renderMatches();
     await mamSaveMatchesToD1(allMatches);
     warmLiveTeamHistories(allMatches);
@@ -2025,11 +2043,14 @@ async function loadLiveMatches(){
   }catch(error){footballDataErrorText=String(error?.message||error);}
   // Kaynaklar canlı maç döndürmediğinde ana maç listesini boşaltma.
   // Geçici API/kota hatası veya desteklenmeyen lig taraması mevcut fikstürü silmemeli.
-  allMatches=previousMatches;
+  allMatches=cachedMatches;
   renderMatches();
-  $("status").innerHTML='<span class="error">Canlı kaynaklarda şu anda eşleşen maç bulunamadı; mevcut maç listesi korundu. API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+'</span>';
+  const cacheNote=savedLiveCache&&cachedMatches===savedLiveCache.matches
+   ?' Son başarılı canlı liste cihazda kayıtlı ('+new Date(savedLiveCache.savedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+'); maç durumları yenilenemediği için eski olabilir.'
+   :cachedMatches.length?' Ekrandaki son maç listesi korundu.':' Henüz bu cihazda kaydedilmiş canlı maç listesi yok.';
+  $("status").innerHTML='<span class="error">Canlı veri kaynağı şu an yanıt vermiyor; '+(cachedMatches.length?'son kayıtlı maçlar gösteriliyor.':'şu an gösterilecek kayıtlı canlı maç yok.')+' API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+esc(cacheNote)+'</span>';
  }catch(unexpectedError){
-  allMatches=previousMatches;
+  allMatches=cachedMatches;
   renderMatches();
   $("status").innerHTML='<span class="error">Canlı akış işlenemedi: '+esc(unexpectedError?.message||unexpectedError)+'</span>';
  }finally{
