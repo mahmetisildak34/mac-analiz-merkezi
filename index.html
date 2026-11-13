@@ -2800,7 +2800,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v69_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v70_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -3047,7 +3047,9 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     if(gh===null||ga===null||gh===undefined||ga===undefined)return;
     const d=String(m.fixture?.date||"").slice(0,10);
     if(!d||d>=matchDate)return;
-    const id=[d,hm?"target-home":"target-away",gh,ga].join("|");
+    const opponent=hm?a:h;
+    const competition=String(m.league?.id||m.league?.name||"");
+    const id=[String(m.fixture?.id||""),d,competition,hm?"target-home":"target-away",mamUefaTeamMatch(opponent,teamName)?"same-target":opponent.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]/g,""),gh,ga].join("|");
     if(seen.has(id))return;
     seen.add(id);
     // Normalize the target club to the fixture provider's ID so statistics
@@ -3207,7 +3209,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const currentSeasonStart=matchMonth>=7?matchYear:matchYear-1;
     const uefaYears=[currentSeasonStart,currentSeasonStart-1,currentSeasonStart-2].filter(y=>y>=2024);
     const loadUefaFeed=async(slug,year)=>{
-      const cacheKey="mam_uefa_fixture_archive_"+slug+"_"+year+"_v4";
+      const cacheKey="mam_uefa_fixture_archive_"+slug+"_"+year+"_v5";
       try{
         const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
         if(Array.isArray(cached?.matches)&&Date.now()-cached.time<24*60*60*1000)return cached.matches;
