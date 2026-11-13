@@ -3335,27 +3335,37 @@ async function analyze(button){
    let upcoming=[];
    let upcomingError="";
    try{
-    const cacheKey="mam_superlig_all_upcoming_2026_v2";
+    const cacheKey="mam_superlig_espn_upcoming_v3";
     let leagueFixtures=[];
-    try{const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");if(cached?.time&&Date.now()-cached.time<900000&&Array.isArray(cached.matches))leagueFixtures=cached.matches;}catch(e){}
+    try{const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))leagueFixtures=cached.matches;}catch(e){}
     if(!leagueFixtures.length){
-     let payload;
-     try{payload=await api("fixtures?"+qs({league:203,season:2026,next:99,timezone:"Europe/Istanbul"}));}
-     catch(primaryError){const today=new Date();today.setHours(12,0,0,0);const from=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");payload=await api("fixtures?"+qs({league:203,season:2026,from:from,to:"2027-06-30",timezone:"Europe/Istanbul"}));}
-     leagueFixtures=Array.isArray(payload?.response)?payload.response:[];
+     const now=new Date();const end=new Date(now);end.setDate(end.getDate()+60);
+     const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+     const data=await api("espn/tur.1/scoreboard?dates="+fmt(now)+"-"+fmt(end));
+     const events=Array.isArray(data?.events)?data.events:[];
+     leagueFixtures=events.map(ev=>{
+      const comp=ev.competitions?.[0]||{};
+      const competitors=Array.isArray(comp.competitors)?comp.competitors:[];
+      const h=competitors.find(c=>c.homeAway==="home")||competitors[0]||{};
+      const a=competitors.find(c=>c.homeAway==="away")||competitors[1]||{};
+      const state=String(comp.status?.type?.state||ev.status?.type?.state||"pre");
+      return {fixture:{date:ev.date,status:{short:state==="pre"?"NS":state==="in"?"LIVE":"FT"}},teams:{home:{id:h.team?.id,name:h.team?.displayName||h.team?.name||""},away:{id:a.team?.id,name:a.team?.displayName||a.team?.name||""}},_source:"ESPN"};
+     }).filter(m=>m.fixture.date&&m.teams.home.name&&m.teams.away.name);
      try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:leagueFixtures}));}catch(e){}
     }
     const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
     const wanted=norm(teamName);
-    const aliases={"caykurrizespor":["rizespor"],"erzurum bb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"]};
-    const accepted=new Set([wanted,...(aliases[wanted]||[])]);
+    const aliases={"caykurrizespor":["rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"]};
+    const accepted=new Set([wanted,...(aliases[wanted]||[])].map(norm));
+    const nowMs=Date.now();
     upcoming=leagueFixtures.filter(m=>{
      const code=String(m.fixture?.status?.short||"");
-     if(!m.fixture?.date||!["NS","TBD","PST"].includes(code))return false;
+     const when=Date.parse(m.fixture?.date||"");
+     if(!Number.isFinite(when)||when<nowMs-60*60*1000||!["NS","TBD","PST"].includes(code))return false;
      const home=m.teams?.home||{},away=m.teams?.away||{};
-     return String(home.id)===String(teamId)||String(away.id)===String(teamId)||accepted.has(norm(home.name))||accepted.has(norm(away.name));
-    }).sort((a,b)=>String(a.fixture.date).localeCompare(String(b.fixture.date))).slice(0,10);
-   }catch(error){upcomingError=String(error?.message||"Gelecek fikstürü alınamadı.");}
+     return accepted.has(norm(home.name))||accepted.has(norm(away.name));
+    }).sort((x,y)=>String(x.fixture.date).localeCompare(String(y.fixture.date))).slice(0,10);
+   }catch(error){upcomingError=String(error?.message||"ESPN gelecek fikstürü alınamadı.");}
    if(!recent.length&&!upcoming.length)throw new Error("Geçmiş ve gelecek maç verisi alınamadı. "+upcomingError);
    const pastHtml=recent.length?'<section style="margin-bottom:22px;"><div style="display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">SON '+recent.length+' TAMAMLANMIŞ MAÇ</span><span style="font-size:10px;color:#9eb2bc;">GEÇMİŞ</span></div><div style="display:grid;gap:10px;">'+recent.map(m=>{
     const home=m.teams?.home||{},away=m.teams?.away||{};
