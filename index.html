@@ -1358,9 +1358,15 @@ async function getApiFootballMatchStats(fixtureId){
 
 async function espnFixtures(date,includeAllLeagues=false){
  const selected=$("league").value;
- const targets=(includeAllLeagues||selected==="all")
+ const rawTargets=(includeAllLeagues||selected==="all")
   ? Object.entries(ESPN_LEAGUES)
   : (ESPN_LEAGUES[selected]?[[selected,ESPN_LEAGUES[selected]]]:[]);
+ const seenSlugs=new Set();
+ const targets=rawTargets.filter(([,league])=>{
+  if(!league?.slug||seenSlugs.has(league.slug))return false;
+  seenSlugs.add(league.slug);
+  return true;
+ });
  if(!targets.length)return [];
  const espnDate=String(date).replace(/-/g,"");
  const results=await Promise.allSettled(targets.map(async([leagueId,league])=>{
@@ -1422,6 +1428,26 @@ async function loadMatches(){
    allMatches=freshMatches;
    if(freshMatches.length){
     try{localStorage.setItem(fixtureCacheKey,JSON.stringify({time:Date.now(),matches:freshMatches}));}catch(e){}
+   }else{
+    // API-Football başarılı yanıt verse bile boş fikstürde yedek kaynakları dene.
+    $("status").textContent="API-Football bu tarih için maç döndürmedi. ESPN yedek fikstürü deneniyor...";
+    let alternative=[];
+    let alternativeSource="";
+    try{
+     alternative=await espnFixtures(date);
+     if(alternative.length)alternativeSource="ESPN (yedek kaynak)";
+    }catch(espnError){console.warn("ESPN boş fikstür yedeği:",espnError);}
+    if(!alternative.length){
+     $("status").textContent="ESPN sonuç vermedi. Football-data.org yedek kaynağı deneniyor...";
+     try{
+      alternative=await footballDataFixtures(date);
+      if(alternative.length)alternativeSource="Football-data.org (yedek kaynak)";
+     }catch(fallbackError){console.warn("Football-data.org boş fikstür yedeği:",fallbackError);}
+    }
+    if(alternative.length){
+     allMatches=alternative;
+     source=alternativeSource;
+    }
    }
   }catch(primaryError){
    const message=String(primaryError.message||primaryError);
