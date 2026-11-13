@@ -1,0 +1,307 @@
+gw,date,time,home,away,ft_home,ft_away,ft_result,ht_home,ht_away,ht_result,home_shots,away_shots,home_target,away_target,home_fouls,away_fouls,home_corners,away_corners,home_corners_1h,away_corners_1h,home_corners_2h,away_corners_2h,home_yellow,away_yellow,home_red,away_red,goal_minutes,source
+,2015-08-14,12:00,Fenerbahçe İstanbul SK,Eskişehirspor,2,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-15,12:00,İstanbul Başakşehir,Antalyaspor,2,3,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-15,12:00,Sivasspor,Galatasaray İstanbul AŞ,2,2,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-15,12:00,Trabzonspor AŞ,Bursaspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-16,12:00,Gaziantepspor,Kasımpaşa İstanbul SK,0,3,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-16,12:00,Konyaspor,Akhisar Belediyespor,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-16,12:00,Mersin İdmanyurdu,Beşiktaş İstanbul JK,2,5,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-16,12:00,Osmanlıspor Ankara,Kayserispor,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-17,12:00,Gençlerbirliği Ankara SK,Çaykur Rizespor,2,3,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-21,12:00,Kasımpaşa İstanbul SK,İstanbul Başakşehir,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-22,12:00,Akhisar Belediyespor,Mersin İdmanyurdu,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-22,12:00,Beşiktaş İstanbul JK,Trabzonspor AŞ,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-22,12:00,Kayserispor,Konyaspor,1,1,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-23,12:00,Antalyaspor,Gençlerbirliği Ankara SK,3,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-23,12:00,Bursaspor,Gaziantepspor,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-23,12:00,Eskişehirspor,Sivasspor,4,2,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-23,12:00,Çaykur Rizespor,Fenerbahçe İstanbul SK,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-24,12:00,Galatasaray İstanbul AŞ,Osmanlıspor Ankara,1,2,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-28,12:00,Gaziantepspor,Beşiktaş İstanbul JK,0,4,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-29,12:00,İstanbul Başakşehir,Bursaspor,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-29,12:00,Gençlerbirliği Ankara SK,Kasımpaşa İstanbul SK,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-29,12:00,Konyaspor,Galatasaray İstanbul AŞ,1,4,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-29,12:00,Mersin İdmanyurdu,Kayserispor,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-30,12:00,Eskişehirspor,Çaykur Rizespor,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-30,12:00,Fenerbahçe İstanbul SK,Antalyaspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-30,12:00,Sivasspor,Osmanlıspor Ankara,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-08-30,12:00,Trabzonspor AŞ,Akhisar Belediyespor,2,2,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-12,12:00,Akhisar Belediyespor,Gaziantepspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-12,12:00,Antalyaspor,Eskişehirspor,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-12,12:00,Bursaspor,Gençlerbirliği Ankara SK,3,2,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-12,12:00,Galatasaray İstanbul AŞ,Mersin İdmanyurdu,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-13,12:00,Beşiktaş İstanbul JK,İstanbul Başakşehir,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-13,12:00,Kasımpaşa İstanbul SK,Fenerbahçe İstanbul SK,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-13,12:00,Osmanlıspor Ankara,Konyaspor,1,2,A,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-13,12:00,Çaykur Rizespor,Sivasspor,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-14,12:00,Kayserispor,Trabzonspor AŞ,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-18,12:00,İstanbul Başakşehir,Akhisar Belediyespor,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-18,12:00,Mersin İdmanyurdu,Osmanlıspor Ankara,0,4,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-19,12:00,Eskişehirspor,Kasımpaşa İstanbul SK,0,3,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-19,12:00,Çaykur Rizespor,Antalyaspor,5,1,H,3,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-19,12:00,Sivasspor,Konyaspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-19,12:00,Trabzonspor AŞ,Galatasaray İstanbul AŞ,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-20,12:00,Fenerbahçe İstanbul SK,Bursaspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-20,12:00,Gaziantepspor,Kayserispor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-21,12:00,Gençlerbirliği Ankara SK,Beşiktaş İstanbul JK,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-26,12:00,Akhisar Belediyespor,Gençlerbirliği Ankara SK,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-26,12:00,Galatasaray İstanbul AŞ,Gaziantepspor,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-26,12:00,Osmanlıspor Ankara,Trabzonspor AŞ,3,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-27,12:00,Antalyaspor,Sivasspor,1,1,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-27,12:00,Beşiktaş İstanbul JK,Fenerbahçe İstanbul SK,3,2,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-27,12:00,Konyaspor,Mersin İdmanyurdu,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-28,12:00,Bursaspor,Eskişehirspor,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-28,12:00,Kasımpaşa İstanbul SK,Çaykur Rizespor,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-09-28,12:00,Kayserispor,İstanbul Başakşehir,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-02,12:00,Sivasspor,Mersin İdmanyurdu,2,2,D,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-02,12:00,Trabzonspor AŞ,Konyaspor,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-03,12:00,İstanbul Başakşehir,Galatasaray İstanbul AŞ,0,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-03,12:00,Gaziantepspor,Osmanlıspor Ankara,2,1,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-03,12:00,Gençlerbirliği Ankara SK,Kayserispor,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-04,12:00,Antalyaspor,Kasımpaşa İstanbul SK,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-04,12:00,Eskişehirspor,Beşiktaş İstanbul JK,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-04,12:00,Fenerbahçe İstanbul SK,Akhisar Belediyespor,2,2,D,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-04,12:00,Çaykur Rizespor,Bursaspor,2,3,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-17,12:00,Bursaspor,Antalyaspor,0,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-17,12:00,Galatasaray İstanbul AŞ,Gençlerbirliği Ankara SK,4,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-17,12:00,Konyaspor,Gaziantepspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-18,12:00,Akhisar Belediyespor,Eskişehirspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-18,12:00,Beşiktaş İstanbul JK,Çaykur Rizespor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-18,12:00,Kasımpaşa İstanbul SK,Sivasspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-18,12:00,Kayserispor,Fenerbahçe İstanbul SK,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-19,12:00,Mersin İdmanyurdu,Trabzonspor AŞ,3,2,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-19,12:00,Osmanlıspor Ankara,İstanbul Başakşehir,0,3,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-23,12:00,Eskişehirspor,Kayserispor,1,3,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-23,12:00,Çaykur Rizespor,Akhisar Belediyespor,0,2,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-24,12:00,Gaziantepspor,Mersin İdmanyurdu,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-24,12:00,Gençlerbirliği Ankara SK,Osmanlıspor Ankara,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-24,12:00,Kasımpaşa İstanbul SK,Bursaspor,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-24,12:00,Sivasspor,Trabzonspor AŞ,0,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-25,12:00,İstanbul Başakşehir,Konyaspor,4,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-25,12:00,Fenerbahçe İstanbul SK,Galatasaray İstanbul AŞ,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-26,12:00,Antalyaspor,Beşiktaş İstanbul JK,1,5,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-28,12:00,Bursaspor,Sivasspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-28,12:00,Kayserispor,Çaykur Rizespor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-28,12:00,Trabzonspor AŞ,Gaziantepspor,2,2,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-29,12:00,Galatasaray İstanbul AŞ,Eskişehirspor,4,0,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-29,12:00,Mersin İdmanyurdu,İstanbul Başakşehir,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-29,12:00,Osmanlıspor Ankara,Fenerbahçe İstanbul SK,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-30,12:00,Akhisar Belediyespor,Antalyaspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-30,12:00,Beşiktaş İstanbul JK,Kasımpaşa İstanbul SK,3,3,D,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-10-30,12:00,Konyaspor,Gençlerbirliği Ankara SK,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-06,12:00,Eskişehirspor,Osmanlıspor Ankara,0,2,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-06,12:00,Gençlerbirliği Ankara SK,Mersin İdmanyurdu,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-07,12:00,Antalyaspor,Kayserispor,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-07,12:00,İstanbul Başakşehir,Trabzonspor AŞ,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-07,12:00,Kasımpaşa İstanbul SK,Akhisar Belediyespor,2,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-07,12:00,Çaykur Rizespor,Galatasaray İstanbul AŞ,4,3,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-08,12:00,Bursaspor,Beşiktaş İstanbul JK,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-08,12:00,Fenerbahçe İstanbul SK,Konyaspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-08,12:00,Sivasspor,Gaziantepspor,3,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-21,12:00,Akhisar Belediyespor,Bursaspor,3,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-21,12:00,Galatasaray İstanbul AŞ,Antalyaspor,3,3,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-21,12:00,Kayserispor,Kasımpaşa İstanbul SK,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-21,12:00,Mersin İdmanyurdu,Fenerbahçe İstanbul SK,1,3,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-22,12:00,Beşiktaş İstanbul JK,Sivasspor,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-22,12:00,Konyaspor,Eskişehirspor,3,2,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-22,12:00,Osmanlıspor Ankara,Çaykur Rizespor,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-22,12:00,Trabzonspor AŞ,Gençlerbirliği Ankara SK,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-23,12:00,Gaziantepspor,İstanbul Başakşehir,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-27,12:00,Antalyaspor,Osmanlıspor Ankara,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-27,12:00,Bursaspor,Kayserispor,1,2,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-27,12:00,Çaykur Rizespor,Konyaspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-28,12:00,Eskişehirspor,Mersin İdmanyurdu,3,2,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-28,12:00,Sivasspor,İstanbul Başakşehir,2,2,D,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-29,12:00,Beşiktaş İstanbul JK,Akhisar Belediyespor,0,2,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-29,12:00,Gençlerbirliği Ankara SK,Gaziantepspor,2,2,D,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-29,12:00,Kasımpaşa İstanbul SK,Galatasaray İstanbul AŞ,2,2,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-11-30,12:00,Fenerbahçe İstanbul SK,Trabzonspor AŞ,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-04,12:00,Galatasaray İstanbul AŞ,Bursaspor,3,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-05,12:00,Kayserispor,Beşiktaş İstanbul JK,1,2,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-05,12:00,Konyaspor,Antalyaspor,3,2,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-05,12:00,Osmanlıspor Ankara,Kasımpaşa İstanbul SK,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-06,12:00,İstanbul Başakşehir,Gençlerbirliği Ankara SK,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-06,12:00,Gaziantepspor,Fenerbahçe İstanbul SK,2,2,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-06,12:00,Mersin İdmanyurdu,Çaykur Rizespor,3,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-07,12:00,Akhisar Belediyespor,Sivasspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-07,12:00,Trabzonspor AŞ,Eskişehirspor,3,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-11,12:00,Bursaspor,Osmanlıspor Ankara,0,4,A,0,3,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-12,12:00,Antalyaspor,Mersin İdmanyurdu,3,2,H,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-12,12:00,Eskişehirspor,Gaziantepspor,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-12,12:00,Kasımpaşa İstanbul SK,Konyaspor,2,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-12,12:00,Çaykur Rizespor,Trabzonspor AŞ,3,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-13,12:00,Fenerbahçe İstanbul SK,İstanbul Başakşehir,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-13,12:00,Gençlerbirliği Ankara SK,Sivasspor,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-13,12:00,Kayserispor,Akhisar Belediyespor,3,2,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-14,12:00,Beşiktaş İstanbul JK,Galatasaray İstanbul AŞ,2,1,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-19,12:00,Gaziantepspor,Çaykur Rizespor,2,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-19,12:00,Konyaspor,Bursaspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-19,12:00,Mersin İdmanyurdu,Kasımpaşa İstanbul SK,1,2,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-19,12:00,Trabzonspor AŞ,Antalyaspor,3,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-20,12:00,İstanbul Başakşehir,Eskişehirspor,2,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-20,12:00,Galatasaray İstanbul AŞ,Akhisar Belediyespor,3,2,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-20,12:00,Gençlerbirliği Ankara SK,Fenerbahçe İstanbul SK,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-20,12:00,Sivasspor,Kayserispor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-21,12:00,Osmanlıspor Ankara,Beşiktaş İstanbul JK,2,3,A,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-26,12:00,Antalyaspor,Gaziantepspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-26,12:00,Kasımpaşa İstanbul SK,Trabzonspor AŞ,1,1,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-26,12:00,Çaykur Rizespor,İstanbul Başakşehir,2,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-27,12:00,Akhisar Belediyespor,Osmanlıspor Ankara,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-27,12:00,Beşiktaş İstanbul JK,Konyaspor,4,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-27,12:00,Bursaspor,Mersin İdmanyurdu,2,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-27,12:00,Kayserispor,Galatasaray İstanbul AŞ,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-28,12:00,Eskişehirspor,Gençlerbirliği Ankara SK,2,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2015-12-28,12:00,Fenerbahçe İstanbul SK,Sivasspor,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-16,12:00,Akhisar Belediyespor,Konyaspor,0,2,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-16,12:00,Galatasaray İstanbul AŞ,Sivasspor,3,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-16,12:00,Kasımpaşa İstanbul SK,Gaziantepspor,1,2,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-16,12:00,Kayserispor,Osmanlıspor Ankara,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-17,12:00,Antalyaspor,İstanbul Başakşehir,1,2,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-17,12:00,Bursaspor,Trabzonspor AŞ,4,2,H,2,2,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-17,12:00,Çaykur Rizespor,Gençlerbirliği Ankara SK,2,3,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-18,12:00,Eskişehirspor,Fenerbahçe İstanbul SK,0,3,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-23,12:00,Konyaspor,Kayserispor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-23,12:00,Mersin İdmanyurdu,Akhisar Belediyespor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-23,12:00,Osmanlıspor Ankara,Galatasaray İstanbul AŞ,3,2,H,2,2,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-24,12:00,Fenerbahçe İstanbul SK,Çaykur Rizespor,2,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-24,12:00,Gaziantepspor,Bursaspor,2,3,A,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-24,12:00,Gençlerbirliği Ankara SK,Antalyaspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-24,12:00,Sivasspor,Eskişehirspor,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-01-25,12:00,İstanbul Başakşehir,Kasımpaşa İstanbul SK,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-05,12:00,Antalyaspor,Fenerbahçe İstanbul SK,4,2,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-05,12:00,Osmanlıspor Ankara,Sivasspor,4,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-06,12:00,Bursaspor,İstanbul Başakşehir,3,3,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-06,12:00,Galatasaray İstanbul AŞ,Konyaspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-06,12:00,Kayserispor,Mersin İdmanyurdu,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-07,12:00,Akhisar Belediyespor,Trabzonspor AŞ,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-07,12:00,Beşiktaş İstanbul JK,Gaziantepspor,4,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-07,12:00,Çaykur Rizespor,Eskişehirspor,1,1,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-08,12:00,Kasımpaşa İstanbul SK,Gençlerbirliği Ankara SK,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-12,12:00,Fenerbahçe İstanbul SK,Kasımpaşa İstanbul SK,3,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-13,12:00,Gençlerbirliği Ankara SK,Bursaspor,2,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-13,12:00,Konyaspor,Osmanlıspor Ankara,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-13,12:00,Mersin İdmanyurdu,Galatasaray İstanbul AŞ,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-14,12:00,İstanbul Başakşehir,Beşiktaş İstanbul JK,2,2,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-14,12:00,Eskişehirspor,Antalyaspor,3,2,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-14,12:00,Gaziantepspor,Akhisar Belediyespor,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-14,12:00,Sivasspor,Çaykur Rizespor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-15,12:00,Trabzonspor AŞ,Kayserispor,2,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-17,12:00,Beşiktaş İstanbul JK,Mersin İdmanyurdu,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-19,12:00,Konyaspor,Sivasspor,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-20,12:00,Antalyaspor,Çaykur Rizespor,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-20,12:00,Bursaspor,Fenerbahçe İstanbul SK,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-20,12:00,Kasımpaşa İstanbul SK,Eskişehirspor,2,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-21,12:00,Akhisar Belediyespor,İstanbul Başakşehir,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-21,12:00,Galatasaray İstanbul AŞ,Trabzonspor AŞ,2,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-21,12:00,Kayserispor,Gaziantepspor,2,2,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-21,12:00,Osmanlıspor Ankara,Mersin İdmanyurdu,3,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-22,12:00,Beşiktaş İstanbul JK,Gençlerbirliği Ankara SK,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-26,12:00,İstanbul Başakşehir,Kayserispor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-27,12:00,Eskişehirspor,Bursaspor,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-27,12:00,Mersin İdmanyurdu,Konyaspor,0,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-27,12:00,Çaykur Rizespor,Kasımpaşa İstanbul SK,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-27,12:00,Trabzonspor AŞ,Osmanlıspor Ankara,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-28,12:00,Gaziantepspor,Galatasaray İstanbul AŞ,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-28,12:00,Gençlerbirliği Ankara SK,Akhisar Belediyespor,3,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-28,12:00,Sivasspor,Antalyaspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-02-29,12:00,Fenerbahçe İstanbul SK,Beşiktaş İstanbul JK,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-04,12:00,Mersin İdmanyurdu,Sivasspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-05,12:00,Bursaspor,Çaykur Rizespor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-05,12:00,Kayserispor,Gençlerbirliği Ankara SK,0,2,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-05,12:00,Osmanlıspor Ankara,Gaziantepspor,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-06,12:00,Akhisar Belediyespor,Fenerbahçe İstanbul SK,0,3,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-06,12:00,Galatasaray İstanbul AŞ,İstanbul Başakşehir,3,3,D,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-06,12:00,Kasımpaşa İstanbul SK,Antalyaspor,2,1,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-06,12:00,Konyaspor,Trabzonspor AŞ,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-07,12:00,Beşiktaş İstanbul JK,Eskişehirspor,3,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-11,12:00,Trabzonspor AŞ,Mersin İdmanyurdu,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-12,12:00,İstanbul Başakşehir,Osmanlıspor Ankara,2,3,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-12,12:00,Gaziantepspor,Konyaspor,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-12,12:00,Çaykur Rizespor,Beşiktaş İstanbul JK,1,2,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-13,12:00,Eskişehirspor,Akhisar Belediyespor,3,3,D,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-13,12:00,Fenerbahçe İstanbul SK,Kayserispor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-13,12:00,Gençlerbirliği Ankara SK,Galatasaray İstanbul AŞ,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-14,12:00,Antalyaspor,Bursaspor,3,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-14,12:00,Sivasspor,Kasımpaşa İstanbul SK,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-15,12:00,Trabzonspor AŞ,Beşiktaş İstanbul JK,0,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-18,12:00,Akhisar Belediyespor,Çaykur Rizespor,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-18,12:00,Kayserispor,Eskişehirspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-19,12:00,Beşiktaş İstanbul JK,Antalyaspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-19,12:00,Osmanlıspor Ankara,Gençlerbirliği Ankara SK,3,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-19,12:00,Trabzonspor AŞ,Sivasspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-20,12:00,Bursaspor,Kasımpaşa İstanbul SK,4,1,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-20,12:00,Konyaspor,İstanbul Başakşehir,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-03-20,12:00,Mersin İdmanyurdu,Gaziantepspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-02,12:00,Eskişehirspor,Galatasaray İstanbul AŞ,4,3,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-02,12:00,Gaziantepspor,Trabzonspor AŞ,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-02,12:00,Gençlerbirliği Ankara SK,Konyaspor,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-03,12:00,Antalyaspor,Akhisar Belediyespor,2,2,D,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-03,12:00,İstanbul Başakşehir,Mersin İdmanyurdu,3,0,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-03,12:00,Fenerbahçe İstanbul SK,Osmanlıspor Ankara,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-03,12:00,Sivasspor,Bursaspor,1,2,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-04,12:00,Kasımpaşa İstanbul SK,Beşiktaş İstanbul JK,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-04,12:00,Çaykur Rizespor,Kayserispor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-08,12:00,Gaziantepspor,Sivasspor,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-09,12:00,Galatasaray İstanbul AŞ,Çaykur Rizespor,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-09,12:00,Konyaspor,Fenerbahçe İstanbul SK,2,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-09,12:00,Osmanlıspor Ankara,Eskişehirspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-10,12:00,Kayserispor,Antalyaspor,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-10,12:00,Mersin İdmanyurdu,Gençlerbirliği Ankara SK,1,3,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-10,12:00,Trabzonspor AŞ,İstanbul Başakşehir,1,1,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-11,12:00,Akhisar Belediyespor,Kasımpaşa İstanbul SK,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-11,12:00,Beşiktaş İstanbul JK,Bursaspor,3,2,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-13,12:00,Galatasaray İstanbul AŞ,Fenerbahçe İstanbul SK,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-16,12:00,Antalyaspor,Galatasaray İstanbul AŞ,4,2,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-16,12:00,Eskişehirspor,Konyaspor,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-16,12:00,Çaykur Rizespor,Osmanlıspor Ankara,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-16,12:00,Sivasspor,Beşiktaş İstanbul JK,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-17,12:00,Bursaspor,Akhisar Belediyespor,0,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-17,12:00,İstanbul Başakşehir,Gaziantepspor,4,1,H,3,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-17,12:00,Fenerbahçe İstanbul SK,Mersin İdmanyurdu,4,1,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-17,12:00,Kasımpaşa İstanbul SK,Kayserispor,1,2,A,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-18,12:00,Gençlerbirliği Ankara SK,Trabzonspor AŞ,3,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-22,12:00,Kayserispor,Bursaspor,2,1,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-23,12:00,Akhisar Belediyespor,Beşiktaş İstanbul JK,3,3,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-23,12:00,İstanbul Başakşehir,Sivasspor,2,2,D,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-23,12:00,Osmanlıspor Ankara,Antalyaspor,3,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-24,12:00,Galatasaray İstanbul AŞ,Kasımpaşa İstanbul SK,4,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-24,12:00,Konyaspor,Çaykur Rizespor,3,1,H,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-24,12:00,Mersin İdmanyurdu,Eskişehirspor,1,2,A,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-24,12:00,Trabzonspor AŞ,Fenerbahçe İstanbul SK,0,4,A,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-25,12:00,Gaziantepspor,Gençlerbirliği Ankara SK,1,3,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-29,12:00,Bursaspor,Galatasaray İstanbul AŞ,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-29,12:00,Çaykur Rizespor,Mersin İdmanyurdu,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-30,12:00,Beşiktaş İstanbul JK,Kayserispor,4,0,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-30,12:00,Eskişehirspor,Trabzonspor AŞ,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-04-30,12:00,Gençlerbirliği Ankara SK,İstanbul Başakşehir,0,0,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-01,12:00,Antalyaspor,Konyaspor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-01,12:00,Fenerbahçe İstanbul SK,Gaziantepspor,3,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-01,12:00,Sivasspor,Akhisar Belediyespor,1,1,D,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-02,12:00,Kasımpaşa İstanbul SK,Osmanlıspor Ankara,1,1,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-07,12:00,Gaziantepspor,Eskişehirspor,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-07,12:00,Osmanlıspor Ankara,Bursaspor,3,3,D,0,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-07,12:00,Sivasspor,Gençlerbirliği Ankara SK,2,1,H,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-08,12:00,Akhisar Belediyespor,Kayserispor,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-08,12:00,Galatasaray İstanbul AŞ,Beşiktaş İstanbul JK,0,1,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-08,12:00,Mersin İdmanyurdu,Antalyaspor,0,1,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-08,12:00,Trabzonspor AŞ,Çaykur Rizespor,6,0,H,4,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-09,12:00,İstanbul Başakşehir,Fenerbahçe İstanbul SK,2,1,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-09,12:00,Konyaspor,Kasımpaşa İstanbul SK,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-13,12:00,Antalyaspor,Trabzonspor AŞ,7,0,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-14,12:00,Bursaspor,Konyaspor,1,1,D,1,1,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-14,12:00,Eskişehirspor,İstanbul Başakşehir,1,2,A,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-14,12:00,Kayserispor,Sivasspor,1,1,D,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-14,12:00,Çaykur Rizespor,Gaziantepspor,1,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-15,12:00,Akhisar Belediyespor,Galatasaray İstanbul AŞ,1,2,A,0,1,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-15,12:00,Beşiktaş İstanbul JK,Osmanlıspor Ankara,3,1,H,2,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-15,12:00,Fenerbahçe İstanbul SK,Gençlerbirliği Ankara SK,2,1,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-15,12:00,Kasımpaşa İstanbul SK,Mersin İdmanyurdu,7,0,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-18,12:00,İstanbul Başakşehir,Çaykur Rizespor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-18,12:00,Konyaspor,Beşiktaş İstanbul JK,2,1,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-18,12:00,Mersin İdmanyurdu,Bursaspor,2,5,A,1,2,A,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-19,12:00,Galatasaray İstanbul AŞ,Kayserispor,6,0,H,3,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-19,12:00,Gaziantepspor,Antalyaspor,2,0,H,1,0,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-19,12:00,Gençlerbirliği Ankara SK,Eskişehirspor,3,1,H,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-19,12:00,Osmanlıspor Ankara,Akhisar Belediyespor,1,0,H,0,0,D,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-19,12:00,Sivasspor,Fenerbahçe İstanbul SK,2,2,D,2,1,H,,,,,,,,,,,,,,,,,,openfootball
+,2016-05-19,12:00,Trabzonspor AŞ,Kasımpaşa İstanbul SK,0,6,A,0,3,A,,,,,,,,,,,,,,,,,,openfootball
