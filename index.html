@@ -2459,7 +2459,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v40_"+leagueId+"_"+teamId+"_"+matchDate;
+   const key="mam_history_v41_"+leagueId+"_"+teamId+"_"+matchDate;
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2515,16 +2515,16 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     "ir iran":["iran"],
     // Süper Lig 2026/27: provider and archive spellings for all 18 clubs.
     "alanyaspor":["corendon alanyaspor"],
-    "amedspor":["amed sportif faaliyetler","amed sporti̇f faaliyetler"],
+    "amedspor":["amed sportif faaliyetler","amed sporti̇f faaliyetler","amed sportif faaliyetler futbol kulubu"],
     "amed sportif faaliyetler":["amedspor"],
     "besiktas":["besiktas jk","besiktas a s","besiktas istanbul jk","besiktas istanbul"],
     "caykur rizespor":["rizespor","caykur rize"],
     "rizespor":["caykur rizespor","caykur rize"],
-    "corum":["corum fk","arca corum fk","corum belediyespor"],
-    "corum fk":["corum","arca corum fk"],
-    "erzurumspor":["erzurumspor fk","bb erzurumspor","erzurum bb","erzurum buyuksehir belediyespor"],
+    "corum":["corum fk","arca corum fk","corum belediyespor","corum futbol kulubu"],
+    "corum fk":["corum","arca corum fk","corum futbol kulubu"],
+    "erzurumspor":["erzurumspor fk","bb erzurumspor","erzurum bb","erzurum buyuksehir belediyespor","erzurumspor futbol kulubu"],
     "erzurumspor fk":["erzurumspor","bb erzurumspor","erzurum bb"],
-    "erzurum bb":["erzurumspor","erzurumspor fk","bb erzurumspor","erzurum buyuksehir belediyespor"],
+    "erzurum bb":["erzurumspor","erzurumspor fk","bb erzurumspor","erzurum buyuksehir belediyespor","erzurumspor futbol kulubu"],
     "bb erzurumspor":["erzurumspor","erzurumspor fk","erzurum bb"],
     "eyupspor":["eyupspor fk","ikas eyupspor"],
     "fenerbahce":["fenerbahce a s","fenerbahce sk"],
