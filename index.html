@@ -1959,9 +1959,11 @@ async function loadLiveMatches(){
    }
    footballDataErrorText="Football-data.org desteklediği müsabakalarda şu anda canlı maç döndürmedi.";
   }catch(error){footballDataErrorText=String(error?.message||error);}
-  allMatches=[];
+  // Kaynaklar canlı maç döndürmediğinde ana maç listesini boşaltma.
+  // Geçici API/kota hatası veya desteklenmeyen lig taraması mevcut fikstürü silmemeli.
+  allMatches=previousMatches;
   renderMatches();
-  $("status").innerHTML='<span class="error">Şu anda canlı maç bulunamadı. API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+'</span>';
+  $("status").innerHTML='<span class="error">Canlı kaynaklarda şu anda eşleşen maç bulunamadı; mevcut maç listesi korundu. API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+'</span>';
  }catch(unexpectedError){
   allMatches=previousMatches;
   renderMatches();
