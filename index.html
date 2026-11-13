@@ -2907,6 +2907,34 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // absent from football-data CSVs. Canonicalize both sides before comparison.
   const serieACanonical=value=>{
     const n=normalize(value);
+    if(String(leagueId)==="61"){
+      const groups=[
+        ["paris saint germain","paris saint-germain","paris sg","psg"],
+        ["brest","stade brestois","stade brestois 29"],
+        ["le havre","le havre ac","havre athletic club"],
+        ["troyes","estac troyes"],
+        ["lille","lille osc","losc lille"],
+        ["lyon","olympique lyonnais"],
+        ["marseille","olympique de marseille"],
+        ["lens","rc lens","racing club de lens"],
+        ["strasbourg","rc strasbourg","rc strasbourg alsace","racing club de strasbourg alsace"],
+        ["rennes","stade rennais","stade rennais fc"],
+        ["lorient","fc lorient"],
+        ["monaco","as monaco"],
+        ["auxerre","aj auxerre"],
+        ["angers","angers sco"],
+        ["le mans","le mans fc"],
+        ["paris fc","paris football club"],
+        ["metz","fc metz"],
+        ["nantes","fc nantes"],
+        ["nice","ogc nice"],
+        ["montpellier","montpellier herault sc","mhsc"],
+        ["reims","stade de reims"],
+        ["saint etienne","st etienne","as saint-etienne","asse"]
+      ];
+      for(const group of groups)if(group.includes(n))return group[0];
+      return n;
+    }
     if(String(leagueId)!=="135")return n;
     if(["bologna","bologna 1909","bologna fc 1909"].includes(n))return "bologna";
     if(["parma","parma calcio","parma calcio 1913"].includes(n))return "parma";
