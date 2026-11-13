@@ -1343,6 +1343,79 @@ async function loadStandings(){
    box.append(bulk,progress);
   }
 
+  if(String(leagueId)==="3"){
+   const bulk=document.createElement("button");
+   bulk.type="button";bulk.className="secondary";bulk.style.cssText="width:100%;margin-top:12px;";
+   bulk.textContent="↻ Avrupa Ligi · 36 takımın geçmiş ve gelecek maçlarını kontrol et";
+   const progress=document.createElement("p");progress.className="note";
+   progress.textContent="UEFA'nın 36 lig aşaması takımını tek tek doğrular; geçmiş maçları ve oynanmamış fikstürü ortak arşive alır.";
+   bulk.addEventListener("click",async()=>{
+    if(bulk.disabled)return;
+    bulk.disabled=true;
+    const officialTeams=["Anderlecht","Ararat-Armenia","AZ Alkmaar","Benfica","Beşiktaş","Bournemouth","Celje","Celta","Celtic","Crystal Palace","Ferencváros","GNK Dinamo","Hapoel Beer-Sheva","Hoffenheim","Jagiellonia","Juventus","Lech Poznań","Leverkusen","Levski Sofia","Lillestrøm","Lyon","Marseille","Milan","N.E.C.","OFI Crete","Olympiacos","Omonia","Real Sociedad","Rennes","Salzburg","Sparta Praha","Sturm Graz","Sunderland","Torreense","Union SG","Viktoria Plzeň"];
+    let done=0,historyReady=0,historyMatches=0,upcomingMatches=0,upcomingTeams=0;
+    const missing=[];
+    const d=new Date();d.setDate(d.getDate()+1);
+    const cutoff=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    bulk.textContent="Avrupa Ligi verileri alınıyor…";
+    progress.textContent="UEFA'nın 36 takımı puan tablosuyla eşleştiriliyor.";
+    try{
+     if(officialTeams.length!==36)throw new Error("Resmî takım listesi 36 takım değil.");
+     const selected=officialTeams.map(name=>({official:name,row:rows.find(team=>mamUefaTeamMatch(team.name,name))})).filter(item=>item.row);
+     for(const name of officialTeams)if(!selected.some(item=>item.official===name))missing.push(name);
+     if(missing.length)throw new Error("Puan tablosunda eşleşmeyen takımlar: "+missing.join(", "));
+     const seasonStart=new Date().getMonth()>=6?new Date().getFullYear():new Date().getFullYear()-1;
+     const feedSlug="europa-league";
+     const feedCacheKey="mam_uefa_fixture_archive_"+feedSlug+"_"+seasonStart+"_v4";
+     let feedRows=null;
+     try{
+      const saved=JSON.parse(localStorage.getItem(feedCacheKey)||"null");
+      if(Array.isArray(saved?.matches)&&Date.now()-saved.time<24*60*60*1000)feedRows=saved.matches;
+     }catch(_){}
+     if(!feedRows){
+      const payload=await api("fixturesdownload/"+feedSlug+"-"+seasonStart);
+      if(!Array.isArray(payload)||!payload.length)throw new Error("2026/27 Avrupa Ligi fikstür kaynağı boş veya geçersiz.");
+      feedRows=payload.map(item=>({
+       dateTime:String(item.DateUtc||"").replace(" ","T"),
+       date:String(item.DateUtc||"").slice(0,10),
+       home:String(item.HomeTeam||"").trim(),away:String(item.AwayTeam||"").trim(),
+       homeGoals:item.HomeTeamScore==null||item.HomeTeamScore===""?null:Number(item.HomeTeamScore),
+       awayGoals:item.AwayTeamScore==null||item.AwayTeamScore===""?null:Number(item.AwayTeamScore),
+       matchNumber:item.MatchNumber??null
+      })).filter(item=>item.date&&item.home&&item.away);
+      try{localStorage.setItem(feedCacheKey,JSON.stringify({time:Date.now(),matches:feedRows}));}catch(_){}
+     }
+     const now=Date.now();
+     const future=feedRows.filter(item=>Date.parse(item.dateTime||item.date)>=now-60*60*1000&&(item.homeGoals==null||item.awayGoals==null));
+     upcomingMatches=future.length;
+     upcomingTeams=officialTeams.filter(name=>future.some(item=>mamUefaTeamMatch(item.home,name)||mamUefaTeamMatch(item.away,name))).length;
+     progress.textContent="Gelecek fikstür alındı: "+upcomingMatches+" maç · "+upcomingTeams+"/36 takım. Geçmiş maçlar kontrol ediliyor…";
+     for(let i=0;i<selected.length;i+=3){
+      const batch=selected.slice(i,i+3);
+      const results=await Promise.allSettled(batch.map(item=>getTeamFixtures(item.row.teamId,cutoff,item.row.name,"3","",false)));
+      results.forEach((result,index)=>{
+       done++;
+       if(result.status==="fulfilled"){
+        const count=result.value.length;
+        historyMatches+=count;
+        if(count>0)historyReady++;
+       }else{
+        missing.push(batch[index].official+" (geçmiş: "+String(result.reason?.message||"hata")+")");
+       }
+      });
+      progress.textContent=done+"/36 takımın geçmişi kontrol edildi · "+historyReady+" takımda geçmiş maç bulundu · "+upcomingTeams+"/36 takımın gelecek fikstürü eşleşti.";
+      bulk.textContent="Kontrol ediliyor… "+done+"/36";
+     }
+     bulk.textContent="↻ Avrupa Ligi 36 takımını yeniden kontrol et";
+     progress.textContent="Tamamlandı: "+historyReady+"/36 takımda geçmiş maç bulundu ("+historyMatches+" takım-maç kaydı); gelecek fikstürde "+upcomingMatches+" maç ve "+upcomingTeams+"/36 takım eşleşti."+(missing.length?" Kontrol gerekenler: "+missing.join(", "):" Takım adı eşleşmelerinin tamamı doğrulandı.");
+    }catch(error){
+     bulk.textContent="↻ Avrupa Ligi kontrolünü yeniden başlat";
+     progress.textContent="Kontrol tamamlanamadı: "+String(error?.message||error);
+    }finally{bulk.disabled=false;}
+   });
+   box.append(bulk,progress);
+  }
+
  }catch(e){
   box.innerHTML='<div class="error">'+esc(e.message||e)+'</div>';
  }finally{button.disabled=false}
