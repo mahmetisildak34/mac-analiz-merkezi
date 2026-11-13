@@ -2424,32 +2424,9 @@ $("couponBuildSafe").addEventListener("click",()=>buildSuggestedCoupon("safe"));
 $("couponBuildRisky").addEventListener("click",()=>buildSuggestedCoupon("risky"));
 renderCoupon();
 
-// Ortak lig/sezon arşivi: aynı CSV dosyası aynı cihazda tüm maç analizlerinde tekrar kullanılır.
-const MAM_LEAGUE_ARCHIVE_PROMISES=new Map();
-const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
-let MAM_SUPERLIG_BACKFILL_PROMISE=null;
-async function ensureSuperLigArchive(){
-  if(localStorage.getItem("mam_superlig_archive_v1")==="ok")return;
-  if(!MAM_SUPERLIG_BACKFILL_PROMISE){
-    MAM_SUPERLIG_BACKFILL_PROMISE=(async()=>{
-      const result=await api("archive/backfill-all?batch=2");
-      const turkey=(result.results||[]).find(x=>x.league==="tur.1");
-      // Accept a useful partial backfill, but do not mark a nearly empty archive complete.
-      if(!turkey||Number(turkey.teams)<18||Number(turkey.completedMatches)<40){
-        throw new Error(turkey?.error||"Süper Lig arşivi yeterli takım/maç kapsamına ulaşmadı.");
-      }
-      localStorage.setItem("mam_superlig_archive_v1","ok");
-      return result;
-    })().finally(()=>{MAM_SUPERLIG_BACKFILL_PROMISE=null;});
-  }
-  return MAM_SUPERLIG_BACKFILL_PROMISE;
-}
-
+// Geçmiş maç arşivi: KV yazma kotası koruması için otomatik backfill kapalıdır.
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false){
-  if(String(leagueId)==="203"){
-    try{await ensureSuperLigArchive();}catch(e){/* CSV and ESPN remain available if bulk archive is unavailable. */}
-  }
   const key="mam_history_v33_"+leagueId+"_"+teamId+"_"+matchDate.slice(0,4);
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
