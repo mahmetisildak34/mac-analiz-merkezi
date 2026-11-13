@@ -974,6 +974,14 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
  .mam-league-group .match{padding:8px 7px!important}
 }
 
+
+/* Gereksiz işlem butonlarını kaldır: sekmeler doğrudan ilgili veriyi yükler */
+.match:not(.in-detail) .liveAnalyzeBtn{display:none!important}
+.match.in-detail .match-detail-pane .mam-form-load,
+.match.in-detail .match-detail-pane .lineupBtn,
+.match.in-detail .match-detail-pane .liveStatsBtn,
+.match.in-detail .match-detail-pane .predBtn{display:none!important}
+.match.in-detail .match-detail-pane .mam-form-results{margin-top:0!important}
 </style>
 
 
@@ -2797,6 +2805,15 @@ function makeMamDetailTab(article){
    panes.querySelectorAll(".match-detail-pane").forEach(x=>x.hidden=x!==pane);
    const liveButton=article.querySelector(".liveStatsBtn");
    if(liveButton){try{const saved=JSON.parse(localStorage.getItem("mam_open_live_detail")||"{}");saved.tab=def.id;localStorage.setItem("mam_open_live_detail",JSON.stringify({...saved,id:liveButton.dataset.liveId||"",source:liveButton.dataset.liveSource||"",league:liveButton.dataset.liveLeagueId||""}));}catch(_){}}
+   // İçerikleri sekmeye girildiğinde yükle; ayrı işlem butonlarına gerek kalmasın.
+   if(def.id==="form"&&formButton.dataset.loaded!=="1"&&!formButton.disabled)formButton.click();
+   if(def.id==="lineup"&&lineupButton&&!lineupButton.disabled&&lineupButton.dataset.loaded!=="1")lineupButton.click();
+   if(def.id==="stats"&&liveButton&&!liveButton.disabled)liveButton.click();
+   if(def.id==="analysis"){
+    const liveAnalysis=article.querySelector(".liveAnalyzeBtn");
+    if(liveAnalysis&&!liveAnalysis.disabled)liveAnalysis.click();
+    else if(analysisButton&&!analysisButton.disabled)analysisButton.click();
+   }
   });
  });
  if(actions){
