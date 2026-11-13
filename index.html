@@ -2252,18 +2252,19 @@ async function loadLiveMatches(){
    if(fallbackLive.length){
     // API-Football kota hatasında ESPN daha az lig döndürebilir.
     // Son 10 dakikada başarıyla alınan ana canlı listeyi silme; ESPN sonuçlarıyla birleştir.
-    const recentCachedLive=savedLiveCache&&Date.now()-Number(savedLiveCache.savedAt||0)<=10*60*1000
-     ?savedLiveCache.matches.filter(isLive):[];
+    // Cache okuyucu zaten 6 saatlik sınır uygular. ESPN daha az maç döndürdüğünde
+    // önceki başarılı ana listeyi düşürme veya tek maçlık yanıtla üzerine yazma.
+    const recentCachedLive=savedLiveCache?savedLiveCache.matches.filter(isLive):[];
     const liveById=new Map();
     recentCachedLive.forEach(match=>liveById.set(String(match.fixture?.id??match.id),match));
     fallbackLive.forEach(match=>liveById.set(String(match.fixture?.id??match.id),match));
     const combinedLive=[...liveById.values()];
-    const keptRecentCache=recentCachedLive.length>fallbackLive.length;
-    allMatches=keptRecentCache?combinedLive:fallbackLive;
-    if(!keptRecentCache)mamSaveLiveMatchCache(fallbackLive);
+    const keptCachedList=recentCachedLive.length>0;
+    allMatches=keptCachedList?combinedLive:fallbackLive;
+    if(!keptCachedList)mamSaveLiveMatchCache(fallbackLive);
     renderMatches();
     warmLiveTeamHistories(allMatches);
-    $("status").textContent=allMatches.length+" canlı maç gösteriliyor · ESPN yedek kaynağı"+(keptRecentCache?" · Son başarılı API canlı listesi de korundu (önbellek "+new Date(savedLiveCache.savedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+")":"")+" · API-Football: "+primaryErrorText;
+    $("status").textContent=allMatches.length+" canlı maç gösteriliyor · ESPN yedek kaynağı"+(keptCachedList?" · Önceki başarılı canlı liste korundu (önbellek "+new Date(savedLiveCache.savedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+")":"")+" · API-Football: "+primaryErrorText;
     return;
    }
    espnErrorText="ESPN taraması tamamlandı; desteklenen liglerde canlı maç döndürmedi.";
