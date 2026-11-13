@@ -1535,7 +1535,7 @@ async function loadSuperLigFixtures(){
    const calendar=await api("espn/tur.1/scoreboard");
    const dates=(Array.isArray(calendar?.leagues?.[0]?.calendar)?calendar.leagues[0].calendar:[])
     .map(v=>String(v).slice(0,10).replace(/-/g,""))
-    .filter(v=>/^\\d{8}$/.test(v)&&v>=fmt(now)&&v<=fmt(end));
+    .filter(v=>/^\d{8}$/.test(v)&&v>=fmt(now)&&v<=fmt(end));
    const events=[];
    for(const date of dates){
     const data=await api("espn/tur.1/scoreboard?dates="+date);
@@ -3365,7 +3365,7 @@ async function analyze(button){
      const calendar=await api("espn/tur.1/scoreboard");
      const dates=(Array.isArray(calendar?.leagues?.[0]?.calendar)?calendar.leagues[0].calendar:[])
       .map(v=>String(v).slice(0,10).replace(/-/g,""))
-      .filter(v=>/^\\d{8}$/.test(v)&&v>=fmt(now)&&v<=fmt(end));
+      .filter(v=>/^\d{8}$/.test(v)&&v>=fmt(now)&&v<=fmt(end));
      const events=[];
      for(const date of dates){
       const data=await api("espn/tur.1/scoreboard?dates="+date);
