@@ -3820,8 +3820,8 @@ async function analyze(button){
    return matches;
   }
   async function getSerieAUpcoming(teamName){
-   const cacheKey="mam_seriea_all_competitions_upcoming_v2_"+String(teamName||"").toLowerCase().replace(/[^a-z0-9]/g,"");
-   try{const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");if(saved?.time&&Date.now()-saved.time<5*60*1000&&Array.isArray(saved.matches))return saved.matches;}catch(e){}
+   const cacheKey="mam_seriea_all_competitions_upcoming_v3_all";
+   try{const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");if(saved?.time&&Date.now()-saved.time<5*60*1000&&Array.isArray(saved.matches))return filterForTeam(saved.matches,teamName);}catch(e){}
    const competitions=[
     {code:"SA",id:"135",name:"Serie A",country:"Italy",icon:"🇮🇹"},
     {code:"CL",id:"2",name:"UEFA Champions League",country:"Europe",icon:"⭐"},
@@ -3861,6 +3861,7 @@ async function analyze(button){
     ["como","como1907"],["pisa","pisasportingclub"],["cremonese","uscremonese"]
    ];
    const canonical=value=>{const n=normalize(value);return aliases.find(group=>group.includes(n))?.[0]||n;};
+   const filterForTeam=(list,name)=>{const wanted=canonical(name);return list.filter(m=>canonical(m.teams?.home?.name)===wanted||canonical(m.teams?.away?.name)===wanted);};
    const wanted=canonical(teamName);
    const valid=new Set(["SCHEDULED","TIMED","POSTPONED","SUSPENDED","NS","TBD"]);
    const seen=new Set();
@@ -3878,7 +3879,7 @@ async function analyze(button){
     throw new Error("Serie A sezon fikstürü alınamadı. "+errors.join(" | "));
    }
    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:upcoming}));}catch(e){}
-   return upcoming;
+   return filterForTeam(upcoming,teamName);
   }
   async function getBundesligaUpcoming(){
    const cacheKey="mam_bundesliga_team_upcoming_2627_v3";
