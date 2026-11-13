@@ -3740,30 +3740,24 @@ async function analyze(button){
    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(e){}
    return matches;
   }
-  async function getBundesligaUpcoming(teamId){
-   const cacheKey="mam_bundesliga_team_upcoming_2627_v2_"+String(teamId);
+  async function getBundesligaUpcoming(){
+   const cacheKey="mam_bundesliga_team_upcoming_2627_v3";
    try{
     const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
-    if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))return cached.matches;
+    if(cached?.time&&Date.now()-cached.time<5*60*1000&&Array.isArray(cached.matches))return cached.matches;
    }catch(e){}
-   if(!/^\d+$/.test(String(teamId||"")))throw new Error("Bundesliga takım kimliği geçersiz.");
-   // ESPN'in sezonluk takım takvimi, scoreboard tarih aralığından daha güvenilir:
-   // tek takım için oynanmış ve henüz oynanmamış tüm sezon maçlarını döndürür.
-   const payload=await api("espn/ger.1/teams/"+encodeURIComponent(String(teamId))+"/schedule?"+qs({season:2026}));
-   const events=Array.isArray(payload.events)?payload.events:[];
-   const matches=events.map(event=>{
-    const comp=(event.competitions||[])[0]||{},competitors=comp.competitors||[];
-    const h=competitors.find(x=>x.homeAway==="home")||{},a=competitors.find(x=>x.homeAway==="away")||{};
-    const state=String(comp.status?.type?.state||event.status?.type?.state||"").toLowerCase();
-    const date=event.date||comp.date||"";
-    if(!h.team||!a.team||!date||state==="post"||state==="in"||Date.parse(date)<Date.now())return null;
-    return {
-     fixture:{id:"espn-ger.1-"+event.id,date,status:{short:"NS"}},
-     league:{id:"78",name:"Bundesliga",country:"Germany"},
-     teams:{home:{id:Number(h.team.id)||-1,name:h.team.displayName||h.team.name||h.team.shortDisplayName||""},away:{id:Number(a.team.id)||-1,name:a.team.displayName||a.team.name||a.team.shortDisplayName||""}},
-     goals:{home:null,away:null}
-    };
-   }).filter(Boolean).sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
+   // Bundesliga fikstürünü aynı çalışan Premier League entegrasyonundaki
+   // football-data.org sezon maçları uç noktasından al.
+   const data=await api("football-data/competitions/BL1/matches");
+   const futureStatuses=new Set(["SCHEDULED","TIMED","POSTPONED","SUSPENDED"]);
+   const matches=(data.matches||[]).map(m=>({
+    fixture:{id:"fd-BL1-"+m.id,date:m.utcDate||"",status:{short:m.status||"NS"}},
+    league:{id:"78",name:"Bundesliga",country:"Germany"},
+    teams:{home:{id:Number(m.homeTeam?.id)||-1,name:m.homeTeam?.name||m.homeTeam?.shortName||""},away:{id:Number(m.awayTeam?.id)||-1,name:m.awayTeam?.name||m.awayTeam?.shortName||""}},
+    goals:{home:m.score?.fullTime?.home??null,away:m.score?.fullTime?.away??null}
+   })).filter(m=>m.teams.home.name&&m.teams.away.name&&m.fixture.date&&Date.parse(m.fixture.date)>=Date.now()-60*60*1000&&futureStatuses.has(String(m.fixture.status.short).toUpperCase()))
+    .sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
+   if(!matches.length)throw new Error("football-data.org Bundesliga (BL1) fikstüründe gelecek maç bulunamadı.");
    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(e){}
    return matches;
   }
@@ -3804,7 +3798,7 @@ async function analyze(button){
     if(String(selectedStandingsLeague)==="39")leagueFixtures=await getPremierLeagueUpcoming();
     else if(String(selectedStandingsLeague)==="203")leagueFixtures=await getTFFSuperLigUpcoming();
     else if(String(selectedStandingsLeague)==="140")leagueFixtures=await getLaLigaUpcoming();
-    else if(String(selectedStandingsLeague)==="78")leagueFixtures=await getBundesligaUpcoming(teamId);
+    else if(String(selectedStandingsLeague)==="78")leagueFixtures=await getBundesligaUpcoming();
     else{
      const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
      if(!league?.slug)throw new Error("Bu lig için henüz gelecek fikstür kaynağı tanımlı değil.");
@@ -3821,7 +3815,7 @@ async function analyze(button){
      }).filter(m=>String(m.fixture.status.short)==="NS"&&Date.parse(m.fixture.date)>=Date.now());
     }
     const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc)\b/g,"").replace(/[^a-z0-9]/g,"");
-    const aliases={"caykurrizespor":["caykurrizesporas","rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"],"rcdeportivolacoruna":["rcdeportivo","deportivo"],"realracingclubdesantander":["rracingclub","racingclub","racingsantander"],"rcceltadevigo":["celta","celtavigo","rccelta"],"clubatleticodemadrid":["atleticodemadrid","atleticomadrid","atlmad"],"realsociedaddefutbol":["realsociedad","sociedad"],"realbetisbalompie":["realbetis","betis"],"rayovallecanodemadrid":["rayovallecano","vallecano"]};
+    const aliases={"bayernmunchen":["bayernmunich","bayern"],"bayernmunich":["bayernmunchen","bayern"],"werderbremen":["svwerderbremen"],"svwerderbremen":["werderbremen"],"borussiamonchengladbach":["monchengladbach","gladbach"],"monchengladbach":["borussiamonchengladbach","gladbach"],"eintrachtfrankfurt":["frankfurt"],"frankfurt":["eintrachtfrankfurt"],"borussiadortmund":["dortmund"],"dortmund":["borussiadortmund"],"bayer04leverkusen":["bayerleverkusen","leverkusen"],"bayerleverkusen":["bayer04leverkusen","leverkusen"],"caykurrizespor":["caykurrizesporas","rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"],"rcdeportivolacoruna":["rcdeportivo","deportivo"],"realracingclubdesantander":["rracingclub","racingclub","racingsantander"],"rcceltadevigo":["celta","celtavigo","rccelta"],"clubatleticodemadrid":["atleticodemadrid","atleticomadrid","atlmad"],"realsociedaddefutbol":["realsociedad","sociedad"],"realbetisbalompie":["realbetis","betis"],"rayovallecanodemadrid":["rayovallecano","vallecano"]};
     const wanted=norm(teamName);
     const accepted=new Set([wanted,...(aliases[wanted]||[])].map(norm));
     const matchesTeam=(name,id)=>Number(id)===Number(teamId)||accepted.has(norm(name))||(aliases[norm(name)]||[]).map(norm).includes(wanted);
