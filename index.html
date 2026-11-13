@@ -960,6 +960,7 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
  <button type="button" class="mam-date-chip" data-day-offset="6">+6 gün<b></b></button>
 </div>
 <button id="load" style="width:100%;margin-top:8px">Seçili günün maçlarını getir</button>
+<button id="loadSuperLigFixtures" type="button" class="secondary" style="width:100%;margin-top:9px">🇹🇷 Süper Lig gelecek fikstürünün tamamı</button>
 <button id="loadLive" style="width:100%;margin-top:10px">Canlı maçları getir / yenile</button>
 <button id="loadStandings" hidden type="button" aria-hidden="true" tabindex="-1">Puan durumu</button>
 <div id="standings" hidden aria-hidden="true"></div>
@@ -1127,6 +1128,7 @@ function probHTML(label,value){
 let allMatches=[];
 
 $("load").addEventListener("click",loadMatches);
+$("loadSuperLigFixtures")?.addEventListener("click",loadSuperLigFixtures);
 $("loadLive").addEventListener("click",loadLiveMatches);
 $("loadStandings").addEventListener("click",loadStandings);
 
@@ -1513,6 +1515,47 @@ async function loadMatches(){
   $("status").innerHTML='<span class="error">'+esc(e.message)+'</span>';
   if(!allMatches.length)$("matches").innerHTML='<div class="empty">Fikstür alınamadı. Hata: '+esc(e.message)+'</div>';
  }finally{button.disabled=false}
+}
+
+async function loadSuperLigFixtures(){
+ const button=$("loadSuperLigFixtures");
+ if(!button)return;
+ const oldText=button.textContent;
+ button.disabled=true;
+ button.textContent="Süper Lig fikstürü alınıyor…";
+ $("status").textContent="Süper Lig'in yaklaşan maçları getiriliyor…";
+ const dateLocal=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+ const start=new Date();start.setHours(12,0,0,0);
+ const end=new Date(start);end.setDate(end.getDate()+45);
+ const from=dateLocal(start),to=dateLocal(end);
+ const cacheKey="mam_superlig_upcoming_2026_"+from+"_"+to;
+ try{
+  let fixtures=[];
+  try{
+   const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
+   if(cached?.time&&Date.now()-cached.time<15*60*1000&&Array.isArray(cached.matches))fixtures=cached.matches;
+  }catch(e){}
+  if(!fixtures.length){
+   const payload=await api("fixtures?"+qs({league:203,season:2026,from,to,timezone:"Europe/Istanbul"}));
+   fixtures=Array.isArray(payload?.response)?payload.response:[];
+   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:fixtures}));}catch(e){}
+  }
+  const futureCodes=new Set(["NS","TBD","PST"]);
+  allMatches=fixtures.filter(m=>futureCodes.has(String(m.fixture?.status?.short||"NS"))&&m.fixture?.date)
+   .sort((a,b)=>String(a.fixture.date).localeCompare(String(b.fixture.date)));
+  $("league").value="203";
+  $("league").dispatchEvent(new Event("change",{bubbles:true}));
+  if(typeof mamScreenMode!=="undefined"&&mamScreenMode==="live")mamScreenMode="home";
+  renderMatches();
+  $("status").textContent=allMatches.length
+   ? allMatches.length+" Süper Lig gelecek maçı listelendi ("+from+" – "+to+"). Kaynak: API-Football."
+   : "Seçilen 45 günlük aralıkta Süper Lig için gelecek maç bulunamadı.";
+ }catch(error){
+  $("status").innerHTML='<span class="error">Süper Lig fikstürü alınamadı: '+esc(error.message||error)+'</span>';
+ }finally{
+  button.disabled=false;
+  button.textContent=oldText;
+ }
 }
 
 async function loadLiveMatches(){
