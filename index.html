@@ -2900,7 +2900,32 @@ function mamUefaTeamMatch(a,b){
  return MAM_UEFA_TEAM_GROUPS.some(group=>{const names=group.map(norm);return names.includes(x)&&names.includes(y);});
 }
 
-// Geçmiş maç arşivi: KV yazma kotası koruması için otomatik backfill kapalıdır.
+// D1 kalıcı maç arşivi: analiz için bulunan geçmiş maçları idempotent olarak kaydet.
+async function mamSaveMatchesToD1(matches, leagueId){
+  if(!Array.isArray(matches)||!matches.length)return;
+  try{
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),12000);
+    try{
+      const response=await fetch(WORKER.replace(/\\/$/, "")+"/api/archive/matches",{
+        method:"POST",
+        signal:controller.signal,
+        headers:{
+          "Content-Type":"application/json",
+          Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||"")
+        },
+        body:JSON.stringify({leagueId:String(leagueId||""),matches:matches.slice(0,20)})
+      });
+      if(!response.ok){
+        const detail=await response.text().catch(()=> "");
+        throw new Error("D1 arşiv yazımı HTTP "+response.status+" "+detail.slice(0,180));
+      }
+    }finally{clearTimeout(timer);}
+  }catch(error){
+    // Arşiv yazımı başarısız olsa bile maç analizi ve mevcut ekran akışı kesilmesin.
+    console.warn("D1 maç arşivi yazılamadı:",error);
+  }
+}
 const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
@@ -3604,6 +3629,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
   const result=output.slice(0,20);
+  // Bulunan tamamlanmış takım maçlarını merkezi D1 arşivine kaydet.
+  await mamSaveMatchesToD1(result,leagueId);
   // Son geçmiş maçların gerçek istatistiklerini doğru sağlayıcıdan tamamla.
   // İstek sayısını sınırlı tutuyoruz; bulunan sonuçlar yerel önbelleğe alınır.
   const candidates=String(leagueId)==="203"?[]:result.filter(m=>!m.statistics&&/^[0-9]+$/.test(String(m.fixture?.id||""))).slice(0,String(leagueId)==="848"?20:8);
