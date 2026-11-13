@@ -2907,7 +2907,7 @@ async function mamSaveMatchesToD1(matches, leagueId){
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),12000);
     try{
-      const response=await fetch(WORKER.replace(/\\/$/, "")+"/api/archive/matches",{
+      const response=await fetch(WORKER+"/api/archive/matches",{
         method:"POST",
         signal:controller.signal,
         headers:{
