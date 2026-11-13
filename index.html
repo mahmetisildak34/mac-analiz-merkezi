@@ -3491,7 +3491,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // ESPN yedek geçmişi: fikstür API-Football'dan gelse bile maç tarihindeki
   // ESPN skor tablosundan takımın ESPN ID'sini bul ve takım takvimini oku.
-  if(!archiveOnly&&output.length<10&&ESPN_LEAGUES[String(leagueId)]?.slug&&["39","140","78","135","61","2","3","848","203"].includes(String(leagueId))){
+  if(!archiveOnly&&output.length<10&&ESPN_LEAGUES[String(leagueId)]?.slug&&["39","140","143","78","135","61","2","3","848","203"].includes(String(leagueId))){
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)].slug;
       let espnTeamId="";
