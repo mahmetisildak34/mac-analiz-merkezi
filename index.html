@@ -899,7 +899,7 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 <div class="mam-brand"><span class="mam-brand-ball">⚽</span><span>MAÇ ANALİZ MERKEZİ</span></div>
 <button type="button" class="mam-search-trigger" id="mamSearchToggle" aria-label="Maç listesine git">⌕</button>
 </div>
-<div class="mam-section-header" id="mamSectionHeader" hidden><button type="button" class="mam-section-back" id="mamSectionBack">← Ana sayfa</button><div class="mam-section-title"><small id="mamSectionEyebrow">CANLI TAKİP</small><strong id="mamSectionTitle">Canlı Maçlar</strong></div><span class="mam-section-count" id="mamSectionCount"></span><button type="button" class="mam-section-back" id="mamSectionRefresh">↻ Yenile</button></div>
+<div class="mam-section-header" id="mamSectionHeader" hidden><button type="button" class="mam-section-back" id="mamSectionBack">← Geri</button><div class="mam-section-title"><small id="mamSectionEyebrow">CANLI TAKİP</small><strong id="mamSectionTitle">Canlı Maçlar</strong></div><span class="mam-section-count" id="mamSectionCount"></span><button type="button" class="mam-section-back" id="mamSectionRefresh">↻ Yenile</button></div>
 <section id="mamStandingsScreen" class="mam-standings-screen" hidden>
  <div class="mam-standings-intro"><span>🏆 LİG MERKEZİ</span><h2>Puan Durumu</h2><p>Türkiye ligleri, Avrupa kupaları ve dünyanın önde gelen organizasyonları tek yerde.</p></div>
  <div id="mamStandingsPicker">
@@ -2328,6 +2328,7 @@ function setMamScreen(mode){
  const header=$("mamSectionHeader");
  if(header){header.hidden=mode==="home";$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="standings"?"LİG MERKEZİ":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="standings"?"Puan Durumu":"Başlamayan Maçlar";}
  const intro=document.querySelector(".mam-home-intro");if(intro)intro.hidden=mode!=="home";
+ const superLigButton=$("loadSuperLigFixtures");if(superLigButton)superLigButton.hidden=mode!=="home";
  const sourcePanel=document.querySelector("main>.panel");if(sourcePanel)sourcePanel.hidden=mode!=="home";
  const filterRow=$("date")?.closest(".row");if(filterRow)filterRow.hidden=mode==="live";
  const dateStrip=$("mamDateStrip");if(dateStrip)dateStrip.hidden=mode==="live";
@@ -3393,7 +3394,7 @@ async function analyze(button){
   if(action==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
  }));
- $("mamSectionBack")?.addEventListener("click",async()=>{setMamScreen("home");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});});
+ $("mamSectionBack")?.addEventListener("click",async()=>{if(mamScreenMode==="live"){setMamScreen("home");await loadMatches();}else if(mamScreenMode==="upcoming"){setMamScreen("live");await loadLiveMatches();}else{setMamScreen("home");await loadMatches();}window.scrollTo({top:0,behavior:"smooth"});});
  $("mamSectionRefresh")?.addEventListener("click",async()=>{if(mamScreenMode==="live")await loadLiveMatches();else if(mamScreenMode==="upcoming")await loadMatches();else if(mamScreenMode==="standings")await loadStandings();});
  const standingCompetitions=[
   {id:"203",name:"Trendyol Süper Lig",flag:"🇹🇷",group:"turkey",popular:true},
