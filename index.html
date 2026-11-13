@@ -2713,7 +2713,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v49_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v50_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2903,7 +2903,20 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   };
   const wanted=normalize(teamName);
   const accepted=new Set([wanted,...(aliases[wanted]||[]).map(normalize),...Object.entries(aliases).filter(([,variants])=>variants.some(value=>normalize(value)===wanted)).map(([canonical])=>normalize(canonical))]);
-  const isTarget=name=>accepted.has(normalize(name));
+  // Serie A official standings names can contain club suffixes/numbers that are
+  // absent from football-data CSVs. Canonicalize both sides before comparison.
+  const serieACanonical=value=>{
+    const n=normalize(value);
+    if(String(leagueId)!=="135")return n;
+    if(["bologna","bologna 1909","bologna fc 1909"].includes(n))return "bologna";
+    if(["parma","parma calcio","parma calcio 1913"].includes(n))return "parma";
+    if(["sassuolo","sassuolo calcio","us sassuolo calcio"].includes(n))return "sassuolo";
+    if(["inter","internazionale","inter milan","fc internazionale"].includes(n))return "inter";
+    if(["verona","hellas verona"].includes(n))return "verona";
+    return n;
+  };
+  const targetCanonical=serieACanonical(teamName);
+  const isTarget=name=>accepted.has(normalize(name))||serieACanonical(name)===targetCanonical;
   const output=[];
   const seen=new Set();
   let sourceError="";
