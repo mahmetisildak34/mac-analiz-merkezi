@@ -1635,44 +1635,49 @@ async function espnFixtures(date,includeAllLeagues=false){
  });
  if(!targets.length)return [];
  const espnDate=String(date).replace(/-/g,"");
- const results=await Promise.allSettled(targets.map(async([leagueId,league])=>{
-  // ESPN isteği tarayıcıdan doğrudan değil, CORS izinli Cloudflare Worker üzerinden gider.
-  const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:espnDate,limit:500}));
-  const events=Array.isArray(payload.events)?payload.events:[];
-  return events.map(event=>{
-   const competition=(event.competitions||[])[0]||{};
-   const competitors=competition.competitors||[];
-   const home=competitors.find(team=>team.homeAway==="home")||{};
-   const away=competitors.find(team=>team.homeAway==="away")||{};
-   const state=String(event.status?.type?.state||"").toLowerCase();
-   const completed=event.status?.type?.completed===true||state==="post";
-   const live=state==="in"||/in progress|halftime|live/i.test(event.status?.type?.detail||"");
-   const statusShort=completed?"FT":live?"LIVE":"NS";
-   const toGoals=value=>{
-    if(value===null||value===undefined||value==="")return null;
-    const parsed=Number(value);
-    return Number.isFinite(parsed)?parsed:null;
-   };
-   const teamId=value=>{
-    const n=Number(value);
-    if(Number.isFinite(n)&&n!==0)return n;
-    return -1;
-   };
-   return {
-    fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||date+"T12:00:00Z",status:{short:statusShort,displayClock:event.status?.displayClock||event.status?.type?.detail||""}},
-    league:{id:leagueId,name:league.name,country:league.country},
-    teams:{
-     home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||home.team?.logos?.[0]?.url||""},
-     away:{id:teamId(away.team?.id),name:away.team?.displayName||away.team?.name||"",logo:away.team?.logo||away.team?.logos?.[0]?.href||away.team?.logos?.[0]?.url||""}
-    },
-    goals:{home:toGoals(home.score),away:toGoals(away.score)}
-   };
-  }).filter(match=>match.teams.home.name&&match.teams.away.name);
- }));
- const matches=results.flatMap(result=>result.status==="fulfilled"?result.value:[]);
- const failures=results.filter(result=>result.status==="rejected");
+ const results=new Array(targets.length);
+ let cursor=0;
+ // iPhone/Safari ve Worker üzerinde çok sayıda eşzamanlı istek yerine kontrollü tarama.
+ const worker=async()=>{
+  while(cursor<targets.length){
+   const index=cursor++,[leagueId,league]=targets[index];
+   try{
+    const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:espnDate,limit:500}));
+    const events=Array.isArray(payload.events)?payload.events:[];
+    results[index]={status:"fulfilled",value:events.map(event=>{
+     const competition=(event.competitions||[])[0]||{};
+     const competitors=competition.competitors||[];
+     const home=competitors.find(team=>team.homeAway==="home")||{};
+     const away=competitors.find(team=>team.homeAway==="away")||{};
+     const eventType=event.status?.type||{},competitionType=competition.status?.type||{};
+     const state=String(eventType.state||competitionType.state||"").toLowerCase();
+     const detail=String(eventType.detail||competitionType.detail||eventType.name||competitionType.name||"");
+     const completed=eventType.completed===true||competitionType.completed===true||state==="post";
+     const live=!completed&&(state==="in"||state==="live"||state==="inprogress"||/in progress|halftime|live|first half|second half|extra time|penalty/i.test(detail));
+     const statusShort=completed?"FT":live?"LIVE":"NS";
+     const toGoals=value=>{
+      if(value===null||value===undefined||value==="")return null;
+      const parsed=Number(value);return Number.isFinite(parsed)?parsed:null;
+     };
+     const teamId=value=>{const n=Number(value);return Number.isFinite(n)&&n!==0?n:-1;};
+     return {
+      fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||date+"T12:00:00Z",status:{short:statusShort,displayClock:eventType.displayClock||competitionType.displayClock||detail}},
+      league:{id:leagueId,name:league.name,country:league.country},
+      teams:{
+       home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||home.team?.logos?.[0]?.url||""},
+       away:{id:teamId(away.team?.id),name:away.team?.displayName||away.team?.name||"",logo:away.team?.logo||away.team?.logos?.[0]?.href||away.team?.logos?.[0]?.url||""}
+      },
+      goals:{home:toGoals(home.score),away:toGoals(away.score)}
+     };
+    }).filter(match=>match.teams.home.name&&match.teams.away.name)};
+   }catch(error){results[index]={status:"rejected",reason:error};}
+  }
+ };
+ await Promise.all(Array.from({length:Math.min(5,targets.length)},worker));
+ const matches=results.flatMap(result=>result?.status==="fulfilled"?result.value:[]);
+ const failures=results.filter(result=>result?.status==="rejected");
  if(!matches.length&&failures.length){
-  throw new Error("ESPN sonuçları: "+failures.map((x,index)=>targets[index]?.[1]?.name+": "+String(x.reason?.message||x.reason)).join(" | "));
+  throw new Error("ESPN sonuçları ("+failures.length+"/"+targets.length+" lig isteği başarısız): "+failures.slice(0,4).map((x,index)=>String(x.reason?.message||x.reason)).join(" | "));
  }
  return matches.sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
 }
