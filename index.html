@@ -3146,8 +3146,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         date:String(item.DateUtc||"").slice(0,10),
         home:String(item.HomeTeam||"").trim(),
         away:String(item.AwayTeam||"").trim(),
-        homeGoals:item.HomeTeamScore===null||item.HomeTeamScore===""?null:Number(item.HomeTeamScore),
-        awayGoals:item.AwayTeamScore===null||item.AwayTeamScore===""?null:Number(item.AwayTeamScore),
+        homeGoals:item.HomeTeamScore==null||item.HomeTeamScore===""?null:Number(item.HomeTeamScore),
+        awayGoals:item.AwayTeamScore==null||item.AwayTeamScore===""?null:Number(item.AwayTeamScore),
         round:item.RoundNumber??null,
         matchNumber:item.MatchNumber??null
       })).filter(item=>item.date&&item.home&&item.away);
