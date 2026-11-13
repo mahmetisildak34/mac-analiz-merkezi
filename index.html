@@ -3277,12 +3277,12 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // Örnek: Fenerbahçe 2025/26'da Avrupa Ligi'nde oynadığı için CL analizinde de
   // bu gerçek maçlar takım geçmişine katılmalıdır.
   if(["2","3","848"].includes(String(leagueId))){
-    const uefaFeeds=["champions-league","europa-league","conference-league"];
+    const uefaFeeds=String(leagueId)==="848"?["conference-league"]:String(leagueId)==="3"?["europa-league"]:["champions-league"];
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const currentSeasonStart=matchMonth>=7?matchYear:matchYear-1;
     const uefaYears=String(leagueId)==="848"?[2027,2026,2025]:[currentSeasonStart,currentSeasonStart-1,currentSeasonStart-2].filter(y=>y>=2024);
     const loadUefaFeed=async(slug,year)=>{
-      const cacheKey="mam_uefa_fixture_archive_"+slug+"_"+year+"_v5";
+      const cacheKey="mam_uefa_fixture_archive_"+slug+"_"+year+"_v6";
       try{
         const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
         if(Array.isArray(cached?.matches)&&Date.now()-cached.time<24*60*60*1000)return cached.matches;
