@@ -1094,7 +1094,14 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
  </div>
  <div class="mam-standings-card" id="mamStandingsCard" hidden><div class="mam-standings-card-head"><button type="button" id="mamStandingsBack" class="secondary">← Liglere dön</button><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Lig puan durumu</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosu yükleniyor...</div></div></div>
  </section>
-<div class="mam-home-intro">
+<section class="mam-home-shortcuts" aria-label="Hızlı erişim">
+ <button type="button" class="mam-home-shortcut live" data-home-action="live"><span class="shortcut-icon">◉</span><strong>Canlı Maçlar</strong><small>Devam eden karşılaşmaları takip et</small></button>
+ <button type="button" class="mam-home-shortcut" data-home-action="upcoming"><span class="shortcut-icon">▦</span><strong>Gelecek Maçlar</strong><small>Fikstürü ve maç saatlerini incele</small></button>
+ <button type="button" class="mam-home-shortcut analysis" data-home-action="analysis"><span class="shortcut-icon">▥</span><strong>Maç Analizi</strong><small>Takım formu ve tahminlere ulaş</small></button>
+ <button type="button" class="mam-home-shortcut archive" data-home-action="archive"><span class="shortcut-icon">▤</span><strong>İstatistik Arşivi</strong><small>Geçmiş maçları ve sonuçları incele</small></button>
+ </section>
+ <div class="mam-home-section-label">GÜNÜN MAÇLARI</div>
+ <div class="mam-home-intro">
 <div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
 <h1>Futbolun nabzı burada.</h1>
 <p>Canlı maçları takip et, gelecek karşılaşmaları incele ve kendi analiz motorumuzla detaylara gir.</p>
@@ -4940,6 +4947,44 @@ body{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
 .mam-bottom-tabs button:active{transform:scale(.98)}
 @media(min-width:760px){.mam-bottom-tabs{left:50%;right:auto;width:min(100%,560px);transform:translateX(-50%);border:1px solid #e3e8ed;border-bottom:0;border-radius:18px 18px 0 0}}
 .match-detail-overlay:not([hidden])~.mam-bottom-tabs{display:none}
+
+
+/* ===== HOME DASHBOARD REDESIGN · PREVIEW ONLY ===== */
+:root{--mam-green:#18df70;--mam-green-soft:#0b3a29}
+body{background:#050d0b!important;color:#f3faf6!important}
+main{background:transparent!important}
+.mam-appbar{background:linear-gradient(135deg,#071b14,#0b2b1d)!important;border:1px solid rgba(45,230,125,.2)!important}
+.mam-brand{color:#f4fff8!important}
+.mam-brand-ball{filter:drop-shadow(0 0 8px rgba(24,223,112,.5))}
+.mam-home-intro{
+ position:relative;overflow:hidden;margin:12px 0 14px;padding:22px 18px 20px!important;
+ border:1px solid rgba(42,224,119,.3);border-radius:22px;
+ background:radial-gradient(ellipse at 85% 10%,rgba(24,223,112,.2),transparent 48%),linear-gradient(135deg,#0b2b1d,#071710 75%);
+ box-shadow:0 14px 34px rgba(0,0,0,.22)
+}
+.mam-home-intro:after{content:"⚽";position:absolute;right:16px;top:22px;font-size:42px;opacity:.16}
+.mam-home-intro>div{color:#67e9a0!important;font-size:10px!important;letter-spacing:1.4px}
+.mam-home-intro h1{font-size:clamp(27px,7vw,36px)!important;line-height:1.08;margin:13px 0 8px!important;max-width:270px}
+.mam-home-intro p{color:#b4cbbd!important;max-width:300px}
+.mam-home-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 16px}
+.mam-home-shortcut{min-height:116px;padding:15px 14px;border-radius:18px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(145deg,#10271d,#0b1913);color:#f4fff8;text-align:left;box-shadow:0 9px 22px rgba(0,0,0,.17)}
+.mam-home-shortcut strong{display:block;font-size:15px;margin:9px 0 4px}
+.mam-home-shortcut small{display:block;color:#a7bdaf;font-size:11px;line-height:1.4}
+.mam-home-shortcut .shortcut-icon{font-size:23px;color:#35e883}
+.mam-home-shortcut.live{border-color:rgba(255,80,95,.32)}
+.mam-home-shortcut.live .shortcut-icon{color:#ff6570}
+.mam-home-shortcut.analysis{background:linear-gradient(145deg,#172b3b,#0c1a25);border-color:rgba(76,170,255,.25)}
+.mam-home-shortcut.analysis .shortcut-icon{color:#69baff}
+.mam-home-shortcut.archive{background:linear-gradient(145deg,#30250d,#191507);border-color:rgba(255,192,64,.25)}
+.mam-home-shortcut.archive .shortcut-icon{color:#ffd05a}
+.mam-home-section-label{margin:18px 3px 9px;color:#a9c2b2;font-size:11px;font-weight:900;letter-spacing:1.1px}
+.mam-bottom-tabs{background:rgba(5,18,12,.96)!important;border-top:1px solid rgba(47,222,117,.25)!important;box-shadow:0 -8px 26px rgba(0,0,0,.3)!important}
+.mam-bottom-tabs button{background:#10271c!important;color:#b9d0c1!important;border-color:rgba(108,157,123,.18)!important}
+.mam-bottom-tabs button.is-active{background:linear-gradient(135deg,#18df70,#0fb85b)!important;color:#052313!important;border-color:transparent!important}
+.mam-section-header{background:#0d2117!important;border:1px solid rgba(46,216,111,.18)!important}
+.mam-nav-item{background:#10251a!important;border-color:rgba(67,190,105,.13)!important}
+.mam-nav-item span:first-child{color:#3fe889!important}
+@media(max-width:390px){.mam-home-shortcut{min-height:108px;padding:12px}.mam-home-shortcut strong{font-size:14px}}
 
 </style><header style="flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px;background:#0d1c29;border-bottom:1px solid rgba(255,255,255,.12);"><button type="button" id="mamTeamHistoryBack" style="width:38px;height:38px;min-height:38px;border-radius:50%;background:#203345;color:#fff;border:1px solid rgba(255,255,255,.16);font-size:22px;">‹</button><div style="flex:1;min-width:0;"><small style="display:block;color:#66dcb2;font-size:9px;font-weight:900;">'+(esc(standingCompetitionNames[String(selectedStandingsLeague)]||ESPN_LEAGUES[String(selectedStandingsLeague)]?.name||"LİG")+" · TAKIM MAÇLARI")+'</small><strong style="display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(teamName)+'</strong></div><span style="font-size:10px;color:#a9bac6;">SON 10</span></header><main id="mamTeamHistoryContent" style="flex:1 1 0;min-height:0;overflow-y:auto!important;-webkit-overflow-scrolling:touch;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px);background:linear-gradient(180deg,#0b1c29,#07131d);"><div style="padding:12px;border-radius:12px;background:#132b38;color:#b9cbd0;font-size:12px;">Son 10 tamamlanmış maç aranıyor…</div></main>';
   document.body.appendChild(screen);
