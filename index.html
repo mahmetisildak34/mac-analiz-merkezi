@@ -3454,21 +3454,21 @@ async function analyze(button){
      const active=x===tab;x.style.background=active?"#287c68":"#1b3441";x.style.color=active?"#fff":"#c6d6dc";
     });
    }));
-   // Build detail controls for every fixture and delegate taps from the full-screen view.
-   upcomingView.querySelectorAll(".mam-upcoming-match").forEach(article=>makeMamDetailTab(article));
-   screen.addEventListener("click",event=>{
-    const article=event.target.closest?.(".mam-upcoming-match");
-    if(!article||!screen.contains(article))return;
-    if(!event.target.closest?.(".match-versus,.mam-match-open,.predBtn"))return;
-    event.preventDefault();event.stopPropagation();
-    activateMamFixture(article);
-   },true);
-   screen.addEventListener("keydown",event=>{
-    if(event.key!=="Enter"&&event.key!==" ")return;
-    const article=event.target.closest?.(".mam-upcoming-match");
-    if(!article||!event.target.closest?.(".match-versus"))return;
-    event.preventDefault();activateMamFixture(article);
-   },true);
+   // Bind controls directly before moving each card into the detail overlay.
+   // Direct listeners remain attached when the card is re-parented out of this screen.
+   upcomingView.querySelectorAll(".mam-upcoming-match").forEach(article=>{
+    const openAnalysis=event=>{
+     event?.preventDefault();event?.stopPropagation();
+     activateMamFixture(article);
+    };
+    article.querySelector(".predBtn")?.addEventListener("click",openAnalysis);
+    const versus=article.querySelector(".match-versus");
+    versus?.addEventListener("click",openAnalysis);
+    versus?.addEventListener("keydown",event=>{
+     if(event.key==="Enter"||event.key===" "){event.preventDefault();openAnalysis(event);}
+    });
+    makeMamDetailTab(article);
+   });
   }catch(error){
    screen.querySelector("#mamTeamHistoryContent").innerHTML='<div style="padding:16px;border-radius:14px;background:#132b38;color:#ffc2c2;">'+esc(error.message||error)+'</div>';
   }
