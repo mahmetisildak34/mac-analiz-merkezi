@@ -3609,7 +3609,7 @@ async function analyze(button){
    return upcoming;
   }
   async function getLaLigaUpcoming(){
-   const cacheKey="mam_laliga_fixtures_2627_v1";
+   const cacheKey="mam_laliga_fixtures_2627_v2";
    try{
     const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
     if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))return cached.matches;
@@ -3649,10 +3649,11 @@ async function analyze(button){
     if(!date||!home||!away)return null;
     // Source times are Spain local time: CET in winter, CEST from 28 March 2027.
     const offset=date>="2027-03-28"?"+02:00":"+01:00";
-    const kickoff=date+"T"+(time||"12:00")+":00"+offset;
+    const timeUnknown=!time||time==="01:00";
+    const kickoff=date+"T"+(timeUnknown?"12:00":time)+":00"+offset;
     if(Date.parse(kickoff)<now-60*60*1000)return null;
     return {
-     fixture:{id:"laliga-csv-"+round+"-"+date+"-"+normalizeName(home)+"-"+normalizeName(away),date:kickoff,status:{short:"NS"}},
+     fixture:{id:"laliga-csv-"+round+"-"+date+"-"+normalizeName(home)+"-"+normalizeName(away),date:kickoff,status:{short:"NS"},timeUnknown},
      league:{id:"140",name:"La Liga",country:"Spain"},
      teams:{home:{id:idFor(home),name:home},away:{id:idFor(away),name:away}},
      goals:{home:null,away:null}
@@ -3738,7 +3739,7 @@ async function analyze(button){
     const date=String(m.fixture?.date||"");
     const dt=date?new Date(date):null;
     const dateLabel=dt?dt.toLocaleDateString("tr-TR",{day:"2-digit",month:"2-digit",timeZone:"Europe/Istanbul"}):"--/--";
-    const time=dt?dt.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"}):"—:—";
+    const time=dt?(m.fixture?.timeUnknown?"Saat açıklanmadı":dt.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"})):"—:—";
     const competition=m.league?.name||ESPN_LEAGUES[String(selectedStandingsLeague)]?.name||"Lig",icon=m.league?.icon||(String(m.league?.id)==="39"?"🏴":String(m.league?.id)==="203"?"🇹🇷":"🏆");
      const fixtureId="mam-upcoming-"+String(m.fixture?.id||Date.now()).replace(/[^a-zA-Z0-9_-]/g,"-");
      const homeId=Number(home.id)||0,awayId=Number(away.id)||0;
