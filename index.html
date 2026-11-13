@@ -2360,6 +2360,7 @@ let mamActiveMatch=null;
 let mamActivePlaceholder=null;
 let mamDetailOverlay=null;
 function mamOutcomeBadge(goalsFor,goalsAgainst){
+ if(goalsFor===null||goalsFor===undefined||goalsAgainst===null||goalsAgainst===undefined||goalsFor===""||goalsAgainst==="")return "";
  const a=Number(goalsFor),b=Number(goalsAgainst);
  if(!Number.isFinite(a)||!Number.isFinite(b))return "";
  const result=a>b?"G":a<b?"M":"B";
