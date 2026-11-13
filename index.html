@@ -1518,26 +1518,39 @@ async function loadMatches(){
 }
 
 async function getTFFSuperLigUpcoming(){
- const key="mam_tff_superlig_upcoming_20261113_v1";
+ const key="mam_tff_superlig_upcoming_live_v2";
  try{
   const cached=JSON.parse(localStorage.getItem(key)||"null");
-  if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))return cached.matches;
+  if(cached?.time&&Date.now()-cached.time<2*60*1000&&Array.isArray(cached.matches))return cached.matches;
  }catch(e){}
- const response=await fetch("./data/TUR_1_super-lig/upcoming_2627.json?build=20261113",{cache:"no-store"});
- if(!response.ok)throw new Error("TFF fikstür dosyası alınamadı ("+response.status+").");
- const data=await response.json();
- if(!Array.isArray(data?.fixtures)||!data.fixtures.length)throw new Error("TFF fikstür kaynağında maç bulunamadı.");
+ let snapshot=null;
+ try{
+  snapshot=await api("superlig/fixtures");
+ }catch(workerError){
+  console.warn("Canlı TFF Worker fikstürü henüz kullanılamıyor; statik TFF yedeği deneniyor.",workerError);
+ }
+ let fixtures=Array.isArray(snapshot?.fixtures)?snapshot.fixtures:null;
+ if(!fixtures){
+  const response=await fetch("./data/TUR_1_super-lig/upcoming_2627.json?build=20261113",{cache:"no-store"});
+  if(!response.ok)throw new Error("TFF canlı fikstür servisi henüz hazır değil ve yedek fikstür alınamadı.");
+  const data=await response.json();
+  fixtures=(data?.fixtures||[]).map(x=>({
+   fixture:{id:x.id,date:x.date,status:{short:"NS",elapsed:null}},
+   league:{id:203,name:"Trendyol Süper Lig",country:"Türkiye",round:String(x.round)+". Hafta"},
+   teams:{home:{id:null,name:x.home},away:{id:null,name:x.away}},
+   goals:{home:null,away:null},_source:"TFF"
+  }));
+ }
  const now=Date.now();
- const matches=data.fixtures.filter(x=>Date.parse(x.date)>=now).map(x=>({
-  fixture:{id:x.id,date:x.date,status:{short:"NS",elapsed:null}},
-  league:{id:203,name:"Trendyol Süper Lig",country:"Türkiye",round:String(x.round)+". Hafta"},
-  teams:{home:{id:null,name:x.home},away:{id:null,name:x.away}},
-  goals:{home:null,away:null},
-  _source:"TFF"
- })).sort((x,y)=>Date.parse(x.fixture.date)-Date.parse(y.fixture.date));
+ const matches=fixtures.filter(x=>{
+  const date=Date.parse(x.fixture?.date||"");
+  const status=String(x.fixture?.status?.short||"NS");
+  return Number.isFinite(date)&&date>=now-60*60*1000&&["NS","TBD","PST"].includes(status);
+ }).sort((x,y)=>Date.parse(x.fixture.date)-Date.parse(y.fixture.date));
  try{localStorage.setItem(key,JSON.stringify({time:Date.now(),matches}));}catch(e){}
  return matches;
 }
+
 async function loadSuperLigFixtures(){
  const button=$("loadSuperLigFixtures");
  if(!button)return;
