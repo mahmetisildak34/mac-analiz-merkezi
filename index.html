@@ -1360,7 +1360,7 @@ async function getEspnMatchStats(leagueId,eventId){
 }
 
 async function getApiFootballMatchStats(fixtureId){
- if(!new RegExp("^\\d+$").test(String(fixtureId||"")))return null;
+ if(!new RegExp("^\d+$").test(String(fixtureId||"")))return null;
  const data=await api("fixtures/statistics?"+qs({fixture:fixtureId}));
  const rows=Array.isArray(data.response)?data.response:[];
  if(rows.length<2)return null;
@@ -2809,6 +2809,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)].slug;
       let espnTeamId="";
+      let espnHistorySlug=espnLeagueSlug;
       if(String(sourceFixtureId||"").startsWith("espn-")&&/^\d+$/.test(String(teamId))){
         espnTeamId=String(teamId);
       }else{
@@ -2832,9 +2833,26 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
           const found=uniqueTeams.find(team=>
             [team.displayName,team.name,team.shortDisplayName,team.abbreviation].filter(Boolean).some(isTarget)
           );
-          if(found&&/^\\d+$/.test(String(found.id)))espnTeamId=String(found.id);
+          if(found&&/^\d+$/.test(String(found.id)))espnTeamId=String(found.id);
         }catch(directoryError){
           sourceError+=" ESPN takım rehberi: "+String(directoryError?.message||directoryError);
+        }
+        // Hull City gibi yükselen/düşen takımlar önceki sezonu alt ligde oynamış olabilir.
+        if(!espnTeamId&&String(leagueId)==="39"){
+          try{
+            const lowerDirectory=await api("espn/eng.2/teams?"+qs({limit:500}));
+            const lowerTeams=[];
+            const collectLower=value=>{
+              if(!value||typeof value!=="object")return;
+              if(Array.isArray(value)){value.forEach(collectLower);return;}
+              if(value.team&&typeof value.team==="object")lowerTeams.push(value.team);
+              if(value.id&&(value.displayName||value.name||value.shortDisplayName))lowerTeams.push(value);
+              for(const [key,child] of Object.entries(value)){if(key!=="team"&&child&&typeof child==="object")collectLower(child);}
+            };
+            collectLower(lowerDirectory);
+            const foundLower=lowerTeams.find(team=>[team.displayName,team.name,team.shortDisplayName,team.abbreviation].filter(Boolean).some(isTarget));
+            if(foundLower&&/^\d+$/.test(String(foundLower.id))){espnTeamId=String(foundLower.id);espnHistorySlug="eng.2";}
+          }catch(lowerError){sourceError+=" ESPN Championship rehberi: "+String(lowerError?.message||lowerError);}
         }
         // Eski ESPN yedeği: takım rehberi yanıt vermezse hedef maç gününün skor tablosuna bak.
         if(!espnTeamId){
@@ -2858,7 +2876,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         const seasonStart=matchMonth>=7?matchYear:matchYear-1;
         const scheduleYears=[seasonStart,seasonStart-1,seasonStart-2];
         const scheduleResults=await Promise.allSettled(scheduleYears.map(season=>
-          api("espn/"+espnLeagueSlug+"/teams/"+espnTeamId+"/schedule?"+qs({season}))
+          api("espn/"+espnHistorySlug+"/teams/"+espnTeamId+"/schedule?"+qs({season}))
         ));
         for(const scheduleResult of scheduleResults){
           if(scheduleResult.status!=="fulfilled"){
@@ -2904,7 +2922,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const result=output.slice(0,20);
   // Son geçmiş maçların gerçek istatistiklerini doğru sağlayıcıdan tamamla.
   // İstek sayısını sınırlı tutuyoruz; bulunan sonuçlar yerel önbelleğe alınır.
-  const candidates=String(leagueId)==="203"?[]:result.filter(m=>!m.statistics&&new RegExp("^\\d+$").test(String(m.fixture?.id||""))).slice(0,8);
+  const candidates=String(leagueId)==="203"?[]:result.filter(m=>!m.statistics&&new RegExp("^\d+$").test(String(m.fixture?.id||""))).slice(0,8);
   await Promise.all(candidates.map(async match=>{
     try{
       const stats=match.mamSource==="espn"
