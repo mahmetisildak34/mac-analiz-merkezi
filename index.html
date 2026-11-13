@@ -2088,11 +2088,12 @@ function activateMamFixture(article){
  const kickoff=Date.parse(analysisButton?.dataset.kickoff||"");
  const status=String(analysisButton?.dataset.status||"").toUpperCase();
  const isStarted=(Number.isFinite(kickoff)&&kickoff>0&&Date.now()>=kickoff)||["1H","HT","2H","ET","P","LIVE","INPLAY"].includes(status);
- if(isStarted){openMamMatchDetail(article);return;}
+ // Maç önü: önce ortak maç detay ekranını aç, sonra analiz sekmesine geç.
+ // Böylece hesaplama ve hata mesajı kullanıcıya görünür panel içinde gösterilir.
+ openMamMatchDetail(article);
  const analysisTab=article.querySelector('.match-detail-tab[data-pane="analysis"]');
  if(analysisTab)analysisTab.click();
- if(analysisButton){analyze(analysisButton);}
- else openMamMatchDetail(article);
+ if(analysisButton)analyze(analysisButton);
 }
 function openMamMatchDetail(article){
  if(!article||mamActiveMatch)return;
