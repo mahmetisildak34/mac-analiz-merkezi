@@ -2713,7 +2713,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v53_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v54_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -4062,45 +4062,13 @@ async function analyze(button){
     else if(["2","3","848"].includes(String(selectedStandingsLeague))){
      const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
      if(!league?.slug)throw new Error("UEFA fikstür kaynağı tanımlı değil.");
-     // Standings kimliği farklı sağlayıcıdan gelebileceği için ESPN takım
-     // rehberinden kulübün gerçek ESPN ID'sini ismiyle bul.
-     const teamNorm=value=>String(value||"").normalize("NFD").toLowerCase()
-      .replace(/[\\u0300-\\u036f]/g,"").replace(/&/g," and ")
-      .replace(/\\b(football club|fc|afc|cf)\\b/g,"").replace(/[^a-z0-9]+/g,"").trim();
-     const wantedTeam=teamNorm(teamName);
-     const directory=await api("espn/"+league.slug+"/teams?"+qs({limit:500}));
-     const directoryTeams=[];
-     const collectDirectory=value=>{
-      if(!value||typeof value!=="object")return;
-      if(Array.isArray(value)){value.forEach(collectDirectory);return;}
-      if(value.team&&typeof value.team==="object")directoryTeams.push(value.team);
-      if(value.id&&(value.displayName||value.name||value.shortDisplayName||value.abbreviation))directoryTeams.push(value);
-      for(const [key,child] of Object.entries(value)){if(key!=="team"&&child&&typeof child==="object")collectDirectory(child);}
-     };
-     collectDirectory(directory);
-     const uniqueDirectory=[...new Map(directoryTeams.filter(t=>t.id).map(t=>[String(t.id),t])).values()];
-     const teamAliases={
-      "parissaintgermain":["psg","parissg"],"psg":["parissaintgermain","parissg"],
-      "atleticomadrid":["atleticodemadrid","atletic"],"inter":["internazionale","intermilan"],
-      "internazionale":["inter","intermilan"],"manchestercity":["mancity"],
-      "manchesterunited":["manutd"],"sportingcp":["sportinglisbon"],
-      "tottenhamhotspur":["tottenham","spurs"],"borussiadortmund":["dortmund"],
-      "bayernmunich":["bayernmunchen","bayern"],"redbullsalzburg":["salzburg"],
-      "olympiquedemarseille":["marseille"],"olympiquelyonnais":["lyon"],
-      "realbetisbalompie":["realbetis","betis"],"realsociedaddefutbol":["realsociedad"]
-     };
-     const teamNameMatches=value=>{
-      const candidate=teamNorm(value);
-      return candidate===wantedTeam||(teamAliases[wantedTeam]||[]).includes(candidate)||
-       (teamAliases[candidate]||[]).includes(wantedTeam);
-     };
-     const espnTeam=uniqueDirectory.find(t=>
-      [t.displayName,t.name,t.shortDisplayName,t.abbreviation].filter(Boolean).some(teamNameMatches)
-     );
-     if(!espnTeam||!/^\\d+$/.test(String(espnTeam.id)))throw new Error(teamName+" için ESPN takım kimliği bulunamadı.");
-     // 2026/27 sezon takvimini çek; böylece sezonun tüm gelecek maçları listelenir.
-     const schedule=await api("espn/"+league.slug+"/teams/"+String(espnTeam.id)+"/schedule?"+qs({season:2026}));
-     leagueFixtures=(Array.isArray(schedule.events)?schedule.events:[]).map(event=>{
+     // Tüm turnuvanın kalan sezon fikstürünü al; takım ID eşleşmesine bağımlı kalma.
+     const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+     const from=new Date();from.setHours(0,0,0,0);
+     const to=new Date(2027,5,30,23,59,59,999);
+     const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:fmt(from)+"-"+fmt(to),limit:500}));
+     const events=Array.isArray(payload.events)?payload.events:[];
+     leagueFixtures=events.map(event=>{
       const comp=event.competitions?.[0]||{},teams=comp.competitors||[];
       const h=teams.find(x=>x.homeAway==="home")||{},a=teams.find(x=>x.homeAway==="away")||{};
       const state=String(comp.status?.type?.state||event.status?.type?.state||"").toLowerCase();
@@ -4111,6 +4079,7 @@ async function analyze(button){
        teams:{home:{id:Number(h.team?.id)||-1,name:h.team?.displayName||h.team?.name||""},away:{id:Number(a.team?.id)||-1,name:a.team?.displayName||a.team?.name||""}},
        goals:{home:h.score==null?null:Number(h.score),away:a.score==null?null:Number(a.score)}};
      }).filter(m=>String(m.fixture.status.short)==="NS"&&Date.parse(m.fixture.date)>=Date.now());
+     if(!leagueFixtures.length)throw new Error(league.name+" sezon fikstüründe gelecek maç bulunamadı.");
     }else{
      const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
      if(!league?.slug)throw new Error("Bu lig için henüz gelecek fikstür kaynağı tanımlı değil.");
