@@ -3338,7 +3338,13 @@ async function analyze(button){
     const cacheKey="mam_superlig_all_upcoming_2026_v2";
     let leagueFixtures=[];
     try{const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");if(cached?.time&&Date.now()-cached.time<900000&&Array.isArray(cached.matches))leagueFixtures=cached.matches;}catch(e){}
-    if(!leagueFixtures.length){const payload=await api("fixtures?"+qs({league:203,season:2026,next:99,timezone:"Europe/Istanbul"}));leagueFixtures=Array.isArray(payload?.response)?payload.response:[];try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:leagueFixtures}));}catch(e){}}
+    if(!leagueFixtures.length){
+     let payload;
+     try{payload=await api("fixtures?"+qs({league:203,season:2026,next:99,timezone:"Europe/Istanbul"}));}
+     catch(primaryError){const today=new Date();today.setHours(12,0,0,0);const from=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");payload=await api("fixtures?"+qs({league:203,season:2026,from:from,to:"2027-06-30",timezone:"Europe/Istanbul"}));}
+     leagueFixtures=Array.isArray(payload?.response)?payload.response:[];
+     try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:leagueFixtures}));}catch(e){}
+    }
     const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
     const wanted=norm(teamName);
     const aliases={"caykurrizespor":["rizespor"],"erzurum bb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"]};
@@ -3370,7 +3376,7 @@ async function analyze(button){
     const dateLabel=dt?dt.toLocaleDateString("tr-TR",{day:"2-digit",month:"2-digit",timeZone:"Europe/Istanbul"}):"--/--";
     const time=dt?dt.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"}):"—:—";
     return '<div style="display:grid;grid-template-columns:48px minmax(0,1fr) 48px minmax(0,1fr);align-items:center;gap:5px;min-height:55px;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.09);"><span style="font-size:10px;color:#c0c9ce;white-space:nowrap;">'+dateLabel+'</span><b style="font-size:11px;line-height:1.25;text-align:right;color:#f1f4f5;overflow-wrap:anywhere;">'+esc(home.name||"Ev sahibi")+'</b><strong style="font-size:11px;text-align:center;color:#75dcb6;white-space:nowrap;">'+time+'</strong><b style="font-size:11px;line-height:1.25;text-align:left;color:#f1f4f5;overflow-wrap:anywhere;">'+esc(away.name||"Deplasman")+'</b></div>';
-   }).join("")+'</div></div></section>':'<section style="margin-top:22px;"><div style="font-size:12px;font-weight:900;color:#65dcb1;margin:0 2px 10px;">GELECEK MAÇLAR</div><p style="font-size:12px;color:#a9c0c4;">'+(upcomingError?"Gelecek fikstürü şu an alınamadı.":"Şu an listelenecek gelecek maç bulunamadı.")+'</p></section>';
+   }).join("")+'</div></div></section>':'<section style="margin-top:22px;"><div style="font-size:12px;font-weight:900;color:#65dcb1;margin:0 2px 10px;">GELECEK MAÇLAR</div><p style="font-size:12px;color:#a9c0c4;">'+(upcomingError?"Gelecek fikstürü alınamadı: "+esc(upcomingError):"Şu an listelenecek gelecek maç bulunamadı.")+'</p></section>';
    const switchBar='<div style="display:flex;gap:7px;margin:0 0 12px;padding:4px;border:1px solid rgba(160,205,195,.16);border-radius:12px;background:#102431;"><button type="button" data-history-view="past" style="flex:1;min-height:34px;padding:7px 10px;border-radius:9px;background:#287c68;color:#fff;font-size:11px;font-weight:850;">Geçmiş maçlar</button><button type="button" data-history-view="upcoming" style="flex:1;min-height:34px;padding:7px 10px;border-radius:9px;background:#1b3441;color:#c6d6dc;font-size:11px;font-weight:850;">Gelecek maçlar</button></div>';
    content.innerHTML=switchBar+'<div id="mamHistoryPastView">'+pastHtml+'</div><div id="mamHistoryUpcomingView" hidden>'+futureHtml+'</div>';
    const pastView=content.querySelector("#mamHistoryPastView"),upcomingView=content.querySelector("#mamHistoryUpcomingView");
