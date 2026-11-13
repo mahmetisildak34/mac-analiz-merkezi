@@ -1884,44 +1884,54 @@ async function warmLiveTeamHistories(matches){
 async function loadLiveMatches(){
  const button=$("loadLive");
  button.disabled=true;
- $("status").textContent="Canlı maçlar kontrol ediliyor...";
+ $("status").textContent="Canlı maç akışı kontrol ediliyor...";
  const previousMatches=allMatches.slice();
+ let primaryErrorText="",primaryCount=0,espnErrorText="";
+ const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
+ const isLive=match=>liveStatuses.has(String(match.fixture?.status?.short||"").toUpperCase());
  try{
-  const data=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
-  const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
-  const primaryLive=(data.response||[]).filter(m=>liveStatuses.has(String(m.fixture?.status?.short||"")));
-  if(primaryLive.length){
-   allMatches=primaryLive;
-   renderMatches();
-   warmLiveTeamHistories(allMatches);
-   $("status").textContent=allMatches.length+" canlı maç bulundu. Kaynak: API-Football. Tüm ligler gösteriliyor.";
-  }else{
-   $("status").textContent="API-Football canlı akışında maç bulunamadı. Tüm desteklenen ESPN ligleri taranıyor...";
-   const date=$("date").value||new Date().toISOString().slice(0,10);
-   const fallback=await espnFixtures(date,true);
-   allMatches=fallback.filter(m=>String(m.fixture?.status?.short||"")==="LIVE");
-   renderMatches();
-   warmLiveTeamHistories(allMatches);
-   $("status").textContent=allMatches.length
-    ? allMatches.length+" canlı maç bulundu. Kaynak: ESPN (çoklu lig taraması)."
-    : "API-Football ve ESPN kaynaklarında şu an canlı maç bulunamadı.";
-  }
- }catch(primaryError){
+  // Ana kaynak: API-Football live=all bütün ligleri döndürmelidir.
   try{
-   $("status").textContent="API-Football canlı akışı kullanılamıyor. Tüm desteklenen ESPN ligleri deneniyor...";
-   const date=$("date").value||new Date().toISOString().slice(0,10);
+   const data=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
+   primaryCount=Array.isArray(data.response)?data.response.length:0;
+   const primaryLive=(data.response||[]).filter(isLive);
+   if(primaryLive.length){
+    allMatches=primaryLive;
+    renderMatches();
+    warmLiveTeamHistories(allMatches);
+    $("status").textContent=allMatches.length+" canlı maç bulundu · API-Football · Son kontrol: "+new Date().toLocaleTimeString("tr-TR",{timeZone:"Europe/Istanbul"});
+    return;
+   }
+   if(data.errors&&Object.keys(data.errors).length)primaryErrorText=JSON.stringify(data.errors);
+   else primaryErrorText=primaryCount
+    ? "API-Football "+primaryCount+" kayıt döndürdü ancak canlı durum kodu eşleşmedi."
+    : "API-Football live=all boş yanıt döndürdü.";
+  }catch(error){primaryErrorText=String(error?.message||error);}
+  // Yedek kaynak: ESPN'deki desteklenen ligler, kontrollü eşzamanlılıkla taranır.
+  $("status").textContent="Ana kaynak yanıt vermedi; ESPN ligleri taranıyor...";
+  const date=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Istanbul"});
+  try{
    const fallback=await espnFixtures(date,true);
-   allMatches=fallback.filter(m=>String(m.fixture?.status?.short||"")==="LIVE");
-   renderMatches();
-   $("status").textContent=allMatches.length
-    ? allMatches.length+" canlı maç bulundu. Kaynak: ESPN (çoklu lig taraması)."
-    : "ESPN yedek kaynağında şu an canlı maç bulunamadı.";
-  }catch(fallbackError){
-   allMatches=previousMatches;
-   renderMatches();
-   $("status").innerHTML='<span class="error">Canlı maçlar alınamadı. API-Football: '+esc(primaryError.message||primaryError)+' | ESPN: '+esc(fallbackError.message||fallbackError)+'</span>';
-  }
- }finally{button.disabled=false}
+   const fallbackLive=fallback.filter(isLive);
+   if(fallbackLive.length){
+    allMatches=fallbackLive;
+    renderMatches();
+    warmLiveTeamHistories(allMatches);
+    $("status").textContent=fallbackLive.length+" canlı maç bulundu · ESPN yedek kaynağı · API-Football: "+primaryErrorText;
+    return;
+   }
+   espnErrorText="ESPN taraması tamamlandı; desteklenen liglerde canlı maç döndürmedi.";
+  }catch(error){espnErrorText=String(error?.message||error);}
+  allMatches=[];
+  renderMatches();
+  $("status").innerHTML='<span class="error">Canlı maç bulunamadı. API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+'</span>';
+ }catch(unexpectedError){
+  allMatches=previousMatches;
+  renderMatches();
+  $("status").innerHTML='<span class="error">Canlı akış işlenemedi: '+esc(unexpectedError?.message||unexpectedError)+'</span>';
+ }finally{
+  button.disabled=false;
+ }
 }
 
 
