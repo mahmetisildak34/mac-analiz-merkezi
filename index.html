@@ -984,149 +984,54 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 .match.in-detail .match-detail-pane .mam-form-results{margin-top:0!important}
 
 
-/* LIVE MATCH LIST — compact visual layout only; scoped to live screen */
-.mam-screen-live #matches .mam-league-group{
- margin:6px 0 8px!important;
- padding:0 6px 5px!important;
- border-radius:13px!important;
-}
-.mam-screen-live #matches .mam-league-heading{
- min-height:30px!important;
- margin:0 -6px 4px!important;
- padding:0 8px!important;
- gap:6px!important;
-}
-.mam-screen-live #matches .mam-league-globe{
- width:19px!important;height:19px!important;font-size:13px!important;
-}
-.mam-screen-live #matches .mam-league-heading strong{font-size:10px!important}
+
+/* LIVE SCREEN DESIGN — visual-only, shown only after selecting Live Matches */
+.mam-live-nav{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;margin:-1px 0 10px;scrollbar-width:none}
+.mam-live-nav::-webkit-scrollbar{display:none}
+.mam-live-nav[hidden]{display:none!important}
+.mam-live-nav-item{flex:1 0 0;min-width:0;min-height:42px;padding:7px 5px!important;display:flex;align-items:center;justify-content:center;gap:5px;border-radius:12px!important;background:#071e29!important;border:1px solid rgba(0,206,165,.55)!important;color:#eaf8f5!important;box-shadow:none!important;font-size:11px!important;font-weight:800!important;white-space:nowrap}
+.mam-live-nav-item span{font-size:15px}
+.mam-live-nav-item.active{background:linear-gradient(135deg,#0bd49f,#00a982)!important;color:#05241f!important;border-color:#27e8b5!important;box-shadow:0 5px 16px rgba(0,210,160,.2)!important}
+.mam-screen-live .mam-section-header{min-height:62px!important;margin:0 0 10px!important;padding:10px 12px!important;border-radius:15px!important}
+.mam-screen-live .mam-section-title small{font-size:9px!important;letter-spacing:1.5px!important}
+.mam-screen-live .mam-section-title strong{font-size:16px!important}
+.mam-screen-live .mam-section-count{font-size:11px!important}
+.mam-screen-live #matches .mam-league-group{margin:7px 0 9px!important;padding:0 5px 4px!important;border-radius:12px!important;overflow:hidden!important}
+.mam-screen-live #matches .mam-league-heading{min-height:32px!important;margin:0 -5px 3px!important;padding:0 8px!important;gap:7px!important;background:#142d38!important}
+.mam-screen-live #matches .mam-league-globe{width:22px!important;height:22px!important;font-size:16px!important;background:transparent!important}
+.mam-screen-live #matches .mam-league-heading strong{font-size:11px!important;line-height:1.1!important}
 .mam-screen-live #matches .mam-league-heading small{font-size:9px!important}
-.mam-screen-live #matches .mam-league-count{font-size:8px!important}
-.mam-screen-live #matches .mam-league-group .match:not(.in-detail){
- margin:4px 0!important;
- padding:6px 7px!important;
- border-radius:10px!important;
-}
-.mam-screen-live #matches .match:not(.in-detail) .match-head{
- gap:4px!important;
- padding-bottom:4px!important;
- margin-bottom:3px!important;
-}
-.mam-screen-live #matches .match:not(.in-detail) .league-label,
-.mam-screen-live #matches .match:not(.in-detail) .match-time{
- font-size:9px!important;line-height:1.2!important;
-}
-.mam-screen-live #matches .match:not(.in-detail) .match-versus{
- grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr)!important;
- gap:3px!important;
- padding:4px 0 3px!important;
-}
-.mam-screen-live #matches .match:not(.in-detail) .team-block{gap:3px!important}
-.mam-screen-live #matches .match:not(.in-detail) .team-logo,
-.mam-screen-live #matches .match:not(.in-detail) .team-placeholder{
- width:27px!important;height:27px!important;
-}
-.mam-screen-live #matches .match:not(.in-detail) .team-block strong{
- font-size:10px!important;line-height:1.15!important;
-}
-.mam-screen-live #matches .match:not(.in-detail) .match-clock{font-size:14px!important}
-.mam-screen-live #matches .match:not(.in-detail) .match-center small{font-size:9px!important}
-.mam-screen-live #matches .match:not(.in-detail) .mam-match-open{
- margin-top:5px!important;
- min-height:31px!important;
- padding:6px 8px!important;
- border-radius:8px!important;
- font-size:10px!important;
- line-height:1.15!important;
-}
+.mam-screen-live #matches .mam-league-count{font-size:9px!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail){position:relative!important;margin:3px 0!important;padding:4px 34px 4px 43px!important;min-height:47px!important;border-radius:8px!important;background:linear-gradient(100deg,#0d2631,#0a1e29)!important;box-shadow:none!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-head{position:absolute!important;left:7px!important;top:50%!important;transform:translateY(-50%)!important;width:32px!important;padding:0!important;margin:0!important;border:0!important;display:block!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .league-label{display:none!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-time{display:block!important;font-size:10px!important;line-height:1!important;color:#35e4ae!important;font-weight:900!important;white-space:nowrap!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-time i{display:none!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{display:grid!important;grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr)!important;align-items:center!important;gap:5px!important;margin:0!important;padding:0!important;min-height:36px!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:5px!important;min-width:0!important;overflow:hidden!important;text-align:left!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-logo,
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-placeholder{width:23px!important;height:23px!important;min-width:23px!important;max-width:23px!important;object-fit:contain!important;flex:0 0 23px!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block strong{display:block!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:10px!important;line-height:1.1!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-center{min-width:0!important;text-align:center!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-clock{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:48px!important;padding:4px 3px!important;border-radius:8px!important;background:#071f2b!important;border:1px solid rgba(80,170,165,.32)!important;color:#f4fffc!important;font-size:12px!important;line-height:1!important;font-weight:900!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-center small{display:none!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-actions,
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .liveAnalyzeBtn,
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .liveStatsBtn,
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .lineupBtn,
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .liveAnalysis,
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .liveStats,
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .lineup-panel,
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .pred{display:none!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .mam-match-open{position:absolute!important;right:5px!important;top:50%!important;transform:translateY(-50%)!important;display:grid!important;place-items:center!important;width:25px!important;height:28px!important;min-height:28px!important;margin:0!important;padding:0!important;border-radius:7px!important;background:#102d39!important;border:1px solid rgba(117,190,190,.5)!important;color:#f3fffb!important;font-size:19px!important;line-height:1!important}
+.mam-screen-live #matches article.match.match-modern.in-detail{padding:12px!important}
 @media(max-width:420px){
- .mam-screen-live #matches .match:not(.in-detail) .match-versus{
-  grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr)!important;
- }
- .mam-screen-live #matches .match:not(.in-detail) .team-logo,
- .mam-screen-live #matches .match:not(.in-detail) .team-placeholder{
-  width:24px!important;height:24px!important;
- }
- .mam-screen-live #matches .match:not(.in-detail) .team-block strong{font-size:9px!important}
-}
-
-
-
-/* LIVE MATCHES — extra-dense mobile list; visual-only override */
-main.mam-screen-live #matches .mam-league-group{
- margin:4px 0 5px!important;
- padding:0 4px 3px!important;
- border-radius:10px!important;
-}
-main.mam-screen-live #matches .mam-league-heading{
- min-height:24px!important;
- margin:0 -4px 2px!important;
- padding:0 6px!important;
- gap:4px!important;
-}
-main.mam-screen-live #matches .mam-league-globe{
- width:16px!important;height:16px!important;font-size:11px!important;
-}
-main.mam-screen-live #matches .mam-league-heading strong{font-size:9px!important;line-height:1.1!important}
-main.mam-screen-live #matches .mam-league-heading small{font-size:8px!important}
-main.mam-screen-live #matches .mam-league-count{font-size:7px!important;letter-spacing:0!important}
-main.mam-screen-live #matches .mam-league-group article.match.match-modern:not(.in-detail){
- margin:3px 0!important;
- padding:4px 5px!important;
- border-radius:8px!important;
-}
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-head{
- gap:2px!important;
- padding:0 0 2px!important;
- margin:0!important;
- line-height:1.05!important;
-}
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .league-label,
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-time{
- font-size:8px!important;line-height:1.1!important;
-}
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{
- grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr)!important;
- gap:2px!important;
- padding:2px 0!important;
- margin:0!important;
-}
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block{
- gap:1px!important;
-}
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-logo,
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-placeholder{
- width:20px!important;height:20px!important;max-width:20px!important;max-height:20px!important;
-}
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block strong{
- font-size:8px!important;line-height:1.05!important;
-}
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-clock{
- font-size:12px!important;line-height:1!important;
-}
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-center small{
- font-size:7px!important;line-height:1!important;
-}
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-actions{
- margin:2px 0 0!important;padding:0!important;gap:2px!important;
-}
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-actions .small{
- font-size:7px!important;line-height:1!important;
-}
-main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .mam-match-open{
- display:block!important;
- min-height:24px!important;
- margin:2px 0 0!important;
- padding:3px 6px!important;
- border-radius:6px!important;
- font-size:8px!important;
- line-height:1!important;
-}
-@media(max-width:600px){
- main.mam-screen-live #matches .mam-league-group{margin:3px 0 4px!important}
- main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{
-  grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr)!important;
- }
+ .mam-live-nav-item{font-size:10px!important;gap:3px!important}
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr)!important;gap:3px!important}
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-logo,
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-placeholder{width:20px!important;height:20px!important;min-width:20px!important;max-width:20px!important;flex-basis:20px!important}
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block strong{font-size:9px!important}
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-clock{min-width:43px!important;font-size:11px!important}
 }
 
 </style>
@@ -1168,6 +1073,13 @@ main.mam-screen-live #matches article.match.match-modern:not(.in-detail) .mam-ma
 <button type="button" class="mam-search-trigger" id="mamSearchToggle" aria-label="Maç listesine git">⌕</button>
 </div>
 <div class="mam-section-header" id="mamSectionHeader" hidden><button type="button" class="mam-section-back" id="mamSectionBack">← Geri</button><div class="mam-section-title"><small id="mamSectionEyebrow">CANLI TAKİP</small><strong id="mamSectionTitle">Canlı Maçlar</strong></div><span class="mam-section-count" id="mamSectionCount"></span><button type="button" class="mam-section-back" id="mamSectionRefresh">↻ Yenile</button></div>
+<nav id="mamLiveNav" class="mam-live-nav" aria-label="Canlı ekran kısayolları" hidden>
+ <button type="button" class="mam-live-nav-item active" data-live-action="live"><span>🔴</span>Canlı</button>
+ <button type="button" class="mam-live-nav-item" data-live-action="fixtures"><span>▦</span>Fikstür</button>
+ <button type="button" class="mam-live-nav-item" data-live-action="standings"><span>🏆</span>Ligler</button>
+ <button type="button" class="mam-live-nav-item" data-live-action="analysis"><span>▥</span>Analiz</button>
+ <button type="button" class="mam-live-nav-item" data-live-action="coupon"><span>🎟</span>Kupon</button>
+</nav>
 <section id="mamStandingsScreen" class="mam-standings-screen" hidden>
  <div class="mam-standings-intro"><span>🏆 LİG MERKEZİ</span><h2>Puan Durumu</h2><p>Türkiye ligleri, Avrupa kupaları ve dünyanın önde gelen organizasyonları tek yerde.</p></div>
  <div id="mamStandingsPicker">
@@ -3127,6 +3039,7 @@ function setMamScreen(mode){
  main.classList.remove("mam-screen-home","mam-screen-live","mam-screen-upcoming","mam-screen-standings");
  main.classList.add("mam-screen-"+mode);
  const standingsScreen=$("mamStandingsScreen");if(standingsScreen)standingsScreen.hidden=mode!=="standings";
+ const liveNav=$("mamLiveNav");if(liveNav)liveNav.hidden=mode!=="live";
  const header=$("mamSectionHeader");
  if(header){header.hidden=mode==="home";const back=$("mamSectionBack");if(back){back.hidden=mode==="live";back.style.display=mode==="live"?"none":"";back.textContent="← Geri";}$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="standings"?"LİG MERKEZİ":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="standings"?"Puan Durumu":"Başlamayan Maçlar";}
  const intro=document.querySelector(".mam-home-intro");if(intro)intro.hidden=mode!=="home";
@@ -3154,7 +3067,8 @@ function renderMatches(){
  const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{};const key=String(league.id??league.name??"other");if(!map.has(key))map.set(key,[]);map.get(key).push(match);return map;},new Map()).entries()];
  $("matches").innerHTML=groupedMatches.map(([groupKey,group])=>{
   const league=group[0]?.league||{};
-  return '<section class="mam-league-group"><div class="mam-league-heading"><span class="mam-league-globe">◎</span><strong>'+esc(league.name||"Diğer maçlar")+'</strong><small>'+esc(league.country||"")+'</small><span class="mam-league-count">'+group.length+' MAÇ</span></div>'+group.map(m=>{
+  const countryFlags={"Czech-Republic":"🇨🇿","Czech Republic":"🇨🇿","Poland":"🇵🇱","Spain":"🇪🇸","Denmark":"🇩🇰","Germany":"🇩🇪","Italy":"🇮🇹","France":"🇫🇷","England":"🏴","Türkiye":"🇹🇷","Turkey":"🇹🇷","World":"🌍","Europe":"🇪🇺"};
+  return '<section class="mam-league-group"><div class="mam-league-heading"><span class="mam-league-globe">'+esc(league.icon||countryFlags[league.country]||"⚽")+'</span><strong>'+esc(league.name||"Diğer maçlar")+'</strong><small>'+esc(league.country||"")+'</small><span class="mam-league-count">'+group.length+' MAÇ</span></div>'+group.map(m=>{
   const f=m.fixture||{},l=m.league||{},t=m.teams||{},g=m.goals||{};
   const statusCode=String(f.status?.short||"");
   const statusNames={"NS":"Başlamadı","TBD":"Saat bekleniyor","1H":"1. yarı","HT":"Devre arası","2H":"2. yarı","ET":"Uzatmalar","BT":"Uzatma arası","P":"Penaltılar","SUSP":"Durduruldu","INT":"Kesildi","LIVE":"Canlı","FT":"Bitti","AET":"Uzatmalarda bitti","PEN":"Penaltılarla bitti","PST":"Ertelendi","CANC":"İptal","ABD":"Yarıda kaldı","AWD":"Hükmen","WO":"Hükmen"};
@@ -4615,6 +4529,15 @@ async function analyze(button){
  toggle.addEventListener("click",open);close.addEventListener("click",shut);backdrop.addEventListener("click",shut);
  drawer.querySelectorAll("[data-mam-nav]").forEach(item=>item.classList.remove("active"));
  $("mamSearchToggle")?.addEventListener("click",()=>{$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});});
+ $("mamLiveNav")?.querySelectorAll("[data-live-action]").forEach(button=>button.addEventListener("click",async()=>{
+  const action=button.dataset.liveAction;
+  $("mamLiveNav").querySelectorAll(".mam-live-nav-item").forEach(item=>item.classList.toggle("active",item===button));
+  if(action==="live"){setMamScreen("live");await loadLiveMatches();}
+  if(action==="fixtures"){setMamScreen("home");await loadMatches();$("date")?.scrollIntoView({behavior:"smooth",block:"center"});}
+  if(action==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için yukarıdan bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});}
+  if(action==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
+  if(action==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
+ }));
  drawer.querySelectorAll("[data-mam-nav]").forEach(button=>button.addEventListener("click",async()=>{
   const action=button.dataset.mamNav;shut();
   if(action==="live"){setMamScreen("live");await loadLiveMatches();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
