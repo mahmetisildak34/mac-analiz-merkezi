@@ -3746,7 +3746,7 @@ async function analyze(button){
     const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
     if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))return cached.matches;
    }catch(e){}
-   if(!/^\\d+$/.test(String(teamId||"")))throw new Error("Bundesliga takım kimliği geçersiz.");
+   if(!/^\d+$/.test(String(teamId||"")))throw new Error("Bundesliga takım kimliği geçersiz.");
    // ESPN'in sezonluk takım takvimi, scoreboard tarih aralığından daha güvenilir:
    // tek takım için oynanmış ve henüz oynanmamış tüm sezon maçlarını döndürür.
    const payload=await api("espn/ger.1/teams/"+encodeURIComponent(String(teamId))+"/schedule?"+qs({season:2026}));
