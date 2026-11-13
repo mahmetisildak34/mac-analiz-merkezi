@@ -3847,6 +3847,71 @@ async function analyze(button){
    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(e){}
    return matches;
   }
+  async function getLigue1Upcoming(){
+   const cacheKey="mam_ligue1_fixtures_2627_v1";
+   try{
+    const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
+    if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))return cached.matches;
+   }catch(e){}
+   const response=await fetch("./data/FRA_1_ligue-1/fixtures_2627.csv?build=20261113-a",{cache:"no-store"});
+   if(!response.ok)throw new Error("Ligue 1 2026/27 fikstür arşivi alınamadı (HTTP "+response.status+").");
+   const csv=await response.text();
+   const lines=csv.trim().split(/\r?\n/);
+   const standings=[...document.querySelectorAll("#mamStandingsTable [data-standing-team]")];
+   const normalizeName=value=>String(value||"").normalize("NFD").toLowerCase().replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();
+   const groups=[
+    ["paris saint germain","paris sg","psg"],
+    ["stade rennais fc","stade rennais","rennes","rennais"],
+    ["stade brestois 29","stade brestois","brest"],
+    ["havre athletic club","havre ac","le havre","le havre ac"],
+    ["estac troyes","troyes"],
+    ["losc lille","lille osc","lille"],
+    ["olympique lyonnais","olympique lyon","lyon"],
+    ["olympique de marseille","marseille","om"],
+    ["rc lens","lens","racing club de lens"],
+    ["rc strasbourg alsace","rc strasbourg","strasbourg","racing club de strasbourg alsace"],
+    ["fc lorient","lorient"],
+    ["as monaco","monaco"],
+    ["aj auxerre","auxerre"],
+    ["angers sco","angers"],
+    ["le mans fc","le mans"],
+    ["paris fc","paris football club"],
+    ["fc metz","metz"],
+    ["fc nantes","nantes"],
+    ["ogc nice","nice"],
+    ["montpellier herault sc","montpellier","mhsc"],
+    ["stade de reims","reims"],
+    ["as saint etienne","saint etienne","st etienne","asse"]
+   ];
+   const canonical=value=>{
+    const key=normalizeName(value);
+    for(const group of groups)if(group.some(v=>normalizeName(v)===key))return normalizeName(group[0]);
+    return key;
+   };
+   const idFor=name=>{
+    const key=canonical(name);
+    const found=standings.find(row=>canonical(row.dataset.standingTeam)===key);
+    return Number(found?.dataset.standingTeamId)||-1;
+   };
+   const now=Date.now();
+   const matches=lines.slice(1).map(line=>{
+    const [round,date,time,home,away]=line.split(",");
+    if(!date||!home||!away)return null;
+    // CSV kickoff times are France local time; apply CET/CEST offset.
+    const offset=date>="2027-03-28"?"+02:00":"+01:00";
+    const unknown=!time||time==="23:00";
+    const kickoff=date+"T"+(unknown?"12:00":time)+":00"+offset;
+    if(Date.parse(kickoff)<now-60*60*1000)return null;
+    return {
+     fixture:{id:"ligue1-csv-"+round+"-"+date+"-"+normalizeName(home)+"-"+normalizeName(away),date:kickoff,status:{short:"NS"},timeUnknown:unknown},
+     league:{id:"61",name:"Ligue 1",country:"France"},
+     teams:{home:{id:idFor(home),name:home},away:{id:idFor(away),name:away}},
+     goals:{home:null,away:null}
+    };
+   }).filter(Boolean).sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
+   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(e){}
+   return matches;
+  }
   async function getSerieAUpcoming(teamName){
    const cacheKey="mam_seriea_all_competitions_upcoming_v4_all";
    try{const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");if(saved?.time&&Date.now()-saved.time<5*60*1000&&Array.isArray(saved.matches))return filterForTeam(saved.matches,teamName);}catch(e){}
@@ -3989,6 +4054,7 @@ async function analyze(button){
     if(String(selectedStandingsLeague)==="39")leagueFixtures=await getPremierLeagueUpcoming();
     else if(String(selectedStandingsLeague)==="203")leagueFixtures=await getTFFSuperLigUpcoming();
     else if(String(selectedStandingsLeague)==="140")leagueFixtures=await getLaLigaUpcoming();
+    else if(String(selectedStandingsLeague)==="61")leagueFixtures=await getLigue1Upcoming();
     else if(String(selectedStandingsLeague)==="78")leagueFixtures=await getBundesligaUpcoming();
     else if(String(selectedStandingsLeague)==="135")leagueFixtures=await getSerieAUpcoming(teamName);
     else{
