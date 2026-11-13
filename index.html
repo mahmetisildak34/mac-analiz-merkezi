@@ -1520,7 +1520,7 @@ async function loadMatches(){
 }
 
 async function getTFFSuperLigUpcoming(){
- const key="mam_tff_superlig_upcoming_analysis_v3";
+ const key="mam_tff_superlig_upcoming_analysis_v4";
  try{
   const cached=JSON.parse(localStorage.getItem(key)||"null");
   if(cached?.time&&Date.now()-cached.time<2*60*1000&&Array.isArray(cached.matches))return cached.matches;
@@ -1543,6 +1543,24 @@ async function getTFFSuperLigUpcoming(){
    goals:{home:null,away:null},_source:"TFF"
   }));
  }
+ // Merge the verified static TFF schedule with the live Worker snapshot.
+ // This preserves newly published rounds even if the daily KV snapshot is temporarily behind.
+ try{
+  const response=await fetch("./data/TUR_1_super-lig/upcoming_2627.json?build=20261113-r16",{cache:"no-store"});
+  if(response.ok){
+   const archived=await response.json();
+   const combined=[...(Array.isArray(fixtures)?fixtures:[]),...(Array.isArray(archived?.fixtures)?archived.fixtures:[])];
+   const seen=new Set();
+   fixtures=combined.filter(match=>{
+    const home=String(match.teams?.home?.name||match.home||"").toLocaleLowerCase("tr-TR");
+    const away=String(match.teams?.away?.name||match.away||"").toLocaleLowerCase("tr-TR");
+    const date=String(match.fixture?.date||match.date||"");
+    const key=[date.slice(0,16),home,away].join("|");
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+   });
+  }
+ }catch(mergeError){console.warn("TFF statik fikstür tamamlayıcısı alınamadı.",mergeError);}
  // TFF feed currently supplies team names but may omit API-Football IDs.
  // Assign stable numeric IDs so the shared pre-match engine can request archived form by team name.
  const stableTeamId=name=>{
