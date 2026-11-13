@@ -3335,9 +3335,19 @@ async function analyze(button){
    let upcoming=[];
    let upcomingError="";
    try{
-    const futureData=await api("fixtures?"+qs({team:teamId,league:203,season:2026,next:10,timezone:"Europe/Istanbul"}));
-    upcoming=Array.isArray(futureData?.response)?futureData.response.filter(m=>m.fixture?.date&&["NS","TBD","PST"].includes(String(m.fixture?.status?.short||"NS"))):[];
-    upcoming.sort((a,b)=>String(a.fixture.date).localeCompare(String(b.fixture.date)));
+    const today=new Date();today.setHours(12,0,0,0);
+    const from=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
+    const payload=await api("fixtures?"+qs({league:203,season:2026,from,to:"2027-06-01",timezone:"Europe/Istanbul"}));
+    const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+    const wanted=norm(teamName);
+    const aliases={"caykurrizespor":["rizespor"],"erzurum bb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"]};
+    const accepted=new Set([wanted,...(aliases[wanted]||[])]);
+    upcoming=(Array.isArray(payload?.response)?payload.response:[]).filter(m=>{
+     const code=String(m.fixture?.status?.short||"");
+     if(!m.fixture?.date||!["NS","TBD","PST"].includes(code))return false;
+     const home=m.teams?.home||{},away=m.teams?.away||{};
+     return String(home.id)===String(teamId)||String(away.id)===String(teamId)||accepted.has(norm(home.name))||accepted.has(norm(away.name));
+    }).sort((a,b)=>String(a.fixture.date).localeCompare(String(b.fixture.date))).slice(0,10);
    }catch(error){upcomingError=String(error?.message||"Gelecek fikstürü alınamadı.");}
    if(!recent.length&&!upcoming.length)throw new Error("Geçmiş ve gelecek maç verisi alınamadı. "+upcomingError);
    const pastHtml=recent.length?'<section style="margin-bottom:22px;"><div style="display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">SON '+recent.length+' TAMAMLANMIŞ MAÇ</span><span style="font-size:10px;color:#9eb2bc;">GEÇMİŞ</span></div><div style="display:grid;gap:10px;">'+recent.map(m=>{
@@ -3360,7 +3370,16 @@ async function analyze(button){
     const time=dt?dt.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"}):"—:—";
     return '<div style="display:grid;grid-template-columns:48px minmax(0,1fr) 48px minmax(0,1fr);align-items:center;gap:5px;min-height:55px;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.09);"><span style="font-size:10px;color:#c0c9ce;white-space:nowrap;">'+dateLabel+'</span><b style="font-size:11px;line-height:1.25;text-align:right;color:#f1f4f5;overflow-wrap:anywhere;">'+esc(home.name||"Ev sahibi")+'</b><strong style="font-size:11px;text-align:center;color:#75dcb6;white-space:nowrap;">'+time+'</strong><b style="font-size:11px;line-height:1.25;text-align:left;color:#f1f4f5;overflow-wrap:anywhere;">'+esc(away.name||"Deplasman")+'</b></div>';
    }).join("")+'</div></div></section>':'<section style="margin-top:22px;"><div style="font-size:12px;font-weight:900;color:#65dcb1;margin:0 2px 10px;">GELECEK MAÇLAR</div><p style="font-size:12px;color:#a9c0c4;">'+(upcomingError?"Gelecek fikstürü şu an alınamadı.":"Şu an listelenecek gelecek maç bulunamadı.")+'</p></section>';
-   content.innerHTML=pastHtml+futureHtml;
+   const switchBar='<div style="display:flex;gap:7px;margin:0 0 12px;padding:4px;border:1px solid rgba(160,205,195,.16);border-radius:12px;background:#102431;"><button type="button" data-history-view="past" style="flex:1;min-height:34px;padding:7px 10px;border-radius:9px;background:#287c68;color:#fff;font-size:11px;font-weight:850;">Geçmiş maçlar</button><button type="button" data-history-view="upcoming" style="flex:1;min-height:34px;padding:7px 10px;border-radius:9px;background:#1b3441;color:#c6d6dc;font-size:11px;font-weight:850;">Gelecek maçlar</button></div>';
+   content.innerHTML=switchBar+'<div id="mamHistoryPastView">'+pastHtml+'</div><div id="mamHistoryUpcomingView" hidden>'+futureHtml+'</div>';
+   const pastView=content.querySelector("#mamHistoryPastView"),upcomingView=content.querySelector("#mamHistoryUpcomingView");
+   content.querySelectorAll("[data-history-view]").forEach(tab=>tab.addEventListener("click",()=>{
+    const showUpcoming=tab.dataset.historyView==="upcoming";
+    pastView.hidden=showUpcoming;upcomingView.hidden=!showUpcoming;
+    content.querySelectorAll("[data-history-view]").forEach(x=>{
+     const active=x===tab;x.style.background=active?"#287c68":"#1b3441";x.style.color=active?"#fff":"#c6d6dc";
+    });
+   }));
   }catch(error){
    screen.querySelector("#mamTeamHistoryContent").innerHTML='<div style="padding:16px;border-radius:14px;background:#132b38;color:#ffc2c2;">'+esc(error.message||error)+'</div>';
   }
