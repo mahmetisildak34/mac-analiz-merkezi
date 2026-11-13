@@ -1256,7 +1256,7 @@ async function loadStandings(){
   if(!rows.length)throw new Error("Kaynak bu lig için puan tablosu döndürmedi.");
   $("mamStandingsLeagueTitle").textContent=leagueName;
   const supportsTeamHistory=["203","39"].includes(String(leagueId));
-  box.innerHTML='<div style="overflow-x:auto"><table class="mam-standings-table"><thead><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr'+(supportsTeamHistory?' class="mam-standing-team-row" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" role="button" tabindex="0" aria-label="'+esc(x.name)+' geçmiş maçlarını göster"':'')+'><td>'+esc(x.rank)+'</td><td>'+esc(x.name)+(supportsTeamHistory?' <span class="mam-standing-row-hint">›</span>':'')+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan.'+(String(leagueId)==="203"?' Takımın son 10 maçını görmek için satırına dokun.':' Güncel veri sağlayıcısından alınır.')+'</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
+  box.innerHTML='<div style="overflow-x:auto"><table class="mam-standings-table"><thead><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr'+(supportsTeamHistory?' class="mam-standing-team-row" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" tabindex="0"':'')+'><td>'+esc(x.rank)+'</td><td>'+(supportsTeamHistory?'<button type="button" class="mam-standing-team-open" data-standing-team-open="1" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını aç" style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:38px;padding:4px 0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;font-weight:800;cursor:pointer;"><span>'+esc(x.name)+'</span><span class="mam-standing-row-hint" aria-hidden="true">›</span></button>':esc(x.name))+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan.'+(String(leagueId)==="203"?' Takımın son 10 maçını görmek için satırına dokun.':' Güncel veri sağlayıcısından alınır.')+'</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
  }catch(e){
   box.innerHTML='<div class="error">'+esc(e.message||e)+'</div>';
  }finally{button.disabled=false}
@@ -3419,10 +3419,13 @@ async function analyze(button){
   }
  };
  $("mamStandingsTable")?.addEventListener("click",event=>{
-  const row=event.target.closest(".mam-standing-team-row");if(row)openStandingTeamHistory(row);
+  const trigger=event.target.closest("[data-standing-team-open]");
+  const row=trigger?.closest(".mam-standing-team-row")||event.target.closest(".mam-standing-team-row");
+  if(row)openStandingTeamHistory(row);
  });
  $("mamStandingsTable")?.addEventListener("keydown",event=>{
-  if((event.key==="Enter"||event.key===" ")&&event.target.closest(".mam-standing-team-row")){event.preventDefault();openStandingTeamHistory(event.target.closest(".mam-standing-team-row"));}
+  const row=event.target.closest(".mam-standing-team-row");
+  if(row&&event.target===row&&(event.key==="Enter"||event.key===" ")){event.preventDefault();openStandingTeamHistory(row);}
  });
  const dateInput=$("date"),strip=$("mamDateStrip");
  if(!dateInput||!strip)return;
