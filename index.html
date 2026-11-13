@@ -1211,6 +1211,14 @@ async function api(path){
   const isArchive=cleanPath.startsWith("archive/");
   const isTffFixtures=cleanPath==="superlig/fixtures";
   const isPrimaryApi=!isArchive&&!isTffFixtures&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/")&&!cleanPath.startsWith("fixturesdownload/");
+  const primaryCooldownKey="mam_api_football_cooldown_until";
+  if(isPrimaryApi){
+    const cooldownUntil=Number(localStorage.getItem(primaryCooldownKey)||0);
+    if(cooldownUntil>Date.now()){
+      const minutes=Math.max(1,Math.ceil((cooldownUntil-Date.now())/60000));
+      throw new Error("API-Football kota beklemesinde ("+minutes+" dk). ESPN ve Football-data.org yedekleri kullanılabilir.");
+    }
+  }
   const cacheKey="mam_api_cache_v2_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
   let cachedEntry=null;
@@ -1262,6 +1270,11 @@ async function api(path){
       }
       if(/rate.?limit|too many requests|request limit|requests limit|quota/i.test(errorText)){
         const provider=isPrimaryApi?"API-Football":cleanPath.startsWith("espn/")?"ESPN":"Football-data.org";
+        if(isPrimaryApi){
+          // Kota dolduğunda 15 dakika boyunca ana sağlayıcıya yeni istek atma.
+          // Yedek ESPN ve Football-data.org istekleri bu beklemeden etkilenmez.
+          try{localStorage.setItem(primaryCooldownKey,String(Date.now()+15*60*1000));}catch(_){}
+        }
         throw new Error("Too many requests: "+provider+" istek sınırına ulaşıldı. Bir süre sonra tekrar dene; diğer kaynaklar kullanılabilir.");
       }
       if(/plan|date/i.test(errorText)){
