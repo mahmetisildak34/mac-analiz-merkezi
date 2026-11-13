@@ -793,7 +793,7 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 .mam-standing-team-row:hover,.mam-standing-team-row.active{background:rgba(25,157,103,.11)}
 .mam-standing-team-row:focus-visible{outline:2px solid #18b879;outline-offset:-2px}
 .mam-standing-row-hint{float:right;color:#18a875;font-size:17px;font-weight:900}
-.mam-standing-team-history{position:fixed;inset:0;z-index:999999;margin:0;padding:calc(22px + env(safe-area-inset-top)) 16px calc(22px + env(safe-area-inset-bottom));border:0;border-radius:0;background:linear-gradient(160deg,#07131d 0%,#102b34 52%,#07131d 100%);color:#edf8f5;overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box}
+.mam-standing-team-history{position:fixed!important;inset:0!important;z-index:2147483647!important;width:100vw!important;height:100dvh!important;max-height:100dvh!important;margin:0!important;padding:calc(22px + env(safe-area-inset-top)) 16px calc(22px + env(safe-area-inset-bottom))!important;border:0!important;border-radius:0!important;background:linear-gradient(160deg,#07131d 0%,#102b34 52%,#07131d 100%)!important;color:#edf8f5!important;overflow-y:auto!important;overscroll-behavior:contain;box-sizing:border-box!important}
 .mam-standing-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
 .mam-standing-history-head small{color:#65d8ad;font-size:10px;font-weight:900;letter-spacing:.7px}
 .mam-standing-history-head h3{margin:4px 0 0;color:#f1fbf7;font-size:17px}
@@ -3271,6 +3271,19 @@ async function analyze(button){
   const teamId=row.dataset.standingTeamId||"";
   const panel=$("mamStandingTeamHistory");
   if(!panel||!teamName)return;
+  // Portal the history panel directly under body so transformed app wrappers cannot trap position:fixed.
+  if(!panel.dataset.portal){
+   const placeholder=document.createComment("mam-standing-history-placeholder");
+   panel.parentNode.insertBefore(placeholder,panel);
+   panel._mamPlaceholder=placeholder;
+   panel.dataset.portal="1";
+  }
+  if(panel.parentNode!==document.body)document.body.appendChild(panel);
+  const closeHistory=()=>{
+   panel.hidden=true;
+   document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));
+   if(panel._mamPlaceholder?.parentNode)panel._mamPlaceholder.parentNode.insertBefore(panel,panel._mamPlaceholder);
+  };
   document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.toggle("active",x===row));
   panel.hidden=false;
   panel.innerHTML='<div class="mam-standing-history-head"><div><small>SÜPER LİG · TAKIM GEÇMİŞİ</small><h3>'+esc(teamName)+'</h3></div><span class="mam-standing-history-loading">Yükleniyor...</span></div><div class="empty">Son 10 tamamlanmış maç aranıyor.</div>';
@@ -3291,10 +3304,10 @@ async function analyze(button){
     const dateLabel=date?new Date(date+"T12:00:00").toLocaleDateString("tr-TR",{day:"2-digit",month:"short",year:"numeric"}):"";
     return '<div class="mam-standing-history-match"><span class="mam-standing-history-result '+outcome.toLowerCase()+'">'+outcome+'</span><span class="mam-standing-history-teams"><b>'+esc(home.name||"Ev sahibi")+' – '+esc(away.name||"Deplasman")+'</b><small>'+esc(isHome?"İç saha":"Deplasman")+' · '+esc(dateLabel)+'</small></span><strong>'+gf+' – '+ga+'</strong></div>';
    }).join("")+'</div>';
-   $("mamStandingHistoryClose")?.addEventListener("click",()=>{panel.hidden=true;document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));});
+   $("mamStandingHistoryClose")?.addEventListener("click",closeHistory);
   }catch(error){
    panel.innerHTML='<div class="mam-standing-history-head"><div><small>TAKIM GEÇMİŞİ</small><h3>'+esc(teamName)+'</h3></div><button type="button" class="secondary" id="mamStandingHistoryClose">Kapat</button></div><div class="error">'+esc(error.message||error)+'</div>';
-   $("mamStandingHistoryClose")?.addEventListener("click",()=>{panel.hidden=true;document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));});
+   $("mamStandingHistoryClose")?.addEventListener("click",closeHistory);
   }
  };
  $("mamStandingsTable")?.addEventListener("click",event=>{
