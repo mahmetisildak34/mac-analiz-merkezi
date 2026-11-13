@@ -2614,11 +2614,11 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // Cloudflare KV ücretsiz yazma kotası doluysa bu analiz akışında KV'ye hiç dokunma.
   const folder=leagues[String(leagueId)];
   if(folder){
-    // Üç sezonun CSV arşivini paralel tara; iki ayna kaynağı da zaman aşımıyla sınırla.
+    // Sekiz sezonun CSV arşivini paralel tara; iki ayna kaynağı da zaman aşımıyla sınırla.
     // Eski seri istek düzeni iPhone'da uzun süre "geçmiş maçlar alınıyor" ekranında kalabiliyordu.
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const seasonStart=matchMonth>=7?matchYear:matchYear-1;
-    const seasons=[seasonStart,seasonStart-1,seasonStart-2,seasonStart-3,seasonStart-4].filter(y=>y>=2022); // Son beş sezonun tamamlanmış maç arşivi.
+    const seasons=[seasonStart,seasonStart-1,seasonStart-2,seasonStart-3,seasonStart-4,seasonStart-5,seasonStart-6,seasonStart-7].filter(y=>y>=2019); // 2019/20 sezonundan itibaren sekiz sezonluk tamamlanmış maç arşivi.
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
       const archiveKey="mam_league_csv_v2_"+folder+"_"+seasonCode;
