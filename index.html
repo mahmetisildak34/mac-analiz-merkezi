@@ -3018,16 +3018,21 @@ function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 
 /* ANALİZ */
 async function analyze(button){
- if(button.disabled)return;
+ if(!button||button.disabled)return;
+ let target=$("pred-"+button.dataset.id)||button.closest(".match")?.querySelector(".pred");
+ if(!target){
+  target=document.createElement("div");target.className="pred";
+  target.id="pred-"+(button.dataset.id||("analysis-"+Date.now()));
+  button.closest(".match")?.appendChild(target);
+ }
  if(["FT","AET","PEN","AWD","WO"].includes(String(button.dataset.status||""))){
-  const target=$("pred-"+button.dataset.id);
-  if(target)target.innerHTML='<span class="note">Bu maç tamamlandı. Sistem yalnızca maç başlamadan önce tahmin üretir; gerçekleşmiş sonuç için maç önü tahmini gösterilmez.</span>';
+  target.innerHTML='<span class="note">Bu maç tamamlandı. Sistem yalnızca maç başlamadan önce tahmin üretir; gerçekleşmiş sonuç için maç önü tahmini gösterilmez.</span>';
   return;
  }
  button.disabled=true;
+ const originalLabel=button.textContent;
  button.textContent="Hesaplanıyor...";
- const target=$("pred-"+button.dataset.id);
- target.textContent="İlk takımın geçmiş maçları alınıyor...";
+ target.textContent="Takımların doğrulanmış geçmiş maçları alınıyor...";
 
  try{
   const homeId=Number(button.dataset.home);
@@ -3238,12 +3243,13 @@ async function analyze(button){
    {name:"KG Var",probability:btts},{name:"KG Yok",probability:1-btts}
   ]);
   target.innerHTML=html;
+  target.dataset.analysisDone="1";
 
  }catch(error){
-  target.innerHTML='<span class="error">Analiz hatası: '+esc(error.message)+'</span>';
+  target.innerHTML='<div class="match-detail-note" style="border:1px solid rgba(255,130,130,.25);"><b>Analiz tamamlanamadı</b><p>'+esc(error?.message||"Bilinmeyen analiz hatası")+'</p><small>Geçmiş veri eksikse tahmin üretilmez. Tekrar deneyebilir veya takım geçmişlerini kontrol edebilirsin.</small></div>';
  }finally{
   button.disabled=false;
-  button.textContent="Analizi yenile";
+  button.textContent=target.dataset.analysisDone==="1"?"Analizi yenile":originalLabel;
  }
 }
 
