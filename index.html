@@ -2713,7 +2713,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v50_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v51_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -2909,13 +2909,13 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const n=normalize(value);
     if(String(leagueId)==="61"){
       const groups=[
-        ["paris saint germain","paris saint-germain","paris sg","psg"],
-        ["brest","stade brestois","stade brestois 29"],
-        ["le havre","le havre ac","havre athletic club"],
-        ["troyes","estac troyes"],
+        ["paris saint germain","paris saint-germain","paris sg","psg","paris saint germain fc"],
+        ["brest","stade brestois","stade brestois 29","stade brestois 29 fc"],
+        ["le havre","le havre ac","havre athletic club","havre ac"],
+        ["troyes","estac troyes","es troyes ac"],
         ["lille","lille osc","losc lille"],
-        ["lyon","olympique lyonnais"],
-        ["marseille","olympique de marseille"],
+        ["lyon","olympique lyonnais","olympique lyon"],
+        ["marseille","olympique de marseille","om"],
         ["lens","rc lens","racing club de lens"],
         ["strasbourg","rc strasbourg","rc strasbourg alsace","racing club de strasbourg alsace"],
         ["rennes","stade rennais","stade rennais fc"],
@@ -2928,11 +2928,12 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         ["metz","fc metz"],
         ["nantes","fc nantes"],
         ["nice","ogc nice"],
-        ["montpellier","montpellier herault sc","mhsc"],
+        ["montpellier","montpellier herault sc","montpellier hsc","mhsc"],
         ["reims","stade de reims"],
-        ["saint etienne","st etienne","as saint-etienne","asse"]
+        ["saint etienne","st etienne","as saint etienne","as saint-etienne","asse"],
+        ["toulouse","toulouse fc"]
       ];
-      for(const group of groups)if(group.includes(n))return group[0];
+      for(const group of groups)if(group.some(alias=>normalize(alias)===n))return normalize(group[0]);
       return n;
     }
     if(String(leagueId)!=="135")return n;
@@ -3848,7 +3849,7 @@ async function analyze(button){
    return matches;
   }
   async function getLigue1Upcoming(){
-   const cacheKey="mam_ligue1_fixtures_2627_v1";
+   const cacheKey="mam_ligue1_fixtures_2627_v2";
    try{
     const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
     if(cached?.time&&Date.now()-cached.time<10*60*1000&&Array.isArray(cached.matches))return cached.matches;
