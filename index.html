@@ -1439,7 +1439,7 @@ async function loadStandings(){
      if(missing.length)throw new Error("Puan tablosunda eşleşmeyen takımlar: "+missing.join(", "));
      const seasonStart=new Date().getMonth()>=6?new Date().getFullYear():new Date().getFullYear()-1;
      const feedSlug="conference-league";
-     const feedCacheKey="mam_uefa_fixture_archive_"+feedSlug+"_"+seasonStart+"_v5";
+     const feedCacheKey="mam_uefa_fixture_archive_"+feedSlug+"_"+seasonStart+"_v6";
      let feedRows=null;
      try{
       const saved=JSON.parse(localStorage.getItem(feedCacheKey)||"null");
