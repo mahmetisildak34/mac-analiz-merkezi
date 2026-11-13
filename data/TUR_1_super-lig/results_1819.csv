@@ -1,0 +1,307 @@
+gw,date,time,home,away,ft_home,ft_away,ft_result,ht_home,ht_away,ht_result,home_shots,away_shots,home_target,away_target,home_fouls,away_fouls,home_corners,away_corners,home_corners_1h,away_corners_1h,home_corners_2h,away_corners_2h,home_yellow,away_yellow,home_red,away_red,goal_minutes,source
+,2018-08-10,12:00,Ankaragucu,Galatasaray,1,3,A,1,2,A,3,12,1,4,15,9,2,4,,,,,2,2,0,0,,football-data.co.uk
+,2018-08-11,12:00,Fenerbahce,Bursaspor,2,1,H,2,1,H,7,6,2,3,12,15,4,4,,,,,3,3,0,0,,football-data.co.uk
+,2018-08-11,12:00,Rizespor,Kasimpasa,2,3,A,1,0,H,8,14,5,6,13,14,3,6,,,,,2,1,0,0,,football-data.co.uk
+,2018-08-11,12:00,Sivasspor,Alanyaspor,1,0,H,0,0,D,12,9,5,3,13,16,4,7,,,,,1,3,0,0,,football-data.co.uk
+,2018-08-12,12:00,Besiktas,Akhisar Belediyespor,2,1,H,2,0,H,13,8,4,4,17,16,12,3,,,,,3,6,0,0,,football-data.co.uk
+,2018-08-12,12:00,Buyuksehyr,Trabzonspor,2,0,H,1,0,H,15,8,5,0,16,15,9,2,,,,,2,2,0,0,,football-data.co.uk
+,2018-08-12,12:00,Goztep,Yeni Malatyaspor,1,3,A,0,1,A,10,6,4,3,11,11,4,0,,,,,4,5,2,1,,football-data.co.uk
+,2018-08-12,12:00,Konyaspor,Erzurum BB,3,2,H,2,1,H,16,6,9,4,11,14,4,7,,,,,1,2,0,0,,football-data.co.uk
+,2018-08-13,12:00,Kayserispor,Antalyaspor,2,0,H,1,0,H,8,4,5,1,16,8,6,2,,,,,0,2,0,1,,football-data.co.uk
+,2018-08-17,12:00,Trabzonspor,Sivasspor,3,1,H,3,1,H,10,12,8,3,12,19,8,5,,,,,1,4,0,0,,football-data.co.uk
+,2018-08-18,12:00,Antalyaspor,Konyaspor,3,3,D,1,2,A,12,10,9,4,17,19,7,3,,,,,1,5,0,1,,football-data.co.uk
+,2018-08-18,12:00,Bursaspor,Kayserispor,0,0,D,0,0,D,9,4,2,0,11,12,6,4,,,,,2,2,0,0,,football-data.co.uk
+,2018-08-18,12:00,Yeni Malatyaspor,Fenerbahce,1,0,H,0,0,D,14,13,2,4,14,9,2,3,,,,,2,0,0,0,,football-data.co.uk
+,2018-08-19,12:00,Akhisar Belediyespor,Rizespor,1,1,D,0,1,A,8,24,3,10,18,14,4,3,,,,,0,1,1,0,,football-data.co.uk
+,2018-08-19,12:00,Alanyaspor,Ankaragucu,0,2,A,0,0,D,19,5,5,4,19,15,6,2,,,,,3,6,1,1,,football-data.co.uk
+,2018-08-19,12:00,Erzurum BB,Besiktas,1,3,A,1,0,H,10,10,3,6,11,7,9,9,,,,,0,3,0,0,,football-data.co.uk
+,2018-08-19,12:00,Galatasaray,Goztep,1,0,H,1,0,H,11,9,5,2,13,14,6,6,,,,,4,2,0,0,,football-data.co.uk
+,2018-08-20,12:00,Kasimpasa,Buyuksehyr,2,1,H,0,0,D,13,15,3,5,18,16,5,2,,,,,0,3,0,0,,football-data.co.uk
+,2018-08-24,12:00,Rizespor,Erzurum BB,0,0,D,0,0,D,9,11,2,3,9,20,4,7,,,,,1,1,0,0,,football-data.co.uk
+,2018-08-25,12:00,Ankaragucu,Trabzonspor,2,2,D,1,1,D,15,9,6,7,11,12,5,9,,,,,2,2,0,0,,football-data.co.uk
+,2018-08-25,12:00,Goztep,Fenerbahce,1,0,H,0,0,D,5,9,1,1,16,16,4,5,,,,,2,1,0,0,,football-data.co.uk
+,2018-08-25,12:00,Kayserispor,Yeni Malatyaspor,0,0,D,0,0,D,13,6,5,2,15,13,4,6,,,,,2,1,0,0,,football-data.co.uk
+,2018-08-26,12:00,Besiktas,Antalyaspor,2,3,A,1,3,A,28,7,10,5,15,19,12,1,,,,,2,7,0,0,,football-data.co.uk
+,2018-08-26,12:00,Konyaspor,Bursaspor,1,1,D,1,1,D,16,12,6,4,18,14,11,6,,,,,2,3,0,0,,football-data.co.uk
+,2018-08-26,12:00,Sivasspor,Kasimpasa,0,3,A,0,1,A,31,9,3,6,8,9,7,2,,,,,0,3,0,0,,football-data.co.uk
+,2018-08-27,12:00,Buyuksehyr,Akhisar Belediyespor,3,1,H,1,1,D,19,9,6,2,9,14,6,2,,,,,2,4,0,0,,football-data.co.uk
+,2018-08-27,12:00,Galatasaray,Alanyaspor,6,0,H,1,0,H,17,4,9,1,12,7,4,1,,,,,0,1,0,0,,football-data.co.uk
+,2018-08-31,12:00,Yeni Malatyaspor,Konyaspor,0,1,A,0,1,A,11,6,3,4,9,23,3,1,,,,,2,4,0,0,,football-data.co.uk
+,2018-09-01,12:00,Akhisar Belediyespor,Sivasspor,1,1,D,0,0,D,22,11,6,4,19,17,5,1,,,,,1,3,0,0,,football-data.co.uk
+,2018-09-01,12:00,Alanyaspor,Goztep,1,0,H,0,0,D,9,10,2,2,16,12,5,8,,,,,2,2,0,0,,football-data.co.uk
+,2018-09-01,12:00,Fenerbahce,Kayserispor,2,3,A,1,0,H,15,20,4,11,11,12,4,4,,,,,4,2,0,1,,football-data.co.uk
+,2018-09-01,12:00,Trabzonspor,Galatasaray,4,0,H,3,0,H,13,8,6,0,11,7,1,1,,,,,2,1,0,1,,football-data.co.uk
+,2018-09-02,12:00,Antalyaspor,Rizespor,2,1,H,0,1,A,13,6,4,2,12,13,5,5,,,,,3,3,1,1,,football-data.co.uk
+,2018-09-02,12:00,Bursaspor,Besiktas,1,1,D,0,0,D,9,11,3,4,14,15,4,3,,,,,2,2,0,0,,football-data.co.uk
+,2018-09-02,12:00,Erzurum BB,Buyuksehyr,0,1,A,0,1,A,16,5,3,2,13,11,8,2,,,,,3,1,0,0,,football-data.co.uk
+,2018-09-02,12:00,Kasimpasa,Ankaragucu,2,1,H,1,0,H,10,15,4,7,8,11,5,6,,,,,1,3,0,0,,football-data.co.uk
+,2018-09-14,12:00,Galatasaray,Kasimpasa,4,1,H,0,0,D,15,16,5,6,11,14,4,7,,,,,1,2,0,0,,football-data.co.uk
+,2018-09-15,12:00,Ankaragucu,Akhisar Belediyespor,1,0,H,1,0,H,7,12,1,4,19,11,2,12,,,,,2,3,0,0,,football-data.co.uk
+,2018-09-15,12:00,Besiktas,Yeni Malatyaspor,2,1,H,0,0,D,17,10,6,6,14,15,10,5,,,,,3,3,1,0,,football-data.co.uk
+,2018-09-15,12:00,Goztep,Kayserispor,2,0,H,2,0,H,16,9,6,1,11,10,4,1,,,,,1,2,0,0,,football-data.co.uk
+,2018-09-16,12:00,Buyuksehyr,Antalyaspor,4,0,H,1,0,H,15,8,6,3,11,8,4,2,,,,,0,2,0,0,,football-data.co.uk
+,2018-09-16,12:00,Konyaspor,Fenerbahce,0,1,A,0,0,D,15,10,6,2,10,11,6,6,,,,,3,1,0,0,,football-data.co.uk
+,2018-09-16,12:00,Rizespor,Bursaspor,1,1,D,0,1,A,12,9,5,4,25,19,3,3,,,,,0,2,0,0,,football-data.co.uk
+,2018-09-16,12:00,Sivasspor,Erzurum BB,2,2,D,1,1,D,20,11,7,5,12,10,3,2,,,,,0,2,0,0,,football-data.co.uk
+,2018-09-17,12:00,Alanyaspor,Trabzonspor,1,0,H,1,0,H,16,11,7,5,19,9,4,6,,,,,1,2,0,0,,football-data.co.uk
+,2018-09-21,12:00,Bursaspor,Buyuksehyr,0,0,D,0,0,D,13,7,4,1,10,14,1,4,,,,,1,4,0,0,,football-data.co.uk
+,2018-09-21,12:00,Erzurum BB,Ankaragucu,0,1,A,0,0,D,25,3,8,1,14,8,12,2,,,,,3,2,0,1,,football-data.co.uk
+,2018-09-22,12:00,Kayserispor,Konyaspor,0,2,A,0,2,A,17,8,4,5,18,7,6,5,,,,,1,2,0,0,,football-data.co.uk
+,2018-09-22,12:00,Trabzonspor,Goztep,1,2,A,0,2,A,13,5,5,2,12,12,4,2,,,,,2,4,0,0,,football-data.co.uk
+,2018-09-22,12:00,Yeni Malatyaspor,Rizespor,1,0,H,1,0,H,23,7,9,1,17,15,10,3,,,,,2,3,0,1,,football-data.co.uk
+,2018-09-23,12:00,Akhisar Belediyespor,Galatasaray,3,0,H,0,0,D,10,12,5,3,15,13,1,6,,,,,4,3,0,0,,football-data.co.uk
+,2018-09-23,12:00,Antalyaspor,Sivasspor,2,1,H,2,1,H,6,15,3,2,14,7,6,4,,,,,4,1,0,0,,football-data.co.uk
+,2018-09-23,12:00,Kasimpasa,Alanyaspor,1,2,A,0,1,A,24,8,6,3,14,17,7,0,,,,,2,3,0,0,,football-data.co.uk
+,2018-09-24,12:00,Fenerbahce,Besiktas,1,1,D,0,1,A,13,11,7,4,13,16,2,7,,,,,1,5,0,1,,football-data.co.uk
+,2018-09-28,12:00,Galatasaray,Erzurum BB,1,0,H,0,0,D,12,10,7,1,12,12,10,6,,,,,3,2,0,0,,football-data.co.uk
+,2018-09-29,12:00,Alanyaspor,Akhisar Belediyespor,2,1,H,1,0,H,5,6,3,1,17,9,2,8,,,,,4,2,1,0,,football-data.co.uk
+,2018-09-29,12:00,Besiktas,Kayserispor,2,0,H,1,0,H,12,9,4,3,10,11,6,3,,,,,1,0,0,0,,football-data.co.uk
+,2018-09-29,12:00,Trabzonspor,Kasimpasa,4,2,H,1,2,A,19,16,7,9,14,11,7,6,,,,,2,3,0,0,,football-data.co.uk
+,2018-09-30,12:00,Goztep,Konyaspor,3,2,H,2,0,H,13,10,9,2,11,15,7,6,,,,,3,4,0,0,,football-data.co.uk
+,2018-09-30,12:00,Rizespor,Fenerbahce,3,0,H,3,0,H,9,17,4,5,11,15,5,7,,,,,1,1,0,0,,football-data.co.uk
+,2018-09-30,12:00,Sivasspor,Bursaspor,2,0,H,1,0,H,9,7,3,3,23,14,5,6,,,,,2,4,0,0,,football-data.co.uk
+,2018-10-01,12:00,Ankaragucu,Antalyaspor,0,1,A,0,1,A,14,11,3,6,10,18,5,8,,,,,2,5,0,0,,football-data.co.uk
+,2018-10-01,12:00,Buyuksehyr,Yeni Malatyaspor,1,1,D,0,1,A,14,11,6,3,11,9,12,2,,,,,2,2,0,0,,football-data.co.uk
+,2018-10-05,12:00,Kasimpasa,Goztep,3,1,H,1,0,H,19,12,5,5,16,9,6,5,,,,,1,0,0,0,,football-data.co.uk
+,2018-10-06,12:00,Antalyaspor,Galatasaray,0,1,A,0,0,D,5,15,0,7,15,14,5,7,,,,,1,3,0,0,,football-data.co.uk
+,2018-10-06,12:00,Bursaspor,Ankaragucu,1,0,H,1,0,H,13,7,5,2,19,11,10,5,,,,,1,0,0,0,,football-data.co.uk
+,2018-10-06,12:00,Erzurum BB,Alanyaspor,1,0,H,0,0,D,13,6,4,1,10,15,6,5,,,,,2,2,0,0,,football-data.co.uk
+,2018-10-06,12:00,Kayserispor,Rizespor,2,2,D,0,1,A,14,6,4,2,11,14,5,6,,,,,1,3,1,1,,football-data.co.uk
+,2018-10-07,12:00,Akhisar Belediyespor,Trabzonspor,1,3,A,0,2,A,11,10,4,4,15,16,5,5,,,,,1,3,0,0,,football-data.co.uk
+,2018-10-07,12:00,Fenerbahce,Buyuksehyr,0,0,D,0,0,D,16,9,4,3,15,16,7,6,,,,,5,4,0,0,,football-data.co.uk
+,2018-10-07,12:00,Konyaspor,Besiktas,2,2,D,1,0,H,15,7,5,4,18,10,9,4,,,,,6,7,0,1,,football-data.co.uk
+,2018-10-07,12:00,Yeni Malatyaspor,Sivasspor,4,4,D,1,3,A,23,12,8,5,13,13,5,3,,,,,3,4,0,1,,football-data.co.uk
+,2018-10-19,12:00,Galatasaray,Bursaspor,1,1,D,0,0,D,10,13,3,3,6,18,1,6,,,,,1,5,0,0,,football-data.co.uk
+,2018-10-20,12:00,Buyuksehyr,Kayserispor,1,0,H,1,0,H,14,7,3,2,15,14,8,4,,,,,4,3,0,0,,football-data.co.uk
+,2018-10-20,12:00,Kasimpasa,Akhisar Belediyespor,5,0,H,0,0,D,16,16,6,5,18,16,3,7,,,,,1,3,0,0,,football-data.co.uk
+,2018-10-20,12:00,Sivasspor,Fenerbahce,0,0,D,0,0,D,17,13,4,4,14,14,3,4,,,,,2,1,0,0,,football-data.co.uk
+,2018-10-21,12:00,Alanyaspor,Antalyaspor,0,1,A,0,1,A,12,10,0,3,15,14,7,4,,,,,3,4,1,0,,football-data.co.uk
+,2018-10-21,12:00,Ankaragucu,Yeni Malatyaspor,1,0,H,1,0,H,7,10,3,2,21,19,6,6,,,,,4,4,0,0,,football-data.co.uk
+,2018-10-21,12:00,Goztep,Besiktas,2,0,H,0,0,D,10,10,5,2,18,14,5,6,,,,,3,2,0,0,,football-data.co.uk
+,2018-10-21,12:00,Rizespor,Konyaspor,1,1,D,1,0,H,9,14,3,4,20,21,3,7,,,,,2,0,1,0,,football-data.co.uk
+,2018-10-22,12:00,Trabzonspor,Erzurum BB,0,0,D,0,0,D,13,10,1,4,10,14,7,5,,,,,1,3,0,0,,football-data.co.uk
+,2018-10-26,12:00,Bursaspor,Alanyaspor,2,0,H,2,0,H,12,7,7,0,17,17,2,6,,,,,1,0,0,,,football-data.co.uk
+,2018-10-27,12:00,Antalyaspor,Trabzonspor,1,1,D,1,1,D,12,11,7,4,14,15,5,3,,,,,2,1,0,0,,football-data.co.uk
+,2018-10-27,12:00,Erzurum BB,Kasimpasa,1,1,D,1,0,H,14,18,5,7,18,9,6,8,,,,,4,1,1,0,,football-data.co.uk
+,2018-10-27,12:00,Konyaspor,Buyuksehyr,0,1,A,0,0,D,9,7,1,4,11,15,3,2,,,,,1,0,0,0,,football-data.co.uk
+,2018-10-28,12:00,Fenerbahce,Ankaragucu,1,3,A,0,1,A,13,17,3,8,16,21,5,7,,,,,4,5,1,0,,football-data.co.uk
+,2018-10-28,12:00,Kayserispor,Sivasspor,2,0,H,0,0,D,10,14,4,2,13,14,3,5,,,,,4,6,0,1,,football-data.co.uk
+,2018-10-28,12:00,Yeni Malatyaspor,Galatasaray,2,0,H,1,0,H,12,14,5,2,16,13,5,5,,,,,2,1,0,0,,football-data.co.uk
+,2018-10-29,12:00,Akhisar Belediyespor,Goztep,1,0,H,1,0,H,11,13,4,3,18,14,3,3,,,,,3,4,0,0,,football-data.co.uk
+,2018-10-29,12:00,Besiktas,Rizespor,4,1,H,2,0,H,26,5,12,2,12,12,7,2,,,,,3,2,0,2,,football-data.co.uk
+,2018-11-02,12:00,Galatasaray,Fenerbahce,2,2,D,1,0,H,16,17,3,5,9,16,6,4,,,,,1,4,0,0,,football-data.co.uk
+,2018-11-03,12:00,Akhisar Belediyespor,Erzurum BB,1,1,D,1,1,D,10,5,5,1,13,16,3,2,,,,,2,1,0,0,,football-data.co.uk
+,2018-11-03,12:00,Buyuksehyr,Besiktas,1,0,H,1,0,H,9,15,3,3,14,14,3,9,,,,,2,2,0,0,,football-data.co.uk
+,2018-11-03,12:00,Kasimpasa,Antalyaspor,1,2,A,1,1,D,19,9,6,6,12,14,7,3,,,,,2,4,0,0,,football-data.co.uk
+,2018-11-04,12:00,Alanyaspor,Yeni Malatyaspor,0,1,A,0,1,A,17,2,6,1,20,20,10,0,,,,,2,3,0,0,,football-data.co.uk
+,2018-11-04,12:00,Ankaragucu,Kayserispor,3,1,H,2,0,H,10,11,5,2,18,18,3,6,,,,,0,4,0,1,,football-data.co.uk
+,2018-11-04,12:00,Trabzonspor,Bursaspor,1,1,D,1,0,H,17,14,6,6,16,16,3,6,,,,,2,2,0,0,,football-data.co.uk
+,2018-11-05,12:00,Goztep,Rizespor,2,0,H,1,0,H,12,13,6,2,11,8,6,13,,,,,0,1,0,0,,football-data.co.uk
+,2018-11-05,12:00,Sivasspor,Konyaspor,0,0,D,0,0,D,17,10,3,2,23,13,12,3,,,,,2,4,0,1,,football-data.co.uk
+,2018-11-09,12:00,Yeni Malatyaspor,Trabzonspor,5,0,H,2,0,H,10,15,6,5,14,6,2,2,,,,,1,1,0,0,,football-data.co.uk
+,2018-11-10,12:00,Erzurum BB,Goztep,2,1,H,1,0,H,7,9,4,3,14,9,2,6,,,,,2,2,0,0,,football-data.co.uk
+,2018-11-10,12:00,Kayserispor,Galatasaray,0,3,A,0,1,A,12,11,3,6,13,9,4,3,,,,,5,3,1,0,,football-data.co.uk
+,2018-11-10,12:00,Konyaspor,Ankaragucu,2,0,H,0,0,D,15,7,3,2,15,16,3,4,,,,,1,2,0,0,,football-data.co.uk
+,2018-11-10,12:00,Rizespor,Buyuksehyr,1,2,A,0,0,D,6,13,2,4,14,10,4,4,,,,,2,1,0,0,,football-data.co.uk
+,2018-11-11,12:00,Antalyaspor,Akhisar Belediyespor,1,2,A,0,0,D,17,5,6,3,10,17,8,7,,,,,3,1,0,0,,football-data.co.uk
+,2018-11-11,12:00,Besiktas,Sivasspor,1,2,A,1,1,D,9,10,2,3,14,14,6,5,,,,,4,3,0,0,,football-data.co.uk
+,2018-11-11,12:00,Bursaspor,Kasimpasa,1,2,A,1,1,D,24,10,4,4,17,14,6,6,,,,,3,1,0,0,,football-data.co.uk
+,2018-11-11,12:00,Fenerbahce,Alanyaspor,2,0,H,2,0,H,12,10,5,3,11,17,3,6,,,,,2,2,0,0,,football-data.co.uk
+,2018-11-23,12:00,Galatasaray,Konyaspor,1,1,D,0,0,D,13,8,2,2,12,14,0,3,,,,,1,3,1,0,,football-data.co.uk
+,2018-11-24,12:00,Alanyaspor,Kayserispor,5,0,H,1,0,H,15,5,10,1,20,11,9,2,,,,,3,5,0,0,,football-data.co.uk
+,2018-11-24,12:00,Ankaragucu,Besiktas,1,4,A,0,3,A,15,15,4,6,18,15,4,5,,,,,2,2,0,0,,football-data.co.uk
+,2018-11-24,12:00,Erzurum BB,Antalyaspor,1,0,H,0,0,D,14,7,2,1,12,12,7,3,,,,,3,0,0,0,,football-data.co.uk
+,2018-11-25,12:00,Akhisar Belediyespor,Bursaspor,2,4,A,2,1,H,6,19,3,7,13,11,3,7,,,,,0,2,0,0,,football-data.co.uk
+,2018-11-25,12:00,Kasimpasa,Yeni Malatyaspor,3,0,H,1,0,H,21,17,9,2,19,9,7,4,,,,,2,1,0,0,,football-data.co.uk
+,2018-11-25,12:00,Sivasspor,Rizespor,1,1,D,0,0,D,25,9,6,4,14,7,19,3,,,,,2,3,1,0,,football-data.co.uk
+,2018-11-25,12:00,Trabzonspor,Fenerbahce,2,1,H,0,0,D,26,11,8,3,11,17,6,6,,,,,3,3,0,0,,football-data.co.uk
+,2018-11-26,12:00,Goztep,Buyuksehyr,0,2,A,0,1,A,15,15,4,7,8,13,7,1,,,,,4,3,0,0,,football-data.co.uk
+,2018-11-30,12:00,Konyaspor,Alanyaspor,2,0,H,0,0,D,9,8,4,2,10,10,2,3,,,,,3,2,0,1,,football-data.co.uk
+,2018-11-30,12:00,Rizespor,Ankaragucu,1,1,D,0,1,A,21,10,6,4,12,6,7,2,,,,,3,2,0,0,,football-data.co.uk
+,2018-12-01,12:00,Antalyaspor,Goztep,1,0,H,1,0,H,8,15,4,3,17,17,6,4,,,,,1,1,0,0,,football-data.co.uk
+,2018-12-01,12:00,Buyuksehyr,Sivasspor,0,1,A,0,1,A,16,9,2,1,8,15,6,0,,,,,3,3,0,0,,football-data.co.uk
+,2018-12-01,12:00,Kayserispor,Trabzonspor,0,2,A,0,0,D,7,18,2,7,15,16,2,5,,,,,5,1,0,0,,football-data.co.uk
+,2018-12-02,12:00,Besiktas,Galatasaray,1,0,H,1,0,H,14,10,5,2,21,14,6,5,,,,,4,4,0,0,,football-data.co.uk
+,2018-12-02,12:00,Bursaspor,Erzurum BB,2,1,H,1,1,D,13,8,4,2,19,13,2,3,,,,,2,1,0,0,,football-data.co.uk
+,2018-12-03,12:00,Fenerbahce,Kasimpasa,2,2,D,2,1,H,21,16,3,3,11,19,8,2,,,,,3,1,0,0,,football-data.co.uk
+,2018-12-03,12:00,Yeni Malatyaspor,Akhisar Belediyespor,1,1,D,1,0,H,9,7,3,3,16,13,0,0,,,,,4,3,0,0,,football-data.co.uk
+,2018-12-07,12:00,Alanyaspor,Besiktas,0,0,D,0,0,D,13,9,3,3,15,16,7,10,,,,,3,2,0,0,,football-data.co.uk
+,2018-12-08,12:00,Galatasaray,Rizespor,2,2,D,1,0,H,20,18,8,8,11,12,8,4,,,,,2,1,0,0,,football-data.co.uk
+,2018-12-08,12:00,Sivasspor,Goztep,2,0,H,0,0,D,15,7,6,1,13,13,7,3,,,,,3,4,0,1,,football-data.co.uk
+,2018-12-08,12:00,Trabzonspor,Konyaspor,3,0,H,0,0,D,18,7,6,2,13,13,5,2,,,,,2,3,0,0,,football-data.co.uk
+,2018-12-09,12:00,Akhisar Belediyespor,Fenerbahce,3,0,H,1,0,H,12,16,4,4,13,7,2,7,,,,,2,1,0,0,,football-data.co.uk
+,2018-12-09,12:00,Bursaspor,Antalyaspor,0,2,A,0,2,A,13,6,4,3,21,11,9,0,,,,,4,1,0,0,,football-data.co.uk
+,2018-12-09,12:00,Erzurum BB,Yeni Malatyaspor,1,3,A,1,0,H,15,9,5,5,10,15,9,4,,,,,0,3,0,0,,football-data.co.uk
+,2018-12-10,12:00,Ankaragucu,Buyuksehyr,0,1,A,0,1,A,8,15,1,8,10,14,0,7,,,,,0,1,0,0,,football-data.co.uk
+,2018-12-10,12:00,Kasimpasa,Kayserispor,0,3,A,0,1,A,25,17,5,10,13,15,11,3,,,,,3,2,0,0,,football-data.co.uk
+,2018-12-14,12:00,Goztep,Bursaspor,0,0,D,0,0,D,8,6,2,3,15,13,3,6,,,,,1,3,0,0,,football-data.co.uk
+,2018-12-15,12:00,Buyuksehyr,Galatasaray,1,1,D,1,1,D,17,9,5,4,12,13,7,2,,,,,4,2,0,0,,football-data.co.uk
+,2018-12-15,12:00,Konyaspor,Kasimpasa,3,2,H,0,0,D,10,20,3,6,9,10,3,8,,,,,2,6,0,0,,football-data.co.uk
+,2018-12-15,12:00,Rizespor,Alanyaspor,1,1,D,0,1,A,16,16,8,6,19,17,9,5,,,,,4,3,0,0,,football-data.co.uk
+,2018-12-15,12:00,Sivasspor,Ankaragucu,4,0,H,2,0,H,19,10,8,4,13,12,9,6,,,,,1,4,0,0,,football-data.co.uk
+,2018-12-16,12:00,Besiktas,Trabzonspor,2,2,D,0,1,A,18,14,8,7,16,14,10,8,,,,,3,1,0,0,,football-data.co.uk
+,2018-12-16,12:00,Kayserispor,Akhisar Belediyespor,1,0,H,0,0,D,13,7,5,2,19,8,3,6,,,,,2,1,0,0,,football-data.co.uk
+,2018-12-16,12:00,Yeni Malatyaspor,Antalyaspor,2,0,H,2,0,H,12,8,3,1,16,18,2,2,,,,,2,4,1,1,,football-data.co.uk
+,2018-12-17,12:00,Fenerbahce,Erzurum BB,2,2,D,2,0,H,14,6,5,3,11,17,7,1,,,,,0,3,0,0,,football-data.co.uk
+,2018-12-22,12:00,Alanyaspor,Buyuksehyr,1,1,D,0,1,A,13,12,7,6,13,12,1,3,,,,,3,2,1,0,,football-data.co.uk
+,2018-12-22,12:00,Ankaragucu,Goztep,0,3,A,0,0,D,13,11,1,4,16,18,4,3,,,,,2,1,0,0,,football-data.co.uk
+,2018-12-22,12:00,Kasimpasa,Besiktas,4,1,H,2,0,H,12,16,7,6,14,15,4,3,,,,,3,3,0,0,,football-data.co.uk
+,2018-12-23,12:00,Bursaspor,Yeni Malatyaspor,1,1,D,1,0,H,8,4,2,1,13,11,5,1,,,,,1,3,0,1,,football-data.co.uk
+,2018-12-23,12:00,Erzurum BB,Kayserispor,1,1,D,1,1,D,20,7,5,3,14,12,5,3,,,,,2,6,0,0,,football-data.co.uk
+,2018-12-23,12:00,Galatasaray,Sivasspor,4,2,H,2,2,D,15,16,5,7,18,4,7,5,,,,,2,2,0,0,,football-data.co.uk
+,2018-12-23,12:00,Trabzonspor,Rizespor,4,1,H,1,0,H,18,13,5,6,18,9,6,4,,,,,4,2,0,0,,football-data.co.uk
+,2018-12-24,12:00,Akhisar Belediyespor,Konyaspor,0,0,D,0,0,D,8,10,3,3,14,15,0,4,,,,,3,3,0,0,,football-data.co.uk
+,2018-12-24,12:00,Antalyaspor,Fenerbahce,0,0,D,0,0,D,7,19,3,6,12,11,2,9,,,,,1,4,0,1,,football-data.co.uk
+,2019-01-18,12:00,Akhisar Belediyespor,Besiktas,1,3,A,0,1,A,15,11,5,5,12,18,8,2,,,,,3,4,0,0,,football-data.co.uk
+,2019-01-19,12:00,Antalyaspor,Kayserispor,0,0,D,0,0,D,3,16,0,2,13,13,2,6,,,,,0,1,0,0,,football-data.co.uk
+,2019-01-19,12:00,Erzurum BB,Konyaspor,1,2,A,0,1,A,14,10,3,4,11,15,8,4,,,,,3,4,0,0,,football-data.co.uk
+,2019-01-19,12:00,Galatasaray,Ankaragucu,6,0,H,3,0,H,23,11,10,3,13,13,0,2,,,,,3,3,0,0,,football-data.co.uk
+,2019-01-19,12:00,Yeni Malatyaspor,Goztep,3,2,H,2,2,D,9,10,5,3,13,11,2,11,,,,,1,1,0,0,,football-data.co.uk
+,2019-01-20,12:00,Alanyaspor,Sivasspor,2,0,H,2,0,H,19,9,8,0,13,15,8,2,,,,,0,3,0,0,,football-data.co.uk
+,2019-01-20,12:00,Trabzonspor,Buyuksehyr,2,4,A,0,2,A,20,10,10,8,17,15,8,4,,,,,3,2,0,0,,football-data.co.uk
+,2019-01-21,12:00,Bursaspor,Fenerbahce,1,1,D,0,1,A,13,5,4,3,18,18,3,7,,,,,4,2,0,0,,football-data.co.uk
+,2019-01-21,12:00,Kasimpasa,Rizespor,0,1,A,0,1,A,22,7,6,2,13,19,10,3,,,,,2,4,0,0,,football-data.co.uk
+,2019-01-25,12:00,Besiktas,Erzurum BB,1,1,D,0,0,D,15,10,5,3,15,14,11,2,,,,,4,4,1,0,,football-data.co.uk
+,2019-01-26,12:00,Goztep,Galatasaray,0,1,A,0,0,D,16,9,1,6,17,12,13,3,,,,,3,3,0,0,,football-data.co.uk
+,2019-01-26,12:00,Kayserispor,Bursaspor,1,1,D,0,1,A,7,12,4,3,15,9,8,7,,,,,2,2,1,0,,football-data.co.uk
+,2019-01-27,12:00,Konyaspor,Antalyaspor,2,0,H,1,0,H,11,7,4,2,19,10,5,1,,,,,1,1,0,0,,football-data.co.uk
+,2019-01-27,12:00,Rizespor,Akhisar Belediyespor,3,1,H,0,1,A,25,9,6,4,16,13,6,1,,,,,2,1,0,1,,football-data.co.uk
+,2019-01-27,12:00,Sivasspor,Trabzonspor,1,1,D,0,0,D,15,15,5,6,11,14,3,5,,,,,0,1,0,0,,football-data.co.uk
+,2019-01-28,12:00,Ankaragucu,Alanyaspor,0,2,A,0,1,A,8,10,3,3,14,21,4,3,,,,,5,1,0,0,,football-data.co.uk
+,2019-01-28,12:00,Buyuksehyr,Kasimpasa,2,0,H,1,0,H,16,9,5,2,18,9,7,2,,,,,2,0,0,0,,football-data.co.uk
+,2019-01-28,12:00,Fenerbahce,Yeni Malatyaspor,3,2,H,2,2,D,19,8,8,4,21,20,6,4,,,,,6,4,0,0,,football-data.co.uk
+,2019-02-01,12:00,Fenerbahce,Goztep,2,0,H,1,0,H,12,6,4,3,16,15,3,2,,,,,3,3,0,1,,football-data.co.uk
+,2019-02-02,12:00,Alanyaspor,Galatasaray,1,1,D,1,0,H,13,5,7,3,22,18,2,3,,,,,3,5,0,0,,football-data.co.uk
+,2019-02-02,12:00,Kasimpasa,Sivasspor,1,3,A,1,1,D,5,21,3,8,15,10,3,11,,,,,3,0,0,0,,football-data.co.uk
+,2019-02-02,12:00,Trabzonspor,Ankaragucu,1,0,H,1,0,H,21,13,8,5,19,17,2,5,,,,,4,3,0,0,,football-data.co.uk
+,2019-02-02,12:00,Yeni Malatyaspor,Kayserispor,1,1,D,1,1,D,7,7,5,4,11,16,4,3,,,,,0,3,0,0,,football-data.co.uk
+,2019-02-03,12:00,Akhisar Belediyespor,Buyuksehyr,0,3,A,0,2,A,22,18,6,6,14,17,5,3,,,,,4,3,0,0,,football-data.co.uk
+,2019-02-03,12:00,Antalyaspor,Besiktas,2,6,A,0,3,A,11,13,4,7,12,14,7,7,,,,,3,2,0,0,,football-data.co.uk
+,2019-02-03,12:00,Erzurum BB,Rizespor,0,1,A,0,0,D,10,6,2,1,15,14,17,1,,,,,1,1,0,0,,football-data.co.uk
+,2019-02-04,12:00,Bursaspor,Konyaspor,0,0,D,0,0,D,17,4,3,3,11,15,4,4,,,,,0,2,0,0,,football-data.co.uk
+,2019-02-08,12:00,Kayserispor,Fenerbahce,1,0,H,0,0,D,13,8,5,2,15,18,3,5,,,,,2,5,0,2,,football-data.co.uk
+,2019-02-09,12:00,Besiktas,Bursaspor,2,0,H,1,0,H,11,8,7,3,17,14,4,3,,,,,1,1,0,0,,football-data.co.uk
+,2019-02-09,12:00,Buyuksehyr,Erzurum BB,1,1,D,1,0,H,9,13,2,2,21,12,3,6,,,,,3,1,0,0,,football-data.co.uk
+,2019-02-09,12:00,Rizespor,Antalyaspor,1,1,D,1,0,H,20,25,5,4,15,13,7,8,,,,,2,1,0,0,,football-data.co.uk
+,2019-02-10,12:00,Galatasaray,Trabzonspor,3,1,H,2,1,H,18,14,9,4,17,12,4,9,,,,,4,1,0,0,,football-data.co.uk
+,2019-02-10,12:00,Goztep,Alanyaspor,3,2,H,2,1,H,14,14,7,6,13,14,1,5,,,,,8,4,1,0,,football-data.co.uk
+,2019-02-10,12:00,Konyaspor,Yeni Malatyaspor,1,1,D,0,0,D,8,8,4,3,12,18,4,1,,,,,0,0,0,0,,football-data.co.uk
+,2019-02-11,12:00,Ankaragucu,Kasimpasa,3,0,H,1,0,H,8,15,5,2,16,12,4,4,,,,,3,1,0,0,,football-data.co.uk
+,2019-02-11,12:00,Sivasspor,Akhisar Belediyespor,2,1,H,1,0,H,13,13,6,3,18,13,3,8,,,,,4,2,1,0,,football-data.co.uk
+,2019-02-15,12:00,Yeni Malatyaspor,Besiktas,1,2,A,0,0,D,4,18,1,7,8,20,3,10,,,,,1,1,1,0,,football-data.co.uk
+,2019-02-16,12:00,Akhisar Belediyespor,Ankaragucu,0,0,D,0,0,D,17,9,8,2,11,23,9,0,,,,,4,4,0,1,,football-data.co.uk
+,2019-02-16,12:00,Bursaspor,Rizespor,0,2,A,0,1,A,17,5,2,5,14,22,8,4,,,,,3,2,0,0,,football-data.co.uk
+,2019-02-16,12:00,Fenerbahce,Konyaspor,1,1,D,1,1,D,17,3,3,2,16,10,11,3,,,,,3,1,0,1,,football-data.co.uk
+,2019-02-17,12:00,Erzurum BB,Sivasspor,4,2,H,2,1,H,12,18,6,6,15,13,2,5,,,,,2,5,0,0,,football-data.co.uk
+,2019-02-17,12:00,Kasimpasa,Galatasaray,1,4,A,1,2,A,13,10,5,6,16,10,8,4,,,,,3,5,0,0,,football-data.co.uk
+,2019-02-17,12:00,Kayserispor,Goztep,2,1,H,1,0,H,15,8,4,2,10,10,2,5,,,,,4,1,0,0,,football-data.co.uk
+,2019-02-17,12:00,Trabzonspor,Alanyaspor,0,2,A,0,0,D,13,10,2,6,17,17,4,2,,,,,1,2,0,0,,football-data.co.uk
+,2019-02-18,12:00,Antalyaspor,Buyuksehyr,0,1,A,0,1,A,8,17,3,8,12,15,8,5,,,,,3,2,0,0,,football-data.co.uk
+,2019-02-22,12:00,Goztep,Trabzonspor,1,3,A,0,1,A,8,13,1,6,13,9,10,3,,,,,2,1,0,0,,football-data.co.uk
+,2019-02-22,12:00,Rizespor,Yeni Malatyaspor,3,0,H,1,0,H,14,11,6,3,11,18,3,2,,,,,2,3,0,0,,football-data.co.uk
+,2019-02-23,12:00,Alanyaspor,Kasimpasa,3,0,H,1,0,H,19,5,9,2,16,16,5,6,,,,,3,2,0,1,,football-data.co.uk
+,2019-02-23,12:00,Buyuksehyr,Bursaspor,3,0,H,2,0,H,11,14,6,3,13,13,3,5,,,,,0,2,0,0,,football-data.co.uk
+,2019-02-23,12:00,Sivasspor,Antalyaspor,1,2,A,0,2,A,11,8,4,4,17,9,7,5,,,,,1,2,0,0,,football-data.co.uk
+,2019-02-24,12:00,Ankaragucu,Erzurum BB,2,1,H,1,0,H,14,14,6,6,23,12,2,6,,,,,2,2,0,1,,football-data.co.uk
+,2019-02-24,12:00,Galatasaray,Akhisar Belediyespor,1,0,H,0,0,D,21,4,6,1,15,24,15,2,,,,,2,6,0,0,,football-data.co.uk
+,2019-02-24,12:00,Konyaspor,Kayserispor,0,1,A,0,0,D,8,10,1,2,7,10,6,4,,,,,2,1,0,0,,football-data.co.uk
+,2019-02-25,12:00,Besiktas,Fenerbahce,3,3,D,3,0,H,9,17,5,4,22,19,3,5,,,,,2,4,0,0,,football-data.co.uk
+,2019-03-01,12:00,Antalyaspor,Ankaragucu,2,4,A,2,3,A,17,10,5,4,8,23,4,4,,,,,3,6,0,0,,football-data.co.uk
+,2019-03-02,12:00,Bursaspor,Sivasspor,3,2,H,1,1,D,12,4,5,3,21,10,7,1,,,,,3,1,0,0,,football-data.co.uk
+,2019-03-02,12:00,Fenerbahce,Rizespor,3,2,H,2,1,H,22,9,7,4,13,13,9,2,,,,,2,4,0,1,,football-data.co.uk
+,2019-03-02,12:00,Kayserispor,Besiktas,2,2,D,0,1,A,14,10,5,4,16,11,4,7,,,,,3,3,0,0,,football-data.co.uk
+,2019-03-03,12:00,Erzurum BB,Galatasaray,1,1,D,1,0,H,18,14,6,4,11,11,6,9,,,,,0,1,0,0,,football-data.co.uk
+,2019-03-03,12:00,Konyaspor,Goztep,1,1,D,1,0,H,13,12,7,2,14,11,3,5,,,,,3,4,0,1,,football-data.co.uk
+,2019-03-03,12:00,Yeni Malatyaspor,Buyuksehyr,0,2,A,0,1,A,9,9,2,5,10,12,4,3,,,,,2,3,0,0,,football-data.co.uk
+,2019-03-04,12:00,Akhisar Belediyespor,Alanyaspor,3,1,H,0,0,D,8,8,4,1,20,21,5,4,,,,,1,2,0,0,,football-data.co.uk
+,2019-03-04,12:00,Kasimpasa,Trabzonspor,2,2,D,0,2,A,14,10,8,5,13,12,6,1,,,,,4,2,0,0,,football-data.co.uk
+,2019-03-08,12:00,Sivasspor,Yeni Malatyaspor,2,0,H,2,0,H,13,10,5,3,18,17,6,9,,,,,1,3,0,0,,football-data.co.uk
+,2019-03-09,12:00,Ankaragucu,Bursaspor,0,0,D,0,0,D,10,12,4,2,11,7,5,4,,,,,1,1,0,0,,football-data.co.uk
+,2019-03-09,12:00,Buyuksehyr,Fenerbahce,2,1,H,1,0,H,17,12,3,4,14,10,3,4,,,,,2,2,0,0,,football-data.co.uk
+,2019-03-09,12:00,Trabzonspor,Akhisar Belediyespor,2,1,H,0,0,D,17,10,8,4,20,21,7,0,,,,,5,3,0,0,,football-data.co.uk
+,2019-03-10,12:00,Alanyaspor,Erzurum BB,2,1,H,1,0,H,18,6,6,3,13,21,6,2,,,,,1,2,0,0,,football-data.co.uk
+,2019-03-10,12:00,Besiktas,Konyaspor,3,2,H,2,1,H,20,4,12,3,14,20,9,1,,,,,2,3,0,0,,football-data.co.uk
+,2019-03-10,12:00,Goztep,Kasimpasa,0,0,D,0,0,D,12,4,2,2,14,25,7,1,,,,,1,3,0,0,,football-data.co.uk
+,2019-03-10,12:00,Rizespor,Kayserispor,3,0,H,1,0,H,12,16,6,4,14,10,4,5,,,,,3,1,0,0,,football-data.co.uk
+,2019-03-11,12:00,Galatasaray,Antalyaspor,5,0,H,1,0,H,15,14,7,7,5,11,6,6,,,,,2,1,0,0,,football-data.co.uk
+,2019-03-15,12:00,Fenerbahce,Sivasspor,2,1,H,0,0,D,15,11,5,2,10,20,9,7,,,,,3,2,0,0,,football-data.co.uk
+,2019-03-16,12:00,Akhisar Belediyespor,Kasimpasa,2,3,A,1,1,D,15,16,7,7,11,15,7,6,,,,,1,0,0,0,,football-data.co.uk
+,2019-03-16,12:00,Antalyaspor,Alanyaspor,3,0,H,2,0,H,9,12,4,5,17,10,1,5,,,,,3,2,0,0,,football-data.co.uk
+,2019-03-16,12:00,Besiktas,Goztep,1,0,H,0,0,D,6,13,1,5,20,13,3,4,,,,,0,2,0,0,,football-data.co.uk
+,2019-03-16,12:00,Erzurum BB,Trabzonspor,0,1,A,0,0,D,20,13,7,3,11,13,3,4,,,,,2,3,0,0,,football-data.co.uk
+,2019-03-16,12:00,Konyaspor,Rizespor,0,2,A,0,1,A,9,10,1,4,16,17,6,3,,,,,1,2,1,0,,football-data.co.uk
+,2019-03-17,12:00,Bursaspor,Galatasaray,2,3,A,2,1,H,13,9,5,3,13,8,5,3,,,,,2,6,0,0,,football-data.co.uk
+,2019-03-17,12:00,Kayserispor,Buyuksehyr,1,1,D,1,0,H,12,34,6,10,14,9,1,15,,,,,2,1,0,0,,football-data.co.uk
+,2019-03-17,12:00,Yeni Malatyaspor,Ankaragucu,3,1,H,0,0,D,8,11,4,3,12,15,4,4,,,,,2,2,0,0,,football-data.co.uk
+,2019-04-05,12:00,Trabzonspor,Antalyaspor,4,1,H,1,1,D,21,12,7,3,12,12,8,1,,,,,1,1,0,0,,football-data.co.uk
+,2019-04-06,12:00,Alanyaspor,Bursaspor,1,0,H,0,0,D,18,10,4,3,15,13,4,2,,,,,6,2,0,0,,football-data.co.uk
+,2019-04-06,12:00,Galatasaray,Yeni Malatyaspor,3,0,H,1,0,H,25,8,6,2,9,14,12,1,,,,,2,2,0,0,,football-data.co.uk
+,2019-04-06,12:00,Sivasspor,Kayserispor,1,3,A,0,3,A,17,10,8,8,14,14,4,4,,,,,2,3,0,0,,football-data.co.uk
+,2019-04-07,12:00,Ankaragucu,Fenerbahce,1,1,D,1,0,H,12,14,3,6,20,8,5,7,,,,,4,3,1,1,,football-data.co.uk
+,2019-04-07,12:00,Buyuksehyr,Konyaspor,2,0,H,0,0,D,15,13,4,4,9,11,8,5,,,,,1,2,0,0,,football-data.co.uk
+,2019-04-07,12:00,Goztep,Akhisar Belediyespor,0,1,A,0,0,D,19,12,5,3,15,15,14,7,,,,,3,3,0,0,,football-data.co.uk
+,2019-04-07,12:00,Kasimpasa,Erzurum BB,2,1,H,1,0,H,19,13,5,3,15,11,6,4,,,,,1,1,0,0,,football-data.co.uk
+,2019-04-08,12:00,Rizespor,Besiktas,2,7,A,1,2,A,19,11,6,11,8,10,3,2,,,,,1,2,0,0,,football-data.co.uk
+,2019-04-12,12:00,Bursaspor,Trabzonspor,0,1,A,0,0,D,18,11,3,3,18,11,10,7,,,,,3,3,0,0,,football-data.co.uk
+,2019-04-13,12:00,Besiktas,Buyuksehyr,2,1,H,1,1,D,15,13,6,5,16,18,10,4,,,,,2,2,0,0,,football-data.co.uk
+,2019-04-13,12:00,Konyaspor,Sivasspor,1,1,D,1,1,D,6,8,3,3,13,10,0,4,,,,,2,1,0,0,,football-data.co.uk
+,2019-04-13,12:00,Rizespor,Goztep,1,0,H,0,0,D,15,8,8,2,18,15,3,6,,,,,2,1,0,0,,football-data.co.uk
+,2019-04-14,12:00,Antalyaspor,Kasimpasa,1,0,H,1,0,H,10,25,5,7,17,13,4,5,,,,,2,2,1,0,,football-data.co.uk
+,2019-04-14,12:00,Fenerbahce,Galatasaray,1,1,D,0,0,D,6,14,2,2,16,12,2,5,,,,,5,4,1,0,,football-data.co.uk
+,2019-04-14,12:00,Kayserispor,Ankaragucu,0,2,A,0,0,D,12,12,3,6,6,13,2,6,,,,,0,1,0,0,,football-data.co.uk
+,2019-04-14,12:00,Yeni Malatyaspor,Alanyaspor,1,1,D,1,1,D,18,8,5,4,14,15,3,4,,,,,1,5,1,1,,football-data.co.uk
+,2019-04-15,12:00,Erzurum BB,Akhisar Belediyespor,2,1,H,0,0,D,16,13,5,8,11,9,6,3,,,,,1,2,0,0,,football-data.co.uk
+,2019-04-19,12:00,Kasimpasa,Bursaspor,1,1,D,0,0,D,10,17,2,5,16,15,3,4,,,,,2,1,0,0,,football-data.co.uk
+,2019-04-20,12:00,Akhisar Belediyespor,Antalyaspor,1,2,A,0,2,A,21,10,9,6,15,8,17,1,,,,,2,2,0,0,,football-data.co.uk
+,2019-04-20,12:00,Galatasaray,Kayserispor,3,1,H,3,1,H,17,11,7,5,9,16,6,3,,,,,3,5,0,1,,football-data.co.uk
+,2019-04-20,12:00,Goztep,Erzurum BB,0,1,A,0,1,A,22,11,5,6,17,12,11,6,,,,,2,3,0,0,,football-data.co.uk
+,2019-04-20,12:00,Trabzonspor,Yeni Malatyaspor,2,1,H,1,1,D,20,11,8,3,13,15,7,3,,,,,2,3,0,1,,football-data.co.uk
+,2019-04-21,12:00,Alanyaspor,Fenerbahce,1,0,H,0,0,D,25,7,8,1,12,14,10,4,,,,,0,1,0,0,,football-data.co.uk
+,2019-04-21,12:00,Ankaragucu,Konyaspor,0,0,D,0,0,D,14,12,6,1,15,15,1,4,,,,,1,2,0,0,,football-data.co.uk
+,2019-04-21,12:00,Buyuksehyr,Rizespor,1,1,D,0,0,D,16,9,5,1,14,19,7,2,,,,,0,4,0,0,,football-data.co.uk
+,2019-04-22,12:00,Sivasspor,Besiktas,1,2,A,1,1,D,8,21,4,6,18,15,4,8,,,,,1,3,0,0,,football-data.co.uk
+,2019-04-26,12:00,Buyuksehyr,Goztep,0,2,A,0,1,A,23,8,5,4,11,10,9,1,,,,,2,1,0,0,,football-data.co.uk
+,2019-04-27,12:00,Antalyaspor,Erzurum BB,1,1,D,1,0,H,11,17,2,4,7,8,2,5,,,,,1,1,0,0,,football-data.co.uk
+,2019-04-27,12:00,Fenerbahce,Trabzonspor,1,1,D,0,1,A,16,17,5,5,17,20,5,2,,,,,5,2,1,0,,football-data.co.uk
+,2019-04-27,12:00,Rizespor,Sivasspor,0,0,D,0,0,D,23,6,5,3,10,11,5,2,,,,,1,3,0,0,,football-data.co.uk
+,2019-04-28,12:00,Besiktas,Ankaragucu,4,1,H,1,0,H,10,15,5,8,15,18,2,9,,,,,2,3,0,0,,football-data.co.uk
+,2019-04-28,12:00,Bursaspor,Akhisar Belediyespor,0,0,D,0,0,D,20,11,2,2,17,14,7,4,,,,,1,3,0,0,,football-data.co.uk
+,2019-04-28,12:00,Kayserispor,Alanyaspor,1,1,D,1,1,D,13,15,7,3,16,16,2,6,,,,,2,3,0,0,,football-data.co.uk
+,2019-04-29,12:00,Konyaspor,Galatasaray,0,0,D,0,0,D,4,11,2,0,8,6,4,7,,,,,1,1,0,0,,football-data.co.uk
+,2019-04-29,12:00,Yeni Malatyaspor,Kasimpasa,2,1,H,1,0,H,12,12,5,6,9,15,12,3,,,,,3,5,0,0,,football-data.co.uk
+,2019-05-03,12:00,Sivasspor,Buyuksehyr,0,0,D,0,0,D,5,12,1,5,15,16,2,9,,,,,3,4,0,0,,football-data.co.uk
+,2019-05-04,12:00,Ankaragucu,Rizespor,2,2,D,0,1,A,10,16,3,5,15,13,7,4,,,,,5,2,0,0,,football-data.co.uk
+,2019-05-04,12:00,Erzurum BB,Bursaspor,2,0,H,0,0,D,8,15,3,2,9,11,4,7,,,,,3,2,0,0,,football-data.co.uk
+,2019-05-04,12:00,Kasimpasa,Fenerbahce,1,3,A,1,1,D,9,14,2,6,15,12,5,9,,,,,5,0,0,0,,football-data.co.uk
+,2019-05-05,12:00,Akhisar Belediyespor,Yeni Malatyaspor,0,2,A,0,0,D,19,12,5,4,13,16,5,3,,,,,2,3,0,0,,football-data.co.uk
+,2019-05-05,12:00,Galatasaray,Besiktas,2,0,H,1,0,H,16,14,7,5,14,17,5,3,,,,,2,7,0,0,,football-data.co.uk
+,2019-05-05,12:00,Goztep,Antalyaspor,4,1,H,2,1,H,17,9,11,1,7,9,6,0,,,,,0,6,0,1,,football-data.co.uk
+,2019-05-06,12:00,Alanyaspor,Konyaspor,2,4,A,1,2,A,18,8,7,4,16,13,11,6,,,,,3,6,0,0,,football-data.co.uk
+,2019-05-06,12:00,Trabzonspor,Kayserispor,4,2,H,2,1,H,19,16,7,4,14,10,5,3,,,,,2,3,0,0,,football-data.co.uk
+,2019-05-10,12:00,Antalyaspor,Bursaspor,0,1,A,0,1,A,3,16,1,5,13,20,0,8,,,,,4,3,1,0,,football-data.co.uk
+,2019-05-11,12:00,Fenerbahce,Akhisar Belediyespor,2,1,H,2,1,H,10,5,5,1,17,26,2,1,,,,,3,3,0,0,,football-data.co.uk
+,2019-05-11,12:00,Goztep,Sivasspor,3,3,D,1,2,A,20,9,8,4,14,10,6,1,,,,,3,0,1,0,,football-data.co.uk
+,2019-05-11,12:00,Rizespor,Galatasaray,2,3,A,1,1,D,13,12,3,5,17,10,3,1,,,,,5,1,1,0,,football-data.co.uk
+,2019-05-12,12:00,Buyuksehyr,Ankaragucu,2,1,H,0,1,A,20,8,7,1,12,12,5,2,,,,,0,1,0,0,,football-data.co.uk
+,2019-05-12,12:00,Kayserispor,Kasimpasa,2,1,H,0,1,A,19,7,6,6,11,15,13,5,,,,,4,4,0,1,,football-data.co.uk
+,2019-05-12,12:00,Konyaspor,Trabzonspor,2,2,D,2,1,H,7,19,4,6,13,11,5,5,,,,,4,1,0,0,,football-data.co.uk
+,2019-05-12,12:00,Yeni Malatyaspor,Erzurum BB,3,1,H,0,0,D,15,21,9,5,16,18,4,9,,,,,3,3,0,0,,football-data.co.uk
+,2019-05-13,12:00,Besiktas,Alanyaspor,2,1,H,1,1,D,12,9,4,3,17,20,2,5,,,,,2,1,0,0,,football-data.co.uk
+,2019-05-17,12:00,Kasimpasa,Konyaspor,1,1,D,0,1,A,18,12,3,4,13,9,6,7,,,,,1,1,0,0,,football-data.co.uk
+,2019-05-18,12:00,Antalyaspor,Yeni Malatyaspor,3,0,H,1,0,H,17,12,5,2,16,13,5,4,,,,,2,4,0,1,,football-data.co.uk
+,2019-05-18,12:00,Trabzonspor,Besiktas,2,1,H,0,0,D,19,8,8,3,12,9,7,4,,,,,3,2,0,0,,football-data.co.uk
+,2019-05-19,12:00,Akhisar Belediyespor,Kayserispor,2,2,D,1,0,H,16,21,4,8,15,10,5,7,,,,,3,2,0,0,,football-data.co.uk
+,2019-05-19,12:00,Alanyaspor,Rizespor,1,1,D,1,0,H,16,12,5,3,14,17,5,6,,,,,3,1,0,0,,football-data.co.uk
+,2019-05-19,12:00,Bursaspor,Goztep,0,0,D,0,0,D,14,2,3,1,19,10,5,2,,,,,3,1,0,0,,football-data.co.uk
+,2019-05-19,12:00,Galatasaray,Buyuksehyr,2,1,H,0,1,A,15,5,4,2,14,12,8,1,,,,,4,3,0,0,,football-data.co.uk
+,2019-05-20,12:00,Ankaragucu,Sivasspor,3,1,H,2,0,H,14,10,6,4,15,7,8,3,,,,,4,1,0,0,,football-data.co.uk
+,2019-05-20,12:00,Erzurum BB,Fenerbahce,0,1,A,0,0,D,14,10,3,3,8,13,8,2,,,,,4,5,0,0,,football-data.co.uk
+,2019-05-24,12:00,Besiktas,Kasimpasa,3,2,H,3,1,H,13,16,4,6,12,10,3,5,,,,,3,0,1,0,,football-data.co.uk
+,2019-05-24,12:00,Buyuksehyr,Alanyaspor,1,1,D,1,1,D,11,17,3,7,12,9,5,6,,,,,0,0,0,0,,football-data.co.uk
+,2019-05-24,12:00,Rizespor,Trabzonspor,2,3,A,1,3,A,20,21,5,8,12,6,7,6,,,,,1,1,0,0,,football-data.co.uk
+,2019-05-24,12:00,Sivasspor,Galatasaray,4,3,H,2,2,D,30,7,14,4,10,10,9,1,,,,,2,1,0,0,,football-data.co.uk
+,2019-05-25,12:00,Konyaspor,Akhisar Belediyespor,0,0,D,0,0,D,18,14,7,5,9,10,6,5,,,,,2,0,0,0,,football-data.co.uk
+,2019-05-26,12:00,Fenerbahce,Antalyaspor,3,1,H,1,1,D,17,16,6,3,16,12,4,4,,,,,1,3,0,0,,football-data.co.uk
+,2019-05-26,12:00,Goztep,Ankaragucu,2,1,H,1,0,H,11,7,5,4,8,23,4,6,,,,,0,2,0,0,,football-data.co.uk
+,2019-05-26,12:00,Kayserispor,Erzurum BB,0,2,A,0,2,A,20,16,7,6,9,9,10,4,,,,,0,0,1,0,,football-data.co.uk
+,2019-05-26,12:00,Yeni Malatyaspor,Bursaspor,1,2,A,0,2,A,10,9,4,5,8,22,5,2,,,,,7,3,2,1,,football-data.co.uk
