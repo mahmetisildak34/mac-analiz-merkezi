@@ -4059,7 +4059,25 @@ async function analyze(button){
     else if(String(selectedStandingsLeague)==="61")leagueFixtures=await getLigue1Upcoming();
     else if(String(selectedStandingsLeague)==="78")leagueFixtures=await getBundesligaUpcoming();
     else if(String(selectedStandingsLeague)==="135")leagueFixtures=await getSerieAUpcoming(teamName);
-    else{
+    else if(["2","3","848"].includes(String(selectedStandingsLeague))){
+     const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
+     if(!league?.slug)throw new Error("UEFA fikstür kaynağı tanımlı değil.");
+     if(!/^\\d+$/.test(String(teamId)))throw new Error("Takımın ESPN kimliği bulunamadı.");
+     // Avrupa kupalarında yalnızca 30 günlük skor tablosu yerine takımın
+     // 2026/27 sezon takvimini çek; böylece sezonun tüm gelecek maçları listelenir.
+     const schedule=await api("espn/"+league.slug+"/teams/"+String(teamId)+"/schedule?"+qs({season:2026}));
+     leagueFixtures=(Array.isArray(schedule.events)?schedule.events:[]).map(event=>{
+      const comp=event.competitions?.[0]||{},teams=comp.competitors||[];
+      const h=teams.find(x=>x.homeAway==="home")||{},a=teams.find(x=>x.homeAway==="away")||{};
+      const state=String(comp.status?.type?.state||event.status?.type?.state||"").toLowerCase();
+      const completed=comp.status?.type?.completed===true||event.status?.type?.completed===true||state==="post";
+      const live=state==="in";
+      return {fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date,status:{short:completed?"FT":live?"LIVE":"NS"}},
+       league:{id:String(selectedStandingsLeague),name:league.name,country:league.country},
+       teams:{home:{id:Number(h.team?.id)||-1,name:h.team?.displayName||h.team?.name||""},away:{id:Number(a.team?.id)||-1,name:a.team?.displayName||a.team?.name||""}},
+       goals:{home:h.score==null?null:Number(h.score),away:a.score==null?null:Number(a.score)}};
+     }).filter(m=>String(m.fixture.status.short)==="NS"&&Date.parse(m.fixture.date)>=Date.now());
+    }else{
      const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
      if(!league?.slug)throw new Error("Bu lig için henüz gelecek fikstür kaynağı tanımlı değil.");
      const start=new Date(),end=new Date();end.setDate(end.getDate()+30);
