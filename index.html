@@ -1096,6 +1096,12 @@ async function api(path){
       throw new Error("API hatası ("+response.status+"): "+errorText);
     }
 
+    // API-Football lig fikstürleri (geçmiş + gelecek) D1 arşivine de kaydedilir.
+    if(cleanPath.startsWith("fixtures?")&&Array.isArray(data.response)&&data.response.length){
+      const fixtureParams=new URLSearchParams(cleanPath.split("?")[1]||"");
+      const archiveLeague=fixtureParams.get("league")||data.response[0]?.league?.id||"";
+      if(archiveLeague)await mamSaveMatchesToD1(data.response,archiveLeague);
+    }
     if(!isLineupRequest&&!isArchiveBackfill){try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));}catch(e){}}
     return data;
   };
@@ -2914,7 +2920,7 @@ async function mamSaveMatchesToD1(matches, leagueId){
           "Content-Type":"application/json",
           Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||"")
         },
-        body:JSON.stringify({leagueId:String(leagueId||""),matches:matches.slice(0,20)})
+        body:JSON.stringify({leagueId:String(leagueId||""),matches:matches.slice(0,250)})
       });
       if(!response.ok){
         const detail=await response.text().catch(()=> "");
