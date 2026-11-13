@@ -1994,6 +1994,13 @@ async function loadLiveMatches(){
  const previousMatches=allMatches.slice();
  const savedLiveCache=mamReadLiveMatchCache();
  const cachedMatches=previousMatches.length?previousMatches:(savedLiveCache?.matches||[]);
+ // Önceki başarılı canlı maç listesini API çağrısını beklemeden hemen göster.
+ // Böylece yenilemede kısa süreli boş ekran veya kota hatasında maçların kaybolması önlenir.
+ if(!previousMatches.length&&cachedMatches.length){
+  allMatches=cachedMatches;
+  renderMatches();
+  $("status").textContent="Son kayıtlı canlı maçlar yükleniyor; güncel skorlar kontrol ediliyor...";
+ }
  let primaryErrorText="",primaryCount=0,espnErrorText="";
  const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"]);
  const isLive=match=>liveStatuses.has(String(match.fixture?.status?.short||"").toUpperCase());
