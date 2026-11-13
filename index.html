@@ -2621,7 +2621,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const seasons=[seasonStart]; // Bu CSV deposunda yalnızca aktif sezon dosyaları yayımlanıyor.
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
-      const archiveKey="mam_league_csv_v1_"+folder+"_"+seasonCode;
+      const archiveKey="mam_league_csv_v2_"+folder+"_"+seasonCode;
       if(!forceRefresh){
         try{
           const saved=JSON.parse(localStorage.getItem(archiveKey)||"null");
