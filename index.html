@@ -1094,6 +1094,9 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
  </div>
  <div class="mam-standings-card" id="mamStandingsCard" hidden><div class="mam-standings-card-head"><button type="button" id="mamStandingsBack" class="secondary">← Liglere dön</button><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Lig puan durumu</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosu yükleniyor...</div></div></div>
  </section>
+
+ <div class="mam-home-intro">
+<div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
 <section class="mam-home-shortcuts" aria-label="Hızlı erişim">
  <button type="button" class="mam-home-shortcut live" data-home-action="live"><span class="shortcut-icon">◉</span><strong>Canlı Maçlar</strong><small>Devam eden karşılaşmaları takip et</small></button>
  <button type="button" class="mam-home-shortcut" data-home-action="upcoming"><span class="shortcut-icon">▦</span><strong>Gelecek Maçlar</strong><small>Fikstürü ve maç saatlerini incele</small></button>
@@ -1101,8 +1104,6 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
  <button type="button" class="mam-home-shortcut archive" data-home-action="archive"><span class="shortcut-icon">▤</span><strong>İstatistik Arşivi</strong><small>Geçmiş maçları ve sonuçları incele</small></button>
  </section>
  <div class="mam-home-section-label">GÜNÜN MAÇLARI</div>
- <div class="mam-home-intro">
-<div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
 <h1>Futbolun nabzı burada.</h1>
 <p>Canlı maçları takip et, gelecek karşılaşmaları incele ve kendi analiz motorumuzla detaylara gir.</p>
 </div>
@@ -4985,6 +4986,73 @@ main{background:transparent!important}
 .mam-nav-item{background:#10251a!important;border-color:rgba(67,190,105,.13)!important}
 .mam-nav-item span:first-child{color:#3fe889!important}
 @media(max-width:390px){.mam-home-shortcut{min-height:108px;padding:12px}.mam-home-shortcut strong{font-size:14px}}
+
+
+/* ===== MATCH LIST + MATCH DETAIL FINISH · PREVIEW ONLY ===== */
+.mam-home-intro{margin-top:12px!important}
+.mam-home-shortcuts{margin-top:12px!important}
+.mam-home-section-label{margin-top:18px!important}
+.mam-league-group{margin:16px 0 20px!important}
+.mam-league-heading{
+ display:flex!important;align-items:center!important;gap:8px!important;
+ padding:11px 12px!important;margin:0 0 9px!important;border-radius:13px!important;
+ background:linear-gradient(100deg,#102c1e,#0b1b13)!important;
+ border:1px solid rgba(57,218,117,.17)!important;color:#f1fff5!important
+}
+.mam-league-heading strong{font-size:12px!important;font-weight:900!important}
+.mam-league-heading small{color:#9db8a5!important;font-size:10px!important}
+.mam-league-count{margin-left:auto!important;color:#5be58e!important;font-size:9px!important;font-weight:900!important}
+.match-modern,.match{
+ position:relative!important;overflow:hidden!important;
+ border-radius:17px!important;padding:14px!important;margin:9px 0!important;
+ background:linear-gradient(145deg,#10271c,#091810)!important;
+ border:1px solid rgba(90,190,120,.19)!important;
+ box-shadow:0 8px 22px rgba(0,0,0,.19)!important
+}
+.match-modern:after,.match:after{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 4px 4px 0;background:rgba(48,224,112,.48)}
+.match-head{padding-bottom:9px!important;margin-bottom:9px!important;border-bottom:1px solid rgba(160,205,174,.1)!important}
+.league-label{font-size:10px!important;letter-spacing:.2px!important;color:#a9c4b0!important}
+.match-time{font-weight:900!important;color:#5ce88f!important}
+.match-versus{padding:9px 0!important}
+.team-block strong{font-size:13px!important;font-weight:850!important;color:#f2fff5!important}
+.team-block img{object-fit:contain!important}
+.match-clock{font-size:21px!important;font-weight:950!important;color:#f6fff8!important}
+.match-center small{font-size:9px!important;color:#98b3a0!important}
+.match-actions{padding-top:10px!important;border-top:1px solid rgba(160,205,174,.1)!important}
+.mam-match-open{min-height:42px!important;margin-top:10px!important;border-radius:12px!important;background:rgba(29,220,105,.1)!important;border:1px solid rgba(54,223,117,.28)!important;color:#7af0a5!important;font-weight:850!important}
+.match.in-detail{
+ background:linear-gradient(160deg,#102b1e,#07150e)!important;
+ border:1px solid rgba(70,220,115,.2)!important;border-radius:0 0 20px 20px!important;
+ box-shadow:none!important
+}
+.match-detail-overlay{background:#050e09!important}
+.match-detail-top{background:rgba(7,28,17,.97)!important;border-bottom:1px solid rgba(68,214,112,.2)!important;backdrop-filter:blur(16px)!important}
+.match-detail-top strong{color:#f4fff7!important}
+.match-detail-close{background:#153522!important;color:#baf5cb!important;border:1px solid rgba(77,218,121,.2)!important}
+.match.in-detail .match-head{border-bottom:1px solid rgba(165,211,175,.14)!important}
+.match.in-detail .team-block strong{color:#f3fff6!important}
+.match.in-detail .match-clock{color:#fff!important;font-size:clamp(25px,7vw,34px)!important}
+.match-detail-tabs{padding:13px 2px!important;gap:8px!important}
+.match-detail-tab{background:#10291b!important;color:#b7d4bf!important;border:1px solid rgba(107,179,124,.2)!important;border-radius:12px!important}
+.match-detail-tab.active{background:#1cdb70!important;color:#052511!important;border-color:#1cdb70!important}
+.match-detail-pane{border-top:1px solid rgba(135,195,149,.16)!important;color:#eaf8ed!important}
+.match-detail-pane .match-actions{background:transparent!important}
+.match-detail-pane .pred,.match-detail-pane .analysis-preview,.match-detail-pane .liveStats,.match-detail-pane .lineup-panel{
+ background:#0d2418!important;border:1px solid rgba(100,190,122,.17)!important;border-radius:14px!important;padding:13px!important;color:#d8eee0!important
+}
+.match-detail-pane .stat{background:#102c1d!important;border:1px solid rgba(75,196,108,.17)!important;border-radius:12px!important}
+.match-detail-pane .stat b{color:#68ed98!important}
+.match-detail-note,.lineup-empty{background:#10291b!important;border:1px solid rgba(110,190,130,.18)!important;border-radius:12px!important;color:#bad5c1!important}
+.mam-standing-card,.mam-standings-card{background:#0d2418!important;border-color:rgba(70,210,110,.2)!important}
+.mam-standings-intro{background:linear-gradient(135deg,#102e1d,#08160e)!important;border:1px solid rgba(55,215,108,.2)!important;border-radius:18px!important}
+.mam-standings-leagues button{background:#10291b!important;color:#e7f8eb!important;border:1px solid rgba(87,185,111,.2)!important}
+.mam-bottom-tabs button{transition:background .18s ease,color .18s ease,border-color .18s ease}
+@media(max-width:560px){
+ .match-modern,.match{padding:12px!important}
+ .mam-league-heading{padding:10px!important}
+ .match.in-detail{padding:12px!important}
+ .match-detail-body{padding-bottom:18px!important}
+}
 
 </style><header style="flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px;background:#0d1c29;border-bottom:1px solid rgba(255,255,255,.12);"><button type="button" id="mamTeamHistoryBack" style="width:38px;height:38px;min-height:38px;border-radius:50%;background:#203345;color:#fff;border:1px solid rgba(255,255,255,.16);font-size:22px;">‹</button><div style="flex:1;min-width:0;"><small style="display:block;color:#66dcb2;font-size:9px;font-weight:900;">'+(esc(standingCompetitionNames[String(selectedStandingsLeague)]||ESPN_LEAGUES[String(selectedStandingsLeague)]?.name||"LİG")+" · TAKIM MAÇLARI")+'</small><strong style="display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(teamName)+'</strong></div><span style="font-size:10px;color:#a9bac6;">SON 10</span></header><main id="mamTeamHistoryContent" style="flex:1 1 0;min-height:0;overflow-y:auto!important;-webkit-overflow-scrolling:touch;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px);background:linear-gradient(180deg,#0b1c29,#07131d);"><div style="padding:12px;border-radius:12px;background:#132b38;color:#b9cbd0;font-size:12px;">Son 10 tamamlanmış maç aranıyor…</div></main>';
   document.body.appendChild(screen);
