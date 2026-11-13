@@ -2935,7 +2935,10 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   if(cached&&!forceRefresh){
     try{
       const saved=JSON.parse(cached);
-      if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<(String(leagueId)==="203"?30*60*1000:(saved.matches.length>=5?CACHE_HOURS*60*60*1000:10*60*1000)))return saved.matches;
+      if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<(String(leagueId)==="203"?30*60*1000:(saved.matches.length>=5?CACHE_HOURS*60*60*1000:10*60*1000))){
+        await mamSaveMatchesToD1(saved.matches,leagueId);
+        return saved.matches;
+      }
     }catch(e){}
   }
 
@@ -3629,8 +3632,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
   const result=output.slice(0,20);
-  // Bulunan tamamlanmış takım maçlarını merkezi D1 arşivine kaydet.
-  await mamSaveMatchesToD1(result,leagueId);
   // Son geçmiş maçların gerçek istatistiklerini doğru sağlayıcıdan tamamla.
   // İstek sayısını sınırlı tutuyoruz; bulunan sonuçlar yerel önbelleğe alınır.
   const candidates=String(leagueId)==="203"?[]:result.filter(m=>!m.statistics&&/^[0-9]+$/.test(String(m.fixture?.id||""))).slice(0,String(leagueId)==="848"?20:8);
@@ -3642,6 +3643,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       if(stats)match.statistics=stats;
     }catch(e){/* İstatistik yoksa skor ve form geçmişi korunur. */}
   }));
+  // Bulunan tamamlanmış takım maçlarını merkezi D1 arşivine kaydet.
+  await mamSaveMatchesToD1(result,leagueId);
   try{localStorage.setItem(key,JSON.stringify({time:Date.now(),matches:result}));}catch(e){}
   if(!result.length)throw new Error(teamName+" geçmiş verisi alınamadı. Lig kodu: "+leagueId+". Kaynak: "+(sourceError||"Eşleşen tamamlanmış maç yok."));
   return result;
