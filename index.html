@@ -2632,6 +2632,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       }
       const path="data/"+folder+"/results_"+seasonCode+".csv";
       const urls=[
+        // First-party GitHub Pages copy avoids third-party CORS/rate-limit failures for the Turkish league archive.
+        "./"+path,
         "https://raw.githubusercontent.com/oladeeayo/open-matchday/master/"+path,
         "https://cdn.jsdelivr.net/gh/oladeeayo/open-matchday@master/"+path
       ];
