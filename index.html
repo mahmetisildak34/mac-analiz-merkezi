@@ -1523,33 +1523,56 @@ async function loadSuperLigFixtures(){
  const oldText=button.textContent;
  button.disabled=true;
  button.textContent="Süper Lig fikstürü alınıyor…";
- $("status").textContent="Süper Lig'in yaklaşan maçları getiriliyor…";
- const dateLocal=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
- const start=new Date();start.setHours(12,0,0,0);
- const end=new Date(start);end.setDate(end.getDate()+45);
- const from=dateLocal(start),to=dateLocal(end);
- const cacheKey="mam_superlig_upcoming_2026_"+from+"_"+to;
+ $("status").textContent="18 takımın tamamının gelecek maçları getiriliyor…";
  try{
+  const now=new Date();now.setHours(0,0,0,0);
+  const end=new Date(now);end.setDate(end.getDate()+60);
+  const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+  const cacheKey="mam_superlig_all_fixtures_espn_v4";
   let fixtures=[];
-  try{
-   const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
-   if(cached?.time&&Date.now()-cached.time<15*60*1000&&Array.isArray(cached.matches))fixtures=cached.matches;
-  }catch(e){}
+  try{const c=JSON.parse(localStorage.getItem(cacheKey)||"null");if(c?.time&&Date.now()-c.time<10*60*1000&&Array.isArray(c.matches))fixtures=c.matches;}catch(e){}
   if(!fixtures.length){
-   const payload=await api("fixtures?"+qs({league:203,season:2026,from,to,timezone:"Europe/Istanbul"}));
-   fixtures=Array.isArray(payload?.response)?payload.response:[];
+   const batches=[];
+   for(let cursor=new Date(now);cursor<=end;){
+    const batchEnd=new Date(cursor);batchEnd.setDate(batchEnd.getDate()+6);
+    if(batchEnd>end)batchEnd.setTime(end.getTime());
+    batches.push({from:fmt(cursor),to:fmt(batchEnd)});
+    cursor=new Date(batchEnd);cursor.setDate(cursor.getDate()+1);
+   }
+   const events=[];
+   for(const batch of batches){
+    const data=await api("espn/tur.1/scoreboard?dates="+batch.from+"-"+batch.to);
+    if(Array.isArray(data?.events))events.push(...data.events);
+   }
+   const seen=new Set();
+   fixtures=events.map(ev=>{
+    const comp=ev.competitions?.[0]||{};
+    const competitors=Array.isArray(comp.competitors)?comp.competitors:[];
+    const home=competitors.find(c=>c.homeAway==="home")||competitors[0]||{};
+    const away=competitors.find(c=>c.homeAway==="away")||competitors[1]||{};
+    const state=String(comp.status?.type?.state||ev.status?.type?.state||"pre");
+    const date=ev.date||comp.date||"";
+    const id=String(ev.id||comp.id||date+home.team?.id+away.team?.id);
+    if(seen.has(id))return null;seen.add(id);
+    return {
+     fixture:{id,date,status:{short:state==="pre"?"NS":state==="in"?"LIVE":"FT",elapsed:null}},
+     league:{id:203,name:"Trendyol Süper Lig",country:"Türkiye",round:"2026/2027"},
+     teams:{home:{id:home.team?.id,name:home.team?.displayName||home.team?.name||""},away:{id:away.team?.id,name:away.team?.displayName||away.team?.name||""}},
+     goals:{home:null,away:null}
+    };
+   }).filter(m=>m&&m.fixture.date&&m.teams.home.name&&m.teams.away.name);
    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:fixtures}));}catch(e){}
   }
   const futureCodes=new Set(["NS","TBD","PST"]);
   allMatches=fixtures.filter(m=>futureCodes.has(String(m.fixture?.status?.short||"NS"))&&m.fixture?.date)
-   .sort((a,b)=>String(a.fixture.date).localeCompare(String(b.fixture.date)));
+   .sort((x,y)=>String(x.fixture.date).localeCompare(String(y.fixture.date)));
   $("league").value="203";
   $("league").dispatchEvent(new Event("change",{bubbles:true}));
-  if(typeof mamScreenMode!=="undefined"&&mamScreenMode==="live")mamScreenMode="home";
+  if(typeof mamScreenMode!=="undefined")mamScreenMode="upcoming";
   renderMatches();
   $("status").textContent=allMatches.length
-   ? allMatches.length+" Süper Lig gelecek maçı listelendi ("+from+" – "+to+"). Kaynak: API-Football."
-   : "Seçilen 45 günlük aralıkta Süper Lig için gelecek maç bulunamadı.";
+   ? allMatches.length+" Süper Lig gelecek maçı listelendi. 18 takımın tüm fikstürü gösteriliyor."
+   : "ESPN kaynağından gelecek Süper Lig maçı dönmedi. Lütfen daha sonra tekrar dene.";
  }catch(error){
   $("status").innerHTML='<span class="error">Süper Lig fikstürü alınamadı: '+esc(error.message||error)+'</span>';
  }finally{
