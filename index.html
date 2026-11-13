@@ -3150,7 +3150,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         awayGoals:item.AwayTeamScore===null||item.AwayTeamScore===""?null:Number(item.AwayTeamScore),
         round:item.RoundNumber??null,
         matchNumber:item.MatchNumber??null
-      })).filter(item=>item.date&&item.home&&item.away&&item.homeGoals!==null&&item.awayGoals!==null&&Number.isFinite(item.homeGoals)&&Number.isFinite(item.awayGoals));
+      })).filter(item=>item.date&&item.home&&item.away);
       try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches:rows}));}catch(_){}
       return rows;
     };
