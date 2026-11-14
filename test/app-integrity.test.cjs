@@ -43,6 +43,12 @@ assert.match(html, /data-team-source=/, "Selected provider is not carried into t
 assert.match(html, /const teamSource=row\.dataset\.teamSource/, "Selected provider is not read when opening team history");
 
 assert.match(html, /id="mamTodayHeader"/, "Dedicated daily fixtures section missing");
+assert.match(html, /data-mam-action="today"/, "Homepage daily matches shortcut missing");
+assert.match(html, /data-mam-action="upcoming"/, "Homepage upcoming matches shortcut missing");
+assert.match(html, /id="mamTodayTabs"/, "Dedicated daily match filter tabs missing");
+assert.match(html, /data-today-filter="finished"/, "Finished matches tab missing");
+assert.match(html, /mamTodayFilter==="upcoming"/, "Upcoming tab filter is not wired");
+assert.match(html, /mamTodayFilter==="finished"/, "Finished tab filter is not wired");
 assert.match(html, /data-mam-bottom="live"/, "Live match bottom-navigation item missing");
 assert.match(html, /\.mam-screen-live #mamLiveNav:not\(\[hidden\]\)\{display:flex!important/, "Existing live screen shortcuts remain hidden");
 assert.match(html, /function mamCanonicalMatchStatus\(match\)/, "Provider match-status normalization missing");
