@@ -2285,7 +2285,7 @@ async function loadMatches(){
 }
 
 async function getTFFSuperLigUpcoming(){
- const key="mam_tff_superlig_upcoming_analysis_v4";
+ const key="mam_tff_superlig_upcoming_analysis_v5";
  try{
   const cached=JSON.parse(localStorage.getItem(key)||"null");
   if(cached?.time&&Date.now()-cached.time<2*60*1000&&Array.isArray(cached.matches))return cached.matches;
@@ -2298,38 +2298,46 @@ async function getTFFSuperLigUpcoming(){
  }
  let fixtures=Array.isArray(snapshot?.fixtures)?snapshot.fixtures:null;
  if(!fixtures){
-  const response=await fetch("./data/TUR_1_super-lig/upcoming_2627.json?build=20261113",{cache:"no-store"});
+  const response=await fetch("./data/TUR_1_super-lig/upcoming_2627.json?build=20261114-r17",{cache:"no-store"});
   if(!response.ok)throw new Error("TFF canlı fikstür servisi henüz hazır değil ve yedek fikstür alınamadı.");
   const data=await response.json();
-  fixtures=(data?.fixtures||[]).map(x=>({
-   fixture:{id:x.id,date:x.date,status:{short:"NS",elapsed:null}},
-   league:{id:203,name:"Trendyol Süper Lig",country:"Türkiye",round:String(x.round)+". Hafta"},
-   teams:{home:{id:null,name:x.home},away:{id:null,name:x.away}},
-   goals:{home:null,away:null},_source:"TFF"
-  }));
+  fixtures=Array.isArray(data?.fixtures)?data.fixtures:[];
  }
- // Merge the verified static TFF schedule with the live Worker snapshot.
- // This preserves newly published rounds even if the daily KV snapshot is temporarily behind.
+ // Normalize both Worker records and static TFF JSON records into the same match shape.
+ const normalizeTffFixture=x=>{
+  const date=x?.fixture?.date||x?.date;
+  const home=x?.teams?.home||{name:x?.home};
+  const away=x?.teams?.away||{name:x?.away};
+  return {
+   ...x,
+   fixture:{...(x?.fixture||{}),id:x?.fixture?.id??x?.id,date,
+    status:{...(x?.fixture?.status||{}),short:x?.fixture?.status?.short||x?.status||"NS",elapsed:x?.fixture?.status?.elapsed??null}},
+   league:{...(x?.league||{}),id:x?.league?.id??203,name:x?.league?.name||"Trendyol Süper Lig",country:x?.league?.country||"Türkiye",round:x?.league?.round|| (x?.round?String(x.round)+". Hafta":"")},
+   teams:{...(x?.teams||{}),home:{...home,name:home?.name||x?.home},away:{...away,name:away?.name||x?.away}},
+   goals:x?.goals||{home:null,away:null},
+   _source:x?._source||x?.source||"TFF"
+  };
+ };
+ fixtures=fixtures.map(normalizeTffFixture);
+ // Merge the static official schedule with the Worker snapshot, including raw {date,home,away} records.
  try{
-  const response=await fetch("./data/TUR_1_super-lig/upcoming_2627.json?build=20261113-r16",{cache:"no-store"});
+  const response=await fetch("./data/TUR_1_super-lig/upcoming_2627.json?build=20261114-r17",{cache:"no-store"});
   if(response.ok){
    const archived=await response.json();
-   const combined=[...(Array.isArray(fixtures)?fixtures:[]),...(Array.isArray(archived?.fixtures)?archived.fixtures:[])];
+   const combined=[...fixtures,...(Array.isArray(archived?.fixtures)?archived.fixtures.map(normalizeTffFixture):[])];
    const seen=new Set();
    fixtures=combined.filter(match=>{
-    const home=String(match.teams?.home?.name||match.home||"").toLocaleLowerCase("tr-TR");
-    const away=String(match.teams?.away?.name||match.away||"").toLocaleLowerCase("tr-TR");
-    const date=String(match.fixture?.date||match.date||"");
+    const home=String(match.teams?.home?.name||"").toLocaleLowerCase("tr-TR");
+    const away=String(match.teams?.away?.name||"").toLocaleLowerCase("tr-TR");
+    const date=String(match.fixture?.date||"");
     const key=[date.slice(0,16),home,away].join("|");
     if(seen.has(key))return false;
     seen.add(key);return true;
    });
   }
  }catch(mergeError){console.warn("TFF statik fikstür tamamlayıcısı alınamadı.",mergeError);}
- // TFF feed currently supplies team names but may omit API-Football IDs.
- // Assign stable numeric IDs so the shared pre-match engine can request archived form by team name.
  const stableTeamId=name=>{
-  const normalized=String(name||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+  const normalized=String(name||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
   let hash=2166136261;
   for(let i=0;i<normalized.length;i++){hash^=normalized.charCodeAt(i);hash=Math.imul(hash,16777619);}
   return 1000000000+(hash>>>0);
@@ -2348,7 +2356,6 @@ async function getTFFSuperLigUpcoming(){
  try{localStorage.setItem(key,JSON.stringify({time:Date.now(),matches}));}catch(e){}
  return matches;
 }
-
 async function loadSuperLigFixtures(){
  const button=$("loadSuperLigFixtures");
  if(!button)return;
