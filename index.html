@@ -5645,6 +5645,16 @@ const openStandingTeamHistory=async row=>{
        (m.goals.home==null||m.goals.away==null))
       .sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
      if(!leagueFixtures.length)throw new Error("Üç UEFA kupasında gelecek maç bulunamadı."+ (feedErrors.length?" "+feedErrors.join(" | "):""));
+    }else if(teamSource==="api-football"){
+     const data=await api("fixtures?"+qs({team:teamId,next:20,timezone:"Europe/Istanbul"}));
+     const response=Array.isArray(data.response)?data.response:[];
+     leagueFixtures=response.map(match=>({
+      fixture:{id:match.fixture?.id,date:match.fixture?.date,status:{short:match.fixture?.status?.short||"NS"}},
+      league:{id:String(selectedStandingsLeague),name:match.league?.name||standingCompetitionNames[String(selectedStandingsLeague)]||"Lig",country:match.league?.country||""},
+      teams:{home:{id:Number(match.teams?.home?.id)||-1,name:match.teams?.home?.name||""},away:{id:Number(match.teams?.away?.id)||-1,name:match.teams?.away?.name||""}},
+      goals:{home:match.goals?.home??null,away:match.goals?.away??null}
+     })).filter(match=>match.teams.home.name&&match.teams.away.name&&Date.parse(match.fixture.date)>=Date.now()&&!["FT","AET","PEN"].includes(String(match.fixture.status.short).toUpperCase()));
+     if(!leagueFixtures.length)throw new Error("API-Football bu takım için gelecek fikstür döndürmedi.");
     }else{
      const league=ESPN_LEAGUES[String(selectedStandingsLeague)];
      if(!league?.slug)throw new Error("Bu lig için henüz gelecek fikstür kaynağı tanımlı değil.");
