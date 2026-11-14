@@ -1498,8 +1498,6 @@ button{transition:filter .15s ease,transform .15s ease}
 <button id="loadStandings" hidden type="button" aria-hidden="true" tabindex="-1">Puan durumu</button>
 <div id="standings" hidden aria-hidden="true"></div>
 <div id="status" class="status"></div>
-<button type="button" id="couponToggle" class="secondary" style="width:100%;margin-top:12px" aria-expanded="false" aria-controls="couponPanel">🎟️ Kupon oluşturucuyu aç</button>
-
 <div class="panel coupon-panel" id="couponPanel" hidden>
  <div class="coupon-title"><strong>🎟️ Kupon oluşturucu</strong><span class="coupon-count" id="couponCount">0 seçim</span></div>
  <p class="hint">Kuponunu bu panelin içinden oluştur. Maç kartları yalnızca fikstür ve analiz içindir.</p>
@@ -3593,7 +3591,7 @@ function setMamScreen(mode){
  const todayHeader=$("mamTodayHeader");if(todayHeader)todayHeader.hidden=mode!=="today";
  const shortcuts=$("mamHomeShortcuts");if(shortcuts)shortcuts.hidden=mode!=="home";
  const couponPanel=$("couponPanel");if(couponPanel)couponPanel.hidden=mode!=="coupon";
- const couponToggle=$("couponToggle");if(couponToggle)couponToggle.hidden=mode!=="home";
+
  const header=$("mamSectionHeader");
  if(header){header.hidden=mode==="home";const back=$("mamSectionBack");if(back){back.hidden=false;back.style.display="";back.textContent="← Geri";}$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="standings"?"LİG MERKEZİ":mode==="today"?"GÜNLÜK SKOR PANOSU":mode==="coupon"?"KİŞİSEL KUPON ALANI":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="standings"?"Puan Durumu":mode==="today"?"Bugünün Maçları":mode==="coupon"?"Kupon Merkezi":"Oynanacak Maçlar";}
  const intro=document.querySelector(".mam-home-intro");if(intro)intro.hidden=mode!=="home";
@@ -6179,6 +6177,17 @@ const openStandingTeamHistory=async row=>{
  .mam-screen-coupon .coupon-leg{grid-template-columns:minmax(0,1fr) 68px 28px!important;gap:5px!important}
  .mam-screen-coupon .coupon-summary .stat{padding:12px!important}
 }
+</style>
+
+
+<style id="mam-coupon-screen-isolation-v2">
+/* Coupon builder exists only on its dedicated route. */
+#couponPanel[hidden]{display:none!important}
+#couponPanel:not([hidden]){display:block!important}
+#couponPanel{position:relative}
+main:not(.mam-screen-coupon) #couponPanel{display:none!important}
+main.mam-screen-coupon #couponPanel{display:block!important}
+main:not(.mam-screen-home) #couponToggle{display:none!important}
 </style>
 
 </body>
