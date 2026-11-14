@@ -4030,7 +4030,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // ESPN yedek geçmişi: fikstür API-Football'dan gelse bile maç tarihindeki
   // ESPN skor tablosundan takımın ESPN ID'sini bul ve takım takvimini oku.
-  if(!archiveOnly&&output.length<10&&ESPN_LEAGUES[String(leagueId)]?.slug&&["39","140","143","78","135","61","2","3","848","203"].includes(String(leagueId))){
+  if(!archiveOnly&&output.length<10&&ESPN_LEAGUES[String(leagueId)]?.slug){
     try{
       const espnLeagueSlug=ESPN_LEAGUES[String(leagueId)].slug;
       let espnTeamId="";
@@ -5259,9 +5259,15 @@ const openStandingTeamHistory=async row=>{
     try{
      const ssMatches=await mamSportScoreTeamSchedule(teamName);
      const ssPast=ssMatches.filter(m=>m.goals?.home!=null&&m.goals?.away!=null&&Date.parse(m.fixture.date)<Date.now())
-      .sort((a,b)=>Date.parse(b.fixture.date)-Date.parse(a.fixture.date));
+      .sort((a,b)=>Date.parse(b.fixture.date)-Date.parse(a.fixture.date)).map(m=>({...m,teams:{
+       home:{...m.teams.home,name:norm(m.teams.home.name)===wanted?teamName:m.teams.home.name},
+       away:{...m.teams.away,name:norm(m.teams.away.name)===wanted?teamName:m.teams.away.name}
+      }}));
      const ssUpcoming=ssMatches.filter(m=>m.goals?.home==null&&m.goals?.away==null&&Date.parse(m.fixture.date)>=Date.now())
-      .sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
+      .sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date)).map(m=>({...m,teams:{
+       home:{...m.teams.home,name:norm(m.teams.home.name)===wanted?teamName:m.teams.home.name},
+       away:{...m.teams.away,name:norm(m.teams.away.name)===wanted?teamName:m.teams.away.name}
+      }}));
      const existingPast=new Set(recent.map(m=>String(m.fixture?.date||"").slice(0,10)+"|"+(m.teams?.home?.name||"")+"|"+(m.teams?.away?.name||"")));
      for(const m of ssPast){
       const key=String(m.fixture.date).slice(0,10)+"|"+m.teams.home.name+"|"+m.teams.away.name;
