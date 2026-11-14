@@ -6136,6 +6136,20 @@ const openStandingTeamHistory=async row=>{
 }
 </style>
 
+
+<style id="mam-home-match-screen-isolation-v1">
+/* Ana sayfa yalnızca yönlendirme alanıdır; maç listeleri kendi ekranlarında görünür. */
+main.mam-screen-home #matches,
+main.mam-screen-home #mamTodayHeader,
+main.mam-screen-home #mamTodayTabs{display:none!important}
+main.mam-screen-live #matches,
+main.mam-screen-upcoming #matches,
+main.mam-screen-today #matches{display:block!important}
+main.mam-screen-live #mamTodayHeader,
+main.mam-screen-upcoming #mamTodayHeader{display:none!important}
+main.mam-screen-home #mamHomeShortcuts{display:grid!important}
+</style>
+
 </body>
 </html>
 
