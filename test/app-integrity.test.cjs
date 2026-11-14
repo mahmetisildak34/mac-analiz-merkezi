@@ -35,6 +35,12 @@ assert.match(html, /api\("teams\?"\+qs\(\{league:leagueId,season\}\)\)/, "API-Fo
 assert.match(html, /teamSource==="api-football"/, "Provider-aware history/future fallback missing");
 assert.match(html, /fixtures\?"\+qs\(\{team:teamId,next:20/, "API-Football upcoming fixtures fallback missing");
 assert.match(html, /mam_history_v73_/, "Provider-scoped history cache missing");
+assert.match(html, /teamSource="football-data"/, "Football-data standings provider is not identified");
+assert.match(html, /Football-data takım geçmişi:/, "Football-data team-history fallback missing");
+assert.match(html, /ESPN yedek geçmişi:/, "ESPN team-history fallback missing");
+assert.match(html, /mamSportScoreTeamSchedule\(teamName\)/, "SportScore team-history fallback missing");
+assert.match(html, /dataset\.teamSource=teamSource/, "Selected provider is not carried into team rows");
+assert.match(html, /const teamSource=row\.dataset\.teamSource/, "Selected provider is not read when opening team history");
 
 let checkedScripts = 0;
 for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
