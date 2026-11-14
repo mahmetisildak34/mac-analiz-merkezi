@@ -3748,7 +3748,7 @@ const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v71_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v72_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -5546,6 +5546,26 @@ const openStandingTeamHistory=async row=>{
     const matchesTeam=name=>{if(isUefaTeamList)return mamUefaTeamMatch(name,teamName);const candidate=norm(name);return accepted.has(candidate)||(aliases[candidate]||[]).map(norm).some(alias=>accepted.has(alias))||(aliases[wanted]||[]).map(norm).includes(candidate);};
     upcoming=leagueFixtures.filter(m=>matchesTeam(m.teams?.home?.name)||matchesTeam(m.teams?.away?.name)).map(m=>({...m,mamSelectedTeamHome:matchesTeam(m.teams?.home?.name)}));
    }catch(error){upcomingError=String(error?.message||"Gelecek fikstür alınamadı.");}
+   // MAM_TFF_TEAM_HISTORY_FALLBACK_V8
+   if(String(selectedStandingsLeague)==="203"){
+    const stableTffId=name=>{const value=norm(name);let hash=2166136261;for(let i=0;i<value.length;i++){hash^=value.charCodeAt(i);hash=Math.imul(hash,16777619);}return 1000000000+(hash>>>0);};
+    try{
+     const response=await fetch("./data/TUR_1_super-lig/results_2627.csv?build=20261114-v8",{cache:"no-store"});
+     if(response.ok){
+      const lines=(await response.text()).trim().split(/\r?\n/);
+      const headers=lines.shift().replace(/^\uFEFF/,"").split(",");
+      const rows=lines.map(line=>{const values=line.split(",");return Object.fromEntries(headers.map((h,i)=>[h,(values[i]||"").replace(/^"|"$/g,"")]));});
+      const tffPast=rows.filter(x=>x.date&&x.date<cutoff&&matchesTeam(x.home)!==matchesTeam(x.away)&&x.ft_home!==""&&x.ft_away!=="")
+       .map((x,i)=>{const hh=matchesTeam(x.home),ah=matchesTeam(x.away);return {fixture:{id:"tff-past-"+x.gw+"-"+x.date+"-"+i,date:x.date+"T12:00:00+03:00",status:{short:"FT"}},league:{id:"203",name:"Trendyol Süper Lig",country:"Türkiye"},teams:{home:{id:hh?Number(teamId):stableTffId(x.home),name:x.home},away:{id:ah?Number(teamId):stableTffId(x.away),name:x.away}},goals:{home:Number(x.ft_home),away:Number(x.ft_away)},mamSource:"tff-season-csv"};});
+      const map=new Map();for(const m of [...tffPast,...recent]){const k=[String(m.fixture?.date||"").slice(0,10),norm(m.teams?.home?.name),norm(m.teams?.away?.name)].join("|");if(!map.has(k))map.set(k,m);}
+      recent=[...map.values()].sort((a,b)=>Date.parse(b.fixture.date)-Date.parse(a.fixture.date)).slice(0,10);if(recent.length)historyError="";
+     }
+    }catch(e){historyError=historyError||String(e?.message||e);}
+    if(!upcoming.length){try{
+     const response=await fetch("./data/TUR_1_super-lig/upcoming_2627.json?build=20261114-v8",{cache:"no-store"});
+     if(response.ok){const data=await response.json();upcoming=(data.fixtures||[]).filter(x=>x.date&&Date.parse(x.date)>=Date.now()-3600000&&matchesTeam(x.home)!==matchesTeam(x.away)).map((x,i)=>{const hh=matchesTeam(x.home),ah=matchesTeam(x.away);return {fixture:{id:x.id||"tff-upcoming-"+i,date:x.date,status:{short:"NS"}},league:{id:"203",name:"Trendyol Süper Lig",country:"Türkiye"},teams:{home:{id:hh?Number(teamId):stableTffId(x.home),name:x.home},away:{id:ah?Number(teamId):stableTffId(x.away),name:x.away}},goals:{home:null,away:null},mamSelectedTeamHome:hh,mamSource:"tff-upcoming-json"};}).sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));if(upcoming.length)upcomingError="";}
+    }catch(e){upcomingError=upcomingError||String(e?.message||e);}}
+   }
    // Sağlayıcıda takım fikstürü eksikse SportScore'dan aynı takımın geçmiş ve gelecek maçlarını tamamla.
    if(recent.length<10||!upcoming.length){
     try{
