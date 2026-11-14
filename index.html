@@ -1448,38 +1448,43 @@ async function loadStandings(){
      "15":"fifa.cwc","307":"ksa.1","253":"usa.1",
      "71":"bra.1","128":"arg.1","98":"jpn.1","262":"mex.1","188":"aus.1","169":"chn.1"
     })[leagueId];
-    if(!espnLeague)throw new Error("Bu organizasyon için etkin bir yedek puan tablosu kaynağı bulunamadı. API-Football: "+(primaryError.message||primaryError)+" | Football-data.org: "+(secondaryError.message||secondaryError));
-    const data=await api("espn/"+espnLeague+"/standings?"+qs({season}));
-    const entries=[];
-    const collect=node=>{
-     if(!node||typeof node!=="object")return;
-     if(Array.isArray(node)){node.forEach(collect);return;}
-     if(node.team&&Array.isArray(node.stats)){entries.push(node);return;}
-     if(node.standings)collect(node.standings);
-     if(node.entries)collect(node.entries);
-     if(node.children)collect(node.children);
-     if(node.groups)collect(node.groups);
-    };
-    collect(data);
-    if(!entries.length)throw new Error("ESPN yedek kaynağı "+(standingCompetitionNames[leagueId]||"seçilen lig")+" için puan tablosu döndürmedi. Organizasyon sezonunda henüz puan tablosu oluşmamış olabilir.");
-    const stat=(entry,names)=>{
-     const found=entry.stats.find(x=>names.includes(String(x.name||x.abbreviation||"").toLowerCase()));
-     return found?.value??found?.displayValue??0;
-    };
-    rows=entries.map((entry,index)=>({
-     rank:stat(entry,["rank","playoffseed"])||index+1,
-     teamId:entry.team?.id,
-     name:entry.team?.displayName||entry.team?.name||entry.team?.shortDisplayName||"Takım",
-     played:stat(entry,["gamesplayed","played","gp"]),
-     win:stat(entry,["wins","win","w"]),
-     draw:stat(entry,["ties","draws","draw","d"]),
-     lose:stat(entry,["losses","loss","l"]),
-     goals:stat(entry,["pointsfor","goalsfor","gf"]),
-     against:stat(entry,["pointsagainst","goalsagainst","ga"]),
-     points:stat(entry,["points","pts"])
-    }));
-    rows.sort((a,b)=>Number(a.rank)-Number(b.rank));
-    leagueName=data.name||data.leagues?.[0]?.name||"Süper Lig";
+    let espnError=null;
+    if(espnLeague){
+     try{
+      const data=await api("espn/"+espnLeague+"/standings?"+qs({season}));
+      const entries=[];
+      const collect=node=>{
+       if(!node||typeof node!=="object")return;
+       if(Array.isArray(node)){node.forEach(collect);return;}
+       if(node.team&&Array.isArray(node.stats))entries.push(node);
+       if(node.standings)collect(node.standings);
+       if(node.entries)collect(node.entries);
+       if(node.children)collect(node.children);
+       if(node.groups)collect(node.groups);
+      };
+      collect(data);
+      const stat=(entry,names)=>{
+       const found=entry.stats.find(x=>names.includes(String(x.name||x.abbreviation||"").toLowerCase()));
+       return found?.value??found?.displayValue??0;
+      };
+      rows=entries.map((entry,index)=>({
+       rank:stat(entry,["rank","playoffseed"])||index+1,teamId:entry.team?.id,
+       name:entry.team?.displayName||entry.team?.name||entry.team?.shortDisplayName||"Takım",
+       played:stat(entry,["gamesplayed","played","gp"]),win:stat(entry,["wins","win","w"]),
+       draw:stat(entry,["ties","draws","draw","d"]),lose:stat(entry,["losses","loss","l"]),
+       goals:stat(entry,["pointsfor","goalsfor","gf"]),against:stat(entry,["pointsagainst","goalsagainst","ga"]),
+       points:stat(entry,["points","pts"])
+      }));
+      rows.sort((a,b)=>Number(a.rank)-Number(b.rank));
+      leagueName=data.name||data.leagues?.[0]?.name||standingCompetitionNames[leagueId]||"Lig";
+      if(!rows.length)throw new Error("ESPN puan tablosu takım döndürmedi.");
+     }catch(error){espnError=error;}
+    }
+    if(!rows.length){
+     const ss=await mamSportScoreStandings(standingCompetitionNames[leagueId]||"Lig "+leagueId);
+     rows=ss.rows;leagueName=ss.name||standingCompetitionNames[leagueId]||"Lig";
+    }
+    if(!rows.length)throw new Error("ESPN: "+(espnError?.message||"kapsama yok")+". SportScore yedeği de takım döndürmedi.");
    }
   }
   if(!rows.length)throw new Error("Kaynak bu lig için puan tablosu döndürmedi.");
@@ -5102,6 +5107,39 @@ async function mamSportScoreTeamSchedule(teamName){
  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
  if(!matches.length)throw new Error("SportScore takım takviminde maç kaydı bulunamadı.");
  return matches;
+}
+
+
+// SportScore puan tablosu: sağlayıcıların kapsamadığı arşiv ligleri için isimle yarışma bulur.
+async function mamSportScoreStandings(competitionName){
+ const get=async url=>{const r=await fetch(url,{headers:{Accept:"application/json"}});if(!r.ok)throw new Error("SportScore HTTP "+r.status);return r.json();};
+ const base="https://sportscore.com/api",norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+ const search=await get(base+"/v1/search/?"+qs({q:competitionName,sport:"football",limit:20,src:"mac-analiz-merkezi"}));
+ const candidates=[];
+ const scan=(v,d=0)=>{if(!v||typeof v!=="object"||d>8)return;if(Array.isArray(v)){v.forEach(x=>scan(x,d+1));return;}const slug=v.slug||v.competition_slug;const name=v.name||v.display_name||v.title;if(slug&&name)candidates.push({slug:String(slug),name:String(name)});Object.values(v).forEach(x=>{if(x&&typeof x==="object")scan(x,d+1);});};
+ scan(search);
+ const target=norm(competitionName),match=candidates.find(x=>norm(x.name)===target)||candidates.find(x=>norm(x.name).includes(target)||target.includes(norm(x.name)));
+ if(!match)throw new Error("SportScore lig aramasında eşleşme bulunamadı: "+competitionName);
+ const data=await get(base+"/widget/standings/?"+qs({sport:"football",slug:match.slug,src:"mac-analiz-merkezi"}));
+ const entries=[];
+ const collect=(v,d=0)=>{if(!v||typeof v!=="object"||d>10)return;if(Array.isArray(v)){v.forEach(x=>collect(x,d+1));return;}if(v.team&&(v.position!=null||v.rank!=null||v.points!=null||v.stats||v.played!=null))entries.push(v);Object.values(v).forEach(x=>{if(x&&typeof x==="object")collect(x,d+1);});};
+ collect(data);
+ const value=(entry,keys)=>{
+  for(const key of keys){if(entry[key]!=null)return entry[key];}
+  const stats=Array.isArray(entry.stats)?entry.stats:[];
+  const found=stats.find(x=>keys.includes(String(x.name||x.abbreviation||"").toLowerCase()));
+  return found?.value??found?.displayValue??0;
+ };
+ const rows=[...new Map(entries.map((e,i)=>{const team=e.team||{};return [String(team.id||team.slug||team.name||i),{
+  rank:value(e,["position","rank"]),teamId:team.id||team.slug||"",name:team.name||team.display_name||team.short_name||"",
+  played:value(e,["played","playedgames","gamesplayed","gp"]),win:value(e,["won","wins","win","w"]),
+  draw:value(e,["draw","draws","ties","d"]),lose:value(e,["lost","losses","lose","l"]),
+  goals:value(e,["goalsfor","goals_for","gf","for"]),against:value(e,["goalsagainst","goals_against","ga","against"]),
+  points:value(e,["points","pts"])
+ }];}))].map(x=>x[1]).filter(x=>x.name);
+ rows.sort((a,b)=>Number(a.rank||999)-Number(b.rank||999));
+ if(!rows.length)throw new Error("SportScore puan tablosu takım satırı döndürmedi: "+match.name);
+ return {name:match.name,rows};
 }
 
 const openStandingTeamHistory=async row=>{
