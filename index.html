@@ -4175,6 +4175,17 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     }catch(e){sourceError+=" ESPN geçmişi: "+String(e.message||e);}
   }
 
+  // SportScore takım takvimi: D1/CSV/ESPN kaynakları 10 maçı tamamlayamazsa son yedek olarak kullan.
+  // Bu çağrı yalnızca takım geçmişi açıldığında yapılır; arka planda sınırsız istek üretmez.
+  if(!archiveOnly&&output.length<10){
+    try{
+      const sportScoreMatches=await mamSportScoreTeamSchedule(teamName);
+      for(const match of sportScoreMatches)addMatch(match);
+    }catch(sportScoreError){
+      sourceError+=" SportScore geçmişi: "+String(sportScoreError?.message||sportScoreError);
+    }
+  }
+
   output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
   const result=output.slice(0,20);
   // Son geçmiş maçların gerçek istatistiklerini doğru sağlayıcıdan tamamla.
