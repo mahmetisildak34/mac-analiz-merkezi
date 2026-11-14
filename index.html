@@ -3549,6 +3549,29 @@ function renderMatches(){
  const liveCodes=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
  if(mamScreenMode==="live")list=list.filter(m=>liveCodes.has(mamCanonicalMatchStatus(m)));
  if(mamScreenMode==="upcoming")list=list.filter(m=>["NS","TBD","PST"].includes(mamCanonicalMatchStatus(m)));
+ // Today's scoreboard order: active matches first (90' before newly started),
+ // then scheduled fixtures, and completed results at the bottom.
+ const mamStatusRank=m=>{
+  const status=mamCanonicalMatchStatus(m);
+  if(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(status))return 0;
+  if(["NS","TBD","PST"].includes(status))return 1;
+  if(["FT","AET","PEN","AWD","WO","CANC","ABD"].includes(status))return 2;
+  return 1;
+ };
+ const mamLiveMinute=m=>{
+  const elapsed=Number(m.fixture?.status?.elapsed);
+  if(Number.isFinite(elapsed)&&elapsed>=0)return elapsed;
+  const kickoff=Date.parse(m.fixture?.date||"");
+  const estimate=Number.isFinite(kickoff)?Math.max(0,Math.min(130,Math.floor((Date.now()-kickoff)/60000))):0;
+  return estimate;
+ };
+ list=list.slice().sort((a,b)=>{
+  const ar=mamStatusRank(a),br=mamStatusRank(b);
+  if(ar!==br)return ar-br;
+  if(ar===0)return mamLiveMinute(b)-mamLiveMinute(a);
+  if(ar===1)return Date.parse(a.fixture?.date||0)-Date.parse(b.fixture?.date||0);
+  return Date.parse(b.fixture?.date||0)-Date.parse(a.fixture?.date||0);
+ });
  if($("mamSectionCount")&&mamScreenMode!=="home")$("mamSectionCount").textContent=list.length+" MAÇ";
  const todayKey=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
  const selectedDate=$("date")?.value||todayKey;
