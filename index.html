@@ -1939,6 +1939,28 @@ async function loadMatches(){
  const previousMatches=allMatches.slice();
  try{
   let source="API-Football";
+  // For dates within the next 30 days, prefer the centralized D1 fixture archive.
+  // It returns every configured ESPN competition at once; the existing league picker
+  // and renderMatches() continue to control what the user sees.
+  const selectedDate=new Date(date+"T12:00:00");
+  const today=new Date();today.setHours(0,0,0,0);
+  const lastArchiveDate=new Date(today);lastArchiveDate.setDate(lastArchiveDate.getDate()+30);
+  if(selectedDate>=today&&selectedDate<=lastArchiveDate){
+   try{
+    const archive=await api("archive/upcoming?days=30&limit=2000");
+    const archivedRows=Array.isArray(archive?.response)?archive.response:[];
+    const dayRows=archivedRows.filter(match=>String(match.fixture?.date||"").slice(0,10)===date);
+    if(dayRows.length){
+     allMatches=dayRows;
+     source="Merkezi 30 günlük D1 fikstür arşivi";
+     renderMatches();
+     $("status").textContent=dayRows.length+" maç bulundu (tüm desteklenen ligler). Kaynak: "+source+".";
+     return;
+    }
+   }catch(archiveError){
+    console.warn("Merkezi gelecek fikstür arşivi kullanılamadı; mevcut kaynaklar deneniyor.",archiveError);
+   }
+  }
   try{
    const data=await api("fixtures?"+qs({date:date,timezone:"Europe/Istanbul"}));
    const freshMatches=data.response||[];
