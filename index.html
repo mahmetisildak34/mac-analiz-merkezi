@@ -1173,7 +1173,7 @@ main{max-width:1120px!important;padding:12px 12px calc(94px + env(safe-area-inse
 .panel label,.panel .hint,.panel .note,.panel .small{color:#b1bedb!important}
 input,select,.league-trigger{background:#08142b!important;border:1px solid rgba(133,153,220,.42)!important;color:#fff!important;border-radius:13px!important}
 .league-trigger{background:linear-gradient(135deg,#33206e,#1b2e63)!important;border-color:#8d68ff!important}
-#mamDateStrip{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;overflow:visible!important}
+#mamDateStrip{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;overflow:visible!important}
 #mamDateStrip .mam-date-chip{min-width:0!important;min-height:43px!important;padding:7px 4px!important;border-radius:12px!important;background:#111c38!important;border:1px solid rgba(138,151,255,.35)!important;color:#e4eaff!important;box-shadow:none!important;font-size:11px!important}
 #mamDateStrip .mam-date-chip.active{background:linear-gradient(135deg,#652fc1,#382078)!important;border-color:#ae78ff!important;color:#fff!important}
 #load,#loadSuperLigFixtures{width:100%!important;min-height:49px!important;margin-top:9px!important;border-radius:14px!important;background:linear-gradient(135deg,#7442df,#3c2b9a)!important;color:#fff!important;border:1px solid rgba(186,144,255,.6)!important}
@@ -1490,11 +1490,6 @@ button{transition:filter .15s ease,transform .15s ease}
 <div class="mam-date-strip" id="mamDateStrip" aria-label="Hızlı tarih seçimi">
  <button type="button" class="mam-date-chip" data-day-offset="0">Bugün<b></b></button>
  <button type="button" class="mam-date-chip" data-day-offset="1">Yarın<b></b></button>
- <button type="button" class="mam-date-chip" data-day-offset="2">+2 gün<b></b></button>
- <button type="button" class="mam-date-chip" data-day-offset="3">+3 gün<b></b></button>
- <button type="button" class="mam-date-chip" data-day-offset="4">+4 gün<b></b></button>
- <button type="button" class="mam-date-chip" data-day-offset="5">+5 gün<b></b></button>
- <button type="button" class="mam-date-chip" data-day-offset="6">+6 gün<b></b></button>
 </div>
 <button id="load" style="width:100%;margin-top:8px">Seçili günün maçlarını getir</button>
 <button id="loadSuperLigFixtures" type="button" class="secondary" style="width:100%;margin-top:9px">🇹🇷 Süper Lig gelecek fikstürünün tamamı</button>
@@ -1558,7 +1553,6 @@ Veri kaynakları: API-Football, ESPN ve Football-data.org. Geçmiş takım veril
 <nav class="mam-bottom-nav" aria-label="Alt gezinme">
  <button type="button" class="active" data-mam-bottom="home"><span>⌂</span>Ana Sayfa</button>
  <button type="button" data-mam-bottom="fixtures"><span>⚽</span>Maçlar</button>
- <button type="button" data-mam-bottom="live"><span>🔴</span>Canlı</button>
  <button type="button" data-mam-bottom="analysis"><span>▥</span>Analiz</button>
  <button type="button" data-mam-bottom="standings"><span>🏆</span>Ligler</button>
  <button type="button" data-mam-bottom="coupon"><span>🎟</span>Kupon</button>
@@ -6106,7 +6100,7 @@ const openStandingTeamHistory=async row=>{
  .panel:has(#date)>.row{gap:7px!important}
  .panel:has(#date) label{font-size:10px!important;margin-bottom:4px!important}
  #date,.league-trigger{min-height:40px!important;height:40px!important;padding:7px 9px!important;font-size:12px!important}
- #mamDateStrip{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;margin:6px 0 2px!important}
+ #mamDateStrip{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;margin:6px 0 2px!important}
  #mamDateStrip .mam-date-chip{min-height:36px!important;padding:4px 2px!important;font-size:9px!important;border-radius:9px!important}
  #mamDateStrip .mam-date-chip b{font-size:10px!important;margin-top:1px!important}
  #load,#loadSuperLigFixtures,#loadLive{min-height:38px!important;padding:7px 8px!important;margin-top:6px!important;font-size:11px!important;border-radius:10px!important}
@@ -6161,10 +6155,7 @@ const openStandingTeamHistory=async row=>{
 .mam-screen-live .mam-today-header,.mam-screen-upcoming .mam-today-header,.mam-screen-standings .mam-today-header{display:none!important}
 .mam-screen-live #mamLiveNav:not([hidden]){display:flex!important;visibility:visible!important;pointer-events:auto!important}
 .mam-screen-live #mamLiveNav .mam-live-nav-item{display:flex!important}
-.mam-bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))!important}
-.mam-bottom-nav button[data-mam-bottom="live"]{color:#ff8290!important}
-.mam-bottom-nav button[data-mam-bottom="live"] span{filter:drop-shadow(0 0 6px rgba(255,75,105,.55))}
-.mam-bottom-nav button[data-mam-bottom="live"].active{color:#ff536f!important;background:rgba(255,70,100,.10)!important;border-radius:12px!important}
+.mam-bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}
 @media(max-width:390px){
  .mam-bottom-nav button{font-size:9px!important}
  .mam-bottom-nav button span{font-size:17px!important}
