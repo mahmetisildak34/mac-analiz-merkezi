@@ -1037,6 +1037,73 @@ button.secondary{background:#142b38!important;border:1px solid rgba(130,175,193,
 </style>
 
 
+<style>
+
+/* ===== MAM_NOVA_DASHBOARD_V1 · DARK NEON REDESIGN ===== */
+:root{color-scheme:dark;--mam-bg:#050b18;--mam-card:#0d1830;--mam-line:rgba(143,151,255,.38);--mam-purple:#9b5cff;--mam-blue:#269cff;--mam-green:#13d6a0;--mam-yellow:#ffbd35}
+html,body{background:#050b18!important;color:#f5f7ff!important}
+body{background:radial-gradient(ellipse at 10% 0%,rgba(122,65,255,.18),transparent 32rem),radial-gradient(ellipse at 95% 16%,rgba(25,145,255,.13),transparent 28rem),linear-gradient(180deg,#071126 0%,#050b18 58%,#081127 100%)!important}
+main{max-width:1120px!important;padding:14px 14px calc(104px + env(safe-area-inset-bottom))!important}
+.mam-appbar,.top{background:rgba(9,17,38,.92)!important;border:1px solid rgba(135,145,255,.3)!important;border-radius:19px!important;box-shadow:0 10px 30px rgba(0,0,0,.3)!important;backdrop-filter:blur(16px)}
+.mam-brand{color:#f7f8ff!important;font-weight:950!important;letter-spacing:.3px!important}
+.mam-brand-ball{filter:drop-shadow(0 0 10px rgba(157,91,255,.9))}
+.mam-menu-trigger,.mam-search-trigger{background:linear-gradient(145deg,#18264a,#101a35)!important;border:1px solid rgba(151,128,255,.38)!important;color:#fff!important}
+.mam-home-intro{padding:19px 5px 16px!important}
+.mam-home-intro>div{color:#b8c4e5!important}
+.mam-home-intro h1{color:#fff!important;font-size:clamp(27px,6vw,38px)!important;letter-spacing:-1px!important}
+.mam-home-intro p{color:#aab7d5!important}
+.mam-home-intro .mam-live-pulse{background:#ff465f!important}
+.mam-dash-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:7px 0 17px}
+.mam-dash-nav button{min-height:72px;padding:10px 6px!important;border-radius:16px!important;background:linear-gradient(150deg,#111e3c,#0a142b)!important;border:1px solid rgba(133,148,255,.38)!important;color:#e8edff!important;box-shadow:0 8px 22px rgba(0,0,0,.2)!important;font-size:12px!important}
+.mam-dash-nav button span{display:block;font-size:22px;margin-bottom:5px}
+.mam-dash-nav button.active{background:linear-gradient(145deg,#5123a6,#26145b)!important;border-color:#a56bff!important;box-shadow:0 0 20px rgba(148,80,255,.28)!important}
+.mam-dashboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0 18px}
+.mam-kpi{min-width:0;padding:14px 13px;border-radius:18px;background:linear-gradient(145deg,#102b3b,#0a1a2d)!important;border:1px solid rgba(28,218,174,.65)!important;box-shadow:0 9px 25px rgba(0,0,0,.2)}
+.mam-kpi:nth-child(2){background:linear-gradient(145deg,#102b4b,#0a1831)!important;border-color:rgba(44,157,255,.72)!important}
+.mam-kpi:nth-child(3){background:linear-gradient(145deg,#382813,#1c1821)!important;border-color:rgba(255,187,48,.72)!important}
+.mam-kpi:nth-child(4){background:linear-gradient(145deg,#29164a,#17152f)!important;border-color:rgba(179,91,255,.75)!important}
+.mam-kpi small{display:block;color:#c0cbe4;font-size:11px;font-weight:750;line-height:1.35}
+.mam-kpi strong{display:block;color:#fff;font-size:clamp(22px,5vw,29px);font-weight:950;margin-top:6px;font-variant-numeric:tabular-nums}
+.mam-kpi em{display:block;font-style:normal;color:#9fb2d5;font-size:10px;margin-top:4px}
+.mam-league-shortcuts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 18px}
+.mam-league-shortcuts button{min-width:0;min-height:78px;padding:9px 4px!important;border-radius:15px!important;background:linear-gradient(145deg,#111d3b,#0b142b)!important;border:1px solid rgba(130,145,238,.42)!important;color:#f1f3ff!important;box-shadow:none!important;font-size:10px!important;line-height:1.3}
+.mam-league-shortcuts button b{display:block;font-size:22px;margin-bottom:5px}
+.mam-league-shortcuts button.active{border-color:#ad73ff!important;box-shadow:0 0 15px rgba(155,92,255,.3)!important}
+.mam-day-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:14px 0}
+.mam-day-tabs button{min-height:45px;padding:8px 4px!important;border-radius:13px!important;background:#111c38!important;border:1px solid rgba(138,151,255,.35)!important;color:#dce3ff!important;box-shadow:none!important;font-size:11px!important}
+.mam-day-tabs button.active{background:linear-gradient(135deg,#652fc1,#382078)!important;border-color:#ae78ff!important}
+.panel{background:linear-gradient(150deg,rgba(15,28,55,.97),rgba(8,18,38,.98))!important;border:1px solid rgba(133,147,245,.28)!important;border-radius:20px!important;box-shadow:0 12px 30px rgba(0,0,0,.22)!important;color:#f5f7ff!important}
+.panel:first-of-type{background:rgba(13,24,48,.85)!important}
+.panel label,.panel .hint,.panel .note,.panel .small{color:#aebbd9!important}
+input,select{background:#08142b!important;border:1px solid rgba(133,153,220,.42)!important;color:#fff!important;border-radius:13px!important}
+button{border-radius:13px!important}
+button:not(.secondary){background:linear-gradient(135deg,#7d43e8,#4a2ca4)!important;color:#fff!important;box-shadow:0 6px 18px rgba(103,63,206,.22)!important}
+button.secondary{background:#172443!important;color:#e9edff!important;border:1px solid rgba(137,154,230,.32)!important;box-shadow:none!important}
+.match,.match-modern{background:linear-gradient(145deg,#101e3c,#0a152d)!important;border:1px solid rgba(143,126,255,.58)!important;border-radius:19px!important;color:#f4f6ff!important;box-shadow:0 10px 26px rgba(0,0,0,.25)!important}
+.match:before{background:linear-gradient(180deg,#a45cff,#268dff)!important}
+.match-head,.match-actions,.pred{border-color:rgba(148,160,225,.2)!important}
+.league-label,.match-time,.team-block strong,.match-clock,.pred,.teams,.meta{color:#edf1ff!important}
+.match-time{color:#63e7b5!important}
+.analysis-preview{background:#121f3c!important;color:#aebde0!important}
+.stat{background:#101d39!important;border:1px solid rgba(137,151,226,.28)!important;color:#f5f7ff!important}
+.stat span,.stat b{color:#f3f5ff!important}
+.section-title{color:#b98aff!important}
+.empty{background:#0b1730!important;border-color:rgba(145,159,235,.32)!important;color:#aebbd9!important}
+.mam-section-header{background:#0c1832!important;border-color:rgba(142,154,240,.35)!important;color:#fff!important}
+.mam-drawer{background:#0a142b!important;border-color:rgba(143,125,255,.3)!important}
+.mam-nav-item{background:#111e3b!important;border-color:rgba(135,148,229,.2)!important}
+.mam-standings-screen,.mam-standings-card,.mam-standings-group{background:#0d1933!important;color:#f4f6ff!important;border-color:rgba(137,151,234,.3)!important}
+.mam-standings-screen h2,.mam-standings-screen h3,.mam-standings-screen p{color:#eef1ff!important}
+.mam-bottom-nav{position:fixed;z-index:900;left:10px;right:10px;bottom:calc(9px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;padding:9px 5px;border:1px solid rgba(144,153,255,.35);border-radius:23px;background:rgba(8,16,37,.94);box-shadow:0 12px 35px rgba(0,0,0,.42);backdrop-filter:blur(18px)}
+.mam-bottom-nav button{min-width:0;min-height:53px;padding:5px 2px!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#bdc8e3!important;font-size:10px!important}
+.mam-bottom-nav button span{display:block;font-size:19px;margin-bottom:3px}
+.mam-bottom-nav button.active{color:#bd8cff!important}
+.mam-bottom-nav button.active span{filter:drop-shadow(0 0 7px #9b5cff)}
+.footer{color:#8f9fbe!important;border-color:rgba(145,157,229,.2)!important}
+@media(min-width:700px){.mam-dashboard{grid-template-columns:repeat(4,minmax(0,1fr))}.mam-dash-nav{grid-template-columns:repeat(6,minmax(0,1fr))}.mam-league-shortcuts{grid-template-columns:repeat(8,minmax(0,1fr))}.mam-bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:min(680px,calc(100% - 32px))}}
+@media(max-width:390px){main{padding-left:10px!important;padding-right:10px!important}.mam-kpi{padding:12px 10px}.mam-league-shortcuts{gap:6px}.mam-league-shortcuts button{min-height:72px;font-size:9px!important}}
+
+</style>
 </head>
 <body>
 
@@ -1197,6 +1264,13 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 Veri kaynakları: API-Football, ESPN ve Football-data.org. Geçmiş takım verileri SportScore ve Open Matchday kaynaklarından alınmaya çalışılır ve önbelleğe alınır. Canlı skorlar yenileme düğmesiyle güncellenir. Analiz sırasında takım geçmişi sorguları sırayla yapılır. Tahminler istatistiksel olasılıktır; kesin sonuç veya garanti değildir.
 </div>
 </main>
+<nav class="mam-bottom-nav" aria-label="Alt gezinme">
+ <button type="button" class="active" data-mam-bottom="home"><span>⌂</span>Ana Sayfa</button>
+ <button type="button" data-mam-bottom="fixtures"><span>⚽</span>Maçlar</button>
+ <button type="button" data-mam-bottom="analysis"><span>▥</span>Analiz</button>
+ <button type="button" data-mam-bottom="standings"><span>🏆</span>Ligler</button>
+ <button type="button" data-mam-bottom="coupon"><span>🎟</span>Kupon</button>
+</nav>
 
 <script>
 "use strict";
@@ -5468,5 +5542,52 @@ const openStandingTeamHistory=async row=>{
 })();
 </script>
 
+
+<script>
+/* ===== MAM_NOVA_DASHBOARD_BEHAVIOR ===== */
+(function(){
+ const $=id=>document.getElementById(id);
+ const navButtons=[...document.querySelectorAll("[data-mam-shortcut],[data-mam-bottom]")];
+ function markActive(mode){
+  navButtons.forEach(b=>b.classList.toggle("active",b.dataset.mamShortcut===mode||b.dataset.mamBottom===mode));
+ }
+ async function go(mode){
+  markActive(mode);
+  if(mode==="home"){setMamScreen("home");window.scrollTo({top:0,behavior:"smooth"});return;}
+  if(mode==="fixtures"){setMamScreen("home");$("date")?.scrollIntoView({behavior:"smooth",block:"center"});if(!allMatches.length)await loadMatches();return;}
+  if(mode==="live"){setMamScreen("live");await loadLiveMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
+  if(mode==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});if(!allMatches.length)await loadMatches();return;}
+  if(mode==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});return;}
+  if(mode==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel").scrollIntoView({behavior:"smooth",block:"start"});}
+ }
+ navButtons.forEach(button=>button.addEventListener("click",()=>go(button.dataset.mamShortcut||button.dataset.mamBottom)));
+ document.querySelectorAll("[data-mam-league]").forEach(button=>button.addEventListener("click",async()=>{
+  const select=$("league");if(!select)return;
+  select.value=button.dataset.mamLeague;select.dispatchEvent(new Event("change",{bubbles:true}));
+  document.querySelectorAll("[data-mam-league]").forEach(x=>x.classList.toggle("active",x===button));
+  setMamScreen("home");await loadMatches();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});
+ }));
+ async function loadDashboardStats(){
+  try{
+   const [d1,queue]=await Promise.all([
+    fetch("https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/archive/d1-status").then(r=>r.ok?r.json():null),
+    fetch("https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/archive/sync-status").then(r=>r.ok?r.json():null)
+   ]);
+   if(d1?.ok){
+    const st=d1.statistics||{};
+    $("mamKpiTotal").textContent=Number(d1.total||0).toLocaleString("tr-TR");
+    $("mamKpiStats").textContent=Number(st.withStatistics||0).toLocaleString("tr-TR");
+    $("mamKpiMissing").textContent=Number(st.missingStatistics||0).toLocaleString("tr-TR");
+    $("mamKpiCoverage").textContent="%"+Number(st.coveragePercent||0).toLocaleString("tr-TR")+" istatistik kapsamı";
+   }
+   if(queue?.ok){
+    $("mamKpiQueue").textContent=Number(queue.statisticsQueuePending??0).toLocaleString("tr-TR");
+    $("mamKpiQueueNote").textContent=queue.complete?"Arşiv kontrolü tamamlandı":"İşlem devam ediyor";
+   }
+  }catch(error){$("mamKpiQueueNote").textContent="Veri durumu şu an alınamadı";}
+ }
+ loadDashboardStats();
+})();
+</script>
 </body>
 </html>
