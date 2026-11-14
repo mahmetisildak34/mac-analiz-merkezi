@@ -1358,6 +1358,84 @@ button{transition:filter .15s ease,transform .15s ease}
  .match-detail-tab{padding:8px 10px!important;font-size:11px!important}
 }
 </style>
+
+
+<style id="mam-mobile-scroll-navigation-fix">
+/* UI-only patch: smoother native vertical scrolling and reliable mobile tap targets.
+   No application logic, API, data, fixture, or storage code is changed. */
+html{
+  scroll-behavior:auto!important;
+  scroll-padding-top:84px;
+  -webkit-overflow-scrolling:touch;
+}
+body{
+  overflow-x:hidden;
+  overscroll-behavior-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+main{
+  padding-bottom:calc(124px + env(safe-area-inset-bottom))!important;
+}
+button,
+a,
+[role="button"]{
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+button{
+  scroll-margin-block:88px;
+}
+.mam-appbar{
+  top:env(safe-area-inset-top,0px)!important;
+}
+.mam-bottom-nav{
+  min-height:66px!important;
+  padding:7px 6px calc(7px + env(safe-area-inset-bottom,0px))!important;
+  touch-action:manipulation;
+}
+.mam-bottom-nav button{
+  min-height:50px!important;
+  min-width:0!important;
+  padding:5px 3px!important;
+  line-height:1.2!important;
+  touch-action:manipulation;
+}
+.mam-drawer,
+.match-detail-overlay,
+.lineup-panel.lineup-fullscreen,
+.mam-standing-team-history{
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  touch-action:pan-y;
+}
+.league-menu,
+.match-detail-tabs,
+.mam-date-strip{
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;
+  touch-action:pan-x pan-y;
+}
+@media(max-width:560px){
+  main{
+    padding-left:12px!important;
+    padding-right:12px!important;
+    padding-bottom:calc(132px + env(safe-area-inset-bottom))!important;
+  }
+  .mam-bottom-nav{
+    left:8px!important;
+    right:8px!important;
+    bottom:calc(6px + env(safe-area-inset-bottom))!important;
+    border-radius:18px!important;
+  }
+  .mam-bottom-nav button{
+    font-size:10px!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto!important}
+}
+</style>
+
 </head>
 <body>
 
