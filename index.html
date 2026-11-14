@@ -4683,8 +4683,35 @@ async function analyze(button){
   const button=$("mamLoadAllLeagues"),target=$("mamStandingsAll");button.disabled=true;button.textContent="Ligler yükleniyor...";target.innerHTML='<div class="empty">Desteklenen organizasyonlar alınıyor...</div>';
   try{
    const now=new Date(),year=now.getFullYear(),season=now.getMonth()<=5?year-1:year;
-   const data=await api("leagues?"+qs({season}));allProviderLeagues=data.response||[];
-   if(!allProviderLeagues.length)throw new Error("Veri sağlayıcısı lig listesi döndürmedi.");
+   const data=await api("leagues?"+qs({season}));
+   allProviderLeagues=Array.isArray(data.response)?data.response:[];
+   // D1 arşivindeki ligleri de kataloğa ekle: geçmişi bulunan ama sağlayıcı listesinin dışında kalan ligler kaybolmasın.
+   try{
+    const archiveStatus=await api("archive/d1-status");
+    const archivedLeagues=Array.isArray(archiveStatus?.leagues)?archiveStatus.leagues:[];
+    const known=new Set(allProviderLeagues.map(x=>String(x.league?.id||"")));
+    archivedLeagues.forEach(item=>{
+     const id=String(item.leagueId||"");if(!id||known.has(id))return;
+     allProviderLeagues.push({league:{id,name:item.leagueName||("Lig "+id),type:"League"},country:{name:item.country||""},seasons:[]});
+     known.add(id);
+    });
+   }catch(archiveError){console.warn("Arşiv lig kataloğu alınamadı:",archiveError);}
+   if(!allProviderLeagues.length)throw new Error("Veri sağlayıcısı ve D1 arşivi lig listesi döndürmedi.");
+   // Bulunan tüm ligleri ana fikstür filtresine de ekle; seçim mevcut tarihli fikstür akışını kullanır.
+   const fixtureSelect=$("league"),fixtureMenu=$("leagueMenu");
+   const fixtureIds=new Set(Array.from(fixtureSelect.options).map(option=>String(option.value)));
+   allProviderLeagues.forEach(item=>{
+    const id=String(item.league?.id||"");if(!id||fixtureIds.has(id))return;
+    const label=(item.country?.name?item.country.name+" · ":"")+(item.league?.name||("Lig "+id));
+    const option=document.createElement("option");option.value=id;option.textContent=label;fixtureSelect.appendChild(option);
+    if(fixtureMenu){
+     const entry=document.createElement("button");entry.type="button";entry.className="league-option";entry.setAttribute("role","option");
+     entry.dataset.leagueValue=id;entry.dataset.leagueLabel=label;entry.setAttribute("aria-selected","false");
+     entry.innerHTML='<span class="league-option-name"><span class="league-option-icon" aria-hidden="true">⚽</span><span>'+esc(label)+'</span></span>';
+     fixtureMenu.appendChild(entry);
+    }
+    fixtureIds.add(id);
+   });
    const q=$("mamStandingsSearch")?.value.trim().toLocaleLowerCase("tr-TR")||"";target.innerHTML="";
    allProviderLeagues.sort((a,b)=>(a.country?.name||"").localeCompare(b.country?.name||"")||(a.league?.name||"").localeCompare(b.league?.name||""));
    allProviderLeagues.forEach(item=>{const id=String(item.league?.id||"");if(!id)return;const name=(item.country?.name?item.country.name+" · ":"")+(item.league?.name||"Organizasyon");if(q&&!name.toLocaleLowerCase("tr-TR").includes(q))return;const b=document.createElement("button");b.type="button";b.dataset.standingLeague=id;b.textContent=(item.country?.flag?"":"🌍 ")+name;b.title=item.league?.type||"Lig";b.classList.toggle("active",id===selectedStandingsLeague);target.appendChild(b);});
