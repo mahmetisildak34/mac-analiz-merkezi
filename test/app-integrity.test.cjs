@@ -39,7 +39,7 @@ assert.match(html, /teamSource="football-data"/, "Football-data standings provid
 assert.match(html, /Football-data takım geçmişi:/, "Football-data team-history fallback missing");
 assert.match(html, /ESPN yedek geçmişi:/, "ESPN team-history fallback missing");
 assert.match(html, /mamSportScoreTeamSchedule\(teamName\)/, "SportScore team-history fallback missing");
-assert.match(html, /dataset\.teamSource=teamSource/, "Selected provider is not carried into team rows");
+assert.match(html, /data-team-source=/, "Selected provider is not carried into team rows");
 assert.match(html, /const teamSource=row\.dataset\.teamSource/, "Selected provider is not read when opening team history");
 
 let checkedScripts = 0;
