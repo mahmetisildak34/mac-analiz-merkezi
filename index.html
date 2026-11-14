@@ -1484,7 +1484,7 @@ async function loadStandings(){
   }
   if(!rows.length)throw new Error("Kaynak bu lig için puan tablosu döndürmedi.");
   $("mamStandingsLeagueTitle").textContent=leagueName;
-  const supportsTeamHistory=Boolean(ESPN_LEAGUES[String(leagueId)])||["203","39"].includes(String(leagueId));
+  const supportsTeamHistory=true;
   box.innerHTML='<div style="overflow-x:auto"><table class="mam-standings-table"><thead><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr'+(supportsTeamHistory?' class="mam-standing-team-row" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" role="button" tabindex="0" onclick="window.mamOpenStandingTeamHistory(this)" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını göster"':'')+'><td>'+esc(x.rank)+'</td><td>'+esc(x.name)+(supportsTeamHistory?' <span class="mam-standing-row-hint">›</span>':'')+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan.'+(String(leagueId)==="203"?' Takımın son 10 maçını görmek için satırına dokun.':' Güncel veri sağlayıcısından alınır.')+'</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
   if(String(leagueId)==="78"){
    const bulk=document.createElement("button");
@@ -1788,6 +1788,23 @@ const ESPN_LEAGUES={
  "98":{slug:"jpn.1",name:"J1 League",country:"Japan"},
  "188":{slug:"aus.1",name:"A-League",country:"Australia"},
  "169":{slug:"chn.1",name:"Chinese Super League",country:"China"},
+ "204":{slug:"tur.2",name:"Trendyol 1. Lig",country:"Türkiye"},
+ "40":{slug:"eng.2",name:"Championship",country:"England"},
+ "45":{slug:"eng.fa",name:"FA Cup",country:"England"},
+ "48":{slug:"eng.league_cup",name:"EFL Cup",country:"England"},
+ "141":{slug:"esp.2",name:"La Liga 2",country:"Spain"},
+ "79":{slug:"ger.2",name:"2. Bundesliga",country:"Germany"},
+ "81":{slug:"ger.dfb_pokal",name:"DFB Pokal",country:"Germany"},
+ "136":{slug:"ita.2",name:"Serie B",country:"Italy"},
+ "137":{slug:"ita.coppa_italia",name:"Coppa Italia",country:"Italy"},
+ "62":{slug:"fra.2",name:"Ligue 2",country:"France"},
+ "66":{slug:"fra.coupe_de_france",name:"Coupe de France",country:"France"},
+ "1":{slug:"fifa.world",name:"FIFA World Cup",country:"World"},
+ "4":{slug:"uefa.euro",name:"EURO",country:"Europe"},
+ "6":{slug:"caf.nations",name:"Africa Cup of Nations",country:"Africa"},
+ "9":{slug:"conmebol.copa_america",name:"Copa América",country:"South America"},
+ "15":{slug:"fifa.cwc",name:"FIFA Club World Cup",country:"World"},
+ "307":{slug:"ksa.1",name:"Saudi Pro League",country:"Saudi Arabia"},
  "esp_copa":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
  "esp_copa_del_rey":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
  "esp.copa":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
@@ -5019,8 +5036,76 @@ async function analyze(button){
    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(e){}
    return matches;
   }
-  const openStandingTeamHistory=async row=>{
-  if(!row||(!ESPN_LEAGUES[String(selectedStandingsLeague)]&&!["203","39"].includes(String(selectedStandingsLeague))))return;
+  
+// SportScore: takım araması + takımın geçmiş/gelecek fikstürü.
+// Resmî API dokümanı: CORS açık, anahtarsız GET; ücretsiz kullanımda görünür Powered by SportScore atfı gerekir.
+async function mamSportScoreTeamSchedule(teamName){
+ const cacheKey="mam_sportscore_team_v1_"+String(teamName||"").toLowerCase();
+ try{
+  const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");
+  if(saved?.time&&Array.isArray(saved.matches)&&Date.now()-saved.time<30*60*1000)return saved.matches;
+ }catch(_){}
+ const base="https://sportscore.com/api";
+ const request=async url=>{
+  const response=await fetch(url,{headers:{Accept:"application/json"}});
+  if(!response.ok)throw new Error("SportScore HTTP "+response.status);
+  return response.json();
+ };
+ const search=await request(base+"/v1/search/?"+qs({q:teamName,sport:"football",limit:12,src:"mac-analiz-merkezi"}));
+ const norm=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+ const wanted=norm(teamName),candidates=[];
+ const walk=(value,depth=0)=>{
+  if(!value||typeof value!=="object"||depth>8)return;
+  if(Array.isArray(value)){value.forEach(x=>walk(x,depth+1));return;}
+  const slug=value.slug||value.team_slug||value.entity_slug;
+  const name=value.name||value.display_name||value.displayName||value.title;
+  if(slug&&name)candidates.push({slug:String(slug),name:String(name),type:String(value.type||value.entity_type||"").toLowerCase()});
+  Object.values(value).forEach(x=>{if(x&&typeof x==="object")walk(x,depth+1);});
+ };
+ walk(search);
+ const unique=[...new Map(candidates.map(x=>[x.slug,x])).values()];
+ const exact=unique.find(x=>norm(x.name)===wanted);
+ const close=exact||unique.find(x=>norm(x.name).includes(wanted)||wanted.includes(norm(x.name)));
+ if(!close)throw new Error("SportScore takım aramasında eşleşme bulunamadı: "+teamName);
+ const data=await request(base+"/widget/team/?"+qs({sport:"football",slug:close.slug,limit:30,src:"mac-analiz-merkezi"}));
+ const records=[];
+ const add=value=>{
+  if(!value||typeof value!=="object")return;
+  const home=value.home??value.home_team??value.homeTeam;
+  const away=value.away??value.away_team??value.awayTeam;
+  const homeName=typeof home==="string"?home:(home?.name||home?.display_name||home?.short_name);
+  const awayName=typeof away==="string"?away:(away?.name||away?.display_name||away?.short_name);
+  const date=value.time||value.date||value.kickoff||value.utc_date||value.start_time||value.datetime;
+  if(!homeName||!awayName||!date)return;
+  const hScore=value.home_score??value.homeScore??value.score?.home??home?.score??null;
+  const aScore=value.away_score??value.awayScore??value.score?.away??away?.score??null;
+  const rawStatus=String(value.status||value.state||value.status_text||"").toLowerCase();
+  const finished=rawStatus.includes("finish")||rawStatus==="ft"||rawStatus==="aet"||rawStatus==="pen";
+  const live=["live","in_play","in play","1h","2h","ht","halftime"].some(x=>rawStatus.includes(x));
+  const league=value.competition?.name||value.competition_name||value.league?.name||value.competition||"";
+  const id=value.id||value.slug||[date,homeName,awayName].join("-");
+  records.push({
+   fixture:{id:"sportscore-"+String(id),date:String(date),status:{short:finished?"FT":live?"LIVE":"NS"}},
+   league:{id:String(value.competition?.id||value.league?.id||""),name:String(league||"SportScore"),country:String(value.competition?.country||value.country||"")},
+   teams:{home:{id:Number(home?.id)||-1,name:String(homeName)},away:{id:Number(away?.id)||-1,name:String(awayName)}},
+   goals:{home:hScore==null?null:Number(hScore),away:aScore==null?null:Number(aScore)}
+  });
+ };
+ const walkMatches=(value,depth=0)=>{
+  if(!value||typeof value!=="object"||depth>9)return;
+  if(Array.isArray(value)){value.forEach(x=>walkMatches(x,depth+1));return;}
+  add(value);
+  Object.values(value).forEach(x=>{if(x&&typeof x==="object")walkMatches(x,depth+1);});
+ };
+ walkMatches(data);
+ const matches=[...new Map(records.map(m=>[m.fixture.id,m])).values()];
+ try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
+ if(!matches.length)throw new Error("SportScore takım takviminde maç kaydı bulunamadı.");
+ return matches;
+}
+
+const openStandingTeamHistory=async row=>{
+  if(!row)return;
   const teamName=row.dataset.standingTeam||"";
   const teamId=row.dataset.standingTeamId||"";
   if(!teamName)return;
@@ -5130,7 +5215,29 @@ async function analyze(button){
     const isUefaTeamList=["2","3","848"].includes(String(selectedStandingsLeague));
     const matchesTeam=name=>{if(isUefaTeamList)return mamUefaTeamMatch(name,teamName);const candidate=norm(name);return accepted.has(candidate)||(aliases[candidate]||[]).map(norm).some(alias=>accepted.has(alias))||(aliases[wanted]||[]).map(norm).includes(candidate);};
     upcoming=leagueFixtures.filter(m=>matchesTeam(m.teams?.home?.name)||matchesTeam(m.teams?.away?.name)).map(m=>({...m,mamSelectedTeamHome:matchesTeam(m.teams?.home?.name)}));
-   }catch(error){upcomingError=String(error?.message||"TFF gelecek fikstürü alınamadı.");}
+   }catch(error){upcomingError=String(error?.message||"Gelecek fikstür alınamadı.");}
+   // Sağlayıcıda takım fikstürü eksikse SportScore'dan aynı takımın geçmiş ve gelecek maçlarını tamamla.
+   if(recent.length<10||!upcoming.length){
+    try{
+     const ssMatches=await mamSportScoreTeamSchedule(teamName);
+     const ssPast=ssMatches.filter(m=>m.goals?.home!=null&&m.goals?.away!=null&&Date.parse(m.fixture.date)<Date.now())
+      .sort((a,b)=>Date.parse(b.fixture.date)-Date.parse(a.fixture.date));
+     const ssUpcoming=ssMatches.filter(m=>m.goals?.home==null&&m.goals?.away==null&&Date.parse(m.fixture.date)>=Date.now())
+      .sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
+     const existingPast=new Set(recent.map(m=>String(m.fixture?.date||"").slice(0,10)+"|"+(m.teams?.home?.name||"")+"|"+(m.teams?.away?.name||"")));
+     for(const m of ssPast){
+      const key=String(m.fixture.date).slice(0,10)+"|"+m.teams.home.name+"|"+m.teams.away.name;
+      if(!existingPast.has(key))recent.push(m);
+     }
+     recent.sort((a,b)=>Date.parse(b.fixture?.date||0)-Date.parse(a.fixture?.date||0));recent=recent.slice(0,10);
+     if(!upcoming.length)upcoming=ssUpcoming.map(m=>({...m,mamSelectedTeamHome:matchesTeam(m.teams?.home?.name)||norm(m.teams?.home?.name)===wanted}));
+     if(ssPast.length)historyError="";
+     if(ssUpcoming.length)upcomingError="";
+    }catch(ssError){
+     if(!recent.length)historyError=historyError||String(ssError?.message||ssError);
+     if(!upcoming.length)upcomingError=upcomingError||String(ssError?.message||ssError);
+    }
+   }
    if(!recent.length&&!upcoming.length)throw new Error("Geçmiş maç: "+(historyError||"kayıt bulunamadı")+". Gelecek maç: "+(upcomingError||"kayıt bulunamadı"));
    const pastHtml=recent.length?'<section style="margin-bottom:22px;"><div style="display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">SON '+recent.length+' TAMAMLANMIŞ MAÇ</span><span style="font-size:10px;color:#9eb2bc;">GEÇMİŞ</span></div><div style="display:grid;gap:10px;">'+recent.map(m=>{
     const home=m.teams?.home||{},away=m.teams?.away||{};
