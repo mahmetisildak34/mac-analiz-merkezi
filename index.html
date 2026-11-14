@@ -2201,8 +2201,23 @@ async function loadLiveMatchesNow(){
    }
    footballDataErrorText="Football-data.org desteklediği müsabakalarda şu anda canlı maç döndürmedi.";
   }catch(error){footballDataErrorText=String(error?.message||error);}
-  // Kaynaklar canlı maç döndürmediğinde ana maç listesini boşaltma.
-  // Geçici API/kota hatası veya desteklenmeyen lig taraması mevcut fikstürü silmemeli.
+  // Canlı sağlayıcılar yanıt vermezse, son 6 saatte güncellenmiş gerçek LIVE kayıtlarını D1 arşivinden oku.
+  let d1LiveMatches=[];
+  try{
+   const d1Response=await fetch(WORKER+"/api/archive/live",{cache:"no-store"});
+   if(d1Response.ok){
+    const d1Payload=await d1Response.json();
+    d1LiveMatches=Array.isArray(d1Payload?.response)?d1Payload.response.filter(isLive):[];
+   }
+  }catch(d1Error){console.warn("D1 canlı maç yedeği okunamadı:",d1Error);}
+  if(d1LiveMatches.length){
+   allMatches=d1LiveMatches;
+   mamSaveLiveMatchCache(d1LiveMatches);
+   renderMatches();
+   $("status").textContent=d1LiveMatches.length+" canlı maç D1 arşivinden gösteriliyor · sağlayıcı bağlantısı geçici olarak kullanılamıyor; skorlar eski olabilir.";
+   return;
+  }
+  // Hiçbir kaynakta güncel maç yoksa son cihaz önbelleğini koru.
   allMatches=cachedMatches;
   renderMatches();
   const cacheNote=savedLiveCache&&cachedMatches.length
