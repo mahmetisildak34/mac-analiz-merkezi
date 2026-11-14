@@ -5963,6 +5963,17 @@ const openStandingTeamHistory=async row=>{
 (function(){
  const $=id=>document.getElementById(id);
  const navButtons=[...document.querySelectorAll("[data-mam-shortcut],[data-mam-bottom]")];
+ document.querySelectorAll("[data-mam-action]").forEach(button=>button.addEventListener("click",async()=>{
+  const action=button.dataset.mamAction;
+  if(action==="today"){mamTodayFilter="all";setMamScreen("today");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});}
+  if(action==="live"){setMamScreen("live");await loadLiveMatches();window.scrollTo({top:0,behavior:"smooth"});}
+  if(action==="upcoming"){setMamScreen("upcoming");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});}
+ }));
+ $("mamTodayTabs")?.querySelectorAll("[data-today-filter]").forEach(tab=>tab.addEventListener("click",()=>{
+  mamTodayFilter=tab.dataset.todayFilter||"all";
+  renderMatches();
+  $("matches")?.scrollIntoView({behavior:"smooth",block:"start"});
+ }));
  function markActive(mode){
   navButtons.forEach(b=>b.classList.toggle("active",b.dataset.mamShortcut===mode||b.dataset.mamBottom===mode));
  }
@@ -5970,6 +5981,8 @@ const openStandingTeamHistory=async row=>{
   markActive(mode);
   if(mode==="home"){setMamScreen("home");window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="fixtures"){setMamScreen("home");$("date")?.scrollIntoView({behavior:"smooth",block:"center"});if(!allMatches.length)await loadMatches();return;}
+  if(mode==="today"){mamTodayFilter="all";setMamScreen("today");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
+  if(mode==="upcoming"){setMamScreen("upcoming");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="live"){setMamScreen("live");await loadLiveMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});if(!allMatches.length)await loadMatches();return;}
   if(mode==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});return;}
@@ -6012,7 +6025,7 @@ const openStandingTeamHistory=async row=>{
 .mam-today-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:0 0 13px;padding:5px;border:1px solid rgba(95,147,204,.35);border-radius:15px;background:rgba(5,15,30,.94)}
 .mam-today-tabs button{min-width:0;padding:10px 3px!important;border:1px solid transparent!important;border-radius:11px!important;background:transparent!important;color:#bdcbe0!important;font-size:10px!important;white-space:nowrap}.mam-today-tabs button b{display:block;margin-top:3px;font-size:11px;color:#fff}
 .mam-today-tabs button.active{background:linear-gradient(135deg,#1269dc,#1743a0)!important;border-color:rgba(100,180,255,.65)!important;color:#fff!important;box-shadow:0 0 13px rgba(0,116,255,.25)!important}.mam-tab-live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff5369;box-shadow:0 0 8px #ff5369}
-.mam-screen-today #mamTodayHeader{display:flex!important}.mam-screen-today #mamTodayTabs{display:grid!important}.mam-screen-today #mamLiveNav{display:none!important}
+.mam-screen-today #mamTodayHeader{display:flex!important}.mam-screen-today #mamTodayTabs{display:grid!important}.mam-screen-today #mamLiveNav{display:none!important}\n#mamTodayHeader[hidden],#mamTodayTabs[hidden],#mamHomeShortcuts[hidden]{display:none!important}
 @media(max-width:390px){.mam-home-shortcuts{gap:6px}.mam-home-shortcut{min-height:96px;padding:10px 5px!important}.mam-home-shortcut b{font-size:11px}.mam-home-shortcut small{font-size:8px}.mam-today-tabs button{font-size:9px!important}}
 </style>
 </body>
