@@ -5279,12 +5279,23 @@ const openStandingTeamHistory=async row=>{
        home:{...m.teams.home,name:norm(m.teams.home.name)===wanted?teamName:m.teams.home.name},
        away:{...m.teams.away,name:norm(m.teams.away.name)===wanted?teamName:m.teams.away.name}
       }}));
-     const existingPast=new Set(recent.map(m=>String(m.fixture?.date||"").slice(0,10)+"|"+(m.teams?.home?.name||"")+"|"+(m.teams?.away?.name||"")));
-     for(const m of ssPast){
-      const key=String(m.fixture.date).slice(0,10)+"|"+m.teams.home.name+"|"+m.teams.away.name;
-      if(!existingPast.has(key))recent.push(m);
-     }
-     recent.sort((a,b)=>Date.parse(b.fixture?.date||0)-Date.parse(a.fixture?.date||0));recent=recent.slice(0,10);
+     // Takım adlarının farklı yazımlarını tek bir kimlikte birleştirerek aynı maçı tekilleştir.
+     const canonicalTeamKey=value=>{
+      let key=norm(value);
+      const groups=[
+       ["vitoriadeguimaraes","vitoriasc","vitoriaguimaraes"],
+       ["estorilpraia","estoril"],
+       ["gilvicentefc","gilvicente"],
+       ["maritimofunchal","maritimo","maritimom"]
+      ];
+      for(const group of groups)if(group.includes(key))return group[0];
+      return key;
+     };
+     const matchKey=m=>String(m.fixture?.date||"").slice(0,10)+"|"+
+      canonicalTeamKey(m.teams?.home?.name)+"|"+canonicalTeamKey(m.teams?.away?.name);
+     const uniquePast=new Map(recent.map(m=>[matchKey(m),m]));
+     for(const m of ssPast)if(!uniquePast.has(matchKey(m)))uniquePast.set(matchKey(m),m);
+     recent=[...uniquePast.values()].sort((a,b)=>Date.parse(b.fixture?.date||0)-Date.parse(a.fixture?.date||0)).slice(0,10);
      if(!upcoming.length)upcoming=ssUpcoming.map(m=>({...m,mamSelectedTeamHome:matchesTeam(m.teams?.home?.name)||norm(m.teams?.home?.name)===wanted}));
      if(ssPast.length)historyError="";
      if(ssUpcoming.length)upcomingError="";
@@ -5296,14 +5307,16 @@ const openStandingTeamHistory=async row=>{
    if(!recent.length&&!upcoming.length)throw new Error("Geçmiş maç: "+(historyError||"kayıt bulunamadı")+". Gelecek maç: "+(upcomingError||"kayıt bulunamadı"));
    const pastHtml=recent.length?'<section style="margin-bottom:22px;"><div style="display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">SON '+recent.length+' TAMAMLANMIŞ MAÇ</span><span style="font-size:10px;color:#9eb2bc;">GEÇMİŞ</span></div><div style="display:grid;gap:10px;">'+recent.map(m=>{
     const home=m.teams?.home||{},away=m.teams?.away||{};
-    const isHome=Number(home.id)===Number(teamId)||String(home.name)===teamName;
-    const gf=Number(isHome?m.goals?.home:m.goals?.away),ga=Number(isHome?m.goals?.away:m.goals?.home);
+    const teamKey=value=>{let key=String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/\\b(football club|fc|afc|sk|fk|as|cf|sc|club)\\b/g,"").replace(/[^a-z0-9]/g,"");const groups=[["vitoriadeguimaraes","vitoriasc","vitoriaguimaraes"],["estorilpraia","estoril"],["gilvicentefc","gilvicente"],["maritimofunchal","maritimo","maritimom"]];for(const group of groups)if(group.includes(key))return group[0];return key;};
+    const isHome=(Number(home.id)>0&&Number(home.id)===Number(teamId))||teamKey(home.name)===teamKey(teamName);
+    const homeGoals=Number(m.goals?.home),awayGoals=Number(m.goals?.away);
+    const gf=isHome?homeGoals:awayGoals,ga=isHome?awayGoals:homeGoals;
     const outcome=gf>ga?"W":gf<ga?"L":"D";
     const date=String(m.fixture?.date||"").slice(0,10);
     const dateLabel=date?new Date(date+"T12:00:00").toLocaleDateString("tr-TR",{day:"2-digit",month:"short",year:"numeric"}):"";
     const bg=outcome==="W"?"rgba(34,197,126,.18)":outcome==="L"?"rgba(239,83,80,.18)":"rgba(160,177,190,.16)";
     const color=outcome==="W"?"#67e4b0":outcome==="L"?"#ff9696":"#d2dce3";
-    return '<article style="display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;padding:11px 10px;border:1px solid rgba(160,205,195,.16);border-radius:13px;background:linear-gradient(145deg,#142f3c,#102532);"><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:'+bg+';color:'+color+';font-weight:950;font-size:12px;">'+outcome+'</span><span style="display:grid;gap:4px;min-width:0;"><b style="font-size:12px;line-height:1.3;color:#f4faf8;">'+esc(home.name||"Ev sahibi")+' – '+esc(away.name||"Deplasman")+'</b><small style="font-size:10px;color:#a9c0c4;">'+(isHome?"İç saha":"Deplasman")+' · '+esc(dateLabel)+'</small></span><strong style="font-size:15px;white-space:nowrap;color:#fff;">'+gf+' – '+ga+'</strong></article>';
+    return '<article style="display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;padding:11px 10px;border:1px solid rgba(160,205,195,.16);border-radius:13px;background:linear-gradient(145deg,#142f3c,#102532);"><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:'+bg+';color:'+color+';font-weight:950;font-size:12px;">'+outcome+'</span><span style="display:grid;gap:4px;min-width:0;"><b style="font-size:12px;line-height:1.3;color:#f4faf8;">'+esc(home.name||"Ev sahibi")+' – '+esc(away.name||"Deplasman")+'</b><small style="font-size:10px;color:#a9c0c4;">'+(isHome?"İç saha":"Deplasman")+' · '+esc(dateLabel)+'</small></span><strong style="font-size:15px;white-space:nowrap;color:#fff;">'+homeGoals+' – '+awayGoals+'</strong></article>';
    }).join("")+'</div></section>':'<p style="font-size:12px;color:#a9c0c4;">Henüz tamamlanmış maç kaydı bulunamadı.</p>';
    const futureHtml=upcoming.length?'<section style="margin-top:22px;"><div style="display:flex;align-items:center;justify-content:space-between;margin:0 2px 10px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">GELECEK MAÇLAR</span><span style="font-size:10px;color:#9eb2bc;">'+upcoming.length+' MAÇ</span></div><div style="overflow:hidden;border:1px solid rgba(160,205,195,.16);border-radius:14px;background:#171f26;"><div style="display:flex;align-items:center;gap:9px;padding:11px 12px;background:#27323a;color:#f2f7f8;font-size:12px;font-weight:800;"><span style="font-size:17px;">'+(String(selectedStandingsLeague)==="39"?"🏴":String(selectedStandingsLeague)==="78"?"🇩🇪":String(selectedStandingsLeague)==="140"?"🇪🇸":String(selectedStandingsLeague)==="61"?"🇫🇷":String(selectedStandingsLeague)==="203"?"🇹🇷":["2","3","848"].includes(String(selectedStandingsLeague))?"🏆":"🌍")+'</span>'+(ESPN_LEAGUES[String(selectedStandingsLeague)]?.name||standingCompetitionNames[String(selectedStandingsLeague)]||"Lig")+" · Gelecek fikstür"+'</div><div style="padding:0 9px;">'+upcoming.map(m=>{
     const home=m.teams?.home||{},away=m.teams?.away||{};
