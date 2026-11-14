@@ -1446,7 +1446,7 @@ async function loadStandings(){
      "1":"fifa.world","4":"uefa.euro","5":"uefa.nations",
      "9":"conmebol.copa_america","6":"caf.nations",
      "15":"fifa.cwc","307":"ksa.1","253":"usa.1",
-     "71":"bra.1","128":"arg.1"
+     "71":"bra.1","128":"arg.1","98":"jpn.1","262":"mex.1","188":"aus.1","169":"chn.1"
     })[leagueId];
     if(!espnLeague)throw new Error("Bu organizasyon için etkin bir yedek puan tablosu kaynağı bulunamadı. API-Football: "+(primaryError.message||primaryError)+" | Football-data.org: "+(secondaryError.message||secondaryError));
     const data=await api("espn/"+espnLeague+"/standings?"+qs({season}));
@@ -4678,6 +4678,39 @@ async function analyze(button){
   Object.values(groupTargets).forEach(target=>{const section=target?.closest(".mam-standings-group");if(section)section.hidden=!target.children.length;});
  };
  renderStandingButtons();
+ // D1 arşivinde bulunan ligleri, API-Football listesinden bağımsız olarak Lig Merkezi'nde göster.
+ (async()=>{
+  try{
+   const status=await api("archive/d1-status");
+   const archived=Array.isArray(status?.leagues)?status.leagues:[];
+   const known=new Set(standingCompetitions.map(item=>String(item.id)));
+   const flagFor=country=>{
+    const c=String(country||"").toLowerCase();
+    if(/japan|japonya/.test(c))return "🇯🇵";
+    if(/mexico|meksika/.test(c))return "🇲🇽";
+    if(/australia|avustralya/.test(c))return "🇦🇺";
+    if(/china|çin/.test(c))return "🇨🇳";
+    if(/brazil|brezilya/.test(c))return "🇧🇷";
+    if(/argentina|arjantin/.test(c))return "🇦🇷";
+    if(/united states|usa|amerika/.test(c))return "🇺🇸";
+    if(/saudi|suudi/.test(c))return "🇸🇦";
+    if(/france|fransa/.test(c))return "🇫🇷";
+    if(/spain|ispanya/.test(c))return "🇪🇸";
+    if(/germany|almanya/.test(c))return "🇩🇪";
+    if(/italy|italya/.test(c))return "🇮🇹";
+    if(/england|ingiltere/.test(c))return "🏴";
+    return "🌍";
+   };
+   let added=0;
+   archived.forEach(item=>{
+    const id=String(item.leagueId||"");if(!id||known.has(id))return;
+    const name=String(item.leagueName||("Lig "+id));
+    standingCompetitions.push({id,name,flag:flagFor(item.country),group:"world",archived:true});
+    standingCompetitionNames[id]=name;known.add(id);added++;
+   });
+   if(added)renderStandingButtons($("mamStandingsSearch")?.value||"");
+  }catch(error){console.warn("D1 arşiv ligleri Lig Merkezi'ne eklenemedi:",error);}
+ })();
  $("mamStandingsSearch")?.addEventListener("input",event=>{renderStandingButtons(event.target.value);const q=event.target.value.trim().toLocaleLowerCase("tr-TR");$("mamStandingsAll")?.querySelectorAll("[data-standing-league]").forEach(button=>button.hidden=!!q&&!button.textContent.toLocaleLowerCase("tr-TR").includes(q));});
  $("mamLoadAllLeagues")?.addEventListener("click",async()=>{
   const button=$("mamLoadAllLeagues"),target=$("mamStandingsAll");button.disabled=true;button.textContent="Ligler yükleniyor...";target.innerHTML='<div class="empty">Desteklenen organizasyonlar alınıyor...</div>';
