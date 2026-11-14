@@ -1268,6 +1268,66 @@ input,select,.league-trigger{background:#08142b!important;border:1px solid rgba(
 #mamStandingsScreen .mam-standings-note{color:#aebddd!important;font-size:10px;line-height:1.5;margin:10px 2px 2px}
 @media(max-width:430px){#mamStandingsScreen .mam-standings-card{padding:9px!important}#mamStandingsScreen .mam-standings-banner{min-height:80px;padding:10px}#mamStandingsScreen .mam-standings-flag{width:49px;height:49px;flex-basis:49px;font-size:26px}#mamStandingsScreen .mam-standings-table{font-size:11px}#mamStandingsScreen .mam-standings-table td{height:40px;padding:6px 4px}#mamStandingsScreen .mam-standings-table .mam-team-name-cell{max-width:132px;font-size:11px}}
 </style>
+
+<style id="mam-three-screen-reference-theme">
+:root{--mam-gold:#f4bd36;--mam-gold2:#ffe08a;--mam-navy:#07152d;--mam-panel:#0d1d3b;--mam-panel2:#13264a;--mam-line:rgba(244,189,54,.62)}
+html,body{background:#050d20!important}
+button{transition:filter .15s ease,transform .15s ease}
+#mamStandingsScreen .mam-standings-card,
+#mamStandingsScreen .mam-standings-group{background:linear-gradient(155deg,#102348,#07152d)!important;border:1px solid var(--mam-line)!important;border-radius:17px!important;box-shadow:0 8px 24px rgba(0,0,0,.3),inset 0 0 20px rgba(255,255,255,.018)!important}
+#mamStandingsScreen .mam-standings-banner{background:linear-gradient(110deg,#142d59,#09172f)!important;border:1.5px solid var(--mam-gold)!important;border-radius:15px!important;box-shadow:0 0 16px rgba(244,189,54,.12)!important}
+#mamStandingsScreen .mam-standings-flag{border:2px solid var(--mam-gold)!important;background:#0b1b38!important;color:var(--mam-gold2)!important}
+#mamStandingsScreen .mam-standings-card-head{align-items:center!important}
+#mamStandingsScreen .mam-standings-card-head button{border:1px solid var(--mam-gold)!important;border-radius:10px!important;background:#14284d!important;color:#ffe6a6!important}
+#mamStandingsScreen #mamStandingsTable table{border-collapse:separate!important;border-spacing:0 5px!important}
+#mamStandingsScreen #mamStandingsTable th{background:#1b3564!important;color:#ffe6a6!important}
+#mamStandingsScreen #mamStandingsTable td{background:#102348!important;color:#f4f6ff!important;border-top:1px solid rgba(244,189,54,.22)!important;border-bottom:1px solid rgba(244,189,54,.22)!important}
+#mamStandingsScreen #mamStandingsTable tr td:first-child{border-left:2px solid var(--mam-gold)!important;border-radius:8px 0 0 8px!important}
+#mamStandingsScreen #mamStandingsTable tr td:last-child{border-right:1px solid rgba(244,189,54,.25)!important;border-radius:0 8px 8px 0!important}
+#mamStandingsScreen .mam-standing-team-row.active td{background:#263b63!important}
+#mamTeamHistoryScreen{background:radial-gradient(ellipse at 50% 0%,#142c58 0%,#08152d 55%,#050d20 100%)!important;color:#f5f7ff!important}
+#mamTeamHistoryScreen header{background:linear-gradient(110deg,#142a53,#08152d)!important;border-bottom:1px solid var(--mam-gold)!important;box-shadow:0 6px 22px rgba(0,0,0,.3)!important}
+#mamTeamHistoryScreen header small{color:var(--mam-gold2)!important}
+#mamTeamHistoryScreen header button{background:linear-gradient(145deg,#1c3768,#0c1c3a)!important;border:1px solid var(--mam-gold)!important;color:#ffe7a5!important}
+#mamTeamHistoryContent{background:transparent!important}
+#mamTeamHistoryContent .mam-team-history-banner{background:linear-gradient(110deg,#1b376b,#0a1935)!important;border:1.5px solid var(--mam-gold)!important;border-radius:15px!important;box-shadow:0 0 17px rgba(244,189,54,.12)!important}
+#mamTeamHistoryContent .mam-team-history-banner-mark{background:#0b1b38!important;border:2px solid var(--mam-gold)!important;color:var(--mam-gold2)!important}
+#mamTeamHistoryContent [data-history-view]{background:#14284d!important;border:1px solid rgba(244,189,54,.45)!important;color:#f4f6ff!important;border-radius:11px!important}
+#mamTeamHistoryContent [data-history-view][aria-selected="true"]{background:linear-gradient(135deg,#ffd45e,#e8a91e)!important;color:#18213a!important;border-color:#ffe39b!important}
+#mamTeamHistoryContent #mamHistoryPastView article,
+#mamTeamHistoryContent .mam-upcoming-match{background:linear-gradient(145deg,#142b53,#091832)!important;border:1px solid rgba(244,189,54,.62)!important;border-radius:14px!important;box-shadow:0 5px 17px rgba(0,0,0,.28)!important}
+#mamTeamHistoryContent #mamHistoryPastView article>strong,
+#mamTeamHistoryContent #mamHistoryPastView article b,
+#mamTeamHistoryContent .mam-upcoming-match .team-block strong{color:#fff!important}
+#mamTeamHistoryContent #mamHistoryPastView article small,
+#mamTeamHistoryContent .mam-upcoming-match .league-label{color:#bdcbe3!important}
+#mamTeamHistoryContent .mam-upcoming-match .match-head{border-bottom:1px solid rgba(244,189,54,.28)!important}
+#mamTeamHistoryContent .mam-upcoming-match .match-time,
+#mamTeamHistoryContent .mam-upcoming-match .match-clock{color:var(--mam-gold2)!important}
+#mamTeamHistoryContent .mam-upcoming-match .predBtn{background:linear-gradient(135deg,#ffd45e,#e9a91e)!important;color:#18213a!important;border:1px solid #ffe59d!important;border-radius:11px!important;box-shadow:0 0 13px rgba(244,189,54,.15)!important}
+.match-detail-overlay{background:radial-gradient(ellipse at 50% 0%,#142b55 0%,#07152d 50%,#050d20 100%)!important;color:#f4f7ff!important}
+.match-detail-top{background:linear-gradient(110deg,#142a53,#08152d)!important;border-bottom:1px solid var(--mam-gold)!important}
+.match-detail-close{background:#172e58!important;border:1px solid var(--mam-gold)!important;color:#ffe6a0!important}
+.match.in-detail{background:linear-gradient(150deg,#14294e,#091832)!important;border:1.5px solid var(--mam-gold)!important;border-radius:17px!important;box-shadow:0 10px 28px rgba(0,0,0,.32)!important}
+.match.in-detail .match-head{border-bottom:1px solid rgba(244,189,54,.3)!important}
+.match.in-detail .match-clock{color:var(--mam-gold2)!important}
+.match-detail-tab{background:#14284d!important;border:1px solid rgba(244,189,54,.38)!important;color:#eaf0ff!important;border-radius:10px!important}
+.match-detail-tab.active{background:linear-gradient(135deg,#ffd45e,#e8a91e)!important;border-color:#ffe39b!important;color:#17213b!important}
+.match-detail-pane{border-top:1px solid rgba(244,189,54,.3)!important}
+.match-detail-pane .pred,
+.match-detail-pane .liveStats,
+.match-detail-pane .lineup-panel,
+.match-detail-pane .analysis-preview{background:linear-gradient(145deg,#142b53,#0a1934)!important;border:1px solid rgba(244,189,54,.38)!important;border-radius:12px!important;color:#f5f7ff!important;padding:12px!important}
+.match-detail-pane .predBtn,
+.match-detail-pane .lineupBtn,
+.match-detail-pane .liveStatsBtn{background:linear-gradient(135deg,#ffd45e,#e8a91e)!important;color:#17213b!important;border:1px solid #ffe39b!important;border-radius:11px!important;font-weight:900!important}
+@media(max-width:560px){
+ #mamTeamHistoryContent .mam-upcoming-match{padding:10px!important}
+ .match.in-detail{padding:12px!important}
+ .match-detail-tabs{gap:6px!important}
+ .match-detail-tab{padding:8px 10px!important;font-size:11px!important}
+}
+</style>
 </head>
 <body>
 
