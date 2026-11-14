@@ -2148,6 +2148,8 @@ async function loadLiveMatchesNow(){
    const primaryLive=(data.response||[]).filter(isLive);
    if(primaryLive.length){
     allMatches=primaryLive;
+    // Ana API-Football canlı akışını da merkezi D1 arşivine yaz.
+    await mamSaveMatchesToD1(primaryLive);
     mamSaveLiveMatchCache(primaryLive);
     renderMatches();
     warmLiveTeamHistories(allMatches);
@@ -2489,6 +2491,7 @@ async function loadLiveStats(button,forceRefresh=false){
    return '<div class="mam-live-stat-row"><div class="mam-live-stat-values"><b>'+esc(left)+'</b><span class="mam-live-stat-label">'+esc(label)+'</span><b>'+esc(right)+'</b></div><div class="mam-live-stat-track"><span class="mam-live-stat-home" style="width:'+homePct+'%"></span><span class="mam-live-stat-away" style="width:'+awayPct+'%"></span></div></div>';
   }).join("");
   panel.innerHTML='<div class="mam-live-stats-title">Genel İstatistikler</div>'+(rows||'<div class="mam-live-stats-foot">Bu karşılaşma için sağlayıcı henüz istatistik paylaşmadı. Maç devam ederken tekrar kontrol edebilirsin.</div>')+'<div class="mam-live-stats-foot">Kaynak: '+sourceLabel+'. Panel açıkken maç sürerken 60 saniyede bir yenilenir.'+(!hasRealXg?' Model xG yaklaşık hesaplamadır; gerçek sağlayıcı xG verisi değildir.':' Gerçek xG sağlayıcıdan alınmıştır.')+'</div>';
+  await mamPersistLiveStatsToD1(fixtureId,sourceLabel,statsRows);
  }catch(primaryError){
   // İstatistik kaynağı API-Football/ESPN başarısızsa lig kodundan bağımsız SportScore yedeği.
   try{
@@ -2501,6 +2504,7 @@ async function loadLiveStats(button,forceRefresh=false){
    }).join("");
    panel.classList.add("mam-live-stats-view");
    panel.innerHTML='<div class="mam-live-stats-title">Genel İstatistikler</div>'+rows+'<div class="mam-live-stats-foot">Kaynak: SportScore. Sağlayıcı verisi; panel açıkken 60 saniyede bir yenilenir. '+esc(String(primaryError.message||primaryError))+'</div>';
+   await mamPersistLiveStatsToD1(fixtureId,"SportScore",backup.rows);
   }catch(backupError){
    panel.innerHTML='<span class="error">'+esc(String(primaryError.message||primaryError))+' SportScore yedeği: '+esc(String(backupError.message||backupError))+'</span>';
   }
@@ -3381,6 +3385,12 @@ async function mamSaveMatchesToD1(matches, leagueId){
   }
 }
 // D1 merkezi arşivini takım geçmişi analizinden önce oku.
+async function mamPersistLiveStatsToD1(fixtureId, sourceLabel, statsRows){
+  const record=allMatches.find(match=>String(match?.fixture?.id??match?.id)===String(fixtureId));
+  if(!record||!Array.isArray(statsRows)||!statsRows.length)return;
+  record.statistics={source:String(sourceLabel||"live"),rows:statsRows};
+  await mamSaveMatchesToD1([record],record.league?.id);
+}
 async function mamLoadD1LeagueArchive(leagueId, matchDate){
   const cacheKey="mam_d1_archive_v1_"+String(leagueId)+"_"+String(matchDate);
   try{
