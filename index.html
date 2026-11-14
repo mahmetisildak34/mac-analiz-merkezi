@@ -1498,8 +1498,6 @@ button{transition:filter .15s ease,transform .15s ease}
 <button id="loadStandings" hidden type="button" aria-hidden="true" tabindex="-1">Puan durumu</button>
 <div id="standings" hidden aria-hidden="true"></div>
 <div id="status" class="status"></div>
-<button type="button" id="couponToggle" class="secondary" style="width:100%;margin-top:12px" aria-expanded="false" aria-controls="couponPanel">🎟️ Kupon oluşturucuyu aç</button>
-
 <div class="panel coupon-panel" id="couponPanel" hidden>
  <div class="coupon-title"><strong>🎟️ Kupon oluşturucu</strong><span class="coupon-count" id="couponCount">0 seçim</span></div>
  <p class="hint">Kuponunu bu panelin içinden oluştur. Maç kartları yalnızca fikstür ve analiz içindir.</p>
@@ -3585,21 +3583,23 @@ function setMamScreen(mode){
   if(location.hash!==route)history.replaceState({...history.state,mamScreen:mode},"",route);
  }catch(_){}
  const main=document.querySelector("main");
- main.classList.remove("mam-screen-home","mam-screen-live","mam-screen-upcoming","mam-screen-standings","mam-screen-today");
+ main.classList.remove("mam-screen-home","mam-screen-live","mam-screen-upcoming","mam-screen-standings","mam-screen-today","mam-screen-coupon");
  main.classList.add("mam-screen-"+mode);
  const standingsScreen=$("mamStandingsScreen");if(standingsScreen)standingsScreen.hidden=mode!=="standings";
  const liveNav=$("mamLiveNav");if(liveNav)liveNav.hidden=mode!=="live";
  const todayTabs=$("mamTodayTabs");if(todayTabs)todayTabs.hidden=mode!=="today";
  const todayHeader=$("mamTodayHeader");if(todayHeader)todayHeader.hidden=mode!=="today";
  const shortcuts=$("mamHomeShortcuts");if(shortcuts)shortcuts.hidden=mode!=="home";
+ const couponPanel=$("couponPanel");if(couponPanel)couponPanel.hidden=mode!=="coupon";
+
  const header=$("mamSectionHeader");
- if(header){header.hidden=mode==="home";const back=$("mamSectionBack");if(back){back.hidden=false;back.style.display="";back.textContent="← Geri";}$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="standings"?"LİG MERKEZİ":mode==="today"?"GÜNLÜK SKOR PANOSU":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="standings"?"Puan Durumu":mode==="today"?"Bugünün Maçları":"Oynanacak Maçlar";}
+ if(header){header.hidden=mode==="home";const back=$("mamSectionBack");if(back){back.hidden=false;back.style.display="";back.textContent="← Geri";}$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="standings"?"LİG MERKEZİ":mode==="today"?"GÜNLÜK SKOR PANOSU":mode==="coupon"?"KİŞİSEL KUPON ALANI":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="standings"?"Puan Durumu":mode==="today"?"Bugünün Maçları":mode==="coupon"?"Kupon Merkezi":"Oynanacak Maçlar";}
  const intro=document.querySelector(".mam-home-intro");if(intro)intro.hidden=mode!=="home";
  const superLigButton=$("loadSuperLigFixtures");if(superLigButton){superLigButton.hidden=mode!=="home";superLigButton.style.display=mode==="home"?"":"none";}
  const sourcePanel=document.querySelector("main>.panel");if(sourcePanel)sourcePanel.hidden=mode!=="home";
- const filterRow=$("date")?.closest(".row");if(filterRow)filterRow.hidden=mode==="live"||mode==="today"||mode==="upcoming";
- const dateStrip=$("mamDateStrip");if(dateStrip)dateStrip.hidden=mode==="live"||mode==="today"||mode==="upcoming";
- $("load").hidden=mode==="live"||mode==="today"||mode==="upcoming";
+ const filterRow=$("date")?.closest(".row");if(filterRow)filterRow.hidden=mode==="live"||mode==="today"||mode==="upcoming"||mode==="coupon";
+ const dateStrip=$("mamDateStrip");if(dateStrip)dateStrip.hidden=mode==="live"||mode==="today"||mode==="upcoming"||mode==="coupon";
+ $("load").hidden=mode==="live"||mode==="today"||mode==="upcoming"||mode==="coupon";
  $("load").textContent=mode==="upcoming"?"Başlamayan maçları getir":"Seçili günün maçlarını getir";
  $("status").textContent=mode==="live"?"Canlı skor ve maç dakikaları güncel akıştan alınır.":"Seçili tarihteki maçlar listeleniyor.";
  if(mode==="home")$("load").textContent="Seçili günün maçlarını getir";
@@ -3900,7 +3900,7 @@ function setCouponOpen(open){
  if(open)couponPanel.scrollIntoView({behavior:"smooth",block:"start"});
 }
 couponToggle.addEventListener("click",()=>setCouponOpen(couponPanel.hidden));
-$("couponClose").addEventListener("click",()=>setCouponOpen(false));
+$("couponClose").addEventListener("click",()=>{if(mamScreenMode==="coupon"){setMamScreen("home");window.scrollTo({top:0,behavior:"smooth"});}else setCouponOpen(false);});
 $("couponStake").addEventListener("input",renderCoupon);
 $("couponClear").addEventListener("click",()=>{couponItems=[];saveCoupon();$("status").textContent="Kupon temizlendi.";});
 $("couponBuildSafe").addEventListener("click",()=>buildSuggestedCoupon("safe"));
@@ -5149,7 +5149,7 @@ async function analyze(button){
   if(action==="fixtures"){setMamScreen("home");await loadMatches();$("date")?.scrollIntoView({behavior:"smooth",block:"center"});}
   if(action==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için yukarıdan bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});}
   if(action==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
-  if(action==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
+  if(action==="coupon"){setMamScreen("coupon");renderCoupon();window.scrollTo({top:0,behavior:"smooth"});}
  }));
  drawer.querySelectorAll("[data-mam-nav]").forEach(button=>button.addEventListener("click",async()=>{
   const action=button.dataset.mamNav;shut();
@@ -5157,10 +5157,10 @@ async function analyze(button){
   if(action==="upcoming"){setMamScreen("upcoming");await loadMatches();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="fixtures"){setMamScreen("home");await loadMatches();$("date")?.scrollIntoView({behavior:"smooth",block:"center"});}
   if(action==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için yukarıdan bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});}
-  if(action==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
+  if(action==="coupon"){setMamScreen("coupon");renderCoupon();window.scrollTo({top:0,behavior:"smooth"});}
   if(action==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
  }));
- $("mamSectionBack")?.addEventListener("click",async()=>{if(mamScreenMode==="live"){setMamScreen("home");await loadMatches();}else if(mamScreenMode==="upcoming"){setMamScreen("live");await loadLiveMatches();}else{setMamScreen("home");await loadMatches();}window.scrollTo({top:0,behavior:"smooth"});});
+ $("mamSectionBack")?.addEventListener("click",async()=>{if(mamScreenMode==="live"){setMamScreen("home");await loadMatches();}else if(mamScreenMode==="upcoming"){setMamScreen("live");await loadLiveMatches();}else if(mamScreenMode==="coupon"){setMamScreen("home");}else{setMamScreen("home");await loadMatches();}window.scrollTo({top:0,behavior:"smooth"});});
  $("mamSectionRefresh")?.addEventListener("click",async()=>{if(mamScreenMode==="live")await loadLiveMatches();else if(mamScreenMode==="upcoming")await loadMatches();else if(mamScreenMode==="standings")await loadStandings();});
  
  const unlTabButtons=[...document.querySelectorAll("[data-unl-tab]")];
@@ -6048,7 +6048,7 @@ const openStandingTeamHistory=async row=>{
   if(mode==="live"){setMamScreen("live");await loadLiveMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});if(!allMatches.length)await loadMatches();return;}
   if(mode==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});return;}
-  if(mode==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel").scrollIntoView({behavior:"smooth",block:"start"});}
+  if(mode==="coupon"){setMamScreen("coupon");renderCoupon();window.scrollTo({top:0,behavior:"smooth"});return;}
  }
  navButtons.forEach(button=>button.addEventListener("click",()=>go(button.dataset.mamShortcut||button.dataset.mamBottom)));
  document.querySelectorAll("[data-mam-league]").forEach(button=>button.addEventListener("click",async()=>{
@@ -6134,6 +6134,60 @@ const openStandingTeamHistory=async row=>{
  .mam-home-intro p{font-size:11px!important;line-height:1.35!important}
  .mam-home-intro>div{font-size:9px!important}
 }
+</style>
+
+
+<style id="mam-dedicated-coupon-center-v1">
+/* Dedicated coupon destination: isolate coupon tools without changing fixture or analysis data. */
+.mam-screen-coupon .mam-home-intro,
+.mam-screen-coupon .footer{display:none!important}
+.mam-screen-coupon .panel:has(#couponPanel){padding:0!important;margin:12px 0 24px!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.mam-screen-coupon .panel:has(#couponPanel)>:not(#couponPanel){display:none!important}
+.mam-screen-coupon #couponPanel{display:block!important;position:relative!important;overflow:hidden!important;padding:18px!important;border-radius:22px!important;border:1px solid rgba(132,111,255,.42)!important;background:radial-gradient(ellipse at 95% 0%,rgba(119,75,255,.22),transparent 38%),linear-gradient(155deg,#111d3b 0%,#0a142b 58%,#101a35 100%)!important;box-shadow:0 18px 44px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.06)!important;color:#f2f4ff!important}
+.mam-screen-coupon #couponPanel:before{content:"";display:block;width:42px;height:4px;border-radius:9px;background:linear-gradient(90deg,#8e65ff,#50d8cb);margin:0 0 17px}
+.mam-screen-coupon .coupon-title{align-items:flex-start!important;padding-bottom:14px!important;border-bottom:1px solid rgba(175,184,255,.13)!important}
+.mam-screen-coupon .coupon-title strong{font-size:23px!important;letter-spacing:-.5px;color:#fff!important}
+.mam-screen-coupon .coupon-count{font-size:11px!important;padding:8px 12px!important;background:rgba(50,211,172,.14)!important;border:1px solid rgba(50,211,172,.3)!important;color:#64e5c2!important}
+.mam-screen-coupon #couponPanel>.hint{margin:14px 0 17px!important;color:#aab8d8!important;font-size:13px!important;line-height:1.55!important}
+.mam-screen-coupon .coupon-empty{padding:22px 14px!important;border:1px dashed rgba(160,176,224,.34)!important;background:rgba(255,255,255,.025)!important;border-radius:15px!important;color:#aab8d8!important}
+.mam-screen-coupon .coupon-leg{grid-template-columns:minmax(0,1fr) 78px 32px!important;gap:8px!important;padding:13px 0!important;border-color:rgba(160,176,224,.13)!important}
+.mam-screen-coupon .coupon-leg strong{font-size:13px!important;color:#f4f5ff!important}
+.mam-screen-coupon .coupon-leg small{font-size:10px!important;color:#9eacce!important}
+.mam-screen-coupon .coupon-leg b{color:#65e2c0!important}
+.mam-screen-coupon .coupon-leg-odds{min-height:40px!important;border-radius:11px!important;background:#0a1830!important;color:#fff!important;border:1px solid rgba(143,122,255,.35)!important}
+.mam-screen-coupon .coupon-add-row{grid-template-columns:minmax(0,1fr) 112px!important;gap:10px!important;margin-top:18px!important}
+.mam-screen-coupon #couponPanel label{font-size:11px!important;color:#b9c5e4!important;font-weight:800!important}
+.mam-screen-coupon .coupon-add-row input{min-height:48px!important;border-radius:13px!important;background:#09172c!important;color:#fff!important;border:1px solid rgba(143,122,255,.3)!important}
+.mam-screen-coupon .coupon-summary{gap:10px!important;margin:14px 0 18px!important}
+.mam-screen-coupon .coupon-summary .stat{padding:15px!important;border-radius:15px!important;background:linear-gradient(145deg,rgba(20,62,70,.78),rgba(13,40,52,.9))!important;border:1px solid rgba(68,218,188,.25)!important}
+.mam-screen-coupon .coupon-summary .stat span{font-size:11px!important;color:#a9c8ce!important}
+.mam-screen-coupon .coupon-summary .stat b{font-size:21px!important;color:#70e7c4!important}
+.mam-screen-coupon .coupon-actions{gap:9px!important;margin-top:12px!important}
+.mam-screen-coupon .coupon-actions button{min-height:46px!important;border-radius:13px!important;font-size:11px!important;font-weight:850!important}
+.mam-screen-coupon #couponBuildSafe{background:linear-gradient(135deg,#7950ed,#5630bd)!important;border:1px solid rgba(180,155,255,.4)!important;color:#fff!important}
+.mam-screen-coupon #couponBuildRisky{background:rgba(255,255,255,.045)!important;border:1px solid rgba(148,159,214,.28)!important;color:#e4e9ff!important}
+.mam-screen-coupon #couponSuggestionStatus,.mam-screen-coupon #couponPanel>.note{font-size:11px!important;line-height:1.55!important;color:#9eacce!important}
+.mam-screen-coupon #couponClear{background:rgba(255,255,255,.04)!important;border:1px solid rgba(148,159,214,.25)!important;color:#cbd4f1!important}
+.mam-screen-coupon #couponClose{background:transparent!important;border:1px solid rgba(148,159,214,.28)!important;color:#b9c5e4!important}
+.mam-screen-coupon .mam-section-header{margin-top:10px!important}
+@media(max-width:430px){
+ .mam-screen-coupon #couponPanel{padding:14px!important;border-radius:18px!important}
+ .mam-screen-coupon .coupon-title strong{font-size:20px!important}
+ .mam-screen-coupon .coupon-actions button{font-size:10px!important;padding:8px 5px!important}
+ .mam-screen-coupon .coupon-leg{grid-template-columns:minmax(0,1fr) 68px 28px!important;gap:5px!important}
+ .mam-screen-coupon .coupon-summary .stat{padding:12px!important}
+}
+</style>
+
+
+<style id="mam-coupon-screen-isolation-v2">
+/* Coupon builder exists only on its dedicated route. */
+#couponPanel[hidden]{display:none!important}
+#couponPanel:not([hidden]){display:block!important}
+#couponPanel{position:relative}
+main:not(.mam-screen-coupon) #couponPanel{display:none!important}
+main.mam-screen-coupon #couponPanel{display:block!important}
+main:not(.mam-screen-home) #couponToggle{display:none!important}
 </style>
 
 </body>
