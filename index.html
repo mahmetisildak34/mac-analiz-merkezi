@@ -1500,17 +1500,6 @@ button{transition:filter .15s ease,transform .15s ease}
 <button id="loadSuperLigFixtures" type="button" class="secondary" style="width:100%;margin-top:9px">🇹🇷 Süper Lig gelecek fikstürünün tamamı</button>
 <button id="loadLive" style="width:100%;margin-top:10px">Canlı maçları getir / yenile</button>
 
-<div class="mam-home-intro">
-<div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
-<h1>Futbolun nabzı burada.</h1>
-<p>Canlı maçları takip et, gelecek karşılaşmaları incele ve kendi analiz motorumuzla detaylara gir.</p>
-</div>
-
-<section class="panel">
-<div class="hint">
-Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu olursa büyük ligler için ESPN yedek kaynağı, ardından Football-data.org denenir. API anahtarları Cloudflare Worker tarafında saklanır.
-</div>
-</section>
 <button id="loadStandings" hidden type="button" aria-hidden="true" tabindex="-1">Puan durumu</button>
 <div id="standings" hidden aria-hidden="true"></div>
 <div id="status" class="status"></div>
@@ -1548,6 +1537,18 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 <button type="button" data-today-filter="finished" role="tab" aria-selected="false">✓ Bitti <b id="mamTodayFinishedCount">0</b></button>
 </div>
 <div id="matches"><div class="empty">Maçları getirmek için tarih seç.</div></div>
+</section>
+
+<div class="mam-home-intro">
+<div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
+<h1>Futbolun nabzı burada.</h1>
+<p>Canlı maçları takip et, gelecek karşılaşmaları incele ve kendi analiz motorumuzla detaylara gir.</p>
+</div>
+
+<section class="panel">
+<div class="hint">
+Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu olursa büyük ligler için ESPN yedek kaynağı, ardından Football-data.org denenir. API anahtarları Cloudflare Worker tarafında saklanır.
+</div>
 </section>
 
 <div class="footer">
