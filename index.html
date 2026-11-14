@@ -1381,6 +1381,33 @@ button{transition:filter .15s ease,transform .15s ease}
  <div class="mam-standings-group"><h3>🌍 Avrupa'nın Büyük Ligleri</h3><div class="mam-standings-leagues" id="mamStandingsEurope"></div></div>
  <div class="mam-standings-group"><h3>🏆 Avrupa Kupaları</h3><div class="mam-standings-leagues" id="mamStandingsCups"></div></div>
  <div class="mam-standings-group"><h3>🌐 Diğer Ülkeler ve Uluslararası Turnuvalar</h3><div class="mam-standings-leagues" id="mamStandingsWorld"></div></div>
+
+ <section id="mamNationsLeague2026" style="margin:18px 0;padding:18px;border:1px solid rgba(212,175,55,.65);border-radius:18px;background:linear-gradient(145deg,#101d3b,#0a142b);color:#eef3ff">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:26px">🇪🇺</span><div><h2 style="margin:0;font-size:21px">UEFA Uluslar Ligi 2026/27</h2><p style="margin:4px 0 0;color:#aebcda;font-size:13px">Tüm ligler · Kura torbaları · Kesinleşen gruplar</p></div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:15px 0 10px">
+   <button type="button" class="secondary" data-unl-tab="pots" aria-pressed="true">🎱 Kura torbaları</button>
+   <button type="button" class="secondary" data-unl-tab="groups" aria-pressed="false">🏆 Oluşan gruplar</button>
+  </div>
+  <div id="mamUnlPots">
+   <p style="color:#aebcda;font-size:12px;margin:0 0 12px">Bunlar 12 Şubat 2026 kura öncesi resmî torbalardır. Kura tamamlandığı için aşağıdaki “Oluşan gruplar” sekmesinde kesin eşleşmeler yer alır.</p>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:12px">
+    <div style="border:1px solid #455780;border-radius:13px;padding:12px"><h3 style="margin:0 0 8px">League A</h3><b>1. Torba</b><p>Portekiz · İspanya · Fransa · Almanya</p><b>2. Torba</b><p>İtalya · Hollanda · Danimarka · Hırvatistan</p><b>3. Torba</b><p>Sırbistan · Belçika · İngiltere · Norveç</p><b>4. Torba</b><p>Galler · Çekya · Yunanistan · Türkiye</p></div>
+    <div style="border:1px solid #455780;border-radius:13px;padding:12px"><h3 style="margin:0 0 8px">League B</h3><b>1. Torba</b><p>İskoçya · Macaristan · Polonya · İsrail</p><b>2. Torba</b><p>İsviçre · Bosna-Hersek · Avusturya · Ukrayna</p><b>3. Torba</b><p>Slovenya · Gürcistan · İrlanda Cumhuriyeti · Romanya</p><b>4. Torba</b><p>İsveç · Kuzey Makedonya · Kuzey İrlanda · Kosova</p></div>
+    <div style="border:1px solid #455780;border-radius:13px;padding:12px"><h3 style="margin:0 0 8px">League C</h3><b>1. Torba</b><p>İzlanda · Arnavutluk · Karadağ · Kazakistan</p><b>2. Torba</b><p>Finlandiya · Slovakya · Bulgaristan · Ermenistan</p><b>3. Torba</b><p>Belarus · Faroe Adaları · Kıbrıs · Estonya</p><b>4. Torba</b><p>Letonya · Lüksemburg · Moldova · San Marino</p></div>
+    <div style="border:1px solid #455780;border-radius:13px;padding:12px"><h3 style="margin:0 0 8px">League D</h3><b>1. Torba</b><p>Azerbaycan · Litvanya · Cebelitarık · Malta</p><b>2. Torba</b><p>Lihtenştayn · Andorra</p></div>
+   </div>
+  </div>
+  <div id="mamUnlGroups" hidden>
+   <p style="color:#aebcda;font-size:12px;margin:0 0 12px">2026/27 sezonunun resmî kura sonucuna göre kesinleşen gruplar.</p>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+    <div style="border:1px solid #455780;border-radius:13px;padding:12px"><h3>League A</h3><b>A1</b><p>Fransa · İtalya · Belçika · Türkiye</p><b>A2</b><p>Almanya · Hollanda · Sırbistan · Yunanistan</p><b>A3</b><p>İspanya · Hırvatistan · İngiltere · Çekya</p><b>A4</b><p>Portekiz · Danimarka · Norveç · Galler</p></div>
+    <div style="border:1px solid #455780;border-radius:13px;padding:12px"><h3>League B</h3><b>B1</b><p>İskoçya · İsviçre · Slovenya · Kuzey Makedonya</p><b>B2</b><p>Macaristan · Ukrayna · Gürcistan · Kuzey İrlanda</p><b>B3</b><p>İsrail · Avusturya · İrlanda Cumhuriyeti · Kosova</p><b>B4</b><p>Polonya · Bosna-Hersek · Romanya · İsveç</p></div>
+    <div style="border:1px solid #455780;border-radius:13px;padding:12px"><h3>League C</h3><b>C1</b><p>Arnavutluk · Finlandiya · Belarus · San Marino</p><b>C2</b><p>Karadağ · Ermenistan · Kıbrıs · Letonya</p><b>C3</b><p>Kazakistan · Slovakya · Faroe Adaları · Moldova</p><b>C4</b><p>İzlanda · Bulgaristan · Estonya · Lüksemburg</p></div>
+    <div style="border:1px solid #455780;border-radius:13px;padding:12px"><h3>League D</h3><b>D1</b><p>Cebelitarık · Malta · Andorra</p><b>D2</b><p>Litvanya · Azerbaycan · Lihtenştayn</p></div>
+   </div>
+  </div>
+  <p style="font-size:11px;color:#91a2c7;margin:14px 0 0">Lig A/B/C: 4 grup × 4 takım. Lig D: 2 grup × 3 takım. Maçlar çift devreli oynanır.</p>
+ </section>
  <div class="mam-standings-group"><h3>🌍 Tüm desteklenen ligler ve kupalar</h3><p class="mam-standings-footnote">Veri sağlayıcısının güncel sezon için sunduğu tüm organizasyonları getir.</p><button type="button" class="secondary" id="mamLoadAllLeagues">Tüm ligleri yükle</button><div class="mam-standings-leagues" id="mamStandingsAll" style="margin-top:10px"></div></div>
  <p class="mam-standings-footnote">Liste, veri sağlayıcılarımızın desteklediği organizasyonlara göre genişletilir. Eleme usulü kupalarda puan tablosu bulunmayabilir; grup aşaması varsa grup tablosu gösterilir.</p>
  </div>
@@ -5006,6 +5033,16 @@ async function analyze(button){
  }));
  $("mamSectionBack")?.addEventListener("click",async()=>{if(mamScreenMode==="live"){setMamScreen("home");await loadMatches();}else if(mamScreenMode==="upcoming"){setMamScreen("live");await loadLiveMatches();}else{setMamScreen("home");await loadMatches();}window.scrollTo({top:0,behavior:"smooth"});});
  $("mamSectionRefresh")?.addEventListener("click",async()=>{if(mamScreenMode==="live")await loadLiveMatches();else if(mamScreenMode==="upcoming")await loadMatches();else if(mamScreenMode==="standings")await loadStandings();});
+ 
+ const unlTabButtons=[...document.querySelectorAll("[data-unl-tab]")];
+ unlTabButtons.forEach(button=>button.addEventListener("click",()=>{
+  const showPots=button.dataset.unlTab==="pots";
+  const pots=document.getElementById("mamUnlPots"),groups=document.getElementById("mamUnlGroups");
+  if(!pots||!groups)return;
+  pots.hidden=!showPots;groups.hidden=showPots;
+  unlTabButtons.forEach(item=>item.setAttribute("aria-pressed",String(item===button)));
+ }));
+ 
  const standingCompetitions=[
   {id:"203",name:"Trendyol Süper Lig",flag:"🇹🇷",group:"turkey",popular:true},
   {id:"204",name:"Trendyol 1. Lig",flag:"🇹🇷",group:"turkey"},
