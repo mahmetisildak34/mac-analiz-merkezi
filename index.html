@@ -1200,6 +1200,68 @@ input,select,.league-trigger{background:#08142b!important;border:1px solid rgba(
 #mamStandingsScreen .empty{background:#111f40!important;color:#dbe5ff!important}
 @media(max-width:430px){#mamStandingsScreen .mam-standings-table{font-size:10px!important}#mamStandingsScreen .mam-standings-table th,#mamStandingsScreen .mam-standings-table td{padding:8px 3px!important}#mamStandingsScreen .mam-standings-table td:nth-child(2){max-width:132px!important}}
 </style>
+
+<style id="mam-league-design-reference-v5">
+/* MAM_LEAGUE_DESIGN_MATCH_V5: league-by-league visual system based on the approved reference */
+#mamStandingsScreen{--league-accent:#a45cff;--league-glow:rgba(164,92,255,.34);color:#f6f7ff!important}
+#mamStandingsScreen .mam-standings-intro h2{color:#fff!important}
+#mamStandingsScreen .mam-standings-intro p{color:#b8c5e2!important}
+#mamStandingsScreen .mam-standings-group{padding:12px!important;border:1px solid rgba(139,154,221,.25)!important;border-radius:17px!important;background:linear-gradient(145deg,#101d3b,#0a142b)!important}
+#mamStandingsScreen .mam-standings-group h3{color:#dce6ff!important}
+#mamStandingsScreen .mam-standings-leagues button{background:linear-gradient(145deg,#17264a,#0a1630)!important;color:#eef3ff!important;border:1px solid rgba(137,151,224,.5)!important}
+#mamStandingsScreen .mam-standings-leagues button.active{background:linear-gradient(135deg,#5122a8,#24185c)!important;color:#fff!important;border-color:#c18aff!important;box-shadow:0 0 14px rgba(160,93,255,.35)!important}
+#mamStandingsScreen .mam-standings-card{--league-accent:#a45cff;--league-glow:rgba(164,92,255,.34);background:linear-gradient(155deg,#101d3a,#081329)!important;border:1px solid color-mix(in srgb,var(--league-accent) 78%,white 22%)!important;border-radius:23px!important;padding:12px!important;box-shadow:0 0 0 1px var(--league-glow),0 0 22px var(--league-glow)!important}
+#mamStandingsScreen .mam-standings-card[data-theme="0"]{--league-accent:#9c5cff;--league-glow:rgba(156,92,255,.34)}
+#mamStandingsScreen .mam-standings-card[data-theme="1"]{--league-accent:#20b9ff;--league-glow:rgba(32,185,255,.28)}
+#mamStandingsScreen .mam-standings-card[data-theme="2"]{--league-accent:#20d7a0;--league-glow:rgba(32,215,160,.26)}
+#mamStandingsScreen .mam-standings-card[data-theme="3"]{--league-accent:#ffbd45;--league-glow:rgba(255,189,69,.25)}
+#mamStandingsScreen .mam-standings-card[data-theme="4"]{--league-accent:#ff5f83;--league-glow:rgba(255,95,131,.26)}
+#mamStandingsScreen .mam-standings-card[data-theme="5"]{--league-accent:#6d83ff;--league-glow:rgba(109,131,255,.28)}
+#mamStandingsScreen .mam-standings-banner{position:relative;display:flex;align-items:center;gap:12px;min-height:92px;margin:0 0 14px;padding:13px 16px;overflow:hidden;border:1px solid var(--league-accent);border-radius:18px;background:radial-gradient(ellipse at 80% 20%,var(--league-glow),transparent 55%),linear-gradient(110deg,#17264b,#0b1530 68%,#18244a);box-shadow:0 0 17px var(--league-glow)}
+#mamStandingsScreen .mam-standings-flag{display:grid;place-items:center;flex:0 0 58px;width:58px;height:58px;border-radius:50%;background:#0b1630;border:2px solid var(--league-accent);font-size:31px}
+#mamStandingsScreen .mam-standings-banner-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+#mamStandingsScreen .mam-standings-banner-copy strong{color:#fff;font-size:clamp(20px,5vw,29px);font-weight:950;line-height:1.1}
+#mamStandingsScreen .mam-standings-banner-copy span{color:#c5d1ef;font-size:13px}
+#mamStandingsScreen .mam-standings-banner-mark{color:var(--league-accent);font-size:35px;opacity:.9}
+#mamStandingsScreen .mam-standings-card-head{padding:2px 0 12px;border-bottom:1px solid rgba(157,172,231,.2)}
+#mamStandingsScreen .mam-standings-card-head small{color:var(--league-accent)!important}
+#mamStandingsScreen .mam-standings-card-head h3{color:#fff!important}
+#mamStandingsScreen .mam-standings-card-head button{background:#15264a!important;border:1px solid var(--league-accent)!important;color:#f5f7ff!important;border-radius:11px!important}
+#mamStandingsScreen .mam-standings-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#mamStandingsScreen .mam-standings-table{width:100%;min-width:420px;border-collapse:separate;border-spacing:0 3px;white-space:nowrap;font-size:12px}
+#mamStandingsScreen .mam-standings-table th{height:39px;padding:7px 5px;background:#1b2c51!important;color:#d7e2ff!important;border-top:1px solid rgba(163,177,234,.24);border-bottom:1px solid rgba(163,177,234,.24);font-size:11px;font-weight:900}
+#mamStandingsScreen .mam-standings-table th:first-child{border-radius:10px 0 0 10px}
+#mamStandingsScreen .mam-standings-table th:last-child{border-radius:0 10px 10px 0}
+#mamStandingsScreen .mam-standings-table td{height:43px;padding:7px 5px;background:rgba(17,31,61,.86)!important;color:#dce6ff!important;border-top:1px solid rgba(129,151,213,.25)!important;border-bottom:1px solid rgba(129,151,213,.25)!important}
+#mamStandingsScreen .mam-standings-table td:first-child{border-left:3px solid var(--league-accent)!important;border-radius:10px 0 0 10px}
+#mamStandingsScreen .mam-standings-table td:last-child{border-right:1px solid rgba(129,151,213,.25)!important;border-radius:0 10px 10px 0}
+#mamStandingsScreen .mam-standings-table .mam-rank-cell{width:43px;text-align:center}
+#mamStandingsScreen .mam-standings-table .mam-rank-cell span{display:inline-grid;place-items:center;min-width:30px;height:29px;padding:0 5px;border-radius:8px;background:#15264a;color:#fff;font-size:14px;font-weight:950}
+#mamStandingsScreen .mam-standings-table .mam-crest-cell{width:36px;text-align:center}
+#mamStandingsScreen .mam-standing-crest{display:block;width:28px;height:28px;object-fit:contain;margin:auto}
+#mamStandingsScreen .mam-standing-crest-fallback{font-size:19px}
+#mamStandingsScreen .mam-standings-table .mam-team-name-cell{text-align:left!important;max-width:155px;overflow:hidden;text-overflow:ellipsis;color:#fff!important;font-size:12px;font-weight:900}
+#mamStandingsScreen .mam-standing-row-hint{color:var(--league-accent)!important;margin-left:4px}
+#mamStandingsScreen .mam-standings-table .mam-points-cell b{display:inline-grid;place-items:center;min-width:35px;height:29px;padding:0 7px;border-radius:9px;background:rgba(20,205,142,.2);border:1px solid rgba(39,227,163,.42);color:#6cffb4;font-size:15px;font-weight:950}
+#mamStandingsScreen .mam-standings-table tr.zone-top td:first-child .mam-rank-cell span{background:linear-gradient(135deg,#0bca63,#087d42);color:#fff}
+#mamStandingsScreen .mam-standings-table tr.zone-europe td:first-child .mam-rank-cell span{background:linear-gradient(135deg,#168bff,#0752bd);color:#fff}
+#mamStandingsScreen .mam-standings-table tr.zone-mid td:first-child .mam-rank-cell span{background:#17264a;color:#e6edff}
+#mamStandingsScreen .mam-standings-table tr.zone-bottom td:first-child .mam-rank-cell span{background:linear-gradient(135deg,#fa5269,#a81f48);color:#fff}
+#mamStandingsScreen .mam-standings-table tr.zone-top td{background:rgba(8,72,52,.48)!important}
+#mamStandingsScreen .mam-standings-table tr.zone-europe td{background:rgba(12,48,95,.48)!important}
+#mamStandingsScreen .mam-standings-table tr.zone-mid td{background:rgba(17,31,61,.86)!important}
+#mamStandingsScreen .mam-standings-table tr.zone-bottom td{background:rgba(78,25,48,.42)!important}
+#mamStandingsScreen .mam-standings-table tr.zone-bottom .mam-points-cell b{background:rgba(255,73,105,.15);border-color:rgba(255,95,131,.45);color:#ff9dad}
+#mamStandingsScreen .mam-standings-legend{display:flex;flex-wrap:wrap;justify-content:space-around;gap:9px;margin:14px 0 5px;color:#d8e3ff;font-size:10px}
+#mamStandingsScreen .mam-standings-legend span{display:flex;align-items:center;gap:5px}
+#mamStandingsScreen .mam-standings-legend i{display:inline-block;width:17px;height:10px;border-radius:4px}
+#mamStandingsScreen .mam-standings-legend i.zone-top{background:#0bca63}
+#mamStandingsScreen .mam-standings-legend i.zone-europe{background:#168bff}
+#mamStandingsScreen .mam-standings-legend i.zone-mid{background:#8b70dc}
+#mamStandingsScreen .mam-standings-legend i.zone-bottom{background:#fa5269}
+#mamStandingsScreen .mam-standings-note{color:#aebddd!important;font-size:10px;line-height:1.5;margin:10px 2px 2px}
+@media(max-width:430px){#mamStandingsScreen .mam-standings-card{padding:9px!important}#mamStandingsScreen .mam-standings-banner{min-height:80px;padding:10px}#mamStandingsScreen .mam-standings-flag{width:49px;height:49px;flex-basis:49px;font-size:26px}#mamStandingsScreen .mam-standings-table{font-size:11px}#mamStandingsScreen .mam-standings-table td{height:40px;padding:6px 4px}#mamStandingsScreen .mam-standings-table .mam-team-name-cell{max-width:132px;font-size:11px}}
+</style>
 </head>
 <body>
 
@@ -1255,7 +1317,7 @@ input,select,.league-trigger{background:#08142b!important;border:1px solid rgba(
  <div class="mam-standings-group"><h3>🌍 Tüm desteklenen ligler ve kupalar</h3><p class="mam-standings-footnote">Veri sağlayıcısının güncel sezon için sunduğu tüm organizasyonları getir.</p><button type="button" class="secondary" id="mamLoadAllLeagues">Tüm ligleri yükle</button><div class="mam-standings-leagues" id="mamStandingsAll" style="margin-top:10px"></div></div>
  <p class="mam-standings-footnote">Liste, veri sağlayıcılarımızın desteklediği organizasyonlara göre genişletilir. Eleme usulü kupalarda puan tablosu bulunmayabilir; grup aşaması varsa grup tablosu gösterilir.</p>
  </div>
- <div class="mam-standings-card" id="mamStandingsCard" hidden><div class="mam-standings-card-head"><button type="button" id="mamStandingsBack" class="secondary">← Liglere dön</button><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Lig puan durumu</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosu yükleniyor...</div></div></div>
+ <div class="mam-standings-card" id="mamStandingsCard" hidden><div class="mam-standings-banner" id="mamStandingsBanner"><div class="mam-standings-flag" id="mamStandingsFlag">🏆</div><div class="mam-standings-banner-copy"><strong id="mamStandingsBannerName">Lig</strong><span id="mamStandingsBannerMeta">Sezon</span></div><div class="mam-standings-banner-mark">⚽</div></div><div class="mam-standings-card-head"><button type="button" id="mamStandingsBack" class="secondary">← Liglere dön</button><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Lig puan durumu</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosu yükleniyor...</div></div></div>
  </section>
 <div class="mam-home-intro">
 <div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
@@ -1592,7 +1654,7 @@ async function loadStandings(){
   try{
    const data=await api("standings?"+qs({league:leagueId,season}));
    const group=data.response?.[0]?.league?.standings?.[0]||[];
-   rows=group.map(x=>({rank:x.rank,teamId:x.team?.id,name:x.team?.name,played:x.all?.played,win:x.all?.win,draw:x.all?.draw,lose:x.all?.lose,goals:x.all?.goals?.for,against:x.all?.goals?.against,points:x.points}));
+   rows=group.map(x=>({rank:x.rank,teamId:x.team?.id,name:x.team?.name,logo:x.team?.logo,played:x.all?.played,win:x.all?.win,draw:x.all?.draw,lose:x.all?.lose,goals:x.all?.goals?.for,against:x.all?.goals?.against,points:x.points}));
    leagueName=data.response?.[0]?.league?.name||"Lig puan durumu";
   }catch(primaryError){
    try{
@@ -1600,7 +1662,7 @@ async function loadStandings(){
     if(!code)throw primaryError;
     const data=await api("football-data/competitions/"+code+"/standings");
     const table=data.standings?.find(x=>x.type==="TOTAL")?.table||data.standings?.[0]?.table||[];
-    rows=table.map(x=>({rank:x.position,teamId:x.team?.id,name:x.team?.name,played:x.playedGames,win:x.won,draw:x.draw,lose:x.lost,goals:x.goalsFor,against:x.goalsAgainst,points:x.points}));
+    rows=table.map(x=>({rank:x.position,teamId:x.team?.id,name:x.team?.name,logo:x.team?.crest,played:x.playedGames,win:x.won,draw:x.draw,lose:x.lost,goals:x.goalsFor,against:x.goalsAgainst,points:x.points}));
     leagueName=data.competition?.name||"Lig puan durumu";
     if(!rows.length)throw new Error("Football-data.org puan tablosu döndürmedi.");
    }catch(secondaryError){
@@ -1639,7 +1701,7 @@ async function loadStandings(){
       };
       rows=entries.map((entry,index)=>({
        rank:stat(entry,["rank","playoffseed"])||index+1,teamId:entry.team?.id,
-       name:entry.team?.displayName||entry.team?.name||entry.team?.shortDisplayName||"Takım",
+       name:entry.team?.displayName||entry.team?.name||entry.team?.shortDisplayName||"Takım",logo:entry.team?.logos?.[0]?.href||entry.team?.logo,
        played:stat(entry,["gamesplayed","played","gp"]),win:stat(entry,["wins","win","w"]),
        draw:stat(entry,["ties","draws","draw","d"]),lose:stat(entry,["losses","loss","l"]),
        goals:stat(entry,["pointsfor","goalsfor","gf"]),against:stat(entry,["pointsagainst","goalsagainst","ga"]),
@@ -1660,7 +1722,21 @@ async function loadStandings(){
   if(!rows.length)throw new Error("Kaynak bu lig için puan tablosu döndürmedi.");
   $("mamStandingsLeagueTitle").textContent=leagueName;
   const supportsTeamHistory=true;
-  box.innerHTML='<div style="overflow-x:auto"><table class="mam-standings-table"><thead><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rows.map(x=>'<tr'+(supportsTeamHistory?' class="mam-standing-team-row" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" role="button" tabindex="0" onclick="window.mamOpenStandingTeamHistory(this)" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını göster"':'')+'><td>'+esc(x.rank)+'</td><td>'+esc(x.name)+(supportsTeamHistory?' <span class="mam-standing-row-hint">›</span>':'')+'</td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td><b>'+esc(x.points)+'</b></td></tr>').join("")+'</tbody></table></div><p class="note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan.'+(String(leagueId)==="203"?' Takımın son 10 maçını görmek için satırına dokun.':' Güncel veri sağlayıcısından alınır.')+'</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
+  const leagueMeta=({"203":["🇹🇷","Türkiye Süper Lig"],"204":["🇹🇷","Türkiye 1. Lig"],"39":["🏴","İngiltere"],"40":["🏴","İngiltere"],"140":["🇪🇸","İspanya"],"141":["🇪🇸","İspanya"],"78":["🇩🇪","Almanya"],"79":["🇩🇪","Almanya"],"135":["🇮🇹","İtalya"],"136":["🇮🇹","İtalya"],"61":["🇫🇷","Fransa"],"62":["🇫🇷","Fransa"],"88":["🇳🇱","Hollanda"],"94":["🇵🇹","Portekiz"],"144":["🇧🇪","Belçika"],"179":["🏴","İskoçya"],"2":["🏆","Avrupa"],"3":["🏆","Avrupa"],"848":["🏆","Avrupa"],"253":["🇺🇸","ABD"],"71":["🇧🇷","Brezilya"],"128":["🇦🇷","Arjantin"],"262":["🇲🇽","Meksika"],"98":["🇯🇵","Japonya"],"188":["🇦🇺","Avustralya"],"307":["🇸🇦","Suudi Arabistan"]})[String(leagueId)]||["🏆","Lig merkezi"];
+  const themeIndex=(Number(leagueId)||0)%6;
+  $("mamStandingsFlag").textContent=leagueMeta[0];
+  $("mamStandingsBannerName").textContent=leagueName;
+  $("mamStandingsBannerMeta").textContent=leagueMeta[1]+" · "+season+"/"+(season+1);
+  $("mamStandingsCard").dataset.theme=String(themeIndex);
+  const orderedRows=[...rows].sort((a,b)=>Number(a.rank)-Number(b.rank));
+  const lastRank=Math.max(...orderedRows.map(x=>Number(x.rank)||0));
+  const rowMarkup=orderedRows.map(x=>{
+   const rank=Number(x.rank)||0;
+   const zone=rank<=4?"zone-top":rank<=6?"zone-europe":rank>=Math.max(7,lastRank-2)?"zone-bottom":"zone-mid";
+   const crest=x.logo?'<img class="mam-standing-crest" src="'+esc(x.logo)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<span class="mam-standing-crest-fallback">⚽</span>';
+   return '<tr class="mam-standing-team-row '+zone+'" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" role="button" tabindex="0" onclick="window.mamOpenStandingTeamHistory(this)" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını göster"><td class="mam-rank-cell"><span>'+esc(x.rank)+'</span></td><td class="mam-crest-cell">'+crest+'</td><td class="mam-team-name-cell">'+esc(x.name)+' <span class="mam-standing-row-hint">›</span></td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td class="mam-points-cell"><b>'+esc(x.points)+'</b></td></tr>';
+  }).join("");
+  box.innerHTML='<div class="mam-standings-table-wrap"><table class="mam-standings-table"><thead><tr><th>#</th><th></th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rowMarkup+'</tbody></table></div><div class="mam-standings-legend"><span><i class="zone-top"></i>İlk 4</span><span><i class="zone-europe"></i>5–6</span><span><i class="zone-mid"></i>Diğer sıralar</span><span><i class="zone-bottom"></i>Son 3</span></div><p class="mam-standings-note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan. Sıralama satırına dokunarak takım geçmişini açabilirsin.</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
   if(String(leagueId)==="78"){
    const bulk=document.createElement("button");
    bulk.type="button";bulk.className="secondary";bulk.style.cssText="width:100%;margin-top:12px;";
