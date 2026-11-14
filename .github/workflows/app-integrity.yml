@@ -1,0 +1,25 @@
+name: App integrity checks
+
+on:
+  push:
+    branches:
+      - fix/copa-america-espn-slug
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify competition mappings and application JavaScript
+        run: node test/app-integrity.test.cjs
