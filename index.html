@@ -1217,6 +1217,12 @@ input,select,.league-trigger{background:#08142b!important;border:1px solid rgba(
 #mamStandingsScreen .mam-standings-card[data-theme="3"]{--league-accent:#ffbd45;--league-glow:rgba(255,189,69,.25)}
 #mamStandingsScreen .mam-standings-card[data-theme="4"]{--league-accent:#ff5f83;--league-glow:rgba(255,95,131,.26)}
 #mamStandingsScreen .mam-standings-card[data-theme="5"]{--league-accent:#6d83ff;--league-glow:rgba(109,131,255,.28)}
+#mamStandingsScreen .mam-standings-card[data-theme="6"]{--league-accent:#ff8a42;--league-glow:rgba(255,138,66,.26)}
+#mamStandingsScreen .mam-standings-card[data-theme="7"]{--league-accent:#ec5bd1;--league-glow:rgba(236,91,209,.25)}
+#mamStandingsScreen .mam-standings-card[data-theme="8"]{--league-accent:#b5d94b;--league-glow:rgba(181,217,75,.24)}
+#mamStandingsScreen .mam-standings-card[data-theme="9"]{--league-accent:#38d5d9;--league-glow:rgba(56,213,217,.24)}
+#mamStandingsScreen .mam-standings-card[data-theme="10"]{--league-accent:#f06b4f;--league-glow:rgba(240,107,79,.25)}
+#mamStandingsScreen .mam-standings-card[data-theme="11"]{--league-accent:#a58bff;--league-glow:rgba(165,139,255,.28)}
 #mamStandingsScreen .mam-standings-banner{position:relative;display:flex;align-items:center;gap:12px;min-height:92px;margin:0 0 14px;padding:13px 16px;overflow:hidden;border:1px solid var(--league-accent);border-radius:18px;background:radial-gradient(ellipse at 80% 20%,var(--league-glow),transparent 55%),linear-gradient(110deg,#17264b,#0b1530 68%,#18244a);box-shadow:0 0 17px var(--league-glow)}
 #mamStandingsScreen .mam-standings-flag{display:grid;place-items:center;flex:0 0 58px;width:58px;height:58px;border-radius:50%;background:#0b1630;border:2px solid var(--league-accent);font-size:31px}
 #mamStandingsScreen .mam-standings-banner-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
@@ -1243,10 +1249,10 @@ input,select,.league-trigger{background:#08142b!important;border:1px solid rgba(
 #mamStandingsScreen .mam-standings-table .mam-team-name-cell{text-align:left!important;max-width:155px;overflow:hidden;text-overflow:ellipsis;color:#fff!important;font-size:12px;font-weight:900}
 #mamStandingsScreen .mam-standing-row-hint{color:var(--league-accent)!important;margin-left:4px}
 #mamStandingsScreen .mam-standings-table .mam-points-cell b{display:inline-grid;place-items:center;min-width:35px;height:29px;padding:0 7px;border-radius:9px;background:rgba(20,205,142,.2);border:1px solid rgba(39,227,163,.42);color:#6cffb4;font-size:15px;font-weight:950}
-#mamStandingsScreen .mam-standings-table tr.zone-top td:first-child .mam-rank-cell span{background:linear-gradient(135deg,#0bca63,#087d42);color:#fff}
-#mamStandingsScreen .mam-standings-table tr.zone-europe td:first-child .mam-rank-cell span{background:linear-gradient(135deg,#168bff,#0752bd);color:#fff}
-#mamStandingsScreen .mam-standings-table tr.zone-mid td:first-child .mam-rank-cell span{background:#17264a;color:#e6edff}
-#mamStandingsScreen .mam-standings-table tr.zone-bottom td:first-child .mam-rank-cell span{background:linear-gradient(135deg,#fa5269,#a81f48);color:#fff}
+#mamStandingsScreen .mam-standings-table tr.zone-top .mam-rank-cell span{background:linear-gradient(135deg,#0bca63,#087d42);color:#fff}
+#mamStandingsScreen .mam-standings-table tr.zone-europe .mam-rank-cell span{background:linear-gradient(135deg,#168bff,#0752bd);color:#fff}
+#mamStandingsScreen .mam-standings-table tr.zone-mid .mam-rank-cell span{background:#17264a;color:#e6edff}
+#mamStandingsScreen .mam-standings-table tr.zone-bottom .mam-rank-cell span{background:linear-gradient(135deg,#fa5269,#a81f48);color:#fff}
 #mamStandingsScreen .mam-standings-table tr.zone-top td{background:rgba(8,72,52,.48)!important}
 #mamStandingsScreen .mam-standings-table tr.zone-europe td{background:rgba(12,48,95,.48)!important}
 #mamStandingsScreen .mam-standings-table tr.zone-mid td{background:rgba(17,31,61,.86)!important}
@@ -1723,7 +1729,7 @@ async function loadStandings(){
   $("mamStandingsLeagueTitle").textContent=leagueName;
   const supportsTeamHistory=true;
   const leagueMeta=({"203":["🇹🇷","Türkiye Süper Lig"],"204":["🇹🇷","Türkiye 1. Lig"],"39":["🏴","İngiltere"],"40":["🏴","İngiltere"],"140":["🇪🇸","İspanya"],"141":["🇪🇸","İspanya"],"78":["🇩🇪","Almanya"],"79":["🇩🇪","Almanya"],"135":["🇮🇹","İtalya"],"136":["🇮🇹","İtalya"],"61":["🇫🇷","Fransa"],"62":["🇫🇷","Fransa"],"88":["🇳🇱","Hollanda"],"94":["🇵🇹","Portekiz"],"144":["🇧🇪","Belçika"],"179":["🏴","İskoçya"],"2":["🏆","Avrupa"],"3":["🏆","Avrupa"],"848":["🏆","Avrupa"],"253":["🇺🇸","ABD"],"71":["🇧🇷","Brezilya"],"128":["🇦🇷","Arjantin"],"262":["🇲🇽","Meksika"],"98":["🇯🇵","Japonya"],"188":["🇦🇺","Avustralya"],"307":["🇸🇦","Suudi Arabistan"]})[String(leagueId)]||["🏆","Lig merkezi"];
-  const themeIndex=(Number(leagueId)||0)%6;
+  const themeIndex=(Number(leagueId)||0)%12;
   $("mamStandingsFlag").textContent=leagueMeta[0];
   $("mamStandingsBannerName").textContent=leagueName;
   $("mamStandingsBannerMeta").textContent=leagueMeta[1]+" · "+season+"/"+(season+1);
