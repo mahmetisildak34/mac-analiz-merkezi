@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>Maç Analiz Merkezi · Sistem Durumu</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#121d2e;--line:#26364c;--muted:#9aabc1;--text:#edf4ff;--green:#37d39a;--amber:#f3bd58;--red:#ff7373;--blue:#79aaff}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#101d31 0%,var(--bg) 48%);color:var(--text);font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+main{width:min(920px,100%);margin:auto;padding:24px 16px 48px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}.eyebrow{color:var(--green);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}h1{font-size:clamp(25px,6vw,36px);margin:6px 0 4px}.sub{color:var(--muted);font-size:13px}
+button{border:1px solid #40536c;background:#1a2a40;color:var(--text);border-radius:12px;padding:11px 14px;font-weight:700;font-size:14px}
+button:disabled{opacity:.55}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{background:rgba(18,29,46,.94);border:1px solid var(--line);border-radius:16px;padding:16px;min-width:0}.metric-label{color:var(--muted);font-size:12px}.metric{font-size:clamp(27px,7vw,36px);font-weight:800;letter-spacing:-.04em;margin:7px 0}.detail{color:var(--muted);font-size:12px}.wide{grid-column:1/-1}.section-title{font-size:16px;margin:0 0 14px}.bar{height:10px;background:#26364c;border-radius:99px;overflow:hidden;margin:12px 0 8px}.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2dbd8b,#83e0b5);border-radius:99px;transition:width .3s}.rowline{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(38,54,76,.75);font-size:13px}.rowline:last-child{border:0}.rowline span:last-child{font-variant-numeric:tabular-nums;font-weight:700}.status{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}.dot{width:8px;height:8px;border-radius:50%;background:var(--amber)}.dot.ok{background:var(--green)}.dot.bad{background:var(--red)}.foot{color:var(--muted);font-size:12px;line-height:1.6;margin-top:18px}.error{color:#ffaaaa}.small{font-size:11px;color:var(--muted)}@media(min-width:650px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.wide{grid-column:span 2}.full{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<main>
+ <div class="top">
+  <div><div class="eyebrow">Maç Analiz Merkezi</div><h1>Sistem durumu</h1><div class="sub">Arşiv ve istatistik kuyruğu · canlı izleme</div></div>
+  <button id="refresh">↻ Yenile</button>
+ </div>
+ <div class="status"><i class="dot" id="dot"></i><span id="state">Veri bekleniyor…</span><span id="updated" class="small"></span></div>
+ <div class="grid" style="margin-top:14px">
+  <section class="card"><div class="metric-label">Arşiv maçları</div><div class="metric" id="total">—</div><div class="detail">D1 kayıt toplamı</div></section>
+  <section class="card"><div class="metric-label">İstatistikli maç</div><div class="metric" id="with">—</div><div class="detail">İstatistik verisi bulunan</div></section>
+  <section class="card"><div class="metric-label">Eksik istatistik</div><div class="metric" id="missing">—</div><div class="detail">Henüz istatistiği olmayan</div></section>
+  <section class="card"><div class="metric-label">Kapsama oranı</div><div class="metric" id="coverage">—</div><div class="detail">İstatistikli / toplam maç</div></section>
+  <section class="card wide">
+   <h2 class="section-title">İstatistik kapsaması</h2>
+   <div class="bar"><i id="progress"></i></div><div class="rowline"><span>Tamamlanan oran</span><span id="coverageText">—</span></div>
+  </section>
+  <section class="card wide">
+   <h2 class="section-title">Yeniden deneme kuyruğu</h2>
+   <div class="rowline"><span>Toplam bekleyen</span><span id="queued">—</span></div>
+   <div class="rowline"><span>Yeniden denemeye hazır</span><span id="ready">—</span></div>
+   <div class="rowline"><span>Bekleme süresinde</span><span id="cooling">—</span></div>
+   <div class="rowline"><span>Deneme sayıları</span><span id="attempts">—</span></div>
+   <div class="rowline"><span>Sonraki deneme zamanı</span><span id="nextRetry">—</span></div>
+  </section>
+  <section class="card wide">
+   <h2 class="section-title">Veri kaynakları</h2><div id="sources" class="small">—</div>
+  </section>
+  <section class="card wide">
+   <h2 class="section-title">Arşivde en çok kaydı olan ligler</h2><div id="leagues" class="small">—</div>
+  </section>
+ </div>
+ <p class="foot">Bu ekran yalnızca salt okunur durum verilerini gösterir; arşiv aktarımını başlatmaz, durdurmaz veya değiştirmez. Sayfa 60 saniyede bir güncellenir. İstatistik kapsaması, D1 arşivindeki mevcut kayıtlar üzerinden hesaplanır.</p>
+ <p class="foot"><a href="./" style="color:#9fc0ff">← Maç Analiz Merkezi ana sayfası</a></p>
+</main>
+<script>
+"use strict";
+const API="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/archive/d1-status";
+const $=id=>document.getElementById(id);
+const fmt=n=>Number(n||0).toLocaleString("tr-TR");
+function setText(id,value){$(id).textContent=value}
+function renderRows(id,items,labelKey,valueKey){
+ const root=$(id);root.replaceChildren();
+ if(!Array.isArray(items)||!items.length){root.textContent="Kayıt yok";return}
+ items.slice(0,12).forEach(item=>{
+  const row=document.createElement("div");row.className="rowline";
+  const left=document.createElement("span");left.textContent=String(item[labelKey]??"—");
+  const right=document.createElement("span");right.textContent=fmt(item[valueKey]);
+  row.append(left,right);root.append(row);
+ });
+}
+async function load(){
+ const btn=$("refresh");btn.disabled=true;setText("state","Veriler alınıyor…");
+ try{
+  const response=await fetch(API,{cache:"no-store"});
+  if(!response.ok)throw new Error("Sunucu HTTP "+response.status);
+  const d=await response.json();
+  if(!d.ok)throw new Error(d.error||"Durum verisi alınamadı");
+  const s=d.statistics||{},q=d.summaryQueueStatus||{};
+  setText("total",fmt(d.total));setText("with",fmt(s.withStatistics));setText("missing",fmt(s.missingStatistics));
+  const pct=Number(s.coveragePercent||0);setText("coverage",pct.toLocaleString("tr-TR")+"%");setText("coverageText",pct.toLocaleString("tr-TR")+"%");
+  $("progress").style.width=Math.max(0,Math.min(100,pct))+"%";
+  setText("queued",fmt(q.queued??d.pendingSummaryRetries));setText("ready",fmt(q.readyToRetry));setText("cooling",fmt(q.coolingDown));
+  setText("attempts",Object.entries(q.retryAttempts||{}).map(([k,v])=>k+" deneme: "+fmt(v)).join(" · ")||"—");
+  setText("nextRetry",q.nextRetryAt?new Date(q.nextRetryAt).toLocaleString("tr-TR"):"Şu an planlı bekleme yok");
+  renderRows("sources",d.sources,"source","total");
+  renderRows("leagues",d.leagues,"leagueName","total");
+  setText("updated",d.lastUpdated?"· Son kayıt: "+new Date(d.lastUpdated).toLocaleString("tr-TR"):"");
+  $("dot").className="dot ok";setText("state","Worker yanıt veriyor · salt okunur kontrol başarılı");
+ }catch(e){$("dot").className="dot bad";setText("state","Veri alınamadı: "+e.message);$("state").classList.add("error")}
+ finally{btn.disabled=false}
+}
+$("refresh").addEventListener("click",load);
+load();setInterval(load,60000);
+</script>
+</body>
+</html>
