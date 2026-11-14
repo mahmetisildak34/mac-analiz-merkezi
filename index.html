@@ -1778,6 +1778,52 @@ async function loadStandings(){
       leagueName=data.name||data.leagues?.[0]?.name||standingCompetitionNames[leagueId]||"Lig";
       if(!rows.length)throw new Error("ESPN puan tablosu takım döndürmedi.");
      }catch(error){espnError=error;}
+     // A competition may publish teams even when it has no conventional standings
+     // (for example knockout cups). Use the ESPN team directory as a read-only
+     // fallback so users can still open participating clubs.
+     if(!rows.length){
+      try{
+       const directory=await api("espn/"+espnLeague+"/teams?"+qs({limit:500}));
+       const teams=[];
+       const collectTeams=value=>{
+        if(!value||typeof value!=="object")return;
+        if(Array.isArray(value)){value.forEach(collectTeams);return;}
+        if(value.team&&typeof value.team==="object")teams.push(value.team);
+        if(value.id&&(value.displayName||value.name||value.shortDisplayName))teams.push(value);
+        for(const [key,child] of Object.entries(value)){
+         if(key!=="team"&&child&&typeof child==="object")collectTeams(child);
+        }
+       };
+       collectTeams(directory);
+       const unique=[...new Map(teams.filter(team=>team.id&&
+        (team.displayName||team.name||team.shortDisplayName))
+        .map(team=>[String(team.id),team])).values()];
+       rows=unique.map((team,index)=>({
+        rank:index+1,teamId:team.id,
+        name:team.displayName||team.name||team.shortDisplayName,
+        logo:team.logos?.[0]?.href||team.logo,
+        played:null,win:null,draw:null,lose:null,goals:null,against:null,points:null
+       }));
+       if(rows.length)leagueName=standingCompetitionNames[leagueId]||"Takım listesi";
+      }catch(teamDirectoryError){
+       if(!espnError)espnError=teamDirectoryError;
+      }
+     }
+    }
+    if(!rows.length){
+     // API-Football can expose cup participants even where no league table exists.
+     try{
+      const directory=await api("teams?"+qs({league:leagueId,season}));
+      const teams=Array.isArray(directory.response)?directory.response:[];
+      rows=teams.filter(item=>item.team?.id&&item.team?.name).map((item,index)=>({
+       rank:index+1,teamId:item.team.id,name:item.team.name,
+       logo:item.team.logo||item.team.crest,
+       played:null,win:null,draw:null,lose:null,goals:null,against:null,points:null
+      }));
+      if(rows.length)leagueName=standingCompetitionNames[leagueId]||"Takım listesi";
+     }catch(teamDirectoryError){
+      // Keep trying the independent SportScore source below.
+     }
     }
     if(!rows.length){
      const ss=await mamSportScoreStandings(standingCompetitionNames[leagueId]||"Lig "+leagueId);
