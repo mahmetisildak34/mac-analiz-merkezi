@@ -51,7 +51,11 @@ assert.match(html, /mamTodayFilter==="upcoming"/, "Upcoming tab filter is not wi
 assert.match(html, /mamTodayFilter==="finished"/, "Finished tab filter is not wired");
 assert.match(html, /const groupedMatches=\[\.\.\.list\.reduce\(/, "Fixtures must be grouped by league");
 assert.match(html, /class="mam-league-heading"/, "League heading must be shown for each fixture group");
-assert.match(html, /data-mam-bottom="live"/, "Live match bottom-navigation item missing");
+assert.match(html, /data-mam-action="live"/, "Homepage live matches shortcut missing");
+assert.doesNotMatch(html, /data-mam-bottom="live"/, "Live matches must not be duplicated in bottom navigation");
+assert.match(html, /mam-screen-home #matches[\s\S]*?display:none!important/, "Homepage must hide the match list");
+assert.match(html, /mam-screen-live #matches[\s\S]*?display:block!important/, "Live matches list must remain visible on its dedicated screen");
+assert.match(html, /mam-screen-upcoming #matches[\s\S]*?display:block!important/, "Upcoming matches list must remain visible on its dedicated screen");
 assert.match(html, /\.mam-screen-live #mamLiveNav:not\(\[hidden\]\)\{display:flex!important/, "Existing live screen shortcuts remain hidden");
 assert.match(html, /function mamCanonicalMatchStatus\(match\)/, "Provider match-status normalization missing");
 assert.match(html, /const mamStatusRank=m=>/, "Daily scoreboard status ordering missing");
