@@ -1500,17 +1500,6 @@ button{transition:filter .15s ease,transform .15s ease}
 <button id="loadSuperLigFixtures" type="button" class="secondary" style="width:100%;margin-top:9px">🇹🇷 Süper Lig gelecek fikstürünün tamamı</button>
 <button id="loadLive" style="width:100%;margin-top:10px">Canlı maçları getir / yenile</button>
 
-<div class="mam-home-intro">
-<div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
-<h1>Futbolun nabzı burada.</h1>
-<p>Canlı maçları takip et, gelecek karşılaşmaları incele ve kendi analiz motorumuzla detaylara gir.</p>
-</div>
-
-<section class="panel">
-<div class="hint">
-Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu olursa büyük ligler için ESPN yedek kaynağı, ardından Football-data.org denenir. API anahtarları Cloudflare Worker tarafında saklanır.
-</div>
-</section>
 <button id="loadStandings" hidden type="button" aria-hidden="true" tabindex="-1">Puan durumu</button>
 <div id="standings" hidden aria-hidden="true"></div>
 <div id="status" class="status"></div>
@@ -1548,6 +1537,18 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 <button type="button" data-today-filter="finished" role="tab" aria-selected="false">✓ Bitti <b id="mamTodayFinishedCount">0</b></button>
 </div>
 <div id="matches"><div class="empty">Maçları getirmek için tarih seç.</div></div>
+</section>
+
+<div class="mam-home-intro">
+<div><span class="mam-live-pulse"></span> CANLI SKOR · FİKSTÜR · ANALİZ</div>
+<h1>Futbolun nabzı burada.</h1>
+<p>Canlı maçları takip et, gelecek karşılaşmaları incele ve kendi analiz motorumuzla detaylara gir.</p>
+</div>
+
+<section class="panel">
+<div class="hint">
+Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu olursa büyük ligler için ESPN yedek kaynağı, ardından Football-data.org denenir. API anahtarları Cloudflare Worker tarafında saklanır.
+</div>
 </section>
 
 <div class="footer">
@@ -6095,6 +6096,52 @@ const openStandingTeamHistory=async row=>{
 .mam-screen-today #mamTodayHeader{display:flex!important}.mam-screen-today #mamTodayTabs{display:grid!important}.mam-screen-today #mamLiveNav{display:none!important}\n#mamTodayHeader[hidden],#mamTodayTabs[hidden],#mamHomeShortcuts[hidden]{display:none!important}
 @media(max-width:390px){.mam-home-shortcuts{gap:6px}.mam-home-shortcut{min-height:96px;padding:10px 5px!important}.mam-home-shortcut b{font-size:11px}.mam-home-shortcut small{font-size:8px}.mam-today-tabs button{font-size:9px!important}}
 </style>
+
+<style id="mam-compact-home-mobile-v1">
+/* Compact home fixture layout for iPhone; preserve all controls and match data. */
+@media(max-width:430px){
+ main{padding-left:10px!important;padding-right:10px!important}
+ .mam-appbar{min-height:62px!important;padding:8px 10px!important}
+ .panel:has(#date){padding:10px!important;margin-top:8px!important}
+ .panel:has(#date)>.row{gap:7px!important}
+ .panel:has(#date) label{font-size:10px!important;margin-bottom:4px!important}
+ #date,.league-trigger{min-height:40px!important;height:40px!important;padding:7px 9px!important;font-size:12px!important}
+ #mamDateStrip{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;margin:6px 0 2px!important}
+ #mamDateStrip .mam-date-chip{min-height:36px!important;padding:4px 2px!important;font-size:9px!important;border-radius:9px!important}
+ #mamDateStrip .mam-date-chip b{font-size:10px!important;margin-top:1px!important}
+ #load,#loadSuperLigFixtures,#loadLive{min-height:38px!important;padding:7px 8px!important;margin-top:6px!important;font-size:11px!important;border-radius:10px!important}
+ .mam-home-shortcuts{gap:6px!important;margin:8px 0 8px!important}
+ .mam-home-shortcut{min-height:70px!important;padding:6px 4px!important;gap:3px!important;border-radius:11px!important}
+ .mam-home-shortcut>span{font-size:18px!important}
+ .mam-home-shortcut b{font-size:10px!important;line-height:1.1!important}
+ .mam-home-shortcut small{font-size:8px!important;line-height:1.1!important}
+ .mam-today-header{margin:7px 0 6px!important;padding:8px 10px!important;border-radius:11px!important}
+ .mam-today-header small{font-size:8px!important;letter-spacing:1px!important}
+ .mam-today-header strong{font-size:12px!important}
+ .mam-today-header>span{font-size:8px!important;padding:4px 6px!important}
+ .mam-today-tabs{gap:3px!important;margin:0 0 7px!important;padding:3px!important;border-radius:10px!important}
+ .mam-today-tabs button{padding:6px 1px!important;font-size:8px!important;border-radius:8px!important}
+ .mam-today-tabs button b{font-size:9px!important;margin-top:1px!important}
+ #matches .mam-league-group{margin:6px 0 8px!important;padding:0 5px 4px!important;border-radius:10px!important}
+ #matches .mam-league-heading{min-height:29px!important;padding:5px 6px!important;gap:5px!important;font-size:10px!important}
+ #matches .mam-league-heading strong{font-size:10px!important}
+ #matches .mam-league-heading small,#matches .mam-league-count{font-size:8px!important}
+ #matches .mam-league-group .match{margin:4px 0!important;padding:5px 5px!important;border-radius:9px!important}
+ #matches .mam-league-group .match-head{font-size:8px!important;gap:4px!important}
+ #matches .mam-league-group .match-versus{grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr)!important;gap:3px!important;padding:3px 0!important}
+ #matches .mam-league-group .team-block{gap:3px!important}
+ #matches .mam-league-group .team-block strong{font-size:9px!important;line-height:1.1!important}
+ #matches .mam-league-group .team-logo,#matches .mam-league-group .team-placeholder{width:24px!important;height:24px!important;flex-basis:24px!important}
+ #matches .mam-league-group .match-clock{font-size:12px!important}
+ #matches .mam-league-group .match-actions{margin-top:3px!important}
+ #matches .mam-league-group .mam-match-open{min-height:30px!important;padding:5px 7px!important;font-size:9px!important}
+ .mam-home-intro{margin-top:10px!important}
+ .mam-home-intro h1{font-size:20px!important;line-height:1.12!important}
+ .mam-home-intro p{font-size:11px!important;line-height:1.35!important}
+ .mam-home-intro>div{font-size:9px!important}
+}
+</style>
+
 </body>
 </html>
 
