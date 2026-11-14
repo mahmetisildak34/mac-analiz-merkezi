@@ -1478,7 +1478,18 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 <div class="coupon-actions"><button type="button" class="secondary" id="couponClose">Kupon alanını kapat</button></div>
 </div>
 
+<div class="mam-home-shortcuts" id="mamHomeShortcuts">
+<button type="button" class="mam-home-shortcut today" data-mam-action="today"><span>▦</span><b>Bugünün Maçları</b><small>Günün tüm karşılaşmaları</small></button>
+<button type="button" class="mam-home-shortcut live" data-mam-action="live"><span>🔴</span><b>Canlı Maçlar</b><small>Devam eden maçlar</small></button>
+<button type="button" class="mam-home-shortcut upcoming" data-mam-action="upcoming"><span>▶</span><b>Oynanacak Maçlar</b><small>Henüz başlamayanlar</small></button>
+</div>
 <div id="mamTodayHeader" class="mam-today-header"><div><small>MAÇ PROGRAMI</small><strong id="mamTodayTitle">BUGÜNÜN MAÇLARI</strong></div><span id="mamTodayCount">GÜNCEL FİKSTÜR</span></div>
+<div class="mam-today-tabs" id="mamTodayTabs" role="tablist" aria-label="Bugünün maç filtreleri" hidden>
+<button type="button" class="active" data-today-filter="all" role="tab" aria-selected="true">Tümü <b id="mamTodayAllCount">0</b></button>
+<button type="button" data-today-filter="live" role="tab" aria-selected="false"><i class="mam-tab-live-dot"></i> Canlı <b id="mamTodayLiveCount">0</b></button>
+<button type="button" data-today-filter="upcoming" role="tab" aria-selected="false">▶ Oynanacak <b id="mamTodayUpcomingCount">0</b></button>
+<button type="button" data-today-filter="finished" role="tab" aria-selected="false">✓ Bitti <b id="mamTodayFinishedCount">0</b></button>
+</div>
 <div id="matches"><div class="empty">Maçları getirmek için tarih seç.</div></div>
 </section>
 
@@ -3511,6 +3522,7 @@ document.addEventListener("keydown",event=>{if(event.key==="Escape"&&mamActiveMa
 window.addEventListener("popstate",()=>{if(mamActiveMatch)closeMamMatchDetail();});
 
 let mamScreenMode="home";
+let mamTodayFilter="all";
 function setMamScreen(mode){
  mamScreenMode=mode;
  try{
@@ -3521,18 +3533,21 @@ function setMamScreen(mode){
   if(location.hash!==route)history.replaceState({...history.state,mamScreen:mode},"",route);
  }catch(_){}
  const main=document.querySelector("main");
- main.classList.remove("mam-screen-home","mam-screen-live","mam-screen-upcoming","mam-screen-standings");
+ main.classList.remove("mam-screen-home","mam-screen-live","mam-screen-upcoming","mam-screen-standings","mam-screen-today");
  main.classList.add("mam-screen-"+mode);
  const standingsScreen=$("mamStandingsScreen");if(standingsScreen)standingsScreen.hidden=mode!=="standings";
  const liveNav=$("mamLiveNav");if(liveNav)liveNav.hidden=mode!=="live";
+ const todayTabs=$("mamTodayTabs");if(todayTabs)todayTabs.hidden=mode!=="today";
+ const todayHeader=$("mamTodayHeader");if(todayHeader)todayHeader.hidden=mode!=="today";
+ const shortcuts=$("mamHomeShortcuts");if(shortcuts)shortcuts.hidden=mode!=="home";
  const header=$("mamSectionHeader");
- if(header){header.hidden=mode==="home";const back=$("mamSectionBack");if(back){back.hidden=mode==="live";back.style.display=mode==="live"?"none":"";back.textContent="← Geri";}$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="standings"?"LİG MERKEZİ":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="standings"?"Puan Durumu":"Başlamayan Maçlar";}
+ if(header){header.hidden=mode==="home";const back=$("mamSectionBack");if(back){back.hidden=false;back.style.display="";back.textContent="← Geri";}$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="standings"?"LİG MERKEZİ":mode==="today"?"GÜNLÜK SKOR PANOSU":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="standings"?"Puan Durumu":mode==="today"?"Bugünün Maçları":"Oynanacak Maçlar";}
  const intro=document.querySelector(".mam-home-intro");if(intro)intro.hidden=mode!=="home";
  const superLigButton=$("loadSuperLigFixtures");if(superLigButton){superLigButton.hidden=mode!=="home";superLigButton.style.display=mode==="home"?"":"none";}
  const sourcePanel=document.querySelector("main>.panel");if(sourcePanel)sourcePanel.hidden=mode!=="home";
- const filterRow=$("date")?.closest(".row");if(filterRow)filterRow.hidden=mode==="live";
- const dateStrip=$("mamDateStrip");if(dateStrip)dateStrip.hidden=mode==="live";
- $("load").hidden=mode==="live";
+ const filterRow=$("date")?.closest(".row");if(filterRow)filterRow.hidden=mode==="live"||mode==="today"||mode==="upcoming";
+ const dateStrip=$("mamDateStrip");if(dateStrip)dateStrip.hidden=mode==="live"||mode==="today"||mode==="upcoming";
+ $("load").hidden=mode==="live"||mode==="today"||mode==="upcoming";
  $("load").textContent=mode==="upcoming"?"Başlamayan maçları getir":"Seçili günün maçlarını getir";
  $("status").textContent=mode==="live"?"Canlı skor ve maç dakikaları güncel akıştan alınır.":"Seçili tarihteki maçlar listeleniyor.";
  if(mode==="home")$("load").textContent="Seçili günün maçlarını getir";
@@ -3549,6 +3564,15 @@ function renderMatches(){
  const liveCodes=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
  if(mamScreenMode==="live")list=list.filter(m=>liveCodes.has(mamCanonicalMatchStatus(m)));
  if(mamScreenMode==="upcoming")list=list.filter(m=>["NS","TBD","PST"].includes(mamCanonicalMatchStatus(m)));
+ if(mamScreenMode==="today"){
+  const status=m=>mamCanonicalMatchStatus(m);
+  if(mamTodayFilter==="live")list=list.filter(m=>liveCodes.has(status(m)));
+  else if(mamTodayFilter==="upcoming")list=list.filter(m=>["NS","TBD","PST"].includes(status(m)));
+  else if(mamTodayFilter==="finished")list=list.filter(m=>["FT","AET","PEN","AWD","WO"].includes(status(m)));
+  const counts={all:allMatches.length,live:allMatches.filter(m=>liveCodes.has(status(m))).length,upcoming:allMatches.filter(m=>["NS","TBD","PST"].includes(status(m))).length,finished:allMatches.filter(m=>["FT","AET","PEN","AWD","WO"].includes(status(m))).length};
+  $("mamTodayAllCount").textContent=counts.all;$("mamTodayLiveCount").textContent=counts.live;$("mamTodayUpcomingCount").textContent=counts.upcoming;$("mamTodayFinishedCount").textContent=counts.finished;
+  $("mamTodayTabs")?.querySelectorAll("[data-today-filter]").forEach(tab=>{const active=tab.dataset.todayFilter===mamTodayFilter;tab.classList.toggle("active",active);tab.setAttribute("aria-selected",String(active));});
+ }
  // Today's scoreboard order: active matches first (90' before newly started),
  // then scheduled fixtures, and completed results at the bottom.
  const mamStatusRank=m=>{
@@ -5980,6 +6004,17 @@ const openStandingTeamHistory=async row=>{
  loadDashboardStats();
 })();
 </script>
+<style id="mam-home-today-page-v2">
+.mam-home-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:13px 0 15px}
+.mam-home-shortcut{min-width:0;min-height:104px;padding:13px 8px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(91,155,214,.45)!important;border-radius:16px!important;background:linear-gradient(150deg,rgba(20,43,76,.98),rgba(7,18,36,.98))!important;color:#f3f7ff!important;box-shadow:inset 0 1px rgba(255,255,255,.06),0 7px 20px rgba(0,0,0,.2)!important}
+.mam-home-shortcut>span{font-size:25px;line-height:1.1;color:#66bdff;text-shadow:0 0 13px currentColor}.mam-home-shortcut b{font-size:12px;line-height:1.2;text-align:center}.mam-home-shortcut small{font-size:9px;line-height:1.2;text-align:center;color:#9eb4d0}
+.mam-home-shortcut.today{border-color:rgba(38,155,255,.75)!important;box-shadow:inset 0 0 18px rgba(0,133,255,.14),0 0 14px rgba(0,133,255,.12)!important}.mam-home-shortcut.live>span{color:#ff566b}.mam-home-shortcut.upcoming>span{color:#b8a0ff}
+.mam-today-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:0 0 13px;padding:5px;border:1px solid rgba(95,147,204,.35);border-radius:15px;background:rgba(5,15,30,.94)}
+.mam-today-tabs button{min-width:0;padding:10px 3px!important;border:1px solid transparent!important;border-radius:11px!important;background:transparent!important;color:#bdcbe0!important;font-size:10px!important;white-space:nowrap}.mam-today-tabs button b{display:block;margin-top:3px;font-size:11px;color:#fff}
+.mam-today-tabs button.active{background:linear-gradient(135deg,#1269dc,#1743a0)!important;border-color:rgba(100,180,255,.65)!important;color:#fff!important;box-shadow:0 0 13px rgba(0,116,255,.25)!important}.mam-tab-live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff5369;box-shadow:0 0 8px #ff5369}
+.mam-screen-today #mamTodayHeader{display:flex!important}.mam-screen-today #mamTodayTabs{display:grid!important}.mam-screen-today #mamLiveNav{display:none!important}
+@media(max-width:390px){.mam-home-shortcuts{gap:6px}.mam-home-shortcut{min-height:96px;padding:10px 5px!important}.mam-home-shortcut b{font-size:11px}.mam-home-shortcut small{font-size:8px}.mam-today-tabs button{font-size:9px!important}}
+</style>
 </body>
 </html>
 
