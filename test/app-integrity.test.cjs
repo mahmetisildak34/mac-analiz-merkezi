@@ -42,6 +42,12 @@ assert.match(html, /mamSportScoreTeamSchedule\(teamName\)/, "SportScore team-his
 assert.match(html, /data-team-source=/, "Selected provider is not carried into team rows");
 assert.match(html, /const teamSource=row\.dataset\.teamSource/, "Selected provider is not read when opening team history");
 
+assert.match(html, /id="mamTodayHeader"/, "Dedicated daily fixtures section missing");
+assert.match(html, /data-mam-bottom="live"/, "Live match bottom-navigation item missing");
+assert.match(html, /\.mam-screen-live #mamLiveNav:not\(\[hidden\]\)\{display:flex!important/, "Existing live screen shortcuts remain hidden");
+assert.match(html, /function mamCanonicalMatchStatus\(match\)/, "Provider match-status normalization missing");
+assert.match(html, /FINISHED:"FT".*IN_PLAY:"LIVE".*PAUSED:"HT".*SCHEDULED:"NS"/, "Football-data match states are not normalized");
+
 let checkedScripts = 0;
 for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
   const attrs = match[1];
