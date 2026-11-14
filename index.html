@@ -1117,6 +1117,62 @@ button.secondary{background:#172443!important;color:#e9edff!important;border:1px
 .mam-bottom-nav button{display:block!important}
 
 </style>
+
+<style id="mam-final-dashboard-skin">
+/* MAM_FINAL_DASHBOARD_SKIN_V3 — deliberately last in document head so no legacy theme overrides it */
+:root{color-scheme:dark!important;--mam-violet:#9b5cff;--mam-cyan:#269cff;--mam-green:#13d6a0;--mam-gold:#ffbd35}
+html,body{background:#050b18!important;color:#f5f7ff!important}
+body{background:radial-gradient(ellipse at 10% 0%,rgba(122,65,255,.2),transparent 34rem),radial-gradient(ellipse at 95% 12%,rgba(25,145,255,.15),transparent 30rem),linear-gradient(180deg,#071126,#050b18 62%,#081127)!important}
+main{max-width:1120px!important;padding:12px 12px calc(94px + env(safe-area-inset-bottom))!important}
+.mam-appbar,.top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;margin:0 0 15px!important;padding:10px!important;border-radius:18px!important;background:rgba(9,17,38,.95)!important;border:1px solid rgba(135,145,255,.35)!important;box-shadow:0 10px 30px rgba(0,0,0,.3)!important;backdrop-filter:blur(16px)}
+.mam-menu-trigger{display:none!important}
+.mam-brand{flex:1!important;justify-content:center!important;color:#f7f8ff!important;font-weight:950!important}
+.mam-search-trigger{display:grid!important;place-items:center!important;flex:0 0 42px!important;width:42px!important;height:42px!important;border-radius:12px!important;background:#18264a!important;border:1px solid rgba(151,128,255,.38)!important;color:#fff!important}
+#mamDrawer,#mamDrawerBackdrop,#mamLiveNav{display:none!important;visibility:hidden!important;pointer-events:none!important}
+.mam-home-intro{padding:14px 4px 16px!important}
+.mam-home-intro h1{color:#fff!important;font-size:clamp(27px,6vw,38px)!important}
+.mam-home-intro p,.mam-home-intro>div{color:#adbad9!important}
+.mam-dashboard{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;margin:10px 0 16px!important}
+.mam-kpi{min-width:0!important;padding:13px 11px!important;border-radius:17px!important;background:linear-gradient(145deg,#102b3b,#0a1a2d)!important;border:1px solid rgba(28,218,174,.65)!important;box-shadow:0 9px 22px rgba(0,0,0,.2)!important}
+.mam-kpi:nth-child(2){background:linear-gradient(145deg,#102b4b,#0a1831)!important;border-color:rgba(44,157,255,.72)!important}
+.mam-kpi:nth-child(3){background:linear-gradient(145deg,#382813,#1c1821)!important;border-color:rgba(255,187,48,.72)!important}
+.mam-kpi:nth-child(4){background:linear-gradient(145deg,#29164a,#17152f)!important;border-color:rgba(179,91,255,.75)!important}
+.mam-kpi small,.mam-kpi em{display:block;color:#bdc9e4!important;font-size:10px!important}
+.mam-kpi strong{display:block;color:#fff!important;font-size:25px!important;font-weight:950!important;margin-top:5px!important}
+.mam-league-shortcuts{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important;margin:12px 0 16px!important}
+.mam-league-shortcuts button{min-width:0!important;min-height:70px!important;padding:8px 3px!important;border-radius:14px!important;background:linear-gradient(145deg,#111d3b,#0b142b)!important;border:1px solid rgba(130,145,238,.48)!important;color:#f1f3ff!important;box-shadow:none!important;font-size:10px!important}
+.mam-league-shortcuts button b{display:block;font-size:20px!important;margin-bottom:4px!important}
+.mam-league-shortcuts button.active{border-color:#ad73ff!important;box-shadow:0 0 14px rgba(155,92,255,.3)!important}
+.panel{background:linear-gradient(150deg,rgba(15,28,55,.97),rgba(8,18,38,.98))!important;border:1px solid rgba(133,147,245,.3)!important;border-radius:19px!important;box-shadow:0 12px 30px rgba(0,0,0,.22)!important;color:#f5f7ff!important}
+.panel label,.panel .hint,.panel .note,.panel .small{color:#b1bedb!important}
+input,select,.league-trigger{background:#08142b!important;border:1px solid rgba(133,153,220,.42)!important;color:#fff!important;border-radius:13px!important}
+.league-trigger{background:linear-gradient(135deg,#33206e,#1b2e63)!important;border-color:#8d68ff!important}
+#mamDateStrip{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;overflow:visible!important}
+#mamDateStrip .mam-date-chip{min-width:0!important;min-height:43px!important;padding:7px 4px!important;border-radius:12px!important;background:#111c38!important;border:1px solid rgba(138,151,255,.35)!important;color:#e4eaff!important;box-shadow:none!important;font-size:11px!important}
+#mamDateStrip .mam-date-chip.active{background:linear-gradient(135deg,#652fc1,#382078)!important;border-color:#ae78ff!important;color:#fff!important}
+#load,#loadSuperLigFixtures{width:100%!important;min-height:49px!important;margin-top:9px!important;border-radius:14px!important;background:linear-gradient(135deg,#7442df,#3c2b9a)!important;color:#fff!important;border:1px solid rgba(186,144,255,.6)!important}
+#loadSuperLigFixtures{background:#13233e!important;border-color:rgba(80,157,255,.35)!important}
+#status{color:#b6c4e3!important;font-size:12px!important}
+.mam-league-group{margin:12px 0 15px!important;padding:0 9px 9px!important;border-radius:17px!important;background:linear-gradient(145deg,#101d3b,#09152d)!important;border:1px solid rgba(143,126,255,.5)!important;overflow:hidden!important}
+.mam-league-heading{display:flex!important;align-items:center!important;gap:7px!important;min-height:42px!important;margin:0 -9px 8px!important;padding:0 10px!important;background:#17264a!important;color:#eef1ff!important}
+.mam-league-heading strong{font-size:12px!important;color:#fff!important}
+.mam-league-heading small,.mam-league-count{color:#b9c6e8!important}
+.mam-league-group .match,.match-modern{margin:8px 0!important;padding:11px 9px!important;border-radius:14px!important;background:linear-gradient(145deg,#111f40,#0b1731)!important;border:1px solid rgba(134,151,235,.34)!important;color:#f4f6ff!important;box-shadow:0 8px 20px rgba(0,0,0,.2)!important}
+.match-head{border-color:rgba(148,160,225,.2)!important}
+.league-label,.match-center small,.match-actions .small{color:#aebcdd!important}
+.match-time{color:#63e7b5!important}
+.team-block strong,.match-clock,.pred{color:#edf1ff!important}
+.match-actions{border-color:rgba(148,160,225,.2)!important}
+.match-actions .predBtn,.predBtn{background:linear-gradient(135deg,#572ea9,#32216c)!important;border:1px solid rgba(173,128,255,.55)!important;color:#fff!important;border-radius:11px!important}
+.analysis-preview,.stat{background:#101d39!important;border:1px solid rgba(137,151,226,.28)!important;color:#dce5ff!important}
+.empty{background:#0b1730!important;border:1px dashed rgba(145,159,235,.4)!important;color:#aebbd9!important;border-radius:15px!important}
+.mam-bottom-nav{position:fixed!important;z-index:900!important;left:10px!important;right:10px!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:3px!important;padding:8px 5px!important;border:1px solid rgba(144,153,255,.4)!important;border-radius:21px!important;background:rgba(8,16,37,.96)!important;box-shadow:0 12px 35px rgba(0,0,0,.42)!important;backdrop-filter:blur(18px)!important}
+.mam-bottom-nav button{display:block!important;min-width:0!important;min-height:50px!important;padding:4px 2px!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#bdc8e3!important;font-size:10px!important}
+.mam-bottom-nav button span{display:block!important;font-size:18px!important;margin-bottom:3px!important}
+.mam-bottom-nav button.active{color:#bd8cff!important}
+@media(min-width:700px){.mam-dashboard{grid-template-columns:repeat(4,minmax(0,1fr))!important}.mam-league-shortcuts{grid-template-columns:repeat(8,minmax(0,1fr))!important}.mam-bottom-nav{left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(680px,calc(100% - 32px))!important}}
+@media(max-width:390px){main{padding-left:9px!important;padding-right:9px!important}.mam-kpi{padding:11px 9px!important}}
+</style>
 </head>
 <body>
 
