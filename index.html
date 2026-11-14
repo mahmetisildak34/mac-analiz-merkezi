@@ -4073,6 +4073,15 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     output.push(normalizedMatch);
   };
 
+  // Önce merkezi D1 geçmiş arşivini oku. Daha önce kaydedilen maçlar da takım ekranına katılır.
+  try{
+    const archiveData=await api("archive/matches?"+qs({league:leagueId,before:matchDate,limit:2000}));
+    const archived=Array.isArray(archiveData?.response)?archiveData.response:[];
+    for(const match of archived)addMatch({...match,mamSource:match.source||"D1"});
+  }catch(archiveReadError){
+    sourceError+=" D1 geçmiş arşivi okunamadı: "+String(archiveReadError?.message||archiveReadError);
+  }
+
   // Süper Lig geçmişi için doğrudan uygulamadaki sezon CSV arşivini kullan.
   // Cloudflare KV geçmiş sorguları beklemeye neden olabildiği için bu ligde atlanır.
 
@@ -5598,6 +5607,22 @@ const openStandingTeamHistory=async row=>{
        teams:{home:{id:Number(h.team?.id)||-1,name:h.team?.displayName||h.team?.name||""},away:{id:Number(a.team?.id)||-1,name:a.team?.displayName||a.team?.name||""}},
        goals:{home:h.score==null?null:Number(h.score),away:a.score==null?null:Number(a.score)}};
      }).filter(m=>String(m.fixture.status.short)==="NS"&&Date.parse(m.fixture.date)>=Date.now());
+    }
+    // Merkezi D1 arşivi, lig sağlayıcısının eksik bıraktığı gelecek maçları tamamlar.
+    try{
+     const archiveData=await api("archive/upcoming?"+qs({days:30,limit:2000,league:String(selectedStandingsLeague)}));
+     const archived=Array.isArray(archiveData?.response)?archiveData.response:[];
+     if(archived.length){
+      const byId=new Map(leagueFixtures.map(match=>[String(match.fixture?.id||""),match]));
+      for(const match of archived){
+       const id=String(match.fixture?.id||"");
+       const key=id||[String(match.fixture?.date||""),String(match.teams?.home?.name||""),String(match.teams?.away?.name||"")].join("|");
+       if(!byId.has(key))byId.set(key,match);
+      }
+      leagueFixtures=[...byId.values()];
+     }
+    }catch(archiveReadError){
+     console.warn("D1 gelecek fikstür arşivi okunamadı; mevcut lig kaynağı korunuyor.",archiveReadError);
     }
     const norm=v=>String(v||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|a\.s\.|s\.a\.|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
     const aliases={"bologna1909":["bologna","bolognafc1909"],"bologna":["bologna1909","bolognafc1909"],"parmacalcio1913":["parma","parmacalcio"],"parma":["parmacalcio1913","parmacalcio"],"ussassuolocalcio":["sassuolo","sassuolocalcio"],"sassuolo":["ussassuolocalcio","sassuolocalcio"],"internazionale":["inter","intermilan"],"inter":["internazionale","intermilan"],"hellasverona":["verona"],"verona":["hellasverona"],"bayernmunchen":["bayernmunich","bayern"],"bayernmunich":["bayernmunchen","bayern"],"werderbremen":["svwerderbremen"],"svwerderbremen":["werderbremen"],"borussiamonchengladbach":["monchengladbach","gladbach"],"monchengladbach":["borussiamonchengladbach","gladbach"],"eintrachtfrankfurt":["frankfurt"],"frankfurt":["eintrachtfrankfurt"],"borussiadortmund":["dortmund"],"dortmund":["borussiadortmund"],"bayer04leverkusen":["bayerleverkusen","leverkusen"],"bayerleverkusen":["bayer04leverkusen","leverkusen"],"caykurrizespor":["caykurrizesporas","rizespor"],"erzurumbb":["erzurumspor","erzurumspor fk"],"istanbulbasaksehir":["basaksehir","istanbulbasaksehirfk"],"goztepe":["goztepeas"],"gaziantepfk":["gaziantepfutbolkulubu"],"corumfk":["arcacorumfk"],"amedspor":["amedsportiffaaliyetler"],"rcdeportivolacoruna":["rcdeportivo","deportivo"],"realracingclubdesantander":["rracingclub","racingclub","racingsantander"],"rcceltadevigo":["celta","celtavigo","rccelta"],"clubatleticodemadrid":["atleticodemadrid","atleticomadrid","atlmad"],"realsociedaddefutbol":["realsociedad","sociedad"],"realbetisbalompie":["realbetis","betis"],"rayovallecanodemadrid":["rayovallecano","vallecano"],"parissaintgermain":["parissg","psg"],"parissg":["parissaintgermain","psg"],"staderennaisfc":["staderennais","rennes","rennais","staderennais1901"],"staderennais":["staderennaisfc","rennes","rennais","staderennais1901"],"staderennais1901":["staderennaisfc","staderennais","rennes","rennais"],"stadebretois29":["stadebretois","brest"],"stadebretois":["stadebretois29","brest"],"havreatlanticclub":["havreac","lehavre","lehavreac"],"estactroyes":["troyes"],"losclille":["lilleosc","lille"],"olympiquelyonnais":["olympiquelyon","lyon"],"olympiquedemarseille":["marseille","om"],"rclens":["lens","racingclubdelens"],"rcstrasbourgalsace":["rcstrasbourg","strasbourg"],"fclorient":["lorient"],"asmonaco":["monaco"],"ajauxerre":["auxerre"],"angerssco":["angers"],"lemansfc":["lemans"],"parisfc":["parisfootballclub"],"ogcnice":["nice"]};
