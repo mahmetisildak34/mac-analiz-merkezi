@@ -46,6 +46,9 @@ assert.match(html, /id="mamTodayHeader"/, "Dedicated daily fixtures section miss
 assert.match(html, /data-mam-bottom="live"/, "Live match bottom-navigation item missing");
 assert.match(html, /\.mam-screen-live #mamLiveNav:not\(\[hidden\]\)\{display:flex!important/, "Existing live screen shortcuts remain hidden");
 assert.match(html, /function mamCanonicalMatchStatus\(match\)/, "Provider match-status normalization missing");
+assert.match(html, /const mamStatusRank=m=>/, "Daily scoreboard status ordering missing");
+assert.match(html, /return mamLiveMinute\(b\)-mamLiveMinute\(a\)/, "Highest live minutes must sort first");
+assert.match(html, /return Date\.parse\(b\.fixture\?\.date\|\|0\)-Date\.parse\(a\.fixture\?\.date\|\|0\)/, "Finished matches must sort newest-first at the bottom");
 assert.match(html, /FINISHED:"FT".*IN_PLAY:"LIVE".*PAUSED:"HT".*SCHEDULED:"NS"/, "Football-data match states are not normalized");
 
 let checkedScripts = 0;
