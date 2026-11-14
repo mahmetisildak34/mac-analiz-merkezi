@@ -2148,8 +2148,6 @@ async function loadLiveMatchesNow(){
    const primaryLive=(data.response||[]).filter(isLive);
    if(primaryLive.length){
     allMatches=primaryLive;
-    // Ana API-Football canlı akışını da merkezi D1 arşivine yaz.
-    await mamSaveMatchesToD1(primaryLive);
     mamSaveLiveMatchCache(primaryLive);
     renderMatches();
     warmLiveTeamHistories(allMatches);
