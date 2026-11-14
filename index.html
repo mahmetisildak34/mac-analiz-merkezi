@@ -1717,12 +1717,14 @@ async function loadStandings(){
  $("mamStandingsSeason").textContent=season+" / "+(season+1);
  $("mamStandingsLeagueTitle").textContent=standingCompetitionNames[leagueId]||"Lig puan durumu";
  try{
-  let rows=[],leagueName="";
+  let rows=[],leagueName="",teamSource="api-football";
   try{
    const data=await api("standings?"+qs({league:leagueId,season}));
    const group=data.response?.[0]?.league?.standings?.[0]||[];
    rows=group.map(x=>({rank:x.rank,teamId:x.team?.id,name:x.team?.name,logo:x.team?.logo,played:x.all?.played,win:x.all?.win,draw:x.all?.draw,lose:x.all?.lose,goals:x.all?.goals?.for,against:x.all?.goals?.against,points:x.points}));
    leagueName=data.response?.[0]?.league?.name||"Lig puan durumu";
+   if(!rows.length)throw new Error("API-Football puan tablosu takım döndürmedi.");
+   teamSource="api-football";
   }catch(primaryError){
    try{
     const code=FOOTBALL_DATA_LEAGUES[leagueId];
@@ -1732,6 +1734,7 @@ async function loadStandings(){
     rows=table.map(x=>({rank:x.position,teamId:x.team?.id,name:x.team?.name,logo:x.team?.crest,played:x.playedGames,win:x.won,draw:x.draw,lose:x.lost,goals:x.goalsFor,against:x.goalsAgainst,points:x.points}));
     leagueName=data.competition?.name||"Lig puan durumu";
     if(!rows.length)throw new Error("Football-data.org puan tablosu döndürmedi.");
+    teamSource="football-data";
    }catch(secondaryError){
     const espnLeague=({
      "203":"tur.1","204":"tur.2",
@@ -1777,6 +1780,7 @@ async function loadStandings(){
       rows.sort((a,b)=>Number(a.rank)-Number(b.rank));
       leagueName=data.name||data.leagues?.[0]?.name||standingCompetitionNames[leagueId]||"Lig";
       if(!rows.length)throw new Error("ESPN puan tablosu takım döndürmedi.");
+      teamSource="espn";
      }catch(error){espnError=error;}
      // A competition may publish teams even when it has no conventional standings
      // (for example knockout cups). Use the ESPN team directory as a read-only
@@ -1804,7 +1808,7 @@ async function loadStandings(){
         logo:team.logos?.[0]?.href||team.logo,
         played:null,win:null,draw:null,lose:null,goals:null,against:null,points:null
        }));
-       if(rows.length)leagueName=standingCompetitionNames[leagueId]||"Takım listesi";
+       if(rows.length){leagueName=standingCompetitionNames[leagueId]||"Takım listesi";teamSource="espn";}
       }catch(teamDirectoryError){
        if(!espnError)espnError=teamDirectoryError;
       }
@@ -1820,14 +1824,14 @@ async function loadStandings(){
        logo:item.team.logo||item.team.crest,
        played:null,win:null,draw:null,lose:null,goals:null,against:null,points:null
       }));
-      if(rows.length)leagueName=standingCompetitionNames[leagueId]||"Takım listesi";
+      if(rows.length){leagueName=standingCompetitionNames[leagueId]||"Takım listesi";teamSource="api-football";}
      }catch(teamDirectoryError){
       // Keep trying the independent SportScore source below.
      }
     }
     if(!rows.length){
      const ss=await mamSportScoreStandings(standingCompetitionNames[leagueId]||"Lig "+leagueId);
-     rows=ss.rows;leagueName=ss.name||standingCompetitionNames[leagueId]||"Lig";
+     rows=ss.rows;leagueName=ss.name||standingCompetitionNames[leagueId]||"Lig";teamSource="sportscore";
     }
     if(!rows.length)throw new Error("ESPN: "+(espnError?.message||"kapsama yok")+". SportScore yedeği de takım döndürmedi.");
    }
@@ -1847,7 +1851,7 @@ async function loadStandings(){
    const rank=Number(x.rank)||0;
    const zone=rank<=4?"zone-top":rank<=6?"zone-europe":rank>=Math.max(7,lastRank-2)?"zone-bottom":"zone-mid";
    const crest=x.logo?'<img class="mam-standing-crest" src="'+esc(x.logo)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<span class="mam-standing-crest-fallback">⚽</span>';
-   return '<tr class="mam-standing-team-row '+zone+'" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" role="button" tabindex="0" onclick="window.mamOpenStandingTeamHistory(this)" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını göster"><td class="mam-rank-cell"><span>'+esc(x.rank)+'</span></td><td class="mam-crest-cell">'+crest+'</td><td class="mam-team-name-cell">'+esc(x.name)+' <span class="mam-standing-row-hint">›</span></td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td class="mam-points-cell"><b>'+esc(x.points)+'</b></td></tr>';
+   return '<tr class="mam-standing-team-row '+zone+'" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" data-team-source="'+esc(x.source||teamSource)+'" role="button" tabindex="0" onclick="window.mamOpenStandingTeamHistory(this)" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını göster"><td class="mam-rank-cell"><span>'+esc(x.rank)+'</span></td><td class="mam-crest-cell">'+crest+'</td><td class="mam-team-name-cell">'+esc(x.name)+' <span class="mam-standing-row-hint">›</span></td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td class="mam-points-cell"><b>'+esc(x.points)+'</b></td></tr>';
   }).join("");
   box.innerHTML='<div class="mam-standings-table-wrap"><table class="mam-standings-table"><thead><tr><th>#</th><th></th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rowMarkup+'</tbody></table></div><div class="mam-standings-legend"><span><i class="zone-top"></i>İlk 4</span><span><i class="zone-europe"></i>5–6</span><span><i class="zone-mid"></i>Diğer sıralar</span><span><i class="zone-bottom"></i>Son 3</span></div><p class="mam-standings-note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan. Sıralama satırına dokunarak takım geçmişini açabilirsin.</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
   if(String(leagueId)==="78"){
@@ -3853,7 +3857,7 @@ async function mamLoadD1LeagueArchive(leagueId, matchDate){
 }
 const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 /* GEÇMİŞ MAÇLAR */
-async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false){
+async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false, teamSource=""){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
    const key="mam_history_v72_"+leagueId+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
@@ -4414,7 +4418,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // API-Football son çare: arşiv ve CSV beş maçın altında kaldıysa dene.
   // Ücretsiz plan geçmiş tarihleri reddedebilir; hata diğer kaynakları durdurmaz.
-  if(!archiveOnly&&String(leagueId)!=="203"&&output.length<5&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))){
+  if(!archiveOnly&&output.length<5&&/^[0-9]+$/.test(String(teamId))&&(teamSource==="api-football"||(String(leagueId)!=="203"&&sourceFixtureId&&!String(sourceFixtureId).startsWith("espn-")&&/^[0-9]+$/.test(String(sourceFixtureId))))){
     try{
       const data=await api("fixtures?"+qs({team:teamId,last:20,status:"FT",timezone:"Europe/Istanbul"}));
       const cutoff=new Date(matchDate+"T00:00:00");
@@ -5554,6 +5558,8 @@ const openStandingTeamHistory=async row=>{
   if(!row)return;
   const teamName=row.dataset.standingTeam||"";
   const teamId=row.dataset.standingTeamId||"";
+  const teamSource=row.dataset.teamSource||"api-football";
+  const sourceFixtureId=teamSource==="espn"?"espn-team-directory":"";
   if(!teamName)return;
   document.getElementById("mamTeamHistoryScreen")?.remove();
   document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.toggle("active",x===row));
@@ -5575,7 +5581,7 @@ const openStandingTeamHistory=async row=>{
    let recent=[];
    let historyError="";
    try{
-    const matches=await getTeamFixtures(teamId,cutoff,teamName,String(selectedStandingsLeague),"",false);
+    const matches=await getTeamFixtures(teamId,cutoff,teamName,String(selectedStandingsLeague),sourceFixtureId,false,false,teamSource);
     recent=matches.slice(0,10);
    }catch(error){
     historyError=String(error?.message||"Geçmiş maç verisi alınamadı.");
