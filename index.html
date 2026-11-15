@@ -3814,7 +3814,7 @@ function renderMatches(){
    <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span>${isLiveStatus&&time?'<small style="font-size:10px;font-weight:650;color:#9fb3c8;white-space:nowrap">Başlangıç '+esc(time)+'</small>':""}</span></div>
    <div class="match-versus">
     <div class="team-block">${teamBadge(t.home)}<strong>${esc(t.home?.name)}</strong>${isFinishedStatus?mamOutcomeBadge(g.home,g.away):""}</div>
-    <div class="match-center"><span class="match-clock">${g.home!=null?esc(g.home)+" – "+esc(g.away):esc(time||"VS")}</span><small>${statusCode==="NS"?"Karşılaşma":esc(statusLabel)}</small></div>
+    <div class="match-center"><span class="match-clock">${g.home!=null?esc(g.home)+" – "+esc(g.away):esc(time||"VS")}</span><small>${isLiveStatus&&time?esc(statusLabel)+" · "+esc(time):(statusCode==="NS"?"Karşılaşma":esc(statusLabel))}</small></div>
     <div class="team-block">${teamBadge(t.away)}<strong>${esc(t.away?.name)}</strong>${isFinishedStatus?mamOutcomeBadge(g.away,g.home):""}</div>
    </div>
    <div class="match-actions">
@@ -6454,7 +6454,7 @@ main.mam-screen-live>section.panel:has(#matches)[hidden],main.mam-screen-upcomin
  #matches article.match.match-modern:not(.in-detail) .match-time{font-size:8px!important;line-height:1!important;white-space:nowrap!important}
  #matches article.match.match-modern:not(.in-detail) .match-time i{display:none!important}
  #matches article.match.match-modern:not(.in-detail) .match-versus{
-  display:grid!important;grid-template-columns:minmax(0,1fr) 43px minmax(0,1fr)!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr) 55px minmax(0,1fr)!important;
   align-items:center!important;gap:3px!important;height:34px!important;min-height:34px!important;
   margin:0!important;padding:0!important;
  }
@@ -6478,7 +6478,7 @@ main.mam-screen-live>section.panel:has(#matches)[hidden],main.mam-screen-upcomin
   display:flex!important;flex-direction:column!important;align-items:center!important;gap:0!important;min-width:0!important;
  }
  #matches article.match.match-modern:not(.in-detail) .match-clock{font-size:11px!important;line-height:1.1!important;white-space:nowrap!important}
- #matches article.match.match-modern:not(.in-detail) .match-center small{font-size:7px!important;line-height:1!important;margin-top:1px!important}
+ #matches article.match.match-modern:not(.in-detail) .match-center small{font-size:6px!important;line-height:1!important;margin-top:1px!important;white-space:nowrap!important;letter-spacing:-.15px!important}
  #matches article.match.match-modern:not(.in-detail) .match-actions,
  #matches article.match.match-modern:not(.in-detail) .analysis-preview,
  #matches article.match.match-modern:not(.in-detail) .pred,
