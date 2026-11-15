@@ -1612,7 +1612,9 @@ async function api(path){
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings")||/^espn\/[a-zA-Z0-9._-]+\/standings\?/.test(cleanPath);
   const todayEspnDate=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Istanbul"}).replace(/-/g,"");
-  const isEspnLiveScoreboard=/^espn\/[^/]+\/scoreboard\?/.test(cleanPath)&&cleanPath.includes("dates="+todayEspnDate);
+  const yesterdayEspnDate=new Date(Date.now()-24*60*60*1000).toLocaleDateString("en-CA",{timeZone:"Europe/Istanbul"}).replace(/-/g,"");
+  const isEspnScoreboard=/^espn\/[^/]+\/scoreboard\?/.test(cleanPath);
+  const isEspnLiveScoreboard=isEspnScoreboard&&(cleanPath.includes("dates="+todayEspnDate)||cleanPath.includes("dates="+yesterdayEspnDate));
   const isLive=cleanPath.includes("live=all")||isEspnLiveScoreboard||(/^football-data\/matches\?/.test(cleanPath)&&/(?:^|&)status=/.test(cleanPath.split("?")[1]||""));
   const isEspnSummary=/^espn\/[^/]+\/summary\?/.test(cleanPath);
   const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||isEspnSummary;
