@@ -3293,7 +3293,8 @@ async function loadMamGoalEvents(article,panel,forceRefresh=false){
     const payload=await api("espn/"+leagueSlug+"/summary?"+qs({event:eventId}));
     const raw=[];
     const addArray=value=>{if(Array.isArray(value))raw.push(...value);};
-    addArray(payload.scoringPlays);addArray(payload.keyEvents);
+    addArray(payload.scoringPlays);
+    if(Array.isArray(payload.keyEvents))raw.push(...payload.keyEvents.filter(item=>item?.scoringPlay===true||/goal|penalty scored|own goal/i.test(String(item?.text||item?.shortText||item?.type?.text||item?.type||""))));
     const walk=(value,depth=0)=>{
      if(!value||typeof value!=="object"||depth>7)return;
      if(Array.isArray(value)){value.forEach(item=>walk(item,depth+1));return;}
@@ -3302,7 +3303,7 @@ async function loadMamGoalEvents(article,panel,forceRefresh=false){
        (value.athlete||value.athletes||value.participants||value.team||value.clock||value.time)))raw.push(value);
      Object.values(value).forEach(child=>walk(child,depth+1));
     };
-    if(!raw.length)walk(payload.plays);
+    walk(payload.plays);
     const competitors=(event.competitions||[])[0]?.competitors||[];
     const seen=new Set();
     events=raw.map(item=>{
@@ -3319,8 +3320,8 @@ async function loadMamGoalEvents(article,panel,forceRefresh=false){
      if(seen.has(key))return null;seen.add(key);
      const minuteText=typeof clock==="object"?String(clock.displayValue||clock.value||""):String(clock||"");
      const minuteMatch=minuteText.match(/\d{1,3}(?:\+\d{1,2})?(?:\:\d{2})?/);
-     return {minute:minuteMatch?minuteMatch[0].replace(/:.*$/,"")+"'":minuteText,player,assist:assist.displayName||assist.fullName||assist.name||"",team:resolvedTeam,detail,order:Number(minuteMatch?.[0]?.split(/[+:]/)[0]||0)};
-    }).filter(item=>item&&(/goal|penalty|own goal/i.test(item.detail)||item.player!=="Golcü bilgisi paylaşılmadı"));
+     return {minute:minuteMatch?minuteMatch[0].replace(/:.*$/,"")+"'":minuteText,player,assist:assist.displayName||assist.fullName||assist.name||"",team:resolvedTeam,detail,order:Number(minuteMatch?.[0]?.split(/[+:]/)[0]||0),isGoal:item.scoringPlay===true||/goal|penalty scored|own goal/i.test(detail)};
+    }).filter(item=>item&&item.isGoal);
    }
   }
   events.sort((a,b)=>a.order-b.order);
