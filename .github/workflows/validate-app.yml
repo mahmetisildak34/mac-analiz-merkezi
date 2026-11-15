@@ -1,0 +1,52 @@
+name: Validate app JavaScript
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-app.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-app.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Extract inline JavaScript and validate syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          source = Path("index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script\\b([^>]*)>(.*?)</script>", source, re.I | re.S)
+          count = 0
+          for attrs, body in scripts:
+              if re.search(r"\\bsrc\\s*=", attrs, re.I):
+                  continue
+              kind = re.search(r"""\\btype\\s*=\\s*["']([^"']+)["']""", attrs, re.I)
+              if kind and kind.group(1).lower() not in ("text/javascript", "application/javascript", "module"):
+                  continue
+              if not body.strip():
+                  continue
+              count += 1
+              Path(f"/tmp/app-inline-{count}.js").write_text(body, encoding="utf-8")
+          if count == 0:
+              raise SystemExit("No inline JavaScript blocks found")
+          print(f"Extracted {count} inline JavaScript blocks")
+          PY
+          for file in /tmp/app-inline-*.js; do
+            node --check "$file"
+          done
