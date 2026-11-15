@@ -1406,7 +1406,8 @@ button{transition:filter .15s ease,transform .15s ease}
  <div class="mam-standings-group"><h3>🇹🇷 Türkiye</h3><div class="mam-standings-leagues" id="mamStandingsTurkey"></div></div>
  <div class="mam-standings-group"><h3>🌍 Avrupa'nın Büyük Ligleri</h3><div class="mam-standings-leagues" id="mamStandingsEurope"></div></div>
  <div class="mam-standings-group"><h3>🏆 Avrupa Kupaları</h3><div class="mam-standings-leagues" id="mamStandingsCups"></div></div>
- <div class="mam-standings-group"><h3>🌐 Diğer Ülkeler ve Uluslararası Turnuvalar</h3><div class="mam-standings-leagues" id="mamStandingsWorld"></div></div>
+ <div class="mam-standings-group"><h3>🌍 Milli Takım Turnuvaları</h3><div class="mam-standings-leagues" id="mamStandingsNational"></div></div>
+ <div class="mam-standings-group"><h3>🌐 Diğer Ülkeler ve Kulüp Turnuvaları</h3><div class="mam-standings-leagues" id="mamStandingsWorld"></div></div>
 
  <section id="mamNationsLeague2026" style="margin:18px 0;padding:18px;border:1px solid rgba(212,175,55,.65);border-radius:18px;background:linear-gradient(145deg,#101d3b,#0a142b);color:#eef3ff">
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:26px">🇪🇺</span><div><h2 style="margin:0;font-size:21px">UEFA Uluslar Ligi 2026/27</h2><p style="margin:4px 0 0;color:#aebcda;font-size:13px">Tüm ligler · Kura torbaları · Kesinleşen gruplar</p></div></div>
@@ -5199,11 +5200,11 @@ async function analyze(button){
   {id:"2",name:"UEFA Şampiyonlar Ligi",flag:"🏆",group:"cups",popular:true},
   {id:"3",name:"UEFA Avrupa Ligi",flag:"🏆",group:"cups",popular:true},
   {id:"848",name:"UEFA Konferans Ligi",flag:"🏆",group:"cups",popular:true},
-  {id:"1",name:"FIFA Dünya Kupası",flag:"🌍",group:"world"},
-  {id:"4",name:"EURO",flag:"🇪🇺",group:"world"},
-  {id:"5",name:"UEFA Uluslar Ligi",flag:"🇪🇺",group:"world",popular:true},
-  {id:"9",name:"Copa América",flag:"🌎",group:"world"},
-  {id:"6",name:"Afrika Uluslar Kupası",flag:"🌍",group:"world"},
+  {id:"1",name:"FIFA Dünya Kupası",flag:"🌍",group:"national"},
+  {id:"4",name:"EURO",flag:"🇪🇺",group:"national"},
+  {id:"5",name:"UEFA Uluslar Ligi",flag:"🇪🇺",group:"national",popular:true},
+  {id:"9",name:"Copa América",flag:"🌎",group:"national"},
+  {id:"6",name:"Afrika Uluslar Kupası",flag:"🌍",group:"national"},
   {id:"15",name:"FIFA Kulüpler Dünya Kupası",flag:"🌐",group:"world"},
   {id:"307",name:"Suudi Arabistan Pro Lig",flag:"🇸🇦",group:"world"},
   {id:"253",name:"MLS",flag:"🇺🇸",group:"world"},
@@ -5215,7 +5216,7 @@ async function analyze(button){
   {id:"169",name:"Chinese Super League",flag:"🇨🇳",group:"world"}
  ];
  standingCompetitionNames=Object.fromEntries(standingCompetitions.map(item=>[item.id,item.name]));
- const groupTargets={popular:$("mamStandingsPopular"),turkey:$("mamStandingsTurkey"),europe:$("mamStandingsEurope"),cups:$("mamStandingsCups"),world:$("mamStandingsWorld"),all:$("mamStandingsAll")};
+ const groupTargets={popular:$("mamStandingsPopular"),turkey:$("mamStandingsTurkey"),europe:$("mamStandingsEurope"),cups:$("mamStandingsCups"),national:$("mamStandingsNational"),world:$("mamStandingsWorld"),all:$("mamStandingsAll")};
  let allProviderLeagues=[];
  const renderStandingButtons=(filter="")=>{
   Object.entries(groupTargets).forEach(([key,target])=>{if(key!=="all"&&target)target.innerHTML=""});
