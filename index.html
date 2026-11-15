@@ -4237,15 +4237,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     output.push(normalizedMatch);
   };
 
-  // Önce merkezi D1 geçmiş arşivini oku. Daha önce kaydedilen maçlar da takım ekranına katılır.
-  try{
-    const archiveData=await api("archive/matches?"+qs({league:leagueId,before:matchDate,limit:2000}));
-    const archived=Array.isArray(archiveData?.response)?archiveData.response:[];
-    for(const match of archived)addMatch({...match,mamSource:match.source||"D1"});
-  }catch(archiveReadError){
-    sourceError+=" D1 geçmiş arşivi okunamadı: "+String(archiveReadError?.message||archiveReadError);
-  }
-
   // Süper Lig geçmişi için doğrudan uygulamadaki sezon CSV arşivini kullan.
   // Cloudflare KV geçmiş sorguları beklemeye neden olabildiği için bu ligde atlanır.
 
