@@ -3924,7 +3924,10 @@ function mamUefaTeamMatch(a,b){
 
 // D1 kalıcı maç arşivi: analiz için bulunan geçmiş maçları idempotent olarak kaydet.
 async function mamSaveMatchesToD1(matches, leagueId){
-  if(!Array.isArray(matches)||!matches.length)return;
+  // Isolated historical backfill rows are read-only inputs to analysis; do not
+  // copy them into the live matches table from the browser.
+  const persistable=Array.isArray(matches)?matches.filter(match=>match?.mamArchiveOnly!==true):[];
+  if(!persistable.length)return;
   try{
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),12000);
@@ -3936,7 +3939,7 @@ async function mamSaveMatchesToD1(matches, leagueId){
           "Content-Type":"application/json",
           Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||"")
         },
-        body:JSON.stringify({leagueId:String(leagueId||""),matches:matches.slice(0,250)})
+        body:JSON.stringify({leagueId:String(leagueId||""),matches:persistable.slice(0,250)})
       });
       if(!response.ok){
         const detail=await response.text().catch(()=> "");
