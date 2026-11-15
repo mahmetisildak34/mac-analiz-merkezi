@@ -4184,7 +4184,7 @@ async function refreshActiveMatchScore(){
   const score=article.querySelector(".match-clock");
   if(score)score.textContent=String(fresh.goals.home)+" – "+String(fresh.goals.away);
   const status=fresh.fixture?.status||{};
-  const elapsed=Number(status.elapsed);
+  const elapsed=status.elapsed==null||status.elapsed===""?NaN:Number(status.elapsed);
   const minute=Number.isFinite(elapsed)&&elapsed>=0?Math.round(elapsed)+"'":status.short==="HT"?"Devre arası":status.displayClock||"Canlı";
   const headClock=article.querySelector(".match-head .match-time");
   if(headClock)headClock.textContent="🔴 "+minute+" · "+(status.short==="HT"?"Devre arası":"Canlı");
@@ -4262,8 +4262,10 @@ function mamSeedVisibleMatchClock(button){
  })||null;
  const analyzeButton=button.closest(".match")?.querySelector(".liveAnalyzeBtn");
  const status=String(match?.fixture?.status?.short||analyzeButton?.dataset.status||"LIVE").toUpperCase();
- const fromMatch=Number(match?.fixture?.status?.elapsed);
- const fromButton=Number(analyzeButton?.dataset.liveMinute);
+ const rawMatchMinute=match?.fixture?.status?.elapsed;
+ const rawButtonMinute=analyzeButton?.dataset.liveMinute;
+ const fromMatch=rawMatchMinute==null||rawMatchMinute===""?NaN:Number(rawMatchMinute);
+ const fromButton=rawButtonMinute==null||rawButtonMinute===""?NaN:Number(rawButtonMinute);
  const fromClock=Number(String(button.closest(".match")?.querySelector(".match-head .match-time")?.textContent||"").match(/(\d{1,3})\s*['′]/)?.[1]);
  const base=Number.isFinite(fromMatch)&&fromMatch>=0?fromMatch:
   Number.isFinite(fromButton)&&fromButton>=0?fromButton:
