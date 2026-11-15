@@ -1628,7 +1628,7 @@ async function api(path){
   // gereksiz API-Football isteği gönderilmesin. Hata halinde son başarılı veri korunur.
   const isArchiveBackfill=cleanPath.startsWith("archive/backfill-all?");
   if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLineupRequest&&!isArchiveBackfill){
-    const cacheAge=isLive?60*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?60*1000:(isEspnSummary?5*60*1000:30*60*1000);
+    const cacheAge=isLive?20*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?30*1000:(isEspnSummary?5*60*1000:30*60*1000);
     if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
   }
 
@@ -1643,6 +1643,14 @@ async function api(path){
   }
 
   const request=async()=>{
+    // Reserve part of the free daily API-Football quota for live scores.
+    if(isLive&&isPrimaryApi){
+      const day=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Istanbul"});
+      const budgetKey="mam_live_api_budget_"+day;
+      let used=0;try{used=Number(localStorage.getItem(budgetKey)||0)||0;}catch(_){}
+      if(used>=60)throw new Error("Canlı skor günlük API kotası koruması: bugün için ayrılan 60 istek kullanıldı. ESPN ve kayıtlı veriler deneniyor.");
+      try{localStorage.setItem(budgetKey,String(used+1));}catch(_){}
+    }
     // Only API-Football is subject to this conservative rate limit.
     // ESPN and Football-data.org fallback calls must not wait in this queue.
     if(isPrimaryApi){
@@ -3927,8 +3935,9 @@ async function refreshVisibleFixtureLists(){
  }finally{mamFixtureRefreshBusy=false;}
 }
 if(!window.mamLiveStatsTimer){
- window.mamLiveStatsTimer=setInterval(refreshOpenLiveStats,60*1000);
- window.mamFixtureRefreshTimer=setInterval(refreshVisibleFixtureLists,60*1000);
+ window.mamLiveStatsTimer=setInterval(refreshOpenLiveStats,30*1000);
+ window.mamLiveRefreshTimer=setInterval(()=>{if(mamScreenMode==="live")refreshVisibleFixtureLists();},30*1000);
+ window.mamFixtureRefreshTimer=setInterval(()=>{if(mamScreenMode==="upcoming")refreshVisibleFixtureLists();},60*1000);
  document.addEventListener("visibilitychange",()=>{
   if(!document.hidden){refreshOpenLiveStats();refreshVisibleFixtureLists();}
  });
