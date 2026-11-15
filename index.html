@@ -1368,6 +1368,12 @@ button{transition:filter .15s ease,transform .15s ease}
 .mam-fixture-analyze{grid-column:2;width:100%;margin:2px 0 0!important;padding:9px 12px!important;font-size:12px!important}
 .mam-fixture-row .pred{grid-column:1/-1}
 @media(max-width:390px){.mam-fixture-row{grid-template-columns:58px minmax(0,1fr);gap:7px;padding:10px 4px}.mam-fixture-teams strong{font-size:11px}.mam-fixture-teams{gap:3px}}
+</style><style id="mam-upcoming-panel-visibility-fix">
+/* Keep the panel containing the date picker and match list visible in upcoming mode. */
+.mam-screen-upcoming main>.panel:has(#matches){display:block!important;visibility:visible!important}
+.mam-screen-upcoming main>.panel:has(#matches)[hidden]{display:block!important}
+.mam-screen-upcoming .mam-home-intro + section.panel,
+.mam-screen-upcoming .footer{display:none!important}
 </style></head>
 <body>
 
@@ -3636,7 +3642,7 @@ function setMamScreen(mode){
  if(header){header.hidden=mode==="home";const back=$("mamSectionBack");if(back){back.hidden=false;back.style.display="";back.textContent="← Geri";}$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="standings"?"LİG MERKEZİ":mode==="today"?"GÜNLÜK SKOR PANOSU":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="standings"?"Puan Durumu":mode==="today"?"Bugünün Maçları":"Oynanacak Maçlar";}
  const intro=document.querySelector(".mam-home-intro");if(intro)intro.hidden=mode!=="home";
  const superLigButton=$("loadSuperLigFixtures");if(superLigButton){superLigButton.hidden=mode!=="home";superLigButton.style.display=mode==="home"?"":"none";}
- const sourcePanel=document.querySelector("main>.panel");if(sourcePanel)sourcePanel.hidden=mode!=="home";
+ const sourcePanel=document.querySelector(".mam-home-intro + section.panel");if(sourcePanel)sourcePanel.hidden=mode!=="home";
  const filterRow=$("date")?.closest(".row");if(filterRow)filterRow.hidden=mode==="live"||mode==="today";
  const dateStrip=$("mamDateStrip");if(dateStrip)dateStrip.hidden=mode==="live"||mode==="today";
  $("load").hidden=mode==="live"||mode==="today";
