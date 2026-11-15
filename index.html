@@ -3960,17 +3960,21 @@ async function mamPersistLiveStatsToD1(fixtureId, sourceLabel, statsRows){
 }
 async function mamLoadD1LeagueArchive(leagueId, matchDate, teamName, teamId, teamSource, acceptedNames){
   const aliases=Array.from(acceptedNames||[]);
-  const cacheKey="mam_d1_archive_v2_"+String(leagueId)+"_"+String(matchDate)+"_"+String(teamSource||"")+"_"+String(teamId||"")+"_"+aliases.join("_");
-  try{
-    const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
-    if(Array.isArray(cached?.matches)&&Date.now()-cached.time<10*60*1000)return cached.matches;
-  }catch(_){}
+  const teamCacheKey="mam_d1_archive_v2_"+String(leagueId)+"_"+String(matchDate)+"_"+String(teamSource||"")+"_"+String(teamId||"")+"_"+aliases.join("_");
+  const sharedCacheKey="mam_d1_archive_v1_"+String(leagueId)+"_"+String(matchDate);
+  for(const key of [teamCacheKey,sharedCacheKey]){
+    try{
+      const cached=JSON.parse(localStorage.getItem(key)||"null");
+      if(Array.isArray(cached?.matches)&&Date.now()-cached.time<10*60*1000)return cached.matches;
+    }catch(_){}
+  }
   const payload=await api("archive/matches?"+qs({
     league:String(leagueId||""),before:String(matchDate||""),limit:2000,
     teamId:String(teamId||""),teamSource:String(teamSource||""),
-    teamNames:aliases.join(","),limit:2000
+    teamNames:aliases.join(",")
   }));
   const matches=Array.isArray(payload?.response)?payload.response:[];
+  const cacheKey=payload?.teamFilterApplied===true?teamCacheKey:sharedCacheKey;
   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
   return matches;
 }
