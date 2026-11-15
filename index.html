@@ -2394,16 +2394,25 @@ async function loadMatches(){
     $("status").textContent="API-Football bu tarih için maç döndürmedi. ESPN yedek fikstürü deneniyor...";
     let alternative=[];
     let alternativeSource="";
+    window.mamLastFixtureFallbackErrors=[];
     try{
      alternative=await espnFixtures(date);
      if(alternative.length)alternativeSource="ESPN (yedek kaynak)";
-    }catch(espnError){console.warn("ESPN boş fikstür yedeği:",espnError);}
+     else window.mamLastFixtureFallbackErrors.push("ESPN: seçilen tarih/lig için maç döndürmedi");
+    }catch(espnError){
+     window.mamLastFixtureFallbackErrors.push("ESPN: "+String(espnError.message||espnError));
+     console.warn("ESPN boş fikstür yedeği:",espnError);
+    }
     if(!alternative.length){
      $("status").textContent="ESPN sonuç vermedi. Football-data.org yedek kaynağı deneniyor...";
      try{
       alternative=await footballDataFixtures(date);
       if(alternative.length)alternativeSource="Football-data.org (yedek kaynak)";
-     }catch(fallbackError){console.warn("Football-data.org boş fikstür yedeği:",fallbackError);}
+      else window.mamLastFixtureFallbackErrors.push("Football-data.org: maç döndürmedi");
+     }catch(fallbackError){
+      window.mamLastFixtureFallbackErrors.push("Football-data.org: "+String(fallbackError.message||fallbackError));
+      console.warn("Football-data.org boş fikstür yedeği:",fallbackError);
+     }
     }
     if(alternative.length){
      allMatches=alternative;
@@ -2468,7 +2477,8 @@ async function loadMatches(){
   }
   renderMatches();
   if(!allMatches.length){
-   $("status").textContent="Bu tarih için maç bulunamadı. Kaynak: "+source+".";
+   const detail=window.mamLastFixtureFallbackErrors?.length?" Denenen kaynaklar: "+window.mamLastFixtureFallbackErrors.join(" | "):"";
+   $("status").textContent="Bu tarih için maç bulunamadı. Kaynak: "+source+"."+detail;
   }else{
    $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+".";
   }
