@@ -1354,7 +1354,21 @@ button{transition:filter .15s ease,transform .15s ease}
  .match-detail-tab{padding:8px 10px!important;font-size:11px!important}
 }
 </style>
-</head>
+<style id="mam-upcoming-clean-style">
+.mam-upcoming-summary{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;margin:10px 0 16px;border:1px solid rgba(139,110,255,.25);border-radius:14px;background:rgba(94,65,180,.12);color:#e9e7ff}
+.mam-upcoming-summary strong{font-size:15px;text-transform:capitalize}.mam-upcoming-summary span{font-size:11px;font-weight:800;letter-spacing:.05em;color:#b8a7ff}
+.mam-upcoming-group{margin:0 0 14px!important;padding:10px!important;border-radius:16px!important}
+.mam-upcoming-group .mam-league-heading{margin:0 0 8px!important;padding:4px 4px 10px!important}
+.mam-fixture-row{display:grid;grid-template-columns:66px minmax(0,1fr);gap:10px;align-items:center;padding:12px 8px;margin:0;border-top:1px solid rgba(160,175,220,.14)}
+.mam-fixture-time{font-size:16px;font-weight:850;color:#70e5c0;text-align:center}.mam-fixture-time span{display:block;font-size:9px;letter-spacing:.04em;color:#9aa9c8;margin-top:4px}
+.mam-fixture-teams{display:grid;grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr);gap:5px;align-items:center;min-width:0}
+.mam-fixture-teams>div{display:flex;align-items:center;gap:7px;min-width:0}.mam-fixture-teams>div:last-child{justify-content:flex-end;text-align:right}
+.mam-fixture-teams strong{font-size:12px;line-height:1.25;overflow-wrap:anywhere}.mam-fixture-teams img,.mam-fixture-teams .team-logo{width:27px;height:27px;object-fit:contain;flex:0 0 27px}
+.mam-fixture-vs{text-align:center;font-size:10px;color:#8998ba;font-weight:800}
+.mam-fixture-analyze{grid-column:2;width:100%;margin:2px 0 0!important;padding:9px 12px!important;font-size:12px!important}
+.mam-fixture-row .pred{grid-column:1/-1}
+@media(max-width:390px){.mam-fixture-row{grid-template-columns:58px minmax(0,1fr);gap:7px;padding:10px 4px}.mam-fixture-teams strong{font-size:11px}.mam-fixture-teams{gap:3px}}
+</style></head>
 <body>
 
 
@@ -3679,6 +3693,38 @@ function renderMatches(){
  const selectedDate=$("date")?.value||todayKey;
  if($("mamTodayTitle"))$("mamTodayTitle").textContent=selectedDate===todayKey?"BUGÜNÜN MAÇLARI":new Date(selectedDate+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"})+" MAÇLARI";
  if($("mamTodayCount"))$("mamTodayCount").textContent=list.length+" MAÇ";
+ if(mamScreenMode==="upcoming"){
+  const selectedKey=$("date")?.value||todayKey;
+  const toIstanbulDate=value=>{
+   const d=new Date(value||"");
+   if(!Number.isFinite(d.getTime()))return "";
+   return new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
+  };
+  list=list.filter(m=>["NS","TBD"].includes(mamCanonicalMatchStatus(m))&&toIstanbulDate(m.fixture?.date)===selectedKey);
+  list.sort((a,b)=>Date.parse(a.fixture?.date||0)-Date.parse(b.fixture?.date||0));
+  if($("mamSectionCount"))$("mamSectionCount").textContent=list.length+" MAÇ";
+  if(!list.length){
+   $("matches").innerHTML='<div class="empty">Bu tarihte henüz başlamamış maç bulunamadı. Başka bir tarih seçebilirsin.</div>';
+   return;
+  }
+  const groups=[...list.reduce((map,m)=>{
+   const l=m.league||{};
+   const key=String(l.country||"Diğer")+"::"+String(l.id??l.name??"other");
+   if(!map.has(key))map.set(key,[]);
+   map.get(key).push(m);
+   return map;
+  },new Map()).entries()];
+  $("matches").innerHTML='<div class="mam-upcoming-summary"><strong>'+esc(new Date(selectedKey+"T12:00:00").toLocaleDateString("tr-TR",{weekday:"long",day:"numeric",month:"long"}))+'</strong><span>'+list.length+' BAŞLAMAMIŞ MAÇ</span></div>'+groups.map(([key,items])=>{
+   const league=items[0]?.league||{};
+   return '<section class="mam-league-group mam-upcoming-group"><div class="mam-league-heading"><span class="mam-league-globe">⚽</span><strong>'+esc(league.name||"Diğer maçlar")+'</strong><small>'+esc(league.country||"")+'</small><span class="mam-league-count">'+items.length+'</span></div>'+items.map(m=>{
+    const f=m.fixture||{},t=m.teams||{},l=m.league||{};
+    const time=f.date?new Date(f.date).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"}):"Saat TBD";
+    return '<article class="mam-fixture-row"><div class="mam-fixture-time">'+esc(time)+'<span>BAŞLAMADI</span></div><div class="mam-fixture-teams"><div>'+teamBadge(t.home)+'<strong>'+esc(t.home?.name||"Ev sahibi")+'</strong></div><span class="mam-fixture-vs">VS</span><div>'+teamBadge(t.away)+'<strong>'+esc(t.away?.name||"Deplasman")+'</strong></div></div><button class="predBtn mam-fixture-analyze" data-id="'+esc(f.id)+'" data-home="'+esc(t.home?.id)+'" data-away="'+esc(t.away?.id)+'" data-home-name="'+esc(t.home?.name)+'" data-away-name="'+esc(t.away?.name)+'" data-league="'+esc(l.id)+'" data-date="'+esc(f.date?.slice(0,10))+'" data-status="'+esc(mamCanonicalMatchStatus(m))+'">Maç ön analizini yap →</button><div class="pred" id="pred-'+esc(f.id)+'" hidden></div></article>';
+   }).join("")+'</section>';
+  }).join("");
+  document.querySelectorAll("#matches .predBtn").forEach(button=>button.addEventListener("click",()=>analyze(button)));
+  return;
+ }
  if(!list.length){
   $("matches").innerHTML='<div class="empty">Bu filtrede maç bulunamadı.</div>';
   return;
