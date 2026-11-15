@@ -6987,3 +6987,63 @@ input,select,.league-trigger{
  }
 }
 </style>
+
+<style id="mam-mackolik-live-stats-v1">
+
+/* MAM live stats — Mackolik-style single-column comparison */
+@media(max-width:600px){
+ .match.in-detail .match-detail-pane[data-pane="stats"] .liveStats.mam-live-stats-view{
+  display:block!important;grid-template-columns:none!important;gap:0!important;
+  background:#1b1f22!important;color:#f5f6f7!important;
+  border:0!important;border-radius:0!important;padding:8px 10px!important;
+  overflow:visible!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stats-title{
+  display:none!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row{
+  display:block!important;min-width:0!important;
+  padding:12px 8px 10px!important;margin:0!important;
+  background:transparent!important;
+  border:0!important;border-bottom:1px solid rgba(255,255,255,.055)!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-values{
+  display:grid!important;grid-template-columns:52px minmax(0,1fr) 52px!important;
+  align-items:center!important;gap:6px!important;
+  color:#f5f6f7!important;font-size:14px!important;font-weight:650!important;
+  line-height:1.2!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-values b{
+  color:#f5f6f7!important;font-size:14px!important;font-weight:650!important;
+  white-space:nowrap!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-values b:first-child{text-align:left!important}
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-values b:last-child{text-align:right!important}
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-label{
+  color:#f0f1f2!important;text-align:center!important;
+  font-size:12px!important;font-weight:500!important;letter-spacing:0!important;
+  text-transform:none!important;overflow-wrap:anywhere!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-track{
+  display:flex!important;width:100%!important;height:7px!important;
+  margin-top:8px!important;gap:0!important;background:#393d40!important;
+  border-radius:9px!important;overflow:hidden!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-home{
+  background:#45a2e8!important;border-radius:9px 0 0 9px!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-away{
+  background:#ed3035!important;border-radius:0 9px 9px 0!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stats-foot{
+  color:#aeb5ba!important;background:#1b1f22!important;
+  padding:10px 8px!important;font-size:10px!important;line-height:1.4!important;
+ }
+}
+@media(max-width:360px){
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row{padding:10px 5px 9px!important}
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-values{grid-template-columns:44px minmax(0,1fr) 44px!important;font-size:13px!important}
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-values b{font-size:13px!important}
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-label{font-size:11px!important}
+}
+</style>
