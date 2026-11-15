@@ -3143,9 +3143,10 @@ async function loadMamGoalEvents(article,panel,forceRefresh=false){
  const liveButton=article.querySelector(".liveStatsBtn");
  const lineupButton=article.querySelector(".lineupBtn");
  const analysisButton=article.querySelector(".predBtn:not(.liveAnalyzeBtn)")||article.querySelector(".liveAnalyzeBtn");
- const fixtureId=String(liveButton?.dataset.liveId||lineupButton?.dataset.id||analysisButton?.dataset.id||"");
+ const rawFixtureId=String(liveButton?.dataset.liveId||lineupButton?.dataset.id||analysisButton?.dataset.id||"");
+ const source=String(liveButton?.dataset.liveSource||(rawFixtureId.startsWith("espn-")?"espn":"api"));
+ const fixtureId=source==="espn"&&rawFixtureId.startsWith("espn-")?(rawFixtureId.match(/^espn-[a-z0-9._-]+-(\\d+)$/i)?.[1]||rawFixtureId):rawFixtureId;
  const leagueSlug=String(liveButton?.dataset.liveLeague||lineupButton?.dataset.espnLeague||"");
- const source=String(liveButton?.dataset.liveSource||(fixtureId.startsWith("espn-")?"espn":"api"));
  const homeName=String(liveButton?.dataset.liveHomeName||lineupButton?.dataset.homeName||analysisButton?.dataset.homeName||article.querySelector(".team-block:first-child strong")?.textContent||"Ev sahibi");
  const awayName=String(liveButton?.dataset.liveAwayName||lineupButton?.dataset.awayName||analysisButton?.dataset.awayName||article.querySelector(".team-block:last-child strong")?.textContent||"Deplasman");
  const safe=value=>esc(String(value??""));
@@ -3165,7 +3166,7 @@ async function loadMamGoalEvents(article,panel,forceRefresh=false){
     const minute=item.clock?.displayValue||item.time?.displayValue||item.displayClock||item.clock||"";
     const description=item.text||item.type?.text||item.type||item.shortText||"Gol";
     return {minute:String(minute||""),player:athlete.displayName||athlete.fullName||athlete.name||item.player?.displayName||"Golü atan oyuncu belirtilmedi",assist:item.assist?.displayName||item.assists?.[0]?.athlete?.displayName||"",team:team.displayName||team.name||"",detail:String(description),order:Number(item.period?.number||item.period||0)};
-   }).filter(x=>/goal|penalty|own goal|gol/i.test(x.detail)||x.player!=="Golü atan oyuncu belirtilmedi");
+   }).filter((x,index)=>{const item=raw[index]||{};return item.scoringPlay===true||/goal|penalty scored|own goal|gol/i.test(x.detail);});
   }else{
    if(!/^\d+$/.test(fixtureId))throw new Error("API-Football maç kimliği geçersiz.");
    const payload=await api("fixtures/events?"+qs({fixture:fixtureId}));
@@ -4010,6 +4011,15 @@ async function refreshOpenLiveStats(){
   for(const button of buttons){
    if(document.hidden)break;
    await loadLiveStats(button,true);
+  }
+  const goalPanes=[...document.querySelectorAll(".match-detail-pane[data-pane='goals']")].filter(panel=>{
+   const overlay=panel.closest(".match-detail-overlay");
+   return !panel.hidden&&overlay&&!overlay.hidden;
+  });
+  for(const panel of goalPanes){
+   if(document.hidden)break;
+   const article=panel.closest(".match.in-detail");
+   if(article)await loadMamGoalEvents(article,panel,true);
   }
  }finally{mamLiveStatsRefreshBusy=false;}
 }
