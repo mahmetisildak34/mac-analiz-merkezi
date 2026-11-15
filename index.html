@@ -3773,27 +3773,40 @@ function renderMatches(){
   const countryFlags={"Czech-Republic":"🇨🇿","Czech Republic":"🇨🇿","Poland":"🇵🇱","Spain":"🇪🇸","Denmark":"🇩🇰","Germany":"🇩🇪","Italy":"🇮🇹","France":"🇫🇷","England":"🏴","Türkiye":"🇹🇷","Turkey":"🇹🇷","World":"🌍","Europe":"🇪🇺"};
   return '<section class="mam-league-group"><div class="mam-league-heading"><span class="mam-league-globe">'+esc(league.icon||countryFlags[league.country]||"⚽")+'</span><strong>'+esc(league.name||"Diğer maçlar")+'</strong><small>'+esc(league.country||"")+'</small><span class="mam-league-count">'+group.length+' MAÇ</span></div>'+group.map(m=>{
   const f=m.fixture||{},l=m.league||{},t=m.teams||{},g=m.goals||{};
-  const statusCode=mamCanonicalMatchStatus(m);
+  let statusCode=mamCanonicalMatchStatus(m);
   const statusNames={"NS":"Başlamadı","TBD":"Saat bekleniyor","1H":"1. yarı","HT":"Devre arası","2H":"2. yarı","ET":"Uzatmalar","BT":"Uzatma arası","P":"Penaltılar","SUSP":"Durduruldu","INT":"Kesildi","LIVE":"Canlı","FT":"Bitti","AET":"Uzatmalarda bitti","PEN":"Penaltılarla bitti","PST":"Ertelendi","CANC":"İptal","ABD":"Yarıda kaldı","AWD":"Hükmen","WO":"Hükmen"};
-  const statusLabel=statusNames[statusCode]||statusCode||"Durum bilinmiyor";
-  const isLiveStatus=["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(statusCode);
+  let statusLabel=statusNames[statusCode]||statusCode||"Durum bilinmiyor";
+  let isLiveStatus=["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(statusCode);
   const isFinishedStatus=["FT","AET","PEN","AWD","WO"].includes(statusCode);
   const time=f.date?new Date(f.date).toLocaleTimeString("tr-TR",{
    hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"
   }):"";
   const elapsed=f.status?.elapsed;
+  let effectiveElapsed=Number(elapsed);
+  // Sağlayıcı dakikası maç saatinin belirgin gerisindeyse duvar saatine göre uzlaştır.
+  // 45–60 dakika aralığı devre arasını, 60+ dakika ise yaklaşık ikinci yarıyı işaret eder.
+  if(isLiveStatus&&f.date){
+   const wallMinute=Math.floor((Date.now()-new Date(f.date).getTime())/60000);
+   const providerMinute=Number.isFinite(effectiveElapsed)?effectiveElapsed:null;
+   if(Number.isFinite(wallMinute)&&wallMinute>=0&&wallMinute<=130&&
+      (providerMinute===null||wallMinute-providerMinute>=6)){
+    if(wallMinute>=46&&wallMinute<60&&["1H","LIVE"].includes(statusCode)){
+     statusCode="HT";
+    }else if(wallMinute>=60&&wallMinute<=130&&["1H","HT","LIVE","2H"].includes(statusCode)){
+     statusCode="2H";effectiveElapsed=Math.max(46,wallMinute-15);
+    }
+   }
+  }
+  statusLabel=statusNames[statusCode]||statusCode||"Durum bilinmiyor";
+  isLiveStatus=["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(statusCode);
   let liveMinute="";
   if(isLiveStatus){
-   if(elapsed!==null&&elapsed!==undefined&&elapsed!==""){
-    liveMinute=String(elapsed)+"'";
-   }else if(f.status?.displayClock){
-    liveMinute=String(f.status.displayClock);
-   }else if(f.date){
-    // Sağlayıcı dakika göndermiyorsa başlama saatinden yaklaşık dakika hesapla.
+   if(statusCode==="HT")liveMinute="Devre arası";
+   else if(Number.isFinite(effectiveElapsed))liveMinute=String(Math.round(effectiveElapsed))+"'";
+   else if(f.status?.displayClock)liveMinute=String(f.status.displayClock);
+   else if(f.date){
     const sinceKickoff=Math.floor((Date.now()-new Date(f.date).getTime())/60000);
-    if(Number.isFinite(sinceKickoff)&&sinceKickoff>=0&&sinceKickoff<=130){
-     liveMinute="~"+sinceKickoff+"'";
-    }
+    if(Number.isFinite(sinceKickoff)&&sinceKickoff>=0&&sinceKickoff<=130)liveMinute="~"+sinceKickoff+"'";
    }
   }
   const displayedTime=isLiveStatus?(liveMinute||"Canlı"):time;
@@ -3812,7 +3825,7 @@ function renderMatches(){
    </div>
    ${isFinishedStatus?'<div class="analysis-preview">✓ Gerçekleşen sonuç: <b>'+esc(g.home)+' – '+esc(g.away)+'</b>. Maç önü tahmini bu karşılaşma için artık üretilemez.</div>':""}
 
-   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-minute="'+esc(elapsed??"")+'" data-live-home-score="'+esc(g.home??0)+'" data-live-away-score="'+esc(g.away??0)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
+   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-minute="'+esc(effectiveElapsed??"")+'" data-live-home-score="'+esc(g.home??0)+'" data-live-away-score="'+esc(g.away??0)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
    <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
