@@ -2435,6 +2435,12 @@ async function loadMatches(){
      console.warn("Football-data.org fikstürü alınamadı:",fallbackError);
     }
    }
+   // If the central D1 upcoming archive already returned this date, use it
+   // before failing over to an empty screen.
+   if(!alternative.length&&archivedDayRows.length){
+    alternative=archivedDayRows;
+    alternativeSource="D1 tarihsel/gelecek arşivi";
+   }
    if(!alternative.length){
     allMatches=previousMatches;
     throw new Error("API-Football kotası dolu. "+espnFailure+" | "+footballDataFailure+" Önceki fikstür korunuyor.");
