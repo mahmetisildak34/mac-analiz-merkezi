@@ -1632,7 +1632,7 @@ async function api(path){
   // gereksiz API-Football isteği gönderilmesin. Hata halinde son başarılı veri korunur.
   const isArchiveBackfill=cleanPath.startsWith("archive/backfill-all?");
   if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLineupRequest&&!isArchiveBackfill){
-    const cacheAge=isLive?10*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?15*1000:(isEspnSummary?5*60*1000:30*60*1000);
+    const cacheAge=isLive?5*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?15*1000:30*60*1000;
     if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
   }
 
@@ -4166,7 +4166,7 @@ async function refreshActiveMatchScore(){
      const state=String(type.state||"").toLowerCase();
      const completed=type.completed===true||state==="post";
      const halfTime=/half.?time/i.test(String(type.detail||type.shortDetail||""));
-     const statusShort=completed?"FT":halfTime?"HT":state==="in"||state==="live"||state==="inprogress"?"LIVE":"LIVE";
+     const statusShort=completed||state==="post"?"FT":halfTime?"HT":state==="pre"?"NS":state==="in"||state==="live"||state==="inprogress"?"LIVE":"LIVE";
      const existing=fresh||allMatches.find(match=>
       (source==="api"?String(match.fixture?.id||"")===rawId:String(match.league?.id||"")===leagueId&&String(match.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId)
      );
@@ -4206,10 +4206,11 @@ async function refreshActiveMatchScore(){
    :providerMinute;
   const shownMinute=Number.isFinite(clockBase)?Math.floor(clockBase):NaN;
   const minute=Number.isFinite(shownMinute)?shownMinute+"'":statusShort==="HT"?"Devre arası":status.displayClock||"Canlı";
+  const stoppedLabel=statusShort==="HT"?"Devre arası":["FT","AET","PEN","POST"].includes(statusShort)?"Maç bitti":statusShort==="SUSP"?"Durduruldu":statusShort==="INT"?"Oyun durdu":"Canlı";
   const headClock=article.querySelector(".match-head .match-time");
-  if(headClock)headClock.textContent="🔴 "+minute+" · "+(statusShort==="HT"?"Devre arası":"Canlı");
+  if(headClock)headClock.textContent=(isStopped?"⚪ ":"🔴 ")+minute+" · "+stoppedLabel;
   const centerSub=article.querySelector(".match-center small");
-  if(centerSub)centerSub.textContent=statusShort==="HT"?"Devre arası":"Canlı maç · sağlayıcı saati";
+  if(centerSub)centerSub.textContent=stoppedLabel==="Canlı"?"Canlı maç · sağlayıcı saati":stoppedLabel;
   if(Number.isFinite(clockBase)){
    button.dataset.liveClockBase=String(clockBase);
    button.dataset.liveClockAt=String(now);
@@ -4238,7 +4239,8 @@ async function refreshOpenLiveStats(){
   for(const button of buttons){
    if(document.hidden)break;
    const last=Number(button.dataset.statsLastRefresh||0);
-   if(Date.now()-last<55000)continue;
+   const statsInterval=String(button.dataset.liveSource||"api")==="espn"?15000:55000;
+   if(Date.now()-last<statsInterval)continue;
    button.dataset.statsLastRefresh=String(Date.now());
    await loadLiveStats(button,true);
   }
@@ -4309,10 +4311,10 @@ function mamTickVisibleMatchClock(){
  }
 }
 if(!window.mamLiveStatsTimer){
- window.mamLiveScoreTimer=setInterval(refreshOpenLiveScore,15000);
- window.mamLiveStatsTimer=setInterval(refreshOpenLiveStats,60000);
+ window.mamLiveScoreTimer=setInterval(refreshOpenLiveScore,8000);
+ window.mamLiveStatsTimer=setInterval(refreshOpenLiveStats,5000);
  window.mamLiveClockTimer=setInterval(mamTickVisibleMatchClock,1000);
- window.mamLiveRefreshTimer=setInterval(()=>{if(mamScreenMode==="live")refreshVisibleFixtureLists();},30000);
+ window.mamLiveRefreshTimer=setInterval(()=>{if(mamScreenMode==="live")refreshVisibleFixtureLists();},15000);
  window.mamFixtureRefreshTimer=setInterval(()=>{if(mamScreenMode==="upcoming")refreshVisibleFixtureLists();},60000);
  document.addEventListener("visibilitychange",()=>{
   if(!document.hidden){
