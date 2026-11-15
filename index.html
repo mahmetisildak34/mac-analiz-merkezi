@@ -6388,3 +6388,79 @@ main.mam-screen-live>section.panel:has(#matches)[hidden],main.mam-screen-upcomin
  .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-clock{min-width:36px!important;font-size:9px!important}
 }
 </style>
+
+
+<style id="mam-final-mobile-match-row-v1">
+/* FINAL MOBILE MATCH ROW OVERRIDE · NOV 15 */
+@media(max-width:600px){
+ #matches .mam-league-group{margin:5px 0 8px!important;padding:0 5px 4px!important;border-radius:11px!important}
+ #matches .mam-league-heading{min-height:29px!important;margin-left:-5px!important;margin-right:-5px!important;padding:5px 7px!important;gap:5px!important}
+ #matches .mam-league-heading strong{font-size:10px!important;line-height:1.1!important}
+ #matches .mam-league-heading small,#matches .mam-league-count{font-size:8px!important}
+ #matches article.match.match-modern:not(.in-detail){
+  position:relative!important;display:block!important;min-height:43px!important;height:43px!important;
+  margin:3px 0!important;padding:4px 34px 4px 5px!important;border-radius:8px!important;
+  overflow:hidden!important;box-shadow:none!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-head{
+  position:absolute!important;left:5px!important;top:3px!important;width:27px!important;
+  min-height:0!important;margin:0!important;padding:0!important;border:0!important;
+  display:flex!important;justify-content:center!important;align-items:center!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-head .league-label{display:none!important}
+ #matches article.match.match-modern:not(.in-detail) .match-time{font-size:8px!important;line-height:1!important;white-space:nowrap!important}
+ #matches article.match.match-modern:not(.in-detail) .match-time i{display:none!important}
+ #matches article.match.match-modern:not(.in-detail) .match-versus{
+  display:grid!important;grid-template-columns:minmax(0,1fr) 43px minmax(0,1fr)!important;
+  align-items:center!important;gap:3px!important;height:34px!important;min-height:34px!important;
+  margin:0!important;padding:0!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .team-block{
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  justify-content:center!important;gap:4px!important;min-width:0!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .team-block:first-child{flex-direction:row!important}
+ #matches article.match.match-modern:not(.in-detail) .team-block:last-child{flex-direction:row-reverse!important}
+ #matches article.match.match-modern:not(.in-detail) .team-block strong{
+  display:block!important;min-width:0!important;max-width:calc(100% - 22px)!important;
+  overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+  font-size:9px!important;line-height:1!important;text-align:left!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .team-logo,
+ #matches article.match.match-modern:not(.in-detail) .team-placeholder{
+  width:19px!important;height:19px!important;min-width:19px!important;max-width:19px!important;
+  flex:0 0 19px!important;object-fit:contain!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-center{
+  display:flex!important;flex-direction:column!important;align-items:center!important;gap:0!important;min-width:0!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-clock{font-size:11px!important;line-height:1.1!important;white-space:nowrap!important}
+ #matches article.match.match-modern:not(.in-detail) .match-center small{font-size:7px!important;line-height:1!important;margin-top:1px!important}
+ #matches article.match.match-modern:not(.in-detail) .match-actions,
+ #matches article.match.match-modern:not(.in-detail) .analysis-preview,
+ #matches article.match.match-modern:not(.in-detail) .pred,
+ #matches article.match.match-modern:not(.in-detail) .lineup-panel,
+ #matches article.match.match-modern:not(.in-detail) .liveStats{display:none!important}
+ #matches article.match.match-modern:not(.in-detail) .mam-match-open{
+  position:absolute!important;right:4px!important;top:50%!important;left:auto!important;
+  transform:translateY(-50%)!important;display:grid!important;place-items:center!important;
+  width:25px!important;height:25px!important;min-width:25px!important;min-height:25px!important;
+  margin:0!important;padding:0!important;border-radius:7px!important;
+  background:#263b58!important;border:1px solid rgba(130,170,220,.45)!important;
+  color:#fff!important;font-size:0!important;line-height:0!important;
+  white-space:nowrap!important;overflow:hidden!important;box-shadow:none!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .mam-match-open::after{
+  content:"↗"!important;display:block!important;font-size:15px!important;line-height:1!important;
+ }
+ #matches article.match.match-modern.in-detail{height:auto!important;min-height:0!important;padding:10px!important;overflow:visible!important}
+ #matches article.match.match-modern.in-detail .match-head{position:static!important;width:auto!important;display:flex!important;justify-content:space-between!important;padding-bottom:8px!important;border-bottom:1px solid rgba(140,170,210,.2)!important}
+ #matches article.match.match-modern.in-detail .match-head .league-label{display:block!important}
+ #matches article.match.match-modern.in-detail .match-versus{height:auto!important;min-height:64px!important;grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr)!important;padding:10px 0!important}
+ #matches article.match.match-modern.in-detail .team-block{flex-direction:column!important}
+ #matches article.match.match-modern.in-detail .team-logo,
+ #matches article.match.match-modern.in-detail .team-placeholder{width:34px!important;height:34px!important;flex-basis:34px!important}
+ #matches article.match.match-modern.in-detail .team-block strong{font-size:11px!important;max-width:100%!important;text-align:center!important;white-space:normal!important}
+ #matches article.match.match-modern.in-detail .mam-match-open{display:none!important}
+}
+</style>
