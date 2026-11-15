@@ -2822,7 +2822,25 @@ async function loadLiveMatchesNow(){
   $("status").textContent="Ana kaynak yanıt vermedi; ESPN ligleri taranıyor...";
   const date=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Istanbul"});
   try{
-   const fallback=await espnFixtures(date,true);
+   let fallback=await espnFixtures(date,true);
+   // Türkiye saatiyle gece yarısından sonra, UTC/ESPN takviminde bir önceki güne ait
+   // hâlâ devam eden maçlar yeni gün scoreboard sorgusunda görünmeyebilir.
+   // Bugün canlı maç bulunmadıysa 00:00–05:59 arasında dünkü ESPN skor tabelasını da tara.
+   if(!fallback.some(isLive)){
+    const localHour=Number(new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Istanbul",hour:"2-digit",hourCycle:"h23"}).format(new Date()));
+    if(Number.isFinite(localHour)&&localHour<6){
+     const previousDateObj=new Date(date+"T00:00:00Z");
+     previousDateObj.setUTCDate(previousDateObj.getUTCDate()-1);
+     const previousDate=previousDateObj.toISOString().slice(0,10);
+     try{
+      const previousDay=await espnFixtures(previousDate,true);
+      const previousLive=previousDay.filter(isLive);
+      if(previousLive.length)fallback=[...fallback,...previousLive];
+     }catch(previousDayError){
+      console.warn("Gece yarısı önceki gün ESPN canlı taraması başarısız:",previousDayError);
+     }
+    }
+   }
    // ESPN canlı taraması yalnızca ekranda gösterilmez; bulunan tüm maçlar merkezi D1 arşivine de yazılır.
    if(fallback.length)await mamSaveMatchesToD1(fallback);
    const fallbackLive=fallback.filter(isLive);
