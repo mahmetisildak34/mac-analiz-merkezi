@@ -2289,7 +2289,15 @@ async function getEspnMatchStats(leagueId,eventId){
    if(!Number.isFinite(number))continue;
    if(/corner/.test(key))result.corners=number;
    else if(/shotsontarget|shotsongoal|ontarget/.test(key))result.shotsOnTarget=number;
+   else if(/blockedshots/.test(key))result.blockedShots=number;
+   else if(/shotsofftarget|offtarget/.test(key))result.shotsOffTarget=number;
    else if(/totalshots|shots$/.test(key))result.shots=number;
+   else if(/possession/.test(key))result.possession=number;
+   else if(/foul/.test(key))result.fouls=number;
+   else if(/offside/.test(key))result.offsides=number;
+   else if(/save/.test(key))result.saves=number;
+   else if(/accuratepasses|totalpasses|passes/.test(key))result.passes=number;
+   else if(key==="xg"||/expectedgoals/.test(key))result.xg=number;
    else if(/yellowcard/.test(key))result.yellowCards=number;
    else if(/redcard/.test(key))result.redCards=number;
   }
@@ -2315,7 +2323,15 @@ async function getApiFootballMatchStats(fixtureId){
    if(raw===null||raw===undefined||raw===""||!Number.isFinite(number))continue;
    if(/corner/.test(key))result.corners=number;
    else if(/shotsongoal|shotsontarget/.test(key))result.shotsOnTarget=number;
+   else if(/blockedshots/.test(key))result.blockedShots=number;
+   else if(/shotsofftarget/.test(key))result.shotsOffTarget=number;
    else if(/totalshots/.test(key))result.shots=number;
+   else if(/ballpossession|possession/.test(key))result.possession=number;
+   else if(/fouls/.test(key))result.fouls=number;
+   else if(/offsides/.test(key))result.offsides=number;
+   else if(/goalkeepersaves|saves/.test(key))result.saves=number;
+   else if(/totalpasses|passes/.test(key))result.passes=number;
+   else if(key==="xg"||/expectedgoals/.test(key))result.xg=number;
    else if(/yellowcards?/.test(key))result.yellowCards=number;
    else if(/redcards?/.test(key))result.redCards=number;
   }
