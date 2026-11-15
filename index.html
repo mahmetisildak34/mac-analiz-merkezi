@@ -2717,7 +2717,7 @@ async function mamEnrichLiveScoresWithEspn(matches,date){
   return league?.slug?[[league.slug,{id:String(match.league?.id),slug:league.slug}]]:[];
  }).flat().map(item=>[item[0],item[1]])).values()];
  if(!slugTargets.length)return matches;
- const normalize=value=>String(value||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,"");
+ const normalize=value=>{let name=String(value||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,"");const aliases={turkiye:"turkey",czechrepublic:"czechia",korearepublic:"southkorea",unitedstates:"usa",unitedstatesofamerica:"usa",iranislamicrepublic:"iran",bosniaandherzegovina:"bosnia"};return aliases[name]||name;};
  const scoreMap=new Map();
  const dateKey=String(date).replace(/-/g,"");
  const results=await Promise.allSettled(slugTargets.map(async target=>{
@@ -2745,7 +2745,7 @@ async function mamEnrichLiveScoresWithEspn(matches,date){
   const leagueId=String(match.league?.id||"");
   const home=normalize(match.teams?.home?.name),away=normalize(match.teams?.away?.name);
   const score=scoreMap.get(leagueId+"|"+home+"|"+away);
-  if(!score)return match;
+  if(!score){if(leagueId==="5")console.debug("MAM ESPN skor eşleşmesi bulunamadı:",{home:match.teams?.home?.name,away:match.teams?.away?.name,leagueId});return match;}
   const current=match.goals||{};
   if(Number(current.home)===score.home&&Number(current.away)===score.away)return match;
   updated++;
