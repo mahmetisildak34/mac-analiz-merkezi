@@ -1595,13 +1595,6 @@ async function api(path){
   const isTffFixtures=cleanPath==="superlig/fixtures";
   const isPrimaryApi=!isArchive&&!isTffFixtures&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/")&&!cleanPath.startsWith("fixturesdownload/");
   const primaryCooldownKey="mam_api_football_cooldown_until";
-  if(isPrimaryApi){
-    const cooldownUntil=Number(localStorage.getItem(primaryCooldownKey)||0);
-    if(cooldownUntil>Date.now()){
-      const minutes=Math.max(1,Math.ceil((cooldownUntil-Date.now())/60000));
-      throw new Error("API-Football kota beklemesinde ("+minutes+" dk). ESPN ve Football-data.org yedekleri kullanılabilir.");
-    }
-  }
   const cacheKey="mam_api_cache_v2_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
   let cachedEntry=null;
@@ -1613,6 +1606,16 @@ async function api(path){
   if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLineupRequest&&!isArchiveBackfill){
     const cacheAge=isLive?60*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?60*1000:(isEspnSummary?5*60*1000:30*60*1000);
     if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
+  }
+
+  // Read fresh cache before enforcing API-Football cooldown. A quota must not
+  // hide data that was already fetched successfully.
+  if(isPrimaryApi){
+    const cooldownUntil=Number(localStorage.getItem(primaryCooldownKey)||0);
+    if(cooldownUntil>Date.now()){
+      const minutes=Math.max(1,Math.ceil((cooldownUntil-Date.now())/60000));
+      throw new Error("API-Football kota beklemesinde ("+minutes+" dk). ESPN ve Football-data.org yedekleri kullanılabilir.");
+    }
   }
 
   const request=async()=>{
@@ -2409,7 +2412,7 @@ async function loadMatches(){
    }
   }catch(primaryError){
    const message=String(primaryError.message||primaryError);
-   if(!/rate.?limit|Too many requests|API dakika başına istek kotasını doldurdu|plan|date|429|quota/i.test(message))throw primaryError;
+   if(!/kota beklemesinde|rate.?limit|Too many requests|API dakika başına istek kotasını doldurdu|plan|date|429|quota/i.test(message))throw primaryError;
    $("status").textContent="API-Football kotası/tarih erişimi kullanılamıyor. ESPN büyük lig fikstürleri deneniyor...";
    let alternative=[];
    let alternativeSource="";
@@ -2464,8 +2467,14 @@ async function loadMatches(){
    $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+".";
   }
  }catch(e){
-  $("status").innerHTML='<span class="error">'+esc(e.message)+'</span>';
-  if(!allMatches.length)$("matches").innerHTML='<div class="empty">Fikstür alınamadı. Hata: '+esc(e.message)+'</div>';
+  if(previousMatches.length){
+   allMatches=previousMatches;
+   renderMatches();
+   $("status").innerHTML='<span class="error">Yeni fikstür alınamadı; önceki maç listesi korundu. '+esc(e.message)+'</span>';
+  }else{
+   $("status").innerHTML='<span class="error">'+esc(e.message)+'</span>';
+   $("matches").innerHTML='<div class="empty">Fikstür alınamadı. Hata: '+esc(e.message)+'</div>';
+  }
  }finally{button.disabled=false}
 }
 
