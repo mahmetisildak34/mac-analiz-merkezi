@@ -2916,6 +2916,20 @@ async function loadLiveMatchesNow(){
    }
    footballDataErrorText="Football-data.org desteklediği müsabakalarda şu anda canlı maç döndürmedi.";
   }catch(error){footballDataErrorText=String(error?.message||error);}
+  // Üçüncü yedek: SportScore canlı + yakın maç akışından yalnızca aktif durumları al.
+  let sportScoreErrorText="";
+  try{
+   const sportScoreLive=(await mamSportScoreLiveFixtures()).filter(isLive);
+   if(sportScoreLive.length){
+    allMatches=sportScoreLive;
+    mamSaveLiveMatchCache(allMatches);
+    renderMatches();
+    await mamSaveMatchesToD1(allMatches);
+    $("status").textContent=allMatches.length+" canlı maç bulundu · SportScore yedek kaynağı · API-Football kotası dolu olabilir.";
+    return;
+   }
+   sportScoreErrorText="SportScore canlı maç döndürmedi.";
+  }catch(error){sportScoreErrorText=String(error?.message||error);}
   // Canlı sağlayıcılar yanıt vermezse, son 6 saatte güncellenmiş gerçek LIVE kayıtlarını D1 arşivinden oku.
   let d1LiveMatches=[];
   try{
@@ -2938,7 +2952,7 @@ async function loadLiveMatchesNow(){
   const cacheNote=savedLiveCache&&cachedMatches.length
    ?' Son başarılı canlı liste cihazda kayıtlı ('+new Date(savedLiveCache.savedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+'); maç durumları yenilenemediği için eski olabilir.'
    :cachedMatches.length?' Ekrandaki son canlı maç listesi korundu.':' Henüz bu cihazda kaydedilmiş canlı maç listesi yok.';
-  $("status").innerHTML='<span class="error">Canlı veri kaynağı şu an yanıt vermiyor; '+(cachedMatches.length?'son kayıtlı maçlar gösteriliyor.':'şu an gösterilecek kayıtlı canlı maç yok.')+' API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+esc(cacheNote)+'</span>';
+  $("status").innerHTML='<span class="error">Canlı veri kaynağı şu an yanıt vermiyor; '+(cachedMatches.length?'son kayıtlı maçlar gösteriliyor.':'şu an gösterilecek kayıtlı canlı maç yok.')+' API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+' | SportScore: '+esc(sportScoreErrorText)+esc(cacheNote)+'</span>';
  }catch(unexpectedError){
   allMatches=cachedMatches;
   renderMatches();
@@ -4077,8 +4091,8 @@ function renderMatches(){
    </div>
    ${isFinishedStatus?'<div class="analysis-preview">✓ Gerçekleşen sonuç: <b>'+esc(g.home)+' – '+esc(g.away)+'</b>. Maç önü tahmini bu karşılaşma için artık üretilemez.</div>':""}
 
-   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-minute="'+esc(effectiveElapsed??"")+'" data-live-home-score="'+esc(g.home??0)+'" data-live-away-score="'+esc(g.away??0)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
-   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
+   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isSportScore?rawId.slice("sportscore-".length):isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-minute="'+esc(effectiveElapsed??"")+'" data-live-home-score="'+esc(g.home??0)+'" data-live-away-score="'+esc(g.away??0)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
+   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
    <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
@@ -4178,6 +4192,11 @@ async function refreshActiveMatchScore(){
  const awayName=String(button.dataset.liveAwayName||"");
  try{
   let fresh=null;
+  if(source==="sportscore"&&Date.now()-Number(button.dataset.sportScoreRefresh||0)>=50000){
+   button.dataset.sportScoreRefresh=String(Date.now());
+   try{const latest=await mamSportScoreLiveFixtures(true);fresh=latest.find(match=>String(match.fixture?.id||"")==="sportscore-"+rawId)||null;}
+   catch(sportScoreError){console.warn("SportScore açık maç skoru yenilenemedi; son geçerli skor korunuyor.",sportScoreError);}
+  }
   // API-Football ücretsiz kotasını koru: aynı maç için ana sağlayıcıyı en fazla 55 saniyede bir sorgula.
   if(source==="api"&&Date.now()-Number(button.dataset.primaryScoreRefresh||0)>=55000){
    button.dataset.primaryScoreRefresh=String(Date.now());
