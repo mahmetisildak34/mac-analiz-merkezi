@@ -3694,7 +3694,7 @@ function openMamMatchDetail(article){
  overlay.querySelector(".match-detail-top strong").textContent=home+" – "+away;
  overlay.hidden=false;document.body.style.overflow="hidden";
  const liveButton=article.querySelector(".liveStatsBtn");
- if(liveButton){try{const rawId=String(liveButton.dataset.liveId||"");const source=String(liveButton.dataset.liveSource||"");const league=String(liveButton.dataset.liveLeagueId||"");const match=allMatches.find(m=>String(m.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId&&String(m.league?.id||"")===league)||null;localStorage.setItem("mam_open_live_detail",JSON.stringify({id:rawId,source,league,tab:"stats",match}));}catch(_){}}
+ if(liveButton){mamSeedVisibleMatchClock(liveButton);try{const rawId=String(liveButton.dataset.liveId||"");const source=String(liveButton.dataset.liveSource||"");const league=String(liveButton.dataset.liveLeagueId||"");const match=allMatches.find(m=>String(m.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId&&String(m.league?.id||"")===league)||null;localStorage.setItem("mam_open_live_detail",JSON.stringify({id:rawId,source,league,tab:"stats",match}));}catch(_){}}
  try{history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
  const first=liveButton?(article.querySelector('.match-detail-tab[data-pane="stats"]')||article.querySelector(".match-detail-tab")):(article.querySelector('.match-detail-tab[data-pane="analysis"]')||article.querySelector(".match-detail-tab"));
  if(first)first.click();
@@ -4246,9 +4246,38 @@ async function refreshOpenLiveScore(){
  try{await refreshActiveMatchScore();}
  finally{mamLiveScoreRefreshBusy=false;}
 }
+function mamSeedVisibleMatchClock(button){
+ if(!button)return;
+ const currentBase=Number(button.dataset.liveClockBase);
+ const currentAt=Number(button.dataset.liveClockAt);
+ if(Number.isFinite(currentBase)&&Number.isFinite(currentAt))return;
+ const rawId=String(button.dataset.liveId||"");
+ const source=String(button.dataset.liveSource||"");
+ const leagueId=String(button.dataset.liveLeagueId||"");
+ const match=allMatches.find(item=>{
+  const id=String(item.fixture?.id||"");
+  return source==="espn"
+   ?String(item.league?.id||"")===leagueId&&id.replace(/^espn-[a-z0-9._-]+-/,"")===rawId
+   :id===rawId;
+ })||null;
+ const analyzeButton=button.closest(".match")?.querySelector(".liveAnalyzeBtn");
+ const status=String(match?.fixture?.status?.short||analyzeButton?.dataset.status||"LIVE").toUpperCase();
+ const fromMatch=Number(match?.fixture?.status?.elapsed);
+ const fromButton=Number(analyzeButton?.dataset.liveMinute);
+ const fromClock=Number(String(button.closest(".match")?.querySelector(".match-head .match-time")?.textContent||"").match(/(\d{1,3})\s*['′]/)?.[1]);
+ const base=Number.isFinite(fromMatch)&&fromMatch>=0?fromMatch:
+  Number.isFinite(fromButton)&&fromButton>=0?fromButton:
+  Number.isFinite(fromClock)&&fromClock>=0?fromClock:NaN;
+ if(Number.isFinite(base)){
+  button.dataset.liveClockBase=String(base);
+  button.dataset.liveClockAt=String(Date.now());
+  button.dataset.liveClockStatus=status;
+ }
+}
 function mamTickVisibleMatchClock(){
  const buttons=[...document.querySelectorAll(".match-detail-overlay:not([hidden]) .liveStatsBtn")];
  for(const button of buttons){
+  mamSeedVisibleMatchClock(button);
   const base=Number(button.dataset.liveClockBase),at=Number(button.dataset.liveClockAt);
   if(!Number.isFinite(base)||!Number.isFinite(at))continue;
   const status=String(button.dataset.liveClockStatus||"LIVE").toUpperCase();
