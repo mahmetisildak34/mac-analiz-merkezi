@@ -4257,7 +4257,9 @@ async function refreshOpenLiveStats(){
    const article=panel.closest(".match.in-detail");
    if(article){
     const last=Number(panel.dataset.goalLastRefresh||0);
-    if(Date.now()-last>=55000){
+    const liveButton=article.querySelector(".liveStatsBtn");
+    const goalInterval=String(liveButton?.dataset.liveSource||"api")==="espn"?15000:55000;
+    if(Date.now()-last>=goalInterval){
      panel.dataset.goalLastRefresh=String(Date.now());
      await loadMamGoalEvents(article,panel,true);
     }
