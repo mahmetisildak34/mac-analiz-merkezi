@@ -6967,3 +6967,23 @@ input,select,.league-trigger{
  .mam-live-stat-label{font-size:7px!important}
 }
 </style>
+
+<style id="mam-mobile-stats-contrast-fix-v1">
+
+/* Fix contrast in compact white statistic tiles: override older dark-theme !important colors */
+@media(max-width:600px){
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row .mam-live-stat-values,
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row .mam-live-stat-values b{
+  color:#102b20!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row .mam-live-stat-label{
+  color:#496456!important;font-weight:850!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row{
+  background:#ffffff!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-track{
+  background:#e7eee9!important;
+ }
+}
+</style>
