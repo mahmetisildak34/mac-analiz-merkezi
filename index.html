@@ -1632,7 +1632,7 @@ async function api(path){
   // gereksiz API-Football isteği gönderilmesin. Hata halinde son başarılı veri korunur.
   const isArchiveBackfill=cleanPath.startsWith("archive/backfill-all?");
   if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLineupRequest&&!isArchiveBackfill){
-    const cacheAge=isLive?20*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?15*1000:(isEspnSummary?5*60*1000:30*60*1000);
+    const cacheAge=isLive?10*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?15*1000:(isEspnSummary?5*60*1000:30*60*1000);
     if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
   }
 
@@ -1706,7 +1706,7 @@ async function api(path){
     }
 
     // API-Football lig fikstürleri (geçmiş + gelecek) D1 arşivine de kaydedilir.
-    if(cleanPath.startsWith("fixtures?")&&Array.isArray(data.response)&&data.response.length){
+    if(cleanPath.startsWith("fixtures?")&&!cleanPath.includes("live=all")&&Array.isArray(data.response)&&data.response.length){
       const fixtureParams=new URLSearchParams(cleanPath.split("?")[1]||"");
       const archiveLeague=fixtureParams.get("league")||data.response[0]?.league?.id||"";
       if(archiveLeague)await mamSaveMatchesToD1(data.response,archiveLeague);
@@ -3698,6 +3698,7 @@ function openMamMatchDetail(article){
  try{history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
  const first=article.querySelector('.match-detail-tab[data-pane="analysis"]')||article.querySelector(".match-detail-tab");
  if(first)first.click();
+ if(liveButton)refreshOpenLiveScore();
 }
 function makeMamDetailTab(article){
  if(article.dataset.detailReady==="true")return;
@@ -4144,14 +4145,15 @@ async function refreshActiveMatchScore(){
  const awayName=String(button.dataset.liveAwayName||"");
  try{
   let fresh=null;
-  if(source==="api"){
+  // API-Football ücretsiz kotasını koru: aynı maç için ana sağlayıcıyı en fazla 55 saniyede bir sorgula.
+  if(source==="api"&&Date.now()-Number(button.dataset.primaryScoreRefresh||0)>=55000){
+   button.dataset.primaryScoreRefresh=String(Date.now());
    try{
     const payload=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
     fresh=(Array.isArray(payload.response)?payload.response:[]).find(match=>String(match.fixture?.id||"")===rawId)||null;
    }catch(primaryError){console.warn("API-Football açık maç skoru alınamadı; ESPN yedeği deneniyor.",primaryError);}
   }
-  // ESPN'i yalnızca API-Football başarısız olduğunda değil, API skorunu çapraz
-  // doğrulamak için de sorgula; kota doluysa da bu yol çalışmaya devam eder.
+  // ESPN kotasız yedek: desteklenen liglerde her skor turunda güncel skoru ve dakika bilgisini al.
   if(slug){
    try{
     const event=await mamFindEspnLiveEvent({slug,date:button.dataset.liveDate||"",eventId:source==="espn"?rawId:"",homeName,awayName});
