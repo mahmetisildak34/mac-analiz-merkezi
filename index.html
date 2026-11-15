@@ -2687,11 +2687,18 @@ async function loadLiveMatchesNow(){
  const savedLiveCache=mamReadLiveMatchCache();
  const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"]);
  const isLive=match=>liveStatuses.has(String(match?.fixture?.status?.short||"").toUpperCase());
- // Ana sayfadaki gelecek/geçmiş maçlar canlı önbelleğin yerine geçemez.
- // Önce ekrandaki gerçek canlı maçları, ardından cihazdaki son başarılı canlı kaydı birleştir.
+ // Eski canlı statüsünde kalmış maçları gerçek canlı akış gibi göstermeyelim.
+ const isRecentLive=match=>{
+  if(!isLive(match))return false;
+  const kickoff=Date.parse(match?.fixture?.date||"");
+  if(!Number.isFinite(kickoff))return false;
+  const age=Date.now()-kickoff;
+  return age>=-20*60*1000&&age<=4*60*60*1000;
+ };
+ // Önceki ekran ve cihaz önbelleği yalnızca yakın zamanda başlamış maçlardan oluşturulur.
  const liveById=new Map();
- previousMatches.filter(isLive).forEach(match=>liveById.set(String(match.fixture?.id??match.id),match));
- (savedLiveCache?.matches||[]).filter(isLive).forEach(match=>{
+ previousMatches.filter(isRecentLive).forEach(match=>liveById.set(String(match.fixture?.id??match.id),match));
+ (savedLiveCache?.matches||[]).filter(isRecentLive).forEach(match=>{
   const key=String(match.fixture?.id??match.id);
   if(!liveById.has(key))liveById.set(key,match);
  });
@@ -2770,7 +2777,7 @@ async function loadLiveMatchesNow(){
    const d1Response=await fetch(WORKER+"/api/archive/live",{cache:"no-store"});
    if(d1Response.ok){
     const d1Payload=await d1Response.json();
-    d1LiveMatches=Array.isArray(d1Payload?.response)?d1Payload.response.filter(isLive):[];
+    d1LiveMatches=Array.isArray(d1Payload?.response)?d1Payload.response.filter(isRecentLive):[];
    }
   }catch(d1Error){console.warn("D1 canlı maç yedeği okunamadı:",d1Error);}
   if(d1LiveMatches.length){
