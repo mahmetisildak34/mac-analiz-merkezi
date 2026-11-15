@@ -6940,3 +6940,30 @@ input,select,.league-trigger{
 .mam-goals-retry{margin-top:8px;min-height:36px;padding:7px 12px;border-radius:9px;background:#1d5b43;color:#f2fff8;font-size:11px;font-weight:850}
 @media(max-width:420px){.mam-goal-row{grid-template-columns:34px 18px minmax(0,1fr) auto;gap:6px;padding:7px 8px;min-height:53px}.mam-goal-copy b{font-size:11px}.mam-goal-copy small{font-size:9px}.mam-goal-type{font-size:8px;padding:4px 5px}}
 </style>
+
+<style id="mam-mobile-stats-one-screen-v1">
+
+/* 2026-11-16: Mobil canlı istatistikler — tüm metrikleri tek ekranda göster */
+@media(max-width:600px){
+ .match.in-detail .match-detail-pane[data-pane="stats"]{padding:5px 6px 8px!important;margin:0 -10px!important;min-height:0!important}
+ .match.in-detail .match-detail-pane[data-pane="stats"] .liveStats.mam-live-stats-view{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:0 6px!important;padding:0!important;border-radius:8px!important;overflow:hidden!important;
+ }
+ .mam-live-stats-title{grid-column:1/-1!important;font-size:14px!important;line-height:1.15!important;padding:7px 9px!important}
+ .mam-live-stat-row{
+  min-width:0!important;padding:6px 7px 5px!important;
+  border-bottom:1px solid #e5ebe7!important;background:#fff!important;
+ }
+ .mam-live-stat-values{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;gap:3px!important;font-size:11px!important;line-height:1.1!important}
+ .mam-live-stat-label{font-size:8px!important;line-height:1.1!important;letter-spacing:0!important;overflow-wrap:anywhere!important}
+ .mam-live-stat-track{height:3px!important;margin-top:4px!important;gap:2px!important}
+ .mam-live-stats-foot{grid-column:1/-1!important;padding:5px 8px!important;font-size:8px!important;line-height:1.25!important}
+}
+@media(max-width:350px){
+ .match.in-detail .match-detail-pane[data-pane="stats"] .liveStats.mam-live-stats-view{gap:0 3px!important}
+ .mam-live-stat-row{padding:5px 4px 4px!important}
+ .mam-live-stat-values{font-size:10px!important;gap:2px!important}
+ .mam-live-stat-label{font-size:7px!important}
+}
+</style>
