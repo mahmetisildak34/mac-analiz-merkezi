@@ -2270,7 +2270,7 @@ async function getEspnMatchStats(leagueId,eventId){
 }
 
 async function getApiFootballMatchStats(fixtureId){
- if(!new RegExp("^\d+$").test(String(fixtureId||"")))return null;
+ if(!/^\d+$/.test(String(fixtureId||"")))return null;
  const data=await api("fixtures/statistics?"+qs({fixture:fixtureId}));
  const rows=Array.isArray(data.response)?data.response:[];
  if(rows.length<2)return null;
