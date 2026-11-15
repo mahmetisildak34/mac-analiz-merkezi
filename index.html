@@ -5259,7 +5259,7 @@ async function analyze(button){
   if(action==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
  }));
- $("mamSectionBack")?.addEventListener("click",async()=>{if(mamScreenMode==="live"){setMamScreen("home");await loadMatches();}else if(mamScreenMode==="upcoming"){setMamScreen("live");await loadLiveMatches();}else{setMamScreen("home");await loadMatches();}window.scrollTo({top:0,behavior:"smooth"});});
+ $("mamSectionBack")?.addEventListener("click",()=>{setMamScreen("home");window.scrollTo({top:0,behavior:"smooth"});});
  $("mamSectionRefresh")?.addEventListener("click",async()=>{if(mamScreenMode==="live")await loadLiveMatches();else if(["upcoming","finished","today"].includes(mamScreenMode))await loadMatches();else if(mamScreenMode==="standings")await loadStandings();});
  
  const unlTabButtons=[...document.querySelectorAll("[data-unl-tab]")];
@@ -6469,5 +6469,126 @@ main.mam-screen-live>section.panel:has(#matches)[hidden],main.mam-screen-upcomin
  #matches article.match.match-modern.in-detail .team-placeholder{width:34px!important;height:34px!important;flex-basis:34px!important}
  #matches article.match.match-modern.in-detail .team-block strong{font-size:11px!important;max-width:100%!important;text-align:center!important;white-space:normal!important}
  #matches article.match.match-modern.in-detail .mam-match-open{display:none!important}
+}
+</style>
+
+
+<style id="mam-professional-controls-v1">
+/* Unified professional control system: stronger contrast, borders and navigation. */
+:root{
+ --mam-ink:#17243a;
+ --mam-blue:#174f9b;
+ --mam-blue-deep:#123b73;
+ --mam-border:#c8d3df;
+ --mam-focus:#2878d8;
+}
+button,.mam-home-shortcut,.mam-bottom-nav button,.mam-nav-item{
+ -webkit-tap-highlight-color:transparent;
+ touch-action:manipulation;
+}
+button{
+ border:1px solid #159b65!important;
+ border-radius:13px!important;
+ font-weight:800!important;
+ box-shadow:0 3px 0 rgba(8,91,55,.18),0 7px 16px rgba(24,55,84,.10)!important;
+}
+button.secondary{
+ border:1.5px solid #9aacc0!important;
+ background:linear-gradient(180deg,#f8fafc,#e9eef4)!important;
+ color:#20344d!important;
+ box-shadow:0 2px 0 rgba(44,64,88,.12)!important;
+}
+button:focus-visible,a:focus-visible{
+ outline:3px solid rgba(40,120,216,.38)!important;
+ outline-offset:3px!important;
+}
+button:disabled{filter:grayscale(.12);box-shadow:none!important}
+.panel,.mam-standings-card,.mam-today-header,.mam-league-group{
+ border:1.5px solid #d2dce6!important;
+ box-shadow:0 7px 22px rgba(24,43,65,.075)!important;
+}
+input,select,.league-trigger{
+ border:1.5px solid #bdcad8!important;
+ box-shadow:inset 0 1px 2px rgba(20,40,60,.035)!important;
+}
+.mam-appbar{
+ border:1.5px solid #c5d2df!important;
+ box-shadow:0 7px 24px rgba(24,43,65,.10)!important;
+}
+.mam-menu-trigger,.mam-search-trigger{
+ width:44px!important;height:44px!important;min-width:44px!important;
+ border:1.5px solid #b8c7d7!important;border-radius:13px!important;
+ background:linear-gradient(180deg,#fff,#edf2f7)!important;
+ color:#183b64!important;font-size:22px!important;
+ box-shadow:0 3px 0 rgba(30,58,88,.12)!important;
+}
+.mam-section-header{
+ display:flex!important;align-items:center!important;gap:9px!important;
+ padding:10px!important;margin:12px 0!important;
+ border:1.5px solid #b9c9da!important;border-radius:17px!important;
+ background:linear-gradient(135deg,#fff,#f0f5fa)!important;
+ box-shadow:0 5px 18px rgba(24,43,65,.08)!important;
+}
+.mam-section-title{flex:1!important;min-width:0!important}
+.mam-section-title small{color:#58718e!important;font-weight:900!important;letter-spacing:1px!important}
+.mam-section-title strong{color:#142b47!important;font-size:15px!important}
+#mamSectionBack,#mamSectionRefresh{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ gap:5px!important;min-height:43px!important;padding:0 12px!important;
+ border:1.5px solid #aebfd1!important;border-radius:12px!important;
+ background:linear-gradient(180deg,#fff,#eaf0f6)!important;
+ color:#173b64!important;font-size:12px!important;font-weight:900!important;
+ white-space:nowrap!important;box-shadow:0 2px 0 rgba(30,58,88,.13)!important;
+}
+#mamSectionBack{background:linear-gradient(180deg,#eaf3ff,#dceaff)!important;border-color:#8fb2dc!important}
+#mamSectionRefresh{
+ background:linear-gradient(135deg,#147bca,#1555a4)!important;
+ border-color:#104b91!important;color:#fff!important;
+}
+#mamSectionRefresh:active{transform:scale(.96)!important}
+#mamSectionRefresh:disabled{opacity:.72!important}
+.mam-match-tabs,.mam-today-tabs{
+ border:1.5px solid #aebfd2!important;
+ box-shadow:inset 0 1px rgba(255,255,255,.7),0 4px 12px rgba(30,55,80,.07)!important;
+}
+.mam-match-tabs button,.mam-today-tabs button{
+ border:1px solid #c0ccda!important;
+}
+.mam-match-tabs button.active{
+ border:1.5px solid #4b82d2!important;
+ box-shadow:0 3px 10px rgba(49,100,178,.22)!important;
+}
+.mam-home-shortcut{
+ border:1.5px solid #9eb4cc!important;
+ box-shadow:0 4px 0 rgba(30,55,80,.10),0 8px 18px rgba(30,55,80,.09)!important;
+}
+.mam-bottom-nav{
+ border-top:1.5px solid #c5d1dd!important;
+ box-shadow:0 -7px 24px rgba(24,43,65,.12)!important;
+ background:rgba(255,255,255,.97)!important;
+}
+.mam-bottom-nav button{
+ border:1px solid transparent!important;border-radius:12px!important;
+ color:#52647a!important;font-weight:800!important;
+}
+.mam-bottom-nav button.active{
+ border:1.5px solid #b4cce8!important;
+ background:#eaf3ff!important;color:#15539b!important;
+ box-shadow:inset 0 0 0 1px rgba(255,255,255,.8)!important;
+}
+#matches .match.match-modern:not(.in-detail){
+ border:1px solid #d4dee8!important;
+ box-shadow:0 2px 8px rgba(25,45,68,.06)!important;
+}
+@media(max-width:600px){
+ .mam-section-header{gap:6px!important;padding:8px!important}
+ .mam-section-title strong{font-size:13px!important}
+ #mamSectionBack,#mamSectionRefresh{min-height:41px!important;padding:0 9px!important;font-size:11px!important}
+ .mam-menu-trigger,.mam-search-trigger{width:40px!important;height:40px!important;min-width:40px!important}
+ .mam-bottom-nav{padding-bottom:env(safe-area-inset-bottom)!important}
+}
+@media(prefers-reduced-motion:no-preference){
+ button,.mam-home-shortcut,.mam-bottom-nav button{transition:transform .14s ease,box-shadow .14s ease,filter .14s ease!important}
+ button:active,.mam-home-shortcut:active,.mam-bottom-nav button:active{transform:translateY(1px) scale(.985)!important}
 }
 </style>
