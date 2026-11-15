@@ -3623,10 +3623,10 @@ function setMamScreen(mode){
  const intro=document.querySelector(".mam-home-intro");if(intro)intro.hidden=mode!=="home";
  const superLigButton=$("loadSuperLigFixtures");if(superLigButton){superLigButton.hidden=mode!=="home";superLigButton.style.display=mode==="home"?"":"none";}
  const sourcePanel=document.querySelector("main>.panel");if(sourcePanel)sourcePanel.hidden=mode!=="home";
- const filterRow=$("date")?.closest(".row");if(filterRow)filterRow.hidden=mode==="live"||mode==="today"||mode==="upcoming";
- const dateStrip=$("mamDateStrip");if(dateStrip)dateStrip.hidden=mode==="live"||mode==="today"||mode==="upcoming";
- $("load").hidden=mode==="live"||mode==="today"||mode==="upcoming";
- $("load").textContent=mode==="upcoming"?"Başlamayan maçları getir":"Seçili günün maçlarını getir";
+ const filterRow=$("date")?.closest(".row");if(filterRow)filterRow.hidden=mode==="live"||mode==="today";
+ const dateStrip=$("mamDateStrip");if(dateStrip)dateStrip.hidden=mode==="live"||mode==="today";
+ $("load").hidden=mode==="live"||mode==="today";
+ $("load").textContent=mode==="upcoming"?"Seçili tarihteki maçları getir":"Seçili günün maçlarını getir";
  $("status").textContent=mode==="live"?"Canlı skor ve maç dakikaları güncel akıştan alınır.":"Seçili tarihteki maçlar listeleniyor.";
  if(mode==="home")$("load").textContent="Seçili günün maçlarını getir";
 }
@@ -3641,7 +3641,7 @@ function renderMatches(){
  let list=(mamScreenMode==="live"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
  const liveCodes=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
  if(mamScreenMode==="live")list=list.filter(m=>liveCodes.has(mamCanonicalMatchStatus(m)));
- if(mamScreenMode==="upcoming")list=list.filter(m=>["NS","TBD","PST"].includes(mamCanonicalMatchStatus(m)));
+ if(mamScreenMode==="upcoming")list=list.filter(m=>["NS","TBD"].includes(mamCanonicalMatchStatus(m)));
  if(mamScreenMode==="today"){
   const status=m=>mamCanonicalMatchStatus(m);
   if(mamTodayFilter==="live")list=list.filter(m=>liveCodes.has(status(m)));
@@ -6078,7 +6078,7 @@ const openStandingTeamHistory=async row=>{
  async function go(mode){
   markActive(mode);
   if(mode==="home"){setMamScreen("home");window.scrollTo({top:0,behavior:"smooth"});return;}
-  if(mode==="fixtures"){setMamScreen("home");$("date")?.scrollIntoView({behavior:"smooth",block:"center"});if(!allMatches.length)await loadMatches();return;}
+  if(mode==="fixtures"){setMamScreen("upcoming");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="today"){mamTodayFilter="all";setMamScreen("today");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="upcoming"){setMamScreen("upcoming");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="live"){setMamScreen("live");await loadLiveMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
