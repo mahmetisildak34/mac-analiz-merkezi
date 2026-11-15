@@ -4170,8 +4170,14 @@ async function refreshActiveMatchScore(){
      const existing=fresh||allMatches.find(match=>
       (source==="api"?String(match.fixture?.id||"")===rawId:String(match.league?.id||"")===leagueId&&String(match.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId)
      );
-     if(existing&&home?.score!=null&&away?.score!=null){
-      fresh={...existing,goals:{home:Number(home.score),away:Number(away.score)},fixture:{...existing.fixture,status:{...existing.fixture?.status,short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock}}};
+     // API-Football'dan bu turda taze maç verisi geldiyse ESPN scoreboard'un
+     // gecikmeli kopyasıyla skoru/dakikayı ezme. ESPN yalnızca ana veri yoksa
+     // yedek olsun; ESPN kaynaklı maçlarda ise kendi skorunu kullan.
+     if((source==="espn"||!fresh)&&existing&&home?.score!=null&&away?.score!=null){
+      const existingStatus=existing.fixture?.status||{};
+      const safeElapsed=clock.elapsed!=null?clock.elapsed:
+       (existingStatus.elapsed!=null?existingStatus.elapsed:null);
+      fresh={...existing,goals:{home:Number(home.score),away:Number(away.score)},fixture:{...existing.fixture,status:{...existingStatus,short:statusShort,elapsed:safeElapsed,displayClock:clock.displayClock||existingStatus.displayClock||""}}};
      }
     }
    }catch(espnError){console.warn("ESPN açık maç skoru doğrulanamadı; son geçerli skor korunuyor.",espnError);}
