@@ -4702,7 +4702,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const id=String(match.fixture?.id||"");
     const isEspn=id.startsWith("espn-")||String(match.mamSource||"").toLowerCase()==="espn";
     const providerId=isEspn&&id.startsWith("espn-")?id.slice(id.lastIndexOf("-")+1):id;
-    return /^\\d+$/.test(providerId);
+    return /^\d+$/.test(providerId);
   }).slice(0,String(leagueId)==="848"?20:8);
   await Promise.all(candidates.map(async match=>{
     try{
