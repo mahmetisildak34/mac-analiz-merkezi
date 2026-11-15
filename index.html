@@ -2372,7 +2372,7 @@ async function loadMatches(){
   const lastArchiveDate=new Date(today);lastArchiveDate.setDate(lastArchiveDate.getDate()+30);
   if(selectedDate>=today&&selectedDate<=lastArchiveDate){
    try{
-    const archive=await api("archive/upcoming?days=30&limit=2000");
+    const archive=await api("archive/upcoming?"+qs({days:30,limit:2000,date:date}));
     const archivedRows=Array.isArray(archive?.response)?archive.response:[];
     const localDate=value=>{
      const stamp=Date.parse(value||"");
