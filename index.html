@@ -3968,7 +3968,7 @@ async function mamLoadD1LeagueArchive(leagueId, matchDate, teamName, teamId, tea
   const payload=await api("archive/matches?"+qs({
     league:String(leagueId||""),before:String(matchDate||""),limit:2000,
     teamId:String(teamId||""),teamSource:String(teamSource||""),
-    teamNames:aliases.join(","),limit:10
+    teamNames:aliases.join(","),limit:2000
   }));
   const matches=Array.isArray(payload?.response)?payload.response:[];
   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
