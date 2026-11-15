@@ -6352,3 +6352,39 @@ main.mam-screen-live>section.panel:has(#matches)[hidden],main.mam-screen-upcomin
  #matches .match-modern .mam-match-open{height:18px!important;min-height:18px!important;font-size:7px!important}
 }
 </style>
+
+<style id="mam-live-row-compact-fix-v2">
+/* Live list only: compact single-line rows and an icon-only detail affordance. */
+.mam-screen-live #matches article.match.match-modern:not(.in-detail){
+ min-height:36px!important;height:36px!important;
+ padding:3px 34px 3px 38px!important;margin:2px 0!important;
+ border-radius:7px!important;
+}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-head{left:5px!important;width:29px!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-time{font-size:8px!important;letter-spacing:-.2px!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{
+ min-height:28px!important;height:28px!important;
+ grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr)!important;gap:3px!important;
+}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block{gap:3px!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-logo,
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-placeholder{
+ width:18px!important;height:18px!important;min-width:18px!important;max-width:18px!important;flex:0 0 18px!important;
+}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block strong{font-size:8px!important;line-height:1!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-clock{min-width:39px!important;padding:3px 2px!important;font-size:10px!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .mam-match-open{
+ right:4px!important;width:24px!important;height:24px!important;min-height:24px!important;padding:0!important;
+ display:grid!important;place-items:center!important;font-size:0!important;line-height:0!important;
+ white-space:nowrap!important;overflow:hidden!important;
+}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .mam-match-open::after{
+ content:"↗";display:block!important;font-size:15px!important;line-height:1!important;
+}
+@media(max-width:390px){
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail){min-height:34px!important;height:34px!important;padding-left:35px!important;padding-right:31px!important}
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr)!important}
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block strong{font-size:7.5px!important}
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-clock{min-width:36px!important;font-size:9px!important}
+}
+</style>
