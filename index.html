@@ -3667,7 +3667,7 @@ function mamCanonicalMatchStatus(match){
 function renderMatches(){
  const league=$("league").value;
  // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
- let list=(mamScreenMode==="live"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
+ let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
  const liveCodes=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
  if(mamScreenMode==="live")list=list.filter(m=>liveCodes.has(mamCanonicalMatchStatus(m)));
  if(mamScreenMode==="upcoming")list=list.filter(m=>["NS","TBD","PST"].includes(mamCanonicalMatchStatus(m)));
@@ -3714,7 +3714,7 @@ function renderMatches(){
   list.sort((a,b)=>Date.parse(a.fixture?.date||0)-Date.parse(b.fixture?.date||0));
   if($("mamSectionCount"))$("mamSectionCount").textContent=list.length+" MAÇ";
   if(!list.length){
-   $("matches").innerHTML='<div class="empty">Bu tarihte henüz başlamamış maç bulunamadı. Başka bir tarih seçebilirsin.</div>';
+   $("matches").innerHTML='<div class="empty">Önümüzdeki 30 gün için gelecek maç bulunamadı. Veri arşivi henüz dolmamış olabilir; yenile ile tekrar dene.</div>';
    return;
   }
   const groups=[...list.reduce((map,m)=>{
@@ -6264,4 +6264,16 @@ const openStandingTeamHistory=async row=>{
  .mam-today-header strong{font-size:14px}
  .mam-today-header>span{font-size:8px;padding:5px 7px}
 }
+</style>
+<style id="mam-match-tabs-and-panel-fix-v4">
+.mam-match-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0 14px;padding:6px;border:1px solid rgba(132,157,218,.35);border-radius:15px;background:rgba(7,18,39,.96)}
+.mam-match-tabs button{min-width:0;padding:10px 3px!important;min-height:42px!important;border:1px solid transparent!important;border-radius:10px!important;background:transparent!important;color:#bdcbe0!important;font-size:11px!important;font-weight:850!important;white-space:nowrap}
+.mam-match-tabs button.active{background:linear-gradient(135deg,#7044df,#4326a7)!important;border-color:#9678ff!important;color:#fff!important;box-shadow:0 4px 15px rgba(111,73,230,.25)!important}
+.mam-home-shortcuts{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.mam-home-shortcut.finished>span{color:#72e2b0}
+main.mam-screen-live>section.panel:has(#matches),main.mam-screen-upcoming>section.panel:has(#matches),main.mam-screen-finished>section.panel:has(#matches),main.mam-screen-today>section.panel:has(#matches){display:block!important;visibility:visible!important}
+main.mam-screen-live>section.panel:has(#matches)[hidden],main.mam-screen-upcoming>section.panel:has(#matches)[hidden],main.mam-screen-finished>section.panel:has(#matches)[hidden],main.mam-screen-today>section.panel:has(#matches)[hidden]{display:block!important}
+.mam-screen-live>.panel:first-of-type,.mam-screen-upcoming>.panel:first-of-type,.mam-screen-finished>.panel:first-of-type{display:block!important}
+.mam-screen-live .mam-match-tabs,.mam-screen-upcoming .mam-match-tabs,.mam-screen-finished .mam-match-tabs,.mam-screen-today .mam-match-tabs{display:grid!important}
+@media(max-width:390px){.mam-match-tabs{gap:4px;padding:4px}.mam-match-tabs button{font-size:9px!important;padding:8px 1px!important}.mam-home-shortcut small{display:none}}
 </style>
