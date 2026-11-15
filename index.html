@@ -1658,7 +1658,7 @@ async function api(path){
     // Only API-Football is subject to this conservative rate limit.
     // ESPN and Football-data.org fallback calls must not wait in this queue.
     if(isPrimaryApi){
-      const delay=Math.max(0,12000-(Date.now()-lastApiCall));
+      const delay=Math.max(0,6000-(Date.now()-lastApiCall));
       if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
       lastApiCall=Date.now();
     }
@@ -4188,6 +4188,12 @@ async function refreshActiveMatchScore(){
   if(headClock)headClock.textContent="🔴 "+minute+" · "+(status.short==="HT"?"Devre arası":"Canlı");
   const centerSub=article.querySelector(".match-center small");
   if(centerSub)centerSub.textContent=status.short==="HT"?"Devre arası":"Canlı maç · sağlayıcı saati";
+  const clockBase=Number.isFinite(elapsed)?elapsed:(Number(String(status.displayClock||"").match(/^\d{1,3}/)?.[0]));
+  if(Number.isFinite(clockBase)){
+   button.dataset.liveClockBase=String(clockBase);
+   button.dataset.liveClockAt=String(Date.now());
+   button.dataset.liveClockStatus=String(status.short||"LIVE");
+  }
   button.dataset.liveMinute=Number.isFinite(elapsed)?String(elapsed):"";
   button.dataset.liveHomeScore=String(fresh.goals.home);
   button.dataset.liveAwayScore=String(fresh.goals.away);
@@ -4195,17 +4201,13 @@ async function refreshActiveMatchScore(){
  }catch(error){console.warn("Açık maç skoru yenilenemedi:",error);}
 }
 
-/* Canlı maç ve fikstür otomatik takibi.
-   İstatistik yalnızca kullanıcı ilgili maçın İstatistik sekmesini açtığında çağrılır;
-   açık panel maç devam ederken 20 saniyede bir yenilenir. */
+/* Canlı skor ve istatistikler birbirinden bağımsız yenilenir. */
 let mamLiveStatsRefreshBusy=false;
+let mamLiveScoreRefreshBusy=false;
 async function refreshOpenLiveStats(){
  if(document.hidden||mamLiveStatsRefreshBusy)return;
  mamLiveStatsRefreshBusy=true;
  try{
-  await refreshActiveMatchScore();
-  // Detay ekranına taşınan maç kartları artık #matches altında değildir;
-  // bu yüzden tüm belge içindeki açık canlı istatistik panellerini tara.
   const buttons=[...document.querySelectorAll(".liveStatsBtn")].filter(button=>{
    const panel=document.getElementById(button.dataset.livePanel||"");
    const pane=button.closest(".match-detail-pane");
@@ -4214,6 +4216,9 @@ async function refreshOpenLiveStats(){
   });
   for(const button of buttons){
    if(document.hidden)break;
+   const last=Number(button.dataset.statsLastRefresh||0);
+   if(Date.now()-last<55000)continue;
+   button.dataset.statsLastRefresh=String(Date.now());
    await loadLiveStats(button,true);
   }
   const goalPanes=[...document.querySelectorAll(".match-detail-pane[data-pane='goals']")].filter(panel=>{
@@ -4223,29 +4228,47 @@ async function refreshOpenLiveStats(){
   for(const panel of goalPanes){
    if(document.hidden)break;
    const article=panel.closest(".match.in-detail");
-   if(article)await loadMamGoalEvents(article,panel,true);
+   if(article){
+    const last=Number(panel.dataset.goalLastRefresh||0);
+    if(Date.now()-last>=55000){
+     panel.dataset.goalLastRefresh=String(Date.now());
+     await loadMamGoalEvents(article,panel,true);
+    }
+   }
   }
  }finally{mamLiveStatsRefreshBusy=false;}
 }
-let mamFixtureRefreshBusy=false;
-async function refreshVisibleFixtureLists(){
- if(document.hidden||mamFixtureRefreshBusy)return;
- if(mamScreenMode!=="live"&&mamScreenMode!=="upcoming")return;
- // Açık istatistik panelini ve kullanıcının baktığı maçı yeniden çizerek kapatma.
- if(mamActiveMatch||document.querySelector(".match-detail-overlay:not([hidden])"))return;
- if([...document.querySelectorAll(".liveStats")].some(panel=>!panel.hidden))return;
- mamFixtureRefreshBusy=true;
- try{
-  if(mamScreenMode==="live")await loadLiveMatches();
-  else await loadMatches();
- }finally{mamFixtureRefreshBusy=false;}
+async function refreshOpenLiveScore(){
+ if(document.hidden||mamLiveScoreRefreshBusy)return;
+ mamLiveScoreRefreshBusy=true;
+ try{await refreshActiveMatchScore();}
+ finally{mamLiveScoreRefreshBusy=false;}
+}
+function mamTickVisibleMatchClock(){
+ const buttons=[...document.querySelectorAll(".match-detail-overlay:not([hidden]) .liveStatsBtn")];
+ for(const button of buttons){
+  const base=Number(button.dataset.liveClockBase),at=Number(button.dataset.liveClockAt);
+  if(!Number.isFinite(base)||!Number.isFinite(at))continue;
+  const status=String(button.dataset.liveClockStatus||"LIVE").toUpperCase();
+  if(["HT","FT","AET","PEN","POST"].includes(status))continue;
+  const elapsed=Math.max(0,Math.floor(base+(Date.now()-at)/60000));
+  const clock=button.closest(".match.in-detail")?.querySelector(".match-head .match-time");
+  if(clock)clock.textContent="🔴 "+elapsed+"' · Canlı";
+ }
 }
 if(!window.mamLiveStatsTimer){
- window.mamLiveStatsTimer=setInterval(refreshOpenLiveStats,20*1000);
- window.mamLiveRefreshTimer=setInterval(()=>{if(mamScreenMode==="live")refreshVisibleFixtureLists();},30*1000);
- window.mamFixtureRefreshTimer=setInterval(()=>{if(mamScreenMode==="upcoming")refreshVisibleFixtureLists();},60*1000);
+ window.mamLiveScoreTimer=setInterval(refreshOpenLiveScore,15000);
+ window.mamLiveStatsTimer=setInterval(refreshOpenLiveStats,60000);
+ window.mamLiveClockTimer=setInterval(mamTickVisibleMatchClock,1000);
+ window.mamLiveRefreshTimer=setInterval(()=>{if(mamScreenMode==="live")refreshVisibleFixtureLists();},30000);
+ window.mamFixtureRefreshTimer=setInterval(()=>{if(mamScreenMode==="upcoming")refreshVisibleFixtureLists();},60000);
  document.addEventListener("visibilitychange",()=>{
-  if(!document.hidden){refreshOpenLiveStats();refreshVisibleFixtureLists();}
+  if(!document.hidden){
+   refreshOpenLiveScore();
+   refreshOpenLiveStats();
+   mamTickVisibleMatchClock();
+   refreshVisibleFixtureLists();
+  }
  });
 }
 
