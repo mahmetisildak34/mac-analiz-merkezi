@@ -2385,6 +2385,15 @@ async function loadMatches(){
  $("matches").innerHTML="";
  const fixtureCacheKey="mam_fixture_cache_v2_"+date+"_"+$("league").value;
  const previousMatches=allMatches.slice();
+ // Show the last successful fixture snapshot immediately; refresh it in the background below.
+ try{
+  const instantCache=JSON.parse(localStorage.getItem(fixtureCacheKey)||"null");
+  if(Array.isArray(instantCache?.matches)&&instantCache.matches.length){
+   allMatches=instantCache.matches;
+   renderMatches();
+   $("status").textContent="Kayıtlı maçlar gösteriliyor · güncel veriler kontrol ediliyor...";
+  }else if(previousMatches.length){allMatches=previousMatches;renderMatches();}
+ }catch(_){if(previousMatches.length){allMatches=previousMatches;renderMatches();}}
  try{
   let source="API-Football";
   // For dates within the next 30 days, prefer the centralized D1 fixture archive.
@@ -2411,7 +2420,11 @@ async function loadMatches(){
     console.warn("Merkezi gelecek fikstür arşivi kullanılamadı; mevcut kaynaklar deneniyor.",archiveError);
    }
   }
-  try{
+  if(mamScreenMode==="upcoming"&&archivedDayRows.length){
+   // The D1 archive already contains the upcoming window; avoid a second, slower date-fixture request.
+   allMatches=archivedDayRows;
+   source="D1 hızlı fikstür arşivi";
+  }else try{
    const data=await api("fixtures?"+qs({date:date,timezone:"Europe/Istanbul"}));
    const freshMatches=data.response||[];
    allMatches=freshMatches;
