@@ -4697,12 +4697,21 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const result=output.slice(0,20);
   // Son geçmiş maçların gerçek istatistiklerini doğru sağlayıcıdan tamamla.
   // İstek sayısını sınırlı tutuyoruz; bulunan sonuçlar yerel önbelleğe alınır.
-  const candidates=String(leagueId)==="203"?[]:result.filter(m=>!m.statistics&&/^[0-9]+$/.test(String(m.fixture?.id||""))).slice(0,String(leagueId)==="848"?20:8);
+  const candidates=String(leagueId)==="203"?[]:result.filter(match=>{
+    if(match.statistics)return false;
+    const id=String(match.fixture?.id||"");
+    const isEspn=id.startsWith("espn-")||String(match.mamSource||"").toLowerCase()==="espn";
+    const providerId=isEspn&&id.startsWith("espn-")?id.slice(id.lastIndexOf("-")+1):id;
+    return /^\\d+$/.test(providerId);
+  }).slice(0,String(leagueId)==="848"?20:8);
   await Promise.all(candidates.map(async match=>{
     try{
-      const stats=match.mamSource==="espn"
-        ? await getEspnMatchStats(leagueId,match.fixture.id)
-        : await getApiFootballMatchStats(match.fixture.id);
+      const fixtureId=String(match.fixture?.id||"");
+      const isEspn=fixtureId.startsWith("espn-")||String(match.mamSource||"").toLowerCase()==="espn";
+      const providerId=isEspn&&fixtureId.startsWith("espn-")?fixtureId.slice(fixtureId.lastIndexOf("-")+1):fixtureId;
+      const stats=isEspn
+        ? await getEspnMatchStats(leagueId,providerId)
+        : await getApiFootballMatchStats(providerId);
       if(stats)match.statistics=stats;
     }catch(e){/* İstatistik yoksa skor ve form geçmişi korunur. */}
   }));
