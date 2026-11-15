@@ -3696,7 +3696,7 @@ function openMamMatchDetail(article){
  const liveButton=article.querySelector(".liveStatsBtn");
  if(liveButton){try{const rawId=String(liveButton.dataset.liveId||"");const source=String(liveButton.dataset.liveSource||"");const league=String(liveButton.dataset.liveLeagueId||"");const match=allMatches.find(m=>String(m.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId&&String(m.league?.id||"")===league)||null;localStorage.setItem("mam_open_live_detail",JSON.stringify({id:rawId,source,league,tab:"stats",match}));}catch(_){}}
  try{history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
- const first=article.querySelector('.match-detail-tab[data-pane="analysis"]')||article.querySelector(".match-detail-tab");
+ const first=liveButton?(article.querySelector('.match-detail-tab[data-pane="stats"]')||article.querySelector(".match-detail-tab")):(article.querySelector('.match-detail-tab[data-pane="analysis"]')||article.querySelector(".match-detail-tab"));
  if(first)first.click();
  if(liveButton)refreshOpenLiveScore();
 }
