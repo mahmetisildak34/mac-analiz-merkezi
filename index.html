@@ -2464,12 +2464,15 @@ async function espnFixtures(date,includeAllLeagues=false){
 }
 
 async function loadMatches(){
+ if(window.mamLoadMatchesBusy)return;
+ window.mamLoadMatchesBusy=true;
+ window.mamLastFixtureRefreshAt=Date.now();
  const button=$("load");
  const date=$("date").value;
  if(!date){$("status").textContent="Lütfen tarih seç.";return}
  button.disabled=true;
  $("status").textContent="Fikstür alınıyor...";
- $("matches").innerHTML="";
+ // Keep the currently rendered matches visible while fresh data loads.
  const fixtureCacheKey="mam_fixture_cache_v2_"+date+"_"+$("league").value;
  const previousMatches=allMatches.slice();
  // Show the last successful fixture snapshot immediately; refresh it in the background below.
@@ -2628,7 +2631,7 @@ async function loadMatches(){
    $("status").innerHTML='<span class="error">Güncel fikstür şu an alınamadı. '+errorText+'</span>';
    $("matches").innerHTML='<div class="empty">Henüz kayıtlı maç bulunamadı. Kaynaklar tekrar erişilebilir olduğunda Yenile ile yeniden dene.</div>';
   }
- }finally{button.disabled=false}
+ }finally{button.disabled=false;window.mamLoadMatchesBusy=false}
 }
 
 async function getTFFSuperLigUpcoming(){
@@ -4653,7 +4656,8 @@ function mamTickVisibleMatchClock(){
  }
 }
 async function refreshVisibleFixtureLists(){
- if(document.hidden)return;
+ if(document.hidden||window.mamLoadMatchesBusy)return;
+ window.mamLastFixtureRefreshAt=Date.now();
  if(mamScreenMode==="live")return loadLiveMatches();
  if(mamScreenMode==="upcoming")return loadMatches();
 }
@@ -4662,13 +4666,13 @@ if(!window.mamLiveStatsTimer){
  window.mamLiveStatsTimer=setInterval(refreshOpenLiveStats,5000);
  window.mamLiveClockTimer=setInterval(mamTickVisibleMatchClock,1000);
  window.mamLiveRefreshTimer=setInterval(()=>{if(mamScreenMode==="live")refreshVisibleFixtureLists();},30000);
- window.mamFixtureRefreshTimer=setInterval(()=>{if(mamScreenMode==="upcoming")refreshVisibleFixtureLists();},60000);
+ window.mamFixtureRefreshTimer=setInterval(()=>{if(mamScreenMode==="upcoming")refreshVisibleFixtureLists();},180000);
  document.addEventListener("visibilitychange",()=>{
   if(!document.hidden){
    refreshOpenLiveScore();
    refreshOpenLiveStats();
    mamTickVisibleMatchClock();
-   refreshVisibleFixtureLists();
+   if(Date.now()-(window.mamLastFixtureRefreshAt||0)>90000)refreshVisibleFixtureLists();
   }
  });
 }
