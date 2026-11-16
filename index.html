@@ -5946,8 +5946,8 @@ async function analyze(button){
    const expectedCorners=hc.average+ac.average;
    html+='<p class="note">Takımların korner ortalamalarından Poisson yaklaşımı. Lig ve rakip gücü düzeltmesi yapılmamıştır.</p>';
    html+=`<div class="statgrid">
-    <div class="stat"><span>${esc(homeName)} korner ort.</span><b>${hc.average.toFixed(2)}</b></div>
-    <div class="stat"><span>${esc(awayName)} korner ort.</span><b>${ac.average.toFixed(2)}</b></div></div>`;
+    <div class="stat"><span>${esc(homeName)} korner · ${hc.count} maç</span><b>${hc.average.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(awayName)} korner · ${ac.count} maç</span><b>${ac.average.toFixed(2)}</b></div></div>`;
    const cornerOver85=overProb(expectedCorners,9),cornerOver95=overProb(expectedCorners,10),cornerOver105=overProb(expectedCorners,11);
    html+=probHTML("8.5 Korner Üst",cornerOver85);
    html+=probHTML("8.5 Korner Alt",1-cornerOver85);
@@ -5965,8 +5965,8 @@ async function analyze(button){
   html+='<div class="section-title">🎯 İsabetli şut analizi</div>';
   if(hShots.count>=3&&aShots.count>=3){
    html+=`<div class="statgrid">
-    <div class="stat"><span>${esc(homeName)} isabetli şut ort.</span><b>${hShots.average.toFixed(2)}</b></div>
-    <div class="stat"><span>${esc(awayName)} isabetli şut ort.</span><b>${aShots.average.toFixed(2)}</b></div></div>`;
+    <div class="stat"><span>${esc(homeName)} isabetli şut · ${hShots.count} maç</span><b>${hShots.average.toFixed(2)}</b></div>
+    <div class="stat"><span>${esc(awayName)} isabetli şut · ${aShots.count} maç</span><b>${aShots.average.toFixed(2)}</b></div></div>`;
    html+='<p class="note">Ortalamalar geçmiş maçlara aittir; garanti veya kesin tahmin değildir.</p>';
   }else{
    html+='<p class="note">Gerçek isabetli şut verisi yetersiz (her takım için en az 3 maç gerekli). Ortalama gösterilmiyor.</p>';
@@ -5975,7 +5975,7 @@ async function analyze(button){
   const hTotalShots=optionalMetric(homeMatches,homeId,"shots","home");
   const aTotalShots=optionalMetric(awayMatches,awayId,"shots","away");
   html+='<div class="section-title">🥅 Toplam şut analizi</div>';
-  if(hTotalShots.count>=3&&aTotalShots.count>=3){   html+='<div class="statgrid"><div class="stat"><span>'+esc(homeName)+' şut ort.</span><b>'+hTotalShots.average.toFixed(2)+'</b></div><div class="stat"><span>'+esc(awayName)+' şut ort.</span><b>'+aTotalShots.average.toFixed(2)+'</b></div></div>';
+  if(hTotalShots.count>=3&&aTotalShots.count>=3){   html+='<div class="statgrid"><div class="stat"><span>'+esc(homeName)+' şut · '+hTotalShots.count+' maç</span><b>'+hTotalShots.average.toFixed(2)+'</b></div><div class="stat"><span>'+esc(awayName)+' şut · '+aTotalShots.count+' maç</span><b>'+aTotalShots.average.toFixed(2)+'</b></div></div>';
   }else html+='<p class="note">Toplam şut için doğrulanmış geçmiş veri yetersiz (her takımda en az 3 maç gerekli).</p>';
 
   const hYellow=optionalMetric(homeMatches,homeId,"yellowCards","home");
@@ -5984,9 +5984,9 @@ async function analyze(button){
   const aRed=optionalMetric(awayMatches,awayId,"redCards","away");
   html+='<div class="section-title">🟨 Kart analizi</div>';
   if(hYellow.count>=3&&aYellow.count>=3){
-   html+='<div class="statgrid"><div class="stat"><span>'+esc(homeName)+' sarı kart ort.</span><b>'+hYellow.average.toFixed(2)+'</b></div><div class="stat"><span>'+esc(awayName)+' sarı kart ort.</span><b>'+aYellow.average.toFixed(2)+'</b></div></div>';
+   html+='<div class="statgrid"><div class="stat"><span>'+esc(homeName)+' sarı kart · '+hYellow.count+' maç</span><b>'+hYellow.average.toFixed(2)+'</b></div><div class="stat"><span>'+esc(awayName)+' sarı kart · '+aYellow.count+' maç</span><b>'+aYellow.average.toFixed(2)+'</b></div></div>';
   }else html+='<p class="note">Sarı kart için doğrulanmış geçmiş veri yetersiz (her takımda en az 3 maç gerekli).</p>';  if(hRed.count>=3&&aRed.count>=3){
-   html+='<div class="statgrid"><div class="stat"><span>'+esc(homeName)+' kırmızı kart ort.</span><b>'+hRed.average.toFixed(2)+'</b></div><div class="stat"><span>'+esc(awayName)+' kırmızı kart ort.</span><b>'+aRed.average.toFixed(2)+'</b></div></div>';
+   html+='<div class="statgrid"><div class="stat"><span>'+esc(homeName)+' kırmızı kart · '+hRed.count+' maç</span><b>'+hRed.average.toFixed(2)+'</b></div><div class="stat"><span>'+esc(awayName)+' kırmızı kart · '+aRed.count+' maç</span><b>'+aRed.average.toFixed(2)+'</b></div></div>';
   }else html+='<p class="note">Kırmızı kart için doğrulanmış geçmiş veri yetersiz (her takımda en az 3 maç gerekli).</p>';
 
   html+='<div class="section-title">En olası 5 skor</div>';
