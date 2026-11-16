@@ -2464,12 +2464,12 @@ async function espnFixtures(date,includeAllLeagues=false){
 }
 
 async function loadMatches(){
- if(window.mamLoadMatchesBusy)return;
- window.mamLoadMatchesBusy=true;
- window.mamLastFixtureRefreshAt=Date.now();
  const button=$("load");
  const date=$("date").value;
  if(!date){$("status").textContent="Lütfen tarih seç.";return}
+ if(window.mamLoadMatchesBusy)return;
+ window.mamLoadMatchesBusy=true;
+ window.mamLastFixtureRefreshAt=Date.now();
  button.disabled=true;
  $("status").textContent="Fikstür alınıyor...";
  // Keep the currently rendered matches visible while fresh data loads.
