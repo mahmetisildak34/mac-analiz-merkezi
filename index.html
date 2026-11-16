@@ -4831,8 +4831,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   if(cached&&!forceRefresh){
     try{
       const saved=JSON.parse(cached);
-      if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<10*60*1000){
-        await mamSaveMatchesToD1(saved.matches,leagueId);
+      if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<6*60*60*1000){
         return saved.matches;
       }
     }catch(e){}
@@ -5687,7 +5686,7 @@ function optionalMetric(matches, teamId, metric, venue){
 
  return {
   count: values.length,
-  average: values.length ? values.reduce((sum,n)=>sum+n,0)/values.length : 0
+  average: values.length ? values.reduce((sum,n)=>sum+n,0)/values.length : null
  };
 }
 
