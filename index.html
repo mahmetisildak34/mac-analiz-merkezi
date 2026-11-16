@@ -3052,7 +3052,7 @@ function mamEnrichLiveScoresWithEspn(primaryMatches,espnMatches){
   if(!leagueId||!home||!away||!Number.isFinite(homeScore)||!Number.isFinite(awayScore)||!["LIVE","1H","2H","HT","ET","P","INT","IN_PLAY","PAUSED"].includes(state))continue;
   liveMap.set(leagueId+"|"+home+"|"+away,{
    source:"ESPN",home:homeScore,away:awayScore,
-   elapsed:Number.isFinite(Number(match.fixture?.status?.elapsed))?Number(match.fixture.status.elapsed):null,
+   elapsed:match.fixture?.status?.elapsed!=null&&Number.isFinite(Number(match.fixture.status.elapsed))?Number(match.fixture.status.elapsed):null,
    displayClock:String(match.fixture?.status?.displayClock||"")
   });
  }
@@ -3065,10 +3065,10 @@ function mamEnrichLiveScoresWithEspn(primaryMatches,espnMatches){
   checked++;
   const current=match.goals||{};
   const apiHome=Number(current.home),apiAway=Number(current.away);
-  const scoreComparable=Number.isFinite(apiHome)&&Number.isFinite(apiAway);
+  const scoreComparable=current.home!=null&&current.away!=null&&Number.isFinite(apiHome)&&Number.isFinite(apiAway);
   const scoreMatched=scoreComparable&&apiHome===comparison.home&&apiAway===comparison.away;
   const apiMinute=Number(match.fixture?.status?.elapsed);
-  const minuteComparable=Number.isFinite(apiMinute)&&comparison.elapsed!==null;
+  const minuteComparable=match.fixture?.status?.elapsed!=null&&Number.isFinite(apiMinute)&&comparison.elapsed!==null;
   const minuteMatched=minuteComparable&&Math.abs(apiMinute-comparison.elapsed)<=2;
   if(scoreComparable&&!scoreMatched)scoreMismatches++;
   if(minuteComparable&&!minuteMatched)minuteMismatches++;
