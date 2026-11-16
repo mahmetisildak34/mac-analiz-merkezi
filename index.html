@@ -1656,7 +1656,8 @@ const $=id=>document.getElementById(id);
 const WORKER="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
 const CACHE_HOURS=12;
 const today=new Date();
-$("date").value=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+const mamInitialIstanbulDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(today);
+$("date").value=mamInitialIstanbulDate;
 
 function esc(value){
  return String(value??"").replace(/[&<>"']/g,c=>({
@@ -7186,7 +7187,7 @@ const openStandingTeamHistory=async row=>{
  });
  const dateInput=$("date"),strip=$("mamDateStrip");
  if(!dateInput||!strip)return;
- const localDate=(offset)=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+ const localDate=(offset)=>{const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());const get=type=>Number(parts.find(part=>part.type===type)?.value||0);const d=new Date(Date.UTC(get("year"),get("month")-1,get("day")+offset,12));return d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0");};
  const label=(offset)=>{const d=new Date(localDate(offset)+"T12:00:00");return d.toLocaleDateString("tr-TR",{weekday:"short",day:"2-digit",month:"2-digit"});};
  strip.querySelectorAll("[data-day-offset]").forEach(chip=>{
   const offset=Number(chip.dataset.dayOffset);chip.querySelector("b").textContent=label(offset);
