@@ -6676,7 +6676,7 @@ window.mamSportScoreTeamSchedule = async function mamSportScoreTeamSchedule(team
   const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");
   if(saved?.time&&Array.isArray(saved.matches)&&Date.now()-saved.time<30*60*1000)return saved.matches;
  }catch(_){}
- const base="https://sportscore.com/api";
+ const base=WORKER+"/api/sportscore";
  const request=async url=>{
   const response=await fetch(url,{headers:{Accept:"application/json"}});
   if(!response.ok)throw new Error("SportScore HTTP "+response.status);
