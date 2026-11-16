@@ -3019,6 +3019,14 @@ async function loadLiveMatchesNow(){
   // Hiçbir kaynakta güncel maç yoksa son cihaz önbelleğini koru.
   allMatches=cachedMatches;
   renderMatches();
+  const noLiveEventsFound =
+   espnErrorText.startsWith("ESPN taraması tamamlandı") &&
+   footballDataErrorText.startsWith("Football-data.org desteklediği müsabakalarda şu anda canlı maç döndürmedi") &&
+   sportScoreErrorText.startsWith("SportScore canlı maç döndürmedi");
+  if(noLiveEventsFound && !d1LiveMatches.length){
+   $("status").textContent="Şu anda desteklenen liglerde canlı maç bulunamadı. Bu bir bağlantı hatası olmak zorunda değil; maçlar başladığında liste otomatik yenilenecek. API-Football durumu: "+primaryErrorText;
+   return;
+  }
   const cacheNote=savedLiveCache&&cachedMatches.length
    ?' Son başarılı canlı liste cihazda kayıtlı ('+new Date(savedLiveCache.savedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+'); maç durumları yenilenemediği için eski olabilir.'
    :cachedMatches.length?' Ekrandaki son canlı maç listesi korundu.':' Henüz bu cihazda kaydedilmiş canlı maç listesi yok.';
