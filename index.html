@@ -6125,9 +6125,9 @@ async function analyze(button){
   const awayOverall=teamStats(awayMatches,awayId,"all");
   const homeVenue=teamStats(homeMatches,homeId,"home");
   const awayVenue=teamStats(awayMatches,awayId,"away");
-  // Ana gol modeli için her takımda en az 5 doğrulanmış maç gerekir.
-  // İlgili saha örneklemi 3'ün altındaysa tahmini durdurma: takımın tüm saha maçlarını kullan
-  // ve aşağıda bu düşük örneklemi açıkça belirt. Şut/korner/kart metrikleri kendi veri kapılarıyla ayrıdır.
+  // Ana gol modeli için her takımda 10 doğrulanmış geçmiş maç zorunludur.
+  // İç saha/deplasman örneklemi 3'ün altındaysa takımın tüm saha maçları kullanılır
+  // ve bu düşük örneklem kullanıcıya açıkça belirtilir. Diğer metriklerin veri kapıları ayrıdır.
   if(homeOverall.count<10||awayOverall.count<10){
    throw new Error("Güvenilir analiz için geçmiş veri yetersiz. "+
     button.dataset.homeName+": "+homeOverall.count+" toplam maç; "+
