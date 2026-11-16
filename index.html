@@ -558,7 +558,7 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .match:not(.in-detail) .match-detail-pane,
 .match:not(.in-detail) .liveStatsBtn,
 .match:not(.in-detail) .liveStats,
-.match:not(.in-detail) .lineupBtn,
+.match:not(.in-detail) .lineupBtn,\n.match:not(.in-detail) .absencesBtn,\n.match:not(.in-detail) .absences-panel,
 .match:not(.in-detail) .lineup-panel,
 .match:not(.in-detail) .pred,
 .match:not(.in-detail) .analysis-preview{display:none!important}
@@ -587,9 +587,9 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .match-detail-pane{padding:14px 0 4px;border-top:1px solid rgba(150,180,215,.15)}
 .match-detail-pane[hidden]{display:none!important}
 .match-detail-pane .match-actions{display:flex!important}
-.match-detail-pane .predBtn,.match-detail-pane .lineupBtn,.match-detail-pane .liveStatsBtn{width:100%;margin:8px 0!important}
-.match-detail-pane .pred,.match-detail-pane .liveStats,.match-detail-pane .lineup-panel{display:block!important;margin-top:12px}
-.match-detail-pane .liveStats[hidden],.match-detail-pane .lineup-panel[hidden]{display:none!important}
+.match-detail-pane .predBtn,.match-detail-pane .lineupBtn,.match-detail-pane .liveStatsBtn,.match-detail-pane .absencesBtn{width:100%;margin:8px 0!important}
+.match-detail-pane .pred,.match-detail-pane .liveStats,.match-detail-pane .lineup-panel,.match-detail-pane .absences-panel{display:block!important;margin-top:12px}
+.match-detail-pane .liveStats[hidden],.match-detail-pane .lineup-panel[hidden],.match-detail-pane .absences-panel[hidden]{display:none!important}
 .match-detail-note{padding:13px;border-radius:13px;background:#1a2a3d;color:#b9c8d9;font-size:13px;line-height:1.55}
 .mam-form-team{margin:12px 0;padding:12px;border-radius:14px;background:#172638;border:1px solid rgba(150,180,215,.14)}
 .mam-form-team h4{margin:0 0 9px;color:#f5f8fc;font-size:14px}
