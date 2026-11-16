@@ -5128,7 +5128,7 @@ function mamEnrichHistoricalStats(matches,leagueId){
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false, teamSource=""){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v74_"+leagueId+"_"+teamSource+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v75_"+leagueId+"_"+teamSource+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -5372,7 +5372,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const isUefaTarget=["2","3","848"].includes(String(leagueId));
   const isTarget=name=>isUefaTarget?mamUefaTeamMatch(name,teamName):(accepted.has(normalize(name))||serieACanonical(name)===targetCanonical);
   const output=[];
-  const seen=new Set();
+  const seen=new Map();
   let sourceError="";
 
   const addMatch=m=>{
@@ -5383,18 +5383,31 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     if(gh===null||ga===null||gh===undefined||ga===undefined)return;
     const d=String(m.fixture?.date||"").slice(0,10);
     if(!d||d>=matchDate)return;
-    const opponent=hm?a:h;
-    const competition=String(m.league?.id||m.league?.name||"");
-    const id=[String(m.fixture?.id||""),d,competition,hm?"target-home":"target-away",normalize(opponent),gh,ga].join("|");
-    if(seen.has(id))return;
-    seen.add(id);
-    // Normalize the target club to the fixture provider's ID so statistics
-    // calculated from CSV/ESPN/KV archives all attach to the same team.
+    // Cross-provider identity deliberately excludes provider fixture IDs and league labels:
+    // ESPN, CSV and D1 use different IDs/names for the same real-world fixture.
+    const identity=[d,normalize(h),normalize(a),Number(gh),Number(ga)].join("|");
     const normalizedMatch={...m,teams:{
       home:{...m.teams.home,id:hm?Number(teamId):-1},
       away:{...m.teams.away,id:am?Number(teamId):-1}
     }};
-    output.push(normalizedMatch);
+    if(seen.has(identity)){
+      // Keep one fixture row, but merge useful fields from every source.
+      const index=seen.get(identity),previous=output[index];
+      const mergeSide=(older={},newer={})=>({...newer,...older});
+      output[index]={
+        ...normalizedMatch,...previous,
+        fixture:{...(normalizedMatch.fixture||{}),...(previous.fixture||{})},
+        score:previous.score||normalizedMatch.score,
+        statistics:{
+          home:mergeSide(normalizedMatch.statistics?.home,previous.statistics?.home),
+          away:mergeSide(normalizedMatch.statistics?.away,previous.statistics?.away)
+        },
+        mamSources:[...new Set([...(previous.mamSources||[previous.mamSource||"unknown"]),m.mamSource||"unknown"])]
+      };
+      return;
+    }
+    seen.set(identity,output.length);
+    output.push({...normalizedMatch,mamSources:[m.mamSource||"unknown"]});
   };
 
   // Süper Lig geçmişi için doğrudan uygulamadaki sezon CSV arşivini kullan.
