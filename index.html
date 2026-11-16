@@ -5379,28 +5379,36 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const hm=(m.mamSource==="football-data-team"&&Number(m.teams?.home?.id)===Number(teamId))||isTarget(h),am=(m.mamSource==="football-data-team"&&Number(m.teams?.away?.id)===Number(teamId))||isTarget(a);
     if(hm===am)return;
     const gh=m.goals?.home,ga=m.goals?.away;
-    if(gh===null||ga===null||gh===undefined||ga===undefined)return;
+    // Empty strings and non-numeric placeholders must never become artificial 0-0 results.
+    if(gh===null||ga===null||gh===undefined||ga===undefined||String(gh).trim()===""||String(ga).trim()===""||!Number.isFinite(Number(gh))||!Number.isFinite(Number(ga)))return;
     const d=String(m.fixture?.date||"").slice(0,10);
-    if(!d||d>=matchDate)return;
-    // Cross-provider identity deliberately excludes provider fixture IDs and league labels:
-    // ESPN, CSV and D1 use different IDs/names for the same real-world fixture.
-    const identity=[d,normalize(h),normalize(a),Number(gh),Number(ga)].join("|");
-    const normalizedMatch={...m,teams:{
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d>=matchDate)return;
+    // A real fixture has one identity even when providers disagree on the score.
+    const identity=[d,normalize(h),normalize(a)].join("|");
+    const normalizedMatch={...m,goals:{home:Number(gh),away:Number(ga)},teams:{
       home:{...m.teams.home,id:hm?Number(teamId):-1},
       away:{...m.teams.away,id:am?Number(teamId):-1}
     }};
     if(seen.has(identity)){
-      // Keep one fixture row, but merge useful fields from every source.
       const index=seen.get(identity),previous=output[index];
       const mergeSide=(older={},newer={})=>({...newer,...older});
+      const previousScore={home:Number(previous.goals?.home),away:Number(previous.goals?.away)};
+      const incomingScore={home:Number(gh),away:Number(ga)};
+      const scoreConflict=previousScore.home!==incomingScore.home||previousScore.away!==incomingScore.away;
+      const conflictRows=scoreConflict?[...(previous.mamScoreConflicts||[]),{
+        source:m.mamSource||"unknown",keptSource:previous.mamSource||"unknown",
+        kept:previousScore,incoming:incomingScore,checkedAt:new Date().toISOString()
+      }]:previous.mamScoreConflicts||[];
       output[index]={
         ...normalizedMatch,...previous,
         fixture:{...(normalizedMatch.fixture||{}),...(previous.fixture||{})},
+        goals:previous.goals,
         score:previous.score||normalizedMatch.score,
         statistics:{
           home:mergeSide(normalizedMatch.statistics?.home,previous.statistics?.home),
           away:mergeSide(normalizedMatch.statistics?.away,previous.statistics?.away)
         },
+        mamScoreConflicts:conflictRows,
         mamSources:[...new Set([...(previous.mamSources||[previous.mamSource||"unknown"]),m.mamSource||"unknown"])]
       };
       return;
@@ -5408,7 +5416,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     seen.set(identity,output.length);
     output.push({...normalizedMatch,mamSources:[m.mamSource||"unknown"]});
   };
-
   // Süper Lig geçmişi için doğrudan uygulamadaki sezon CSV arşivini kullan.
   // Cloudflare KV geçmiş sorguları beklemeye neden olabildiği için bu ligde atlanır.
 
@@ -5882,11 +5889,11 @@ function teamStats(matches, teamId, venue){
   if(!isHome && !isAway) return false;
   if(venue === "home" && !isHome) return false;
   if(venue === "away" && !isAway) return false;
-  return Number.isFinite(Number(m.goals?.home)) &&
-         Number.isFinite(Number(m.goals?.away)) &&
-         m.goals?.home !== null && m.goals?.away !== null;
+  const homeGoals=m.goals?.home,awayGoals=m.goals?.away;
+  return homeGoals!==null&&homeGoals!==undefined&&awayGoals!==null&&awayGoals!==undefined&&
+         String(homeGoals).trim()!==""&&String(awayGoals).trim()!==""&&
+         Number.isFinite(Number(homeGoals))&&Number.isFinite(Number(awayGoals));
  });
-
  let gf=0, ga=0, firstGF=0, firstGA=0, secondGF=0, secondGA=0;
  let halfCount=0, firstBoth=0, secondBoth=0,wins=0,draws=0,losses=0,cleanSheets=0,btts=0,over25=0;
 
