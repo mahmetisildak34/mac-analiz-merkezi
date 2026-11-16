@@ -3219,7 +3219,11 @@ async function loadLiveMatchesNow(){
     const freshPairs=new Set(fallbackLive.map(matchPair));
     const mergedByPair=new Map();
     recentCachedLive.forEach(match=>{const key=matchPair(match);if(!freshPairs.has(key))mergedByPair.set(key,match);});
-    fallbackLive.forEach(match=>mergedByPair.set(matchPair(match),match));
+    const primaryChecksByPair=new Map(primaryLiveMatches.filter(match=>match._mamLiveCrossCheck).map(match=>[matchPair(match),match._mamLiveCrossCheck]));
+    fallbackLive.forEach(match=>{
+     const check=primaryChecksByPair.get(matchPair(match));
+     mergedByPair.set(matchPair(match),check?{...match,_mamLiveCrossCheck:check}:match);
+    });
     // API-Football ve ESPN sonuçlarını takım eşleşmesiyle birleştir.
     // ESPN dakikası ve skoru daha sık yenilendiğinden aynı maçta ESPN kazanır.
     primaryLiveMatches.forEach(match=>{
