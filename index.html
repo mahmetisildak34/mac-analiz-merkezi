@@ -2336,8 +2336,9 @@ function mamReadStatsCache(key){
  try{
   const saved=JSON.parse(localStorage.getItem(key)||"null");
   if(!saved||!saved.time||!saved.value||typeof saved.value!=="object")return null;
-  const hasData=Object.keys(saved.value.home||{}).length||Object.keys(saved.value.away||{}).length;
-  const ttl=hasData?MAM_MATCH_STATS_TTL:MAM_EMPTY_STATS_TTL;
+  const required=["corners","shotsOnTarget","shots","yellowCards","redCards"];
+  const complete=required.every(key=>saved.value.home?.[key]!==undefined&&saved.value.home?.[key]!==null&&saved.value.away?.[key]!==undefined&&saved.value.away?.[key]!==null);
+  const ttl=complete?MAM_MATCH_STATS_TTL:MAM_EMPTY_STATS_TTL;
   if(Date.now()-saved.time>ttl)return null;
   return saved.value;
  }catch(_){return null;}
