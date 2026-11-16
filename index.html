@@ -5701,7 +5701,7 @@ function optionalMetric(matches, teamId, metric, venue){
  const aliases = {
   corners: ["corners", "corner kicks"],
   shotsOnTarget: ["shotsOnTarget", "shots on target", "Shots on Goal"],
-  shots: ["shots", "Total Shots"],
+  shots: ["shots", "totalShots", "total_shots", "total shots", "Total Shots", "totalShotsTaken"],
   yellowCards: ["yellowCards", "yellow cards", "Yellow Cards"],
   redCards: ["redCards", "red cards", "Red Cards"]
  };
@@ -5739,6 +5739,13 @@ function optionalMetric(matches, teamId, metric, venue){
    }
   }
 
+  if(metric==="shots"&&value===null&&nested&&typeof nested==="object"){
+   const totalCandidates=["totalShots","total_shots","total shots","shotsTotal","shots_total","totalShotsTaken"];
+   for(const key of totalCandidates){
+    const raw=nested[key];
+    if(raw!==undefined&&raw!==null&&raw!==""&&Number.isFinite(Number(raw))){value=Number(raw);break;}
+   }
+  }
   if(metric==="shots"&&value!==null){
    let sot=Number(nested?.shotsOnTarget??nested?.shotsOnGoal??NaN);
    if(!Number.isFinite(sot)&&Array.isArray(m.statistics)){
@@ -5965,7 +5972,7 @@ async function analyze(button){
     <div class="stat"><span>${esc(awayName)}</span><b>${la.toFixed(2)}</b></div>
    </div>
    <p class="note">Bu değerler geçmiş gol ortalamalarından üretilen model tahminidir; sağlayıcının maç içi gerçek xG verisi değildir.</p>
-   <div class="section-title">Takım performansı · Son 10 maç</div>
+   <div class="section-title">Takım performansı · ${homeOverall.count} / 10 ve ${awayOverall.count} / 10 doğrulanmış maç</div>
    <div class="statgrid">
     <div class="stat"><span>${esc(homeName)} gol ortalaması</span><b>${homeOverall.gf.toFixed(2)}</b></div>
     <div class="stat"><span>${esc(homeName)} yediği gol</span><b>${homeOverall.ga.toFixed(2)}</b></div>
