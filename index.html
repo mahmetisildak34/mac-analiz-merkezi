@@ -2450,12 +2450,12 @@ async function loadMatches(){
  // Show the last successful fixture snapshot immediately; refresh it in the background below.
  try{
   const instantCache=JSON.parse(localStorage.getItem(fixtureCacheKey)||"null");
-  if(Array.isArray(instantCache?.matches)&&instantCache.matches.length){
+  if(Array.isArray(instantCache?.matches)&&instantCache.matches.length&&Number(instantCache.time)>Date.now()-10*60*1000){
    allMatches=instantCache.matches;
    renderMatches();
-   $("status").textContent="Kayıtlı maçlar gösteriliyor · güncel veriler kontrol ediliyor...";
-  }else if(previousMatches.length){allMatches=previousMatches;renderMatches();}
- }catch(_){if(previousMatches.length){allMatches=previousMatches;renderMatches();}}
+   $("status").textContent="Son 10 dakika içinde alınan kayıtlı fikstür gösteriliyor · güncel veriler kontrol ediliyor...";
+  }
+ }catch(_){}
  try{
   let source="API-Football";
   // For dates within the next 30 days, prefer the centralized D1 fixture archive.
@@ -2554,8 +2554,8 @@ async function loadMatches(){
     alternativeSource="D1 tarihsel/gelecek arşivi";
    }
    if(!alternative.length){
-    allMatches=previousMatches;
-    throw new Error("API-Football kotası dolu. "+espnFailure+" | "+footballDataFailure+" Önceki fikstür korunuyor.");
+    allMatches=[];
+    throw new Error("API-Football kotası dolu. "+espnFailure+" | "+footballDataFailure+" Seçilen tarih için doğrulanmış yeni fikstür bulunamadı.");
    }
    allMatches=alternative;
    source=alternativeSource+" (yedek kaynak)";
@@ -2586,14 +2586,10 @@ async function loadMatches(){
    $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+".";
   }
  }catch(e){
-  if(previousMatches.length){
-   allMatches=previousMatches;
-   renderMatches();
-   $("status").innerHTML='<span class="error">Yeni fikstür alınamadı; önceki maç listesi korundu. '+esc(e.message)+'</span>';
-  }else{
-   $("status").innerHTML='<span class="error">'+esc(e.message)+'</span>';
-   $("matches").innerHTML='<div class="empty">Fikstür alınamadı. Hata: '+esc(e.message)+'</div>';
-  }
+  allMatches=[];
+  renderMatches();
+  $("status").innerHTML='<span class="error">Seçilen tarih için güncel fikstür doğrulanamadı. Eski maç listesi gizlendi. '+esc(e.message)+'</span>';
+  $("matches").innerHTML='<div class="empty">Bu tarih için güncel veri alınamadı. Kaynaklar tekrar erişilebilir olduğunda Yenile ile yeniden dene.</div>';
  }finally{button.disabled=false}
 }
 
