@@ -2594,6 +2594,7 @@ async function loadMatches(){
  }catch(_){}
  try{
   let source="API-Football";
+  let primaryFixtureCount=0;
   // For dates within the next 30 days, prefer the centralized D1 fixture archive.
   // It returns every configured ESPN competition at once; the existing league picker
   // and renderMatches() continue to control what the user sees.
@@ -2624,6 +2625,7 @@ async function loadMatches(){
   try{
    const data=await api("fixtures?"+qs({date:date,timezone:"Europe/Istanbul"}));
    const freshMatches=data.response||[];
+   primaryFixtureCount=freshMatches.length;
    allMatches=freshMatches;
    if(freshMatches.length){
     try{localStorage.setItem(fixtureCacheKey,JSON.stringify({time:Date.now(),matches:freshMatches}));}catch(e){}
@@ -2713,7 +2715,8 @@ async function loadMatches(){
     }
    });
    allMatches=[...merged.values()].sort((a,b)=>Date.parse(a.fixture?.date||0)-Date.parse(b.fixture?.date||0));
-   if(source==="API-Football")source="API-Football + D1 fikstür tamamlayıcısı";
+   if(primaryFixtureCount>0)source=source==="API-Football"?"API-Football + D1 fikstür tamamlayıcısı":source+" + D1 arşiv tamamlayıcısı";
+   else if(source==="API-Football")source="D1 arşiv yedeği";
   }
   // Herhangi bir sağlayıcıdan başarıyla alınan fikstürü kaynak bağımsız şekilde sakla.
   // Böylece API kotası dolsa veya sayfa yenilense bile son çalışan liste kaybolmaz.
