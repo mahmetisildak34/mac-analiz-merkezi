@@ -2698,24 +2698,54 @@ async function loadMatches(){
    allMatches=alternative;
    source=alternativeSource+" (yedek kaynak)";
   }
+  // API-Football sonuç döndürse bile eksik lig maçlarını ESPN ile tamamla.
+  // ESPN yedeği başarısız olursa ana fikstür korunur.
+  let espnSupplementCount=0;
+  if(primaryFixtureCount>0){
+   try{
+    const espnSupplement=await espnFixtures(date);
+    if(espnSupplement.length){
+     const existingKeys=new Set(allMatches.map(match=>String(match.fixture?.id??"")));
+     const additions=espnSupplement.filter(match=>!existingKeys.has(String(match.fixture?.id??"")));
+     espnSupplementCount=additions.length;
+     if(additions.length)allMatches=[...allMatches,...additions];
+     if(espnSupplementCount)source="API-Football + ESPN fikstür tamamlayıcısı";
+    }
+   }catch(espnSupplementError){
+    console.warn("ESPN tamamlayıcı fikstür alınamadı; API-Football listesi korunuyor.",espnSupplementError);
+   }
+  }
   // D1 archive is a supplement, not a replacement for the date endpoint:
   // today's completed fixtures must retain their final scores/status from the live provider.
-  if(archivedDayRows.length){
-   const merged=new Map();
-   [...allMatches,...archivedDayRows].forEach(match=>{
-    const id=String(match.fixture?.id??match.id??"");
-    const key=id||[match.teams?.home?.name,match.teams?.away?.name,match.fixture?.date].join("|");
-    if(!merged.has(key))merged.set(key,match);
+  if(archivedDayRows.length||espnSupplementCount){
+   const merged=[];
+   const finalStatuses=new Set(["FT","AET","PEN","AWD","WO","FINISHED"]);
+   const teamKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/\\b(football club|fc|afc|sk|fk|as|cf|sc|club|calcio)\\b/g,"").replace(/[^a-z0-9]/g,"");
+   const sameFixture=(a,b)=>{
+    const aId=String(a.fixture?.id??a.id??""),bId=String(b.fixture?.id??b.id??"");
+    if(aId&&bId&&aId===bId)return true;
+    const aLeague=String(a.league?.id??""),bLeague=String(b.league?.id??"");
+    if(aLeague&&bLeague&&aLeague!==bLeague)return false;
+    const ah=teamKey(a.teams?.home?.name),aa=teamKey(a.teams?.away?.name);
+    const bh=teamKey(b.teams?.home?.name),ba=teamKey(b.teams?.away?.name);
+    if(!ah||!aa||!bh||!ba||ah!==bh||aa!==ba)return false;
+    const at=Date.parse(a.fixture?.date||""),bt=Date.parse(b.fixture?.date||"");
+    return Number.isFinite(at)&&Number.isFinite(bt)&&Math.abs(at-bt)<=10*60*1000;
+   };
+   for(const incoming of [...allMatches,...archivedDayRows]){
+    const index=merged.findIndex(existing=>sameFixture(existing,incoming));
+    if(index<0)merged.push(incoming);
     else{
-     const existing=merged.get(key),incoming=match;
-     const existingDone=["FT","AET","PEN","AWD","WO","FINISHED"].includes(String(existing.fixture?.status?.short||"").toUpperCase());
-     const incomingDone=["FT","AET","PEN","AWD","WO","FINISHED"].includes(String(incoming.fixture?.status?.short||"").toUpperCase());
-     if(incomingDone&&!existingDone)merged.set(key,incoming);
+     const existing=merged[index];
+     const existingDone=finalStatuses.has(String(existing.fixture?.status?.short||"").toUpperCase());
+     const incomingDone=finalStatuses.has(String(incoming.fixture?.status?.short||"").toUpperCase());
+     // Keep the primary provider's fixture ID, but accept a completed archive result.
+     if(incomingDone&&!existingDone)merged[index]={...existing,goals:incoming.goals,score:incoming.score,fixture:{...existing.fixture,status:incoming.fixture?.status||existing.fixture?.status}};
     }
-   });
-   allMatches=[...merged.values()].sort((a,b)=>Date.parse(a.fixture?.date||0)-Date.parse(b.fixture?.date||0));
-   if(primaryFixtureCount>0)source=source==="API-Football"?"API-Football + D1 fikstür tamamlayıcısı":source+" + D1 arşiv tamamlayıcısı";
-   else if(source==="API-Football")source="D1 arşiv yedeği";
+   }
+   allMatches=merged.sort((a,b)=>Date.parse(a.fixture?.date||0)-Date.parse(b.fixture?.date||0));
+   if(archivedDayRows.length&&primaryFixtureCount>0)source=source+" + D1 arşiv tamamlayıcısı";
+   else if(archivedDayRows.length&&primaryFixtureCount===0&&source==="API-Football")source="D1 arşiv yedeği";
   }
   // Herhangi bir sağlayıcıdan başarıyla alınan fikstürü kaynak bağımsız şekilde sakla.
   // Böylece API kotası dolsa veya sayfa yenilense bile son çalışan liste kaybolmaz.
