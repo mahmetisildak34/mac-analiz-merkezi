@@ -2310,6 +2310,15 @@ const ESPN_LEAGUES={
  "15":{slug:"fifa.cwc",name:"FIFA Club World Cup",country:"World"},
  "307":{slug:"ksa.1",name:"Saudi Pro League",country:"Saudi Arabia"},
  "concacaf_nations":{slug:"concacaf.nations.league",name:"CONCACAF Nations League",country:"North America"},
+ "caf_nations_qual":{slug:"caf.nations_qual",name:"Africa Cup of Nations Qualifying",country:"Africa"},
+ "fifa_friendly":{slug:"fifa.friendly",name:"International Friendlies",country:"World"},
+ "fifa_friendly_w":{slug:"fifa.friendly.w",name:"Women International Friendlies",country:"World"},
+ "fifa_friendly_u21":{slug:"fifa.friendly_u21",name:"International U21 Friendlies",country:"World"},
+ "fifa_u20_friendly":{slug:"fifa.u20.friendly",name:"International U20 Friendlies",country:"World"},
+ "concacaf_champions":{slug:"concacaf.champions",name:"CONCACAF Champions Cup",country:"North America"},
+ "concacaf_gold":{slug:"concacaf.gold",name:"CONCACAF Gold Cup",country:"North America"},
+ "conmebol_libertadores":{slug:"conmebol.libertadores",name:"Copa Libertadores",country:"South America"},
+ "conmebol_sudamericana":{slug:"conmebol.sudamericana",name:"Copa Sudamericana",country:"South America"},
  "esp_copa":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
  "esp_copa_del_rey":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
  "esp.copa":{slug:"esp.copa_del_rey",name:"Copa del Rey",country:"Spain"},
@@ -2948,7 +2957,7 @@ async function loadLiveMatchesNow(){
   $("status").textContent="Son kayıtlı canlı maçlar yükleniyor; güncel skorlar kontrol ediliyor...";
  }
  let primaryErrorText="",primaryCount=0,espnErrorText="",primaryLiveMatches=[];
-  let fallbackSchedule=[];
+  let fallbackSchedule=[],espnCount=0,footballDataCount=0,sportScoreCount=0;
  try{
   // Ana kaynak: API-Football live=all bütün ligleri döndürmelidir.
   try{
@@ -2970,6 +2979,7 @@ async function loadLiveMatchesNow(){
   const date=mamIstanbulDateString();
   try{
    let fallback=await espnFixtures(date,true);
+   espnCount=fallback.length;
    fallbackSchedule=fallback.slice();
    // Türkiye saatiyle gece yarısından sonra, UTC/ESPN takviminde bir önceki güne ait
    // hâlâ devam eden maçlar yeni gün scoreboard sorgusunda görünmeyebilir.
@@ -3036,6 +3046,7 @@ async function loadLiveMatchesNow(){
   let footballDataErrorText="";
   try{
    const backupLive=(await footballDataLiveFixtures()).filter(isLive);
+   footballDataCount=backupLive.length;
    if(backupLive.length){
     mamNotifyLiveGoalChanges(backupLive);
     allMatches=backupLive;
@@ -3052,6 +3063,7 @@ async function loadLiveMatchesNow(){
   let sportScoreErrorText="";
   try{
    const sportScoreLive=(await mamSportScoreLiveFixtures()).filter(isLive);
+   sportScoreCount=sportScoreLive.length;
    if(sportScoreLive.length){
     mamNotifyLiveGoalChanges(sportScoreLive);
     allMatches=sportScoreLive;
@@ -3106,7 +3118,7 @@ async function loadLiveMatchesNow(){
       return time+" "+match.teams.home.name+" – "+match.teams.away.name;
      }).join(" · ")+"."
     : " Bugün için ESPN'in desteklediği liglerde sıradaki fikstür bilgisi alınamadı.";
-   $("status").textContent="Şu anda desteklenen liglerde doğrulanmış canlı maç bulunamadı."+upcomingText+" "+primaryStatus+" Maç başladığında kaynaklar otomatik yeniden kontrol edilecek.";
+   $("status").textContent="Şu anda doğrulanmış canlı maç bulunamadı."+upcomingText+" Kaynak kontrolü: API-Football "+primaryCount+" kayıt; ESPN "+espnCount+" maç kaydı; Football-data.org "+footballDataCount+" canlı kayıt; SportScore "+sportScoreCount+" canlı kayıt. "+primaryStatus+" Maç başladığında kaynaklar otomatik yeniden kontrol edilecek.";
    return;
   }
   const cacheNote=savedLiveCache&&cachedMatches.length
