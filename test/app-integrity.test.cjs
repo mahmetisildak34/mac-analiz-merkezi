@@ -34,7 +34,7 @@ assert.match(html, /api\("espn\/".*?\/teams\?/, "ESPN team-directory fallback mi
 assert.match(html, /api\("teams\?"\+qs\(\{league:leagueId,season\}\)\)/, "API-Football team-directory fallback missing");
 assert.match(html, /teamSource==="api-football"/, "Provider-aware history/future fallback missing");
 assert.match(html, /fixtures\?"\+qs\(\{team:teamId,next:20/, "API-Football upcoming fixtures fallback missing");
-assert.match(html, /mam_history_v73_/, "Provider-scoped history cache missing");
+assert.match(html, /mam_history_v76_/, "Provider-scoped history cache missing");
 assert.match(html, /teamSource="football-data"/, "Football-data standings provider is not identified");
 assert.match(html, /Football-data takım geçmişi:/, "Football-data team-history fallback missing");
 assert.match(html, /ESPN yedek geçmişi:/, "ESPN team-history fallback missing");
@@ -51,7 +51,7 @@ assert.match(html, /mamTodayFilter==="upcoming"/, "Upcoming tab filter is not wi
 assert.match(html, /mamTodayFilter==="finished"/, "Finished tab filter is not wired");
 assert.match(html, /const groupedMatches=\[\.\.\.list\.reduce\(/, "Fixtures must be grouped by league");
 assert.match(html, /class="mam-league-heading"/, "League heading must be shown for each fixture group");
-assert.match(html, /data-mam-bottom="live"/, "Live match bottom-navigation item missing");
+assert.match(html, /<nav id="mamLiveNav"[^>]*>[\s\S]*?data-live-action="live"/, "Dedicated live-screen navigation is missing");
 assert.match(html, /\.mam-screen-live #mamLiveNav:not\(\[hidden\]\)\{display:flex!important/, "Existing live screen shortcuts remain hidden");
 assert.match(html, /function mamCanonicalMatchStatus\(match\)/, "Provider match-status normalization missing");
 assert.match(html, /const mamStatusRank=m=>/, "Daily scoreboard status ordering missing");
