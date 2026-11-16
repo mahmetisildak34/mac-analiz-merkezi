@@ -3034,7 +3034,9 @@ function mamReadLiveMatchCache(){
   const saved=JSON.parse(localStorage.getItem(MAM_LIVE_MATCH_CACHE_KEY)||"null");
   if(!saved||!Array.isArray(saved.matches)||!saved.matches.length)return null;
   const age=Date.now()-Number(saved.savedAt||0);
-  if(!Number.isFinite(age)||age>6*60*60*1000)return null;
+  // Live snapshots are operational data, not historical fixtures.
+  // Never resurrect a score snapshot older than 3 minutes as if it were live.
+  if(!Number.isFinite(age)||age<0||age>3*60*1000)return null;
   return saved;
  }catch(_){return null;}
 }
