@@ -3617,7 +3617,7 @@ function mamRowsForFixture(rows,fixtureId,homeName="",awayName="",date=""){
   const rowId=String(x.fixtureId||x.fixture?.id||x.fixture_id||"");
   if(rowId===id)return true;
   if(!home||!away)return false;
-  const rowDate=String(x.fixture?.date||x.date||"").slice(0,10);
+  const rowDate=String(x.fixtureDate||x.fixture?.date||x.date||"").slice(0,10);
   if(date&&rowDate&&rowDate!==date)return false;
   const team=mamAbsenceTeamKey(x.team);
   return !!team&&(team===home||team===away||home.includes(team)||away.includes(team)||team.includes(home)||team.includes(away));
@@ -3628,7 +3628,7 @@ function mamNormalizeAbsenceRows(rows){
   const p=x.player||{},t=x.team||{};
   const type=String(x.type||x.status||"Eksik");
   const reason=String(x.reason||"");
-  return {player:String(p.name||x.player_name||""),team:String(t.name||x.team_name||"Takım"),status:type,reason,fixtureId:String(x.fixture?.id??x.fixture_id??x.fixtureId??"")};
+  return {player:String(p.name||x.player_name||""),team:String(t.name||x.team_name||"Takım"),status:type,reason,fixtureId:String(x.fixture?.id??x.fixture_id??x.fixtureId??""),fixtureDate:String(x.fixture?.date||x.date||"").slice(0,10)};
  }).filter(x=>x.player);
 }
 let mamAbsenceScanBusy=false;
