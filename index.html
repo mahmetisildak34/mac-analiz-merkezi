@@ -4837,7 +4837,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const normalize=name=>String(name||"").normalize("NFD").toLowerCase()
     .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
     .replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim()
-    .replace(/\b(football club|fc|cf|afc|a s|as|anonim sirketi|sirketi)\b/g,"").replace(/\s+/g," ").trim();
+    .replace(/\b(football club|football|club|de|the|fc|cf|afc|a s|as|anonim sirketi|sirketi)\b/g,"").replace(/\s+/g," ").trim();
   const aliases={
     "manchester city":["man city","m city","manchester city fc","man city fc"],
     "man city":["manchester city","m city","manchester city fc"],
@@ -4877,6 +4877,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     "cote divoire":["ivory coast"],
     "north macedonia":["macedonia"],
     "cape verde":["cabo verde"],
+    "real union irun":["real union club de irun","real union club","real union"],
+    "real union club de irun":["real union irun","real union club"],
     // Bundesliga: standings/API names versus football-data.co.uk and ESPN spellings.
     "bayern munchen":["bayern munich","bayern","fc bayern"],
     "bayern munich":["bayern munchen","bayern"],
@@ -6469,7 +6471,7 @@ window.mamSportScoreTeamSchedule = async function mamSportScoreTeamSchedule(team
   return response.json();
  };
  const search=await request(base+"/v1/search/?"+qs({q:teamName,sport:"football",limit:12,src:"mac-analiz-merkezi"}));
- const norm=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
+ const norm=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football|club|de|the|fc|cf|afc)\b/g," ").replace(/[^a-z0-9]/g,"");
  const wanted=norm(teamName),candidates=[];
  const walk=(value,depth=0)=>{
   if(!value||typeof value!=="object"||depth>8)return;
