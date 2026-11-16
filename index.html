@@ -3050,29 +3050,34 @@ function mamSaveLiveMatchCache(matches){
  try{if(Array.isArray(matches)&&matches.length)localStorage.setItem(MAM_LIVE_MATCH_CACHE_KEY,JSON.stringify({savedAt:Date.now(),matches}));}catch(_){}
 }
 function mamEnrichLiveScoresWithEspn(primaryMatches,espnMatches){
- const normalize=value=>{let name=String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,"");const aliases={turkiye:"turkey",czechrepublic:"czechia",korearepublic:"southkorea",unitedstates:"usa",unitedstatesofamerica:"usa",iranislamicrepublic:"iran",bosniaandherzegovina:"bosnia"};return aliases[name]||name;};
+ const normalize=value=>{
+  let name=String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,"");
+  const aliases={turkiye:"turkey",czechrepublic:"czechia",korearepublic:"southkorea",unitedstates:"usa",unitedstatesofamerica:"usa",iranislamicrepublic:"iran",bosniaandherzegovina:"bosnia"};
+  return aliases[name]||name;
+ };
  const liveMap=new Map();
  for(const match of (Array.isArray(espnMatches)?espnMatches:[])){
-  const leagueId=String(match.league?.id||"");
   const home=normalize(match.teams?.home?.name),away=normalize(match.teams?.away?.name);
   const state=String(match.fixture?.status?.short||"").toUpperCase();
   const homeScore=Number(match.goals?.home),awayScore=Number(match.goals?.away);
-  if(!leagueId||!home||!away||match.goals?.home==null||match.goals?.away==null||!Number.isFinite(homeScore)||!Number.isFinite(awayScore)||!["LIVE","1H","2H","HT","ET","P","INT","IN_PLAY","PAUSED"].includes(state))continue;
-  liveMap.set(leagueId+"|"+home+"|"+away,{
-   source:"ESPN",home:homeScore,away:awayScore,
+  if(!home||!away||match.goals?.home==null||match.goals?.away==null||!Number.isFinite(homeScore)||!Number.isFinite(awayScore)||!["LIVE","1H","2H","HT","ET","P","INT","IN_PLAY","PAUSED"].includes(state))continue;
+  const kickoff=Date.parse(match.fixture?.date||""),key=home+"|"+away,rows=liveMap.get(key)||[];
+  rows.push({source:"ESPN",home:homeScore,away:awayScore,
    elapsed:match.fixture?.status?.elapsed!=null&&Number.isFinite(Number(match.fixture.status.elapsed))?Number(match.fixture.status.elapsed):null,
-   displayClock:String(match.fixture?.status?.displayClock||"")
-  });
+   displayClock:String(match.fixture?.status?.displayClock||""),kickoff:Number.isFinite(kickoff)?kickoff:null});
+  liveMap.set(key,rows);
  }
  let checked=0,scoreMismatches=0,minuteMismatches=0;
  const result=(Array.isArray(primaryMatches)?primaryMatches:[]).map(match=>{
-  const leagueId=String(match.league?.id||"");
-  const home=normalize(match.teams?.home?.name),away=normalize(match.teams?.away?.name);
-  const comparison=liveMap.get(leagueId+"|"+home+"|"+away);
+  const home=normalize(match.teams?.home?.name),away=normalize(match.teams?.away?.name),kickoff=Date.parse(match.fixture?.date||"");
+  const candidates=(liveMap.get(home+"|"+away)||[]).map(candidate=>({...candidate,delta:candidate.kickoff===null||!Number.isFinite(kickoff)?Infinity:Math.abs(candidate.kickoff-kickoff)}))
+   .filter(candidate=>candidate.delta<=6*60*60*1000).sort((a,b)=>a.delta-b.delta);
+  // Provider league IDs differ for some cups and international competitions.
+  // Normalized team pair plus a bounded kickoff window is the cross-source key.
+  const comparison=candidates[0];
   if(!comparison)return match;
   checked++;
-  const current=match.goals||{};
-  const apiHome=Number(current.home),apiAway=Number(current.away);
+  const current=match.goals||{},apiHome=Number(current.home),apiAway=Number(current.away);
   const scoreComparable=current.home!=null&&current.away!=null&&Number.isFinite(apiHome)&&Number.isFinite(apiAway);
   const scoreMatched=scoreComparable&&apiHome===comparison.home&&apiAway===comparison.away;
   const apiMinute=Number(match.fixture?.status?.elapsed);
@@ -3080,15 +3085,11 @@ function mamEnrichLiveScoresWithEspn(primaryMatches,espnMatches){
   const minuteMatched=minuteComparable&&Math.abs(apiMinute-comparison.elapsed)<=2;
   if(scoreComparable&&!scoreMatched)scoreMismatches++;
   if(minuteComparable&&!minuteMatched)minuteMismatches++;
-  const check={
-   source:"ESPN",
+  const check={source:"ESPN",matchMethod:"team-pair+kickoff-window",kickoffDifferenceMinutes:Number.isFinite(comparison.delta)?Math.round(comparison.delta/60000):null,
    score:{apiFootball:{home:current.home,away:current.away},espn:{home:comparison.home,away:comparison.away},matched:scoreMatched},
    minute:{apiFootball:Number.isFinite(apiMinute)?apiMinute:null,espn:comparison.elapsed,displayClock:comparison.displayClock,matched:minuteComparable?minuteMatched:null},
-   checkedAt:new Date().toISOString()
-  };
-  if((scoreComparable&&!scoreMatched)||(minuteComparable&&!minuteMatched)){
-   console.warn("MAM canlı veri kaynakları arasında fark:",{fixtureId:match.fixture?.id,home:match.teams?.home?.name,away:match.teams?.away?.name,check});
-  }
+   checkedAt:new Date().toISOString()};
+  if((scoreComparable&&!scoreMatched)||(minuteComparable&&!minuteMatched))console.warn("MAM canlı veri kaynakları arasında fark:",{fixtureId:match.fixture?.id,home:match.teams?.home?.name,away:match.teams?.away?.name,check});
   return {...match,_mamLiveCrossCheck:check};
  });
  if(checked)console.info("MAM canlı çapraz kontrol:",{checked,scoreMismatches,minuteMismatches});
@@ -3143,8 +3144,8 @@ async function loadLiveMatchesNow(){
  $("status").textContent="Canlı maç akışı kontrol ediliyor...";
  // Eski ekran/cihaz/D1 kayıtlarını canlı veri olarak yeniden göstermiyoruz.
  // Canlı listede yalnızca bu yenilemede sağlayıcıdan gelen doğrulanmış maçlar gösterilir.
- const previousMatches=[];
- const savedLiveCache=null;
+ const previousMatches=allMatches.slice();
+ const savedLiveCache=mamReadLiveMatchCache();
  const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"]);
  const isLive=match=>liveStatuses.has(String(match?.fixture?.status?.short||"").toUpperCase());
  // Eski canlı statüsünde kalmış maçları gerçek canlı akış gibi göstermeyelim.
@@ -7375,6 +7376,11 @@ const openStandingTeamHistory=async row=>{
 }
 </style>
 
+<style id="mam-mobile-match-header-overflow-fix">
+@media(max-width:600px){
+ #matches article.match.match-modern:not(.in-detail) .match-head{display:none!important}
+}
+</style>
 </body>
 </html>
 
