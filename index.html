@@ -2467,17 +2467,16 @@ async function loadMatches(){
   const lastArchiveDate=new Date(today);lastArchiveDate.setDate(lastArchiveDate.getDate()+30);
   if(selectedDate>=today&&selectedDate<=lastArchiveDate){
    try{
-    const archiveQuery=mamScreenMode==="upcoming"?{days:30,limit:2000}:{days:30,limit:2000,date:date};
-    const archive=await api("archive/upcoming?"+qs(archiveQuery));
+    // Read the same known-good 30-day D1 snapshot for every future/current date.
+    // The Worker exact-date SQL path can miss rows when kickoff values carry mixed UTC offsets;
+    // filter by Istanbul calendar date here, using the identical rule as the upcoming list.
+    const archive=await api("archive/upcoming?"+qs({days:30,limit:2000}));
     const archivedRows=Array.isArray(archive?.response)?archive.response:[];
-    if(mamScreenMode==="upcoming")archivedDayRows=archivedRows;
-    else{
-     const localDate=value=>{
-      const stamp=Date.parse(value||"");
-      return Number.isFinite(stamp)?new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(stamp)):"";
-     };
-     archivedDayRows=archivedRows.filter(match=>localDate(match.fixture?.date)===date);
-    }
+    const localDate=value=>{
+     const stamp=Date.parse(value||"");
+     return Number.isFinite(stamp)?new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(stamp)):"";
+    };
+    archivedDayRows=mamScreenMode==="upcoming"?archivedRows:archivedRows.filter(match=>localDate(match.fixture?.date)===date);
    }catch(archiveError){
     console.warn("Merkezi gelecek fikstür arşivi kullanılamadı; mevcut kaynaklar deneniyor.",archiveError);
    }
