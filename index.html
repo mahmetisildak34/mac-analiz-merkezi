@@ -2813,7 +2813,7 @@ async function mamSportScoreLiveFixtures(force=false){
   else if(/penalt/.test(detail)||raw==="penalties")short="P";
   else if(/suspend/.test(detail)||raw==="suspended")short="SUSP";
   else if(/finish|full time|ended|complete/.test(raw+" "+detail))short="FT";
-  else if(/live|in play|in progress|first half|second half|1st half|2nd half/.test(raw+" "+detail))short="LIVE";
+  else if(/live|in play|in progress|inprogress|first half|second half|1st half|2nd half|\\b1h\\b|\\b2h\\b/.test(raw+" "+detail))short="LIVE";
   if(!["HT","ET","P","SUSP","LIVE"].includes(short))return null;
   const slug=String(item.slug||item.id||""),home=String(item.home||item.home_team?.name||item.homeTeam?.name||""),away=String(item.away||item.away_team?.name||item.awayTeam?.name||"");
   if(!slug||!home||!away)return null;
