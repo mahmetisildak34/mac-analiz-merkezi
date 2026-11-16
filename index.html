@@ -5760,6 +5760,9 @@ async function analyze(button){
   target.id="pred-"+(button.dataset.id||("analysis-"+Date.now()));
   button.closest(".match")?.appendChild(target);
  }
+ // Gelecek fikstür kartlarında analiz paneli başlangıçta hidden gelir.
+ // Analiz çağrıldığında görünür hale getirilmezse buton çalışsa bile kullanıcı sonuç göremez.
+ target.hidden=false;
  if(["FT","AET","PEN","AWD","WO"].includes(String(button.dataset.status||""))){
   target.innerHTML='<span class="note">Bu maç tamamlandı. Sistem yalnızca maç başlamadan önce tahmin üretir; gerçekleşmiş sonuç için maç önü tahmini gösterilmez.</span>';
   return;
@@ -5770,10 +5773,18 @@ async function analyze(button){
  target.textContent="Takımların doğrulanmış geçmiş maçları alınıyor...";
 
  try{
-  const homeId=Number(button.dataset.home);
-  const awayId=Number(button.dataset.away);
   const date=button.dataset.date;
-  if(!homeId||!awayId||!date)throw new Error("Maç bilgileri eksik. Fikstürü yeniden yükle.");
+  const stableTeamId=name=>{
+   const value=String(name||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();
+   let hash=2166136261;
+   for(let i=0;i<value.length;i++){hash^=value.charCodeAt(i);hash=Math.imul(hash,16777619);}
+   return (hash>>>0)%2000000000+1;
+  };
+  // D1/ESPN fikstürlerinde takım ID'si bazen boş gelir. Takım adı üzerinden
+  // sabit bir dahili ID üret; geçmiş arşivini takım adıyla eşleştirme yine sürer.
+  const homeId=Number(button.dataset.home)||stableTeamId(button.dataset.homeName);
+  const awayId=Number(button.dataset.away)||stableTeamId(button.dataset.awayName);
+  if(!button.dataset.homeName||!button.dataset.awayName||!date)throw new Error("Maç bilgileri eksik. Fikstürü yeniden yükle.");
 
   const homeMatches=(await getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id)).slice(0,10);
   target.textContent="İkinci takımın geçmiş maçları alınıyor...";
