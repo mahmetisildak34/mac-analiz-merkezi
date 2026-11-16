@@ -2595,9 +2595,8 @@ async function loadMatches(){
  try{
   let source="API-Football";
   let primaryFixtureCount=0;
-  // For dates within the next 30 days, prefer the centralized D1 fixture archive.
-  // It returns every configured ESPN competition at once; the existing league picker
-  // and renderMatches() continue to control what the user sees.
+  // Read the centralized D1 archive for a safe supplement/fallback on nearby
+  // dates. Fresh API-Football results remain authoritative when available.
   const selectedDate=new Date(date+"T12:00:00");
   const today=new Date();today.setHours(0,0,0,0);
   let archivedDayRows=[];
