@@ -2470,7 +2470,10 @@ async function loadMatches(){
     // Read the same known-good 30-day D1 snapshot for every future/current date.
     // The Worker exact-date SQL path can miss rows when kickoff values carry mixed UTC offsets;
     // filter by Istanbul calendar date here, using the identical rule as the upcoming list.
-    const archive=await api("archive/upcoming?"+qs({days:30,limit:2000}));
+    const archiveQuery=mamScreenMode==="upcoming"
+     ? qs({days:30,limit:2000})
+     : qs({date,league:$("league").value==="all"?undefined:$("league").value,limit:2000});
+    const archive=await api("archive/upcoming?"+archiveQuery);
     const archivedRows=Array.isArray(archive?.response)?archive.response:[];
     const localDate=value=>{
      const stamp=Date.parse(value||"");
