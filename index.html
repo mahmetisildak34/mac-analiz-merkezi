@@ -5027,12 +5027,12 @@ function mamEnrichHistoricalStats(matches,leagueId){
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false, teamSource=""){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v73_"+leagueId+"_"+teamSource+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v74_"+leagueId+"_"+teamSource+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
       const saved=JSON.parse(cached);
-      if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<6*60*60*1000){
+      if(Array.isArray(saved.matches)&&saved.matches.length>=10&&Date.now()-saved.time<6*60*60*1000){
         // Eski cache kayıtlarında maç sonucu var ama istatistikler eksik olabilir.
         // Cache hit olsa bile yalnızca eksik istatistikleri tamamlamayı dene.
         const enriched=await mamEnrichHistoricalStats(saved.matches,leagueId);
@@ -5301,9 +5301,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   const leagues={
     "39":"ENG_1_premier-league","140":"ESP_1_la-liga","78":"GER_1_bundesliga",
-    "135":"ITA_1_serie-a","61":"FRA_1_ligue-1","2":"UEFA_1_champions-league",
-    "3":"UEFA_1_europa-league","848":"UEFA_1_conference-league",
-    "94":"POR_1_primeira-liga","88":"NED_1_eredivisie","144":"BEL_1_pro-league",
+    "135":"ITA_1_serie-a","61":"FRA_1_ligue-1","144":"BEL_1_pro-league",
     "203":"TUR_1_super-lig","179":"SCO_1_premiership","253":"USA_1_mls",
     "71":"BRA_1_serie-a","128":"ARG_1_liga-profesional","262":"MEX_1_liga-mx",
     "98":"JPN_1_j1-league","188":"AUS_1_a-league","169":"CHN_1_super-league"
@@ -5342,7 +5340,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   const folder=leagues[String(leagueId)];
   if(folder){
-    // Sekiz sezonun CSV arşivini paralel tara; iki ayna kaynağı da zaman aşımıyla sınırla.
+    // Mevcut sezon ve önceki iki sezonun CSV arşivini paralel tara; iki ayna kaynağı da zaman aşımıyla sınırla.
     // Eski seri istek düzeni iPhone'da uzun süre "geçmiş maçlar alınıyor" ekranında kalabiliyordu.
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const seasonStart=matchMonth>=7?matchYear:matchYear-1;
