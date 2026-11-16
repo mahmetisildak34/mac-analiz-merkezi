@@ -2627,6 +2627,7 @@ async function loadMatches(){
  try{
   let source="API-Football";
   let primaryFixtureCount=0;
+  let primaryFixtureDiagnostic="API-Football: sorgu bekleniyor";
   // Read the centralized D1 archive for a safe supplement/fallback on nearby
   // dates. Fresh API-Football results remain authoritative when available.
   const selectedDate=new Date(date+"T12:00:00");
@@ -2658,6 +2659,7 @@ async function loadMatches(){
    const data=await api("fixtures?"+qs(fixtureParams));
    const freshMatches=data.response||[];
    primaryFixtureCount=freshMatches.length;
+   primaryFixtureDiagnostic="API-Football: başarılı yanıt, "+primaryFixtureCount+" maç";
    allMatches=freshMatches;
    if(freshMatches.length){
     try{localStorage.setItem(fixtureCacheKey,JSON.stringify({time:Date.now(),matches:freshMatches}));}catch(e){}
@@ -2699,6 +2701,7 @@ async function loadMatches(){
    }
   }catch(primaryError){
    const message=String(primaryError?.message||primaryError||"Bilinmeyen API-Football hatası");
+   primaryFixtureDiagnostic="API-Football bağlantı hatası: "+message;
    // Bu blok yalnızca API-Football fikstür isteğinin hatasını yakalar.
    // Hata metni sağlayıcıya göre değişebildiğinden regex ile filtreleme yapma:
    // kota, 403, ağ, zaman aşımı veya Worker hatalarının tamamında yedeğe geç.
@@ -2808,7 +2811,7 @@ async function loadMatches(){
    const detail=window.mamLastFixtureFallbackErrors?.length?" Denenen kaynaklar: "+window.mamLastFixtureFallbackErrors.join(" | "):"";
    $("status").textContent="Bu tarih için maç bulunamadı. Kaynak: "+source+"."+detail;
   }else{
-   $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+".";
+   $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+". "+primaryFixtureDiagnostic;
   }
  }catch(e){
   // A failed refresh must never erase the last known-good fixture snapshot.
