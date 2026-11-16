@@ -2720,7 +2720,7 @@ async function loadMatches(){
   if(archivedDayRows.length||espnSupplementCount){
    const merged=[];
    const finalStatuses=new Set(["FT","AET","PEN","AWD","WO","FINISHED"]);
-   const teamKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i").replace(/\\b(football club|fc|afc|sk|fk|as|cf|sc|club|calcio)\\b/g,"").replace(/[^a-z0-9]/g,"");
+   const teamKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
    const sameFixture=(a,b)=>{
     const aId=String(a.fixture?.id??a.id??""),bId=String(b.fixture?.id??b.id??"");
     if(aId&&bId&&aId===bId)return true;
