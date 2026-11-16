@@ -3049,7 +3049,7 @@ function mamEnrichLiveScoresWithEspn(primaryMatches,espnMatches){
   const home=normalize(match.teams?.home?.name),away=normalize(match.teams?.away?.name);
   const state=String(match.fixture?.status?.short||"").toUpperCase();
   const homeScore=Number(match.goals?.home),awayScore=Number(match.goals?.away);
-  if(!leagueId||!home||!away||!Number.isFinite(homeScore)||!Number.isFinite(awayScore)||!["LIVE","1H","2H","HT","ET","P","INT","IN_PLAY","PAUSED"].includes(state))continue;
+  if(!leagueId||!home||!away||match.goals?.home==null||match.goals?.away==null||!Number.isFinite(homeScore)||!Number.isFinite(awayScore)||!["LIVE","1H","2H","HT","ET","P","INT","IN_PLAY","PAUSED"].includes(state))continue;
   liveMap.set(leagueId+"|"+home+"|"+away,{
    source:"ESPN",home:homeScore,away:awayScore,
    elapsed:match.fixture?.status?.elapsed!=null&&Number.isFinite(Number(match.fixture.status.elapsed))?Number(match.fixture.status.elapsed):null,
