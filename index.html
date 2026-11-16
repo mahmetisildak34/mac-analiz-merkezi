@@ -2376,6 +2376,8 @@ async function getApiFootballMatchStats(fixtureId){
 
 async function espnFixtures(date,includeAllLeagues=false){
  const selected=$("league").value;
+ const espnCacheKey="mam_espn_scoreboard_cache_v1_"+String(date)+"_"+(includeAllLeagues||selected==="all"?"all":selected);
+ try{const cached=JSON.parse(localStorage.getItem(espnCacheKey)||"null");if(cached?.time&&Array.isArray(cached.matches)&&Date.now()-cached.time<45000)return cached.matches;}catch(_){}
  const rawTargets=(includeAllLeagues||selected==="all")
   ? Object.entries(ESPN_LEAGUES)
   : (ESPN_LEAGUES[selected]?[[selected,ESPN_LEAGUES[selected]]]:[]);
@@ -2431,7 +2433,9 @@ async function espnFixtures(date,includeAllLeagues=false){
  if(!matches.length&&failures.length){
   throw new Error("ESPN sonuçları ("+failures.length+"/"+targets.length+" lig isteği başarısız): "+failures.slice(0,4).map((x,index)=>String(x.reason?.message||x.reason)).join(" | "));
  }
- return matches.sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
+ const sorted=matches.sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
+ try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),matches:sorted}));}catch(_){}
+ return sorted;
 }
 
 async function loadMatches(){
@@ -2900,17 +2904,9 @@ async function loadLiveMatchesNow(){
    primaryCount=Array.isArray(data.response)?data.response.length:0;
    const primaryLive=(data.response||[]).filter(isLive);
    if(primaryLive.length){
-    let verifiedLive=primaryLive;
-    try{
-     const date=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Istanbul"});
-     verifiedLive=await mamEnrichLiveScoresWithEspn(primaryLive,date);
-    }catch(scoreCheckError){
-     console.warn("ESPN canlı skor çapraz kontrolü yapılamadı; API-Football skoru korunuyor.",scoreCheckError);
-    }
-    // API-Football ilk canlı listeyi sağlar; hemen dönme.
-    // ESPN tüm desteklenen ligleri sık tarayabildiği için dakika/skor güncellemesini
-    // aynı yenilemede birleştirip taze ESPN kaydını öncelikli kullanacağız.
-    primaryLiveMatches=verifiedLive;
+    // ESPN tüm ligleri aşağıda tek kontrollü taramada sorgulanır.
+    // Maç başına ayrıca ESPN isteği atmak gereksiz istek yükü oluşturur.
+    primaryLiveMatches=primaryLive;
    }
    if(data.errors&&Object.keys(data.errors).length)primaryErrorText=JSON.stringify(data.errors);
    else primaryErrorText=primaryCount
@@ -4464,7 +4460,7 @@ if(!window.mamLiveStatsTimer){
  window.mamLiveScoreTimer=setInterval(refreshOpenLiveScore,8000);
  window.mamLiveStatsTimer=setInterval(refreshOpenLiveStats,5000);
  window.mamLiveClockTimer=setInterval(mamTickVisibleMatchClock,1000);
- window.mamLiveRefreshTimer=setInterval(()=>{if(mamScreenMode==="live")refreshVisibleFixtureLists();},15000);
+ window.mamLiveRefreshTimer=setInterval(()=>{if(mamScreenMode==="live")refreshVisibleFixtureLists();},30000);
  window.mamFixtureRefreshTimer=setInterval(()=>{if(mamScreenMode==="upcoming")refreshVisibleFixtureLists();},60000);
  document.addEventListener("visibilitychange",()=>{
   if(!document.hidden){
