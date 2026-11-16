@@ -5837,10 +5837,15 @@ async function analyze(button){
   const awayId=Number(button.dataset.away)||stableTeamId(button.dataset.awayName);
   if(!button.dataset.homeName||!button.dataset.awayName||!date)throw new Error("Maç bilgileri eksik. Fikstürü yeniden yükle.");
 
-  const homeMatches=(await getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id)).slice(0,10);
-  target.textContent="İkinci takımın geçmiş maçları alınıyor...";
-  await wait(250);
-  const awayMatches=(await getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id)).slice(0,10);
+  // İki takımın geçmişini aynı anda yükle. Her kaynak kendi maç-istatistik
+  // önbelleğini kullanır; aynı maç için eşzamanlı istekler tekilleştirilir.
+  target.textContent="İki takımın geçmiş maçları paralel yükleniyor...";
+  const [homeHistory,awayHistory]=await Promise.all([
+   getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id),
+   getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id)
+  ]);
+  const homeMatches=homeHistory.slice(0,10);
+  const awayMatches=awayHistory.slice(0,10);
 
   const homeOverall=teamStats(homeMatches,homeId,"all");
   const awayOverall=teamStats(awayMatches,awayId,"all");
