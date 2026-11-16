@@ -2490,12 +2490,11 @@ async function loadMatches(){
   const today=new Date();today.setHours(0,0,0,0);
   let archivedDayRows=[];
   const lastArchiveDate=new Date(today);lastArchiveDate.setDate(lastArchiveDate.getDate()+30);
-  if(selectedDate>=today&&selectedDate<=lastArchiveDate){
+  if(mamScreenMode==="finished"||(selectedDate>=today&&selectedDate<=lastArchiveDate)){
    try{
-    // Always read the same known-good D1 rolling snapshot, independent of API-Football.
-    // Filter the selected Istanbul calendar day locally so a single-day SQL/date mismatch
-    // cannot hide fixtures that are already present in the 30-day archive.
-    const archive=await api("archive/upcoming?"+qs({days:30,limit:2000}));
+    // Gelecek fikstür için 30 günlük plan; Biten ekranı için D1'den son 30 günün
+    // tamamlanmış sonuçlarını ayrı sorgula. Böylece bugünün tarih filtresi geçmişi gizlemez.
+    const archive=await api("archive/upcoming?"+qs({days:30,limit:2000,...(mamScreenMode==="finished"?{results:1}:{})}));
     const archivedRows=Array.isArray(archive?.response)?archive.response:[];
     const localDate=value=>{
      const stamp=Date.parse(value||"");
@@ -2504,7 +2503,7 @@ async function loadMatches(){
      const part=type=>parts.find(item=>item.type===type)?.value||"";
      return part("year")+"-"+part("month")+"-"+part("day");
     };
-    archivedDayRows=mamScreenMode==="upcoming"?archivedRows:archivedRows.filter(match=>localDate(match.fixture?.date)===date);
+    archivedDayRows=mamScreenMode==="finished"?archivedRows:(mamScreenMode==="upcoming"?archivedRows:archivedRows.filter(match=>localDate(match.fixture?.date)===date));
    }catch(archiveError){
     console.warn("Merkezi gelecek fikstür arşivi kullanılamadı; mevcut kaynaklar deneniyor.",archiveError);
    }
