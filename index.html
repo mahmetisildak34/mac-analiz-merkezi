@@ -6626,7 +6626,7 @@ const openStandingTeamHistory=async row=>{
   const routeMode=String(location.hash||"").match(/^#mam-(home|live|upcoming|standings)$/)?.[1];
   const mode=routeMode||saved.mode;
   if(["home","live","upcoming","standings"].includes(mode)){
-   if(saved.date&&$("date"))$("date").value=saved.date;
+   if(saved.date&&$("date")){const todayLocal=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());$("date").value=saved.date<todayLocal?todayLocal:saved.date;}
    if(saved.league&&$("league")){$("league").value=saved.league;$("league").dispatchEvent(new Event("change"));}
    setMamScreen(mode);
    if(mode==="live")mamRestoreTask=loadLiveMatches();
