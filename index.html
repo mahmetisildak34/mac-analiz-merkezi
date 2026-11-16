@@ -2330,71 +2330,107 @@ const ESPN_LEAGUES={
  "uefa_conference":{slug:"uefa.europa.conf",name:"UEFA Conference League",country:"Europe"},
 };
 
+const MAM_MATCH_STATS_TTL=7*24*60*60*1000;
+const MAM_EMPTY_STATS_TTL=15*60*1000;
+function mamReadStatsCache(key){
+ try{
+  const saved=JSON.parse(localStorage.getItem(key)||"null");
+  if(!saved||!saved.time||!saved.value||typeof saved.value!=="object")return null;
+  const hasData=Object.keys(saved.value.home||{}).length||Object.keys(saved.value.away||{}).length;
+  const ttl=hasData?MAM_MATCH_STATS_TTL:MAM_EMPTY_STATS_TTL;
+  if(Date.now()-saved.time>ttl)return null;
+  return saved.value;
+ }catch(_){return null;}
+}
+function mamWriteStatsCache(key,value){
+ if(!value||typeof value!=="object")return;
+ try{localStorage.setItem(key,JSON.stringify({time:Date.now(),value}));}catch(_){}
+}
+const mamStatsInflight=window.mamStatsInflight||(window.mamStatsInflight=new Map());
+async function mamCachedMatchStats(key,loader){
+ const cached=mamReadStatsCache(key);
+ if(cached)return cached;
+ if(mamStatsInflight.has(key))return mamStatsInflight.get(key);
+ const task=(async()=>{
+  try{
+   const value=await loader();
+   if(value&&typeof value==="object")mamWriteStatsCache(key,value);
+   return value;
+  }finally{mamStatsInflight.delete(key);}
+ })();
+ mamStatsInflight.set(key,task);
+ return task;
+}
 async function getEspnMatchStats(leagueId,eventId){
  const league=ESPN_LEAGUES[String(leagueId)];
- if(!league?.slug||!/^\d+$/.test(String(eventId)))return null;
- const data=await api("espn/"+league.slug+"/summary?"+qs({event:String(eventId)}));
- const teams=Array.isArray(data.boxscore?.teams)?data.boxscore.teams:[];
- if(teams.length<2)return null;
- const normalizeStat=value=>String(value||"").toLowerCase().replace(/[^a-z]/g,"");
- const readStats=team=>{
-  const result={};
-  for(const stat of (team.statistics||[])){
-   const key=normalizeStat(stat.name||stat.abbreviation);
-   const raw=stat.displayValue??stat.value;
-   const number=Number(String(raw??"").replace(/,/g,""));
-   if(!Number.isFinite(number))continue;
-   if(/corner/.test(key))result.corners=number;
-   else if(/shotsontarget|shotsongoal|ontarget/.test(key))result.shotsOnTarget=number;
-   else if(/blockedshots/.test(key))result.blockedShots=number;
-   else if(/shotsofftarget|offtarget/.test(key))result.shotsOffTarget=number;
-   else if(/totalshots|shots$/.test(key))result.shots=number;
-   else if(/possession/.test(key))result.possession=number;
-   else if(/foul/.test(key))result.fouls=number;
-   else if(/offside/.test(key))result.offsides=number;
-   else if(/save/.test(key))result.saves=number;
-   else if(/accuratepasses|totalpasses|passes/.test(key))result.passes=number;
-   else if(key==="xg"||/expectedgoals/.test(key))result.xg=number;
-   else if(/yellowcard/.test(key))result.yellowCards=number;
-   else if(/redcard/.test(key))result.redCards=number;
-  }
-  return result;
- };
- const home=teams.find(x=>x.homeAway==="home");
- const away=teams.find(x=>x.homeAway==="away");
- if(!home||!away)return null;
- return {home:readStats(home),away:readStats(away)};
+ if(!league?.slug||!/^[0-9]+$/.test(String(eventId)))return null;
+ const cacheKey="mam_match_stats_v2_espn_"+String(leagueId)+"_"+String(eventId);
+ return mamCachedMatchStats(cacheKey,async()=>{
+  const data=await api("espn/"+league.slug+"/summary?"+qs({event:String(eventId)}));
+  const teams=Array.isArray(data.boxscore?.teams)?data.boxscore.teams:[];
+  if(teams.length<2)return null;
+  const normalizeStat=value=>String(value||"").toLowerCase().replace(/[^a-z]/g,"");
+  const readStats=team=>{
+   const result={};
+   for(const stat of (team.statistics||[])){
+    const key=normalizeStat(stat.name||stat.abbreviation);
+    const raw=stat.displayValue??stat.value;
+    const number=Number(String(raw??"").replace(/,/g,""));
+    if(raw===null||raw===undefined||raw===""||!Number.isFinite(number))continue;
+    if(/corner/.test(key))result.corners=number;
+    else if(/shotsontarget|shotsongoal|ontarget/.test(key))result.shotsOnTarget=number;
+    else if(/blockedshots/.test(key))result.blockedShots=number;
+    else if(/shotsofftarget|offtarget/.test(key))result.shotsOffTarget=number;
+    else if(/totalshots|shots$/.test(key))result.shots=number;
+    else if(/possession/.test(key))result.possession=number;
+    else if(/foul/.test(key))result.fouls=number;
+    else if(/offside/.test(key))result.offsides=number;
+    else if(/save/.test(key))result.saves=number;
+    else if(/accuratepasses|totalpasses|passes/.test(key))result.passes=number;
+    else if(key==="xg"||/expectedgoals/.test(key))result.xg=number;
+    else if(/yellowcard/.test(key))result.yellowCards=number;
+    else if(/redcard/.test(key))result.redCards=number;
+   }
+   return result;
+  };
+  const home=teams.find(x=>x.homeAway==="home");
+  const away=teams.find(x=>x.homeAway==="away");
+  if(!home||!away)return null;
+  return {home:readStats(home),away:readStats(away)};
+ });
 }
-
 async function getApiFootballMatchStats(fixtureId){
- if(!/^\d+$/.test(String(fixtureId||"")))return null;
- const data=await api("fixtures/statistics?"+qs({fixture:fixtureId}));
- const rows=Array.isArray(data.response)?data.response:[];
- if(rows.length<2)return null;
- const readStats=row=>{
-  const result={};
-  for(const stat of (row.statistics||[])){
-   const key=String(stat.type||"").toLowerCase().replace(/[^a-z]/g,"");
-   const raw=stat.value;
-   const number=Number(String(raw??"").replace(/,/g,"").replace("%",""));
-   if(raw===null||raw===undefined||raw===""||!Number.isFinite(number))continue;
-   if(/corner/.test(key))result.corners=number;
-   else if(/shotsongoal|shotsontarget/.test(key))result.shotsOnTarget=number;
-   else if(/blockedshots/.test(key))result.blockedShots=number;
-   else if(/shotsofftarget/.test(key))result.shotsOffTarget=number;
-   else if(/totalshots/.test(key))result.shots=number;
-   else if(/ballpossession|possession/.test(key))result.possession=number;
-   else if(/fouls/.test(key))result.fouls=number;
-   else if(/offsides/.test(key))result.offsides=number;
-   else if(/goalkeepersaves|saves/.test(key))result.saves=number;
-   else if(/totalpasses|passes/.test(key))result.passes=number;
-   else if(key==="xg"||/expectedgoals/.test(key))result.xg=number;
-   else if(/yellowcards?/.test(key))result.yellowCards=number;
-   else if(/redcards?/.test(key))result.redCards=number;
-  }
-  return result;
- };
- return {home:readStats(rows[0]),away:readStats(rows[1])};
+ if(!/^[0-9]+$/.test(String(fixtureId||"")))return null;
+ const cacheKey="mam_match_stats_v2_apifootball_"+String(fixtureId);
+ return mamCachedMatchStats(cacheKey,async()=>{
+  const data=await api("fixtures/statistics?"+qs({fixture:fixtureId}));
+  const rows=Array.isArray(data.response)?data.response:[];
+  if(rows.length<2)return null;
+  const readStats=row=>{
+   const result={};
+   for(const stat of (row.statistics||[])){
+    const key=String(stat.type||"").toLowerCase().replace(/[^a-z]/g,"");
+    const raw=stat.value;
+    const number=Number(String(raw??"").replace(/,/g,"").replace("%",""));
+    if(raw===null||raw===undefined||raw===""||!Number.isFinite(number))continue;
+    if(/corner/.test(key))result.corners=number;
+    else if(/shotsongoal|shotsontarget/.test(key))result.shotsOnTarget=number;
+    else if(/blockedshots/.test(key))result.blockedShots=number;
+    else if(/shotsofftarget/.test(key))result.shotsOffTarget=number;
+    else if(/totalshots/.test(key))result.shots=number;
+    else if(/ballpossession|possession/.test(key))result.possession=number;
+    else if(/fouls/.test(key))result.fouls=number;
+    else if(/offsides/.test(key))result.offsides=number;
+    else if(/goalkeepersaves|saves/.test(key))result.saves=number;
+    else if(/totalpasses|passes/.test(key))result.passes=number;
+    else if(key==="xg"||/expectedgoals/.test(key))result.xg=number;
+    else if(/yellowcards?/.test(key))result.yellowCards=number;
+    else if(/redcards?/.test(key))result.redCards=number;
+   }
+   return result;
+  };
+  return {home:readStats(rows[0]),away:readStats(rows[1])};
+ });
 }
 
 async function espnFixtures(date,includeAllLeagues=false){
