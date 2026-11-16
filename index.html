@@ -2948,6 +2948,7 @@ async function loadLiveMatchesNow(){
   $("status").textContent="Son kayıtlı canlı maçlar yükleniyor; güncel skorlar kontrol ediliyor...";
  }
  let primaryErrorText="",primaryCount=0,espnErrorText="",primaryLiveMatches=[];
+  let fallbackSchedule=[];
  try{
   // Ana kaynak: API-Football live=all bütün ligleri döndürmelidir.
   try{
@@ -2969,6 +2970,7 @@ async function loadLiveMatchesNow(){
   const date=mamIstanbulDateString();
   try{
    let fallback=await espnFixtures(date,true);
+   fallbackSchedule=fallback.slice();
    // Türkiye saatiyle gece yarısından sonra, UTC/ESPN takviminde bir önceki güne ait
    // hâlâ devam eden maçlar yeni gün scoreboard sorgusunda görünmeyebilir.
    // Bugün canlı maç bulunmadıysa 00:00–05:59 arasında dünkü ESPN skor tabelasını da tara.
@@ -2982,6 +2984,7 @@ async function loadLiveMatchesNow(){
       const previousDay=await espnFixtures(previousDate,true);
       const previousLive=previousDay.filter(isLive);
       if(previousLive.length)fallback=[...fallback,...previousLive];
+      fallbackSchedule=fallback.slice();
      }catch(previousDayError){
       console.warn("Gece yarısı önceki gün ESPN canlı taraması başarısız:",previousDayError);
      }
@@ -3088,7 +3091,22 @@ async function loadLiveMatchesNow(){
    const primaryStatus=liveQuotaWait
     ?"API-Football canlı yedek kaynağı ücretsiz plan koruması nedeniyle 5 dakikalık beklemede; ESPN ve diğer yedek kaynaklar bağımsız tarandı."
     :"API-Football durumu: "+primaryErrorText;
-   $("status").textContent="Şu anda desteklenen liglerde doğrulanmış canlı maç bulunamadı. "+primaryStatus+" Maç başladığında kaynaklar otomatik yeniden kontrol edilecek.";
+   const upcomingToday=fallbackSchedule
+    .filter(match=>{
+     const kickoff=Date.parse(match?.fixture?.date||"");
+     const status=String(match?.fixture?.status?.short||"").toUpperCase();
+     return Number.isFinite(kickoff)&&kickoff>Date.now()&&kickoff<Date.now()+24*60*60*1000&&
+      !["FT","AET","PEN","CANC","ABD","AWD","WO"].includes(status);
+    })
+    .sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date))
+    .slice(0,3);
+   const upcomingText=upcomingToday.length
+    ? " Sıradaki fikstür: "+upcomingToday.map(match=>{
+      const time=new Intl.DateTimeFormat("tr-TR",{timeZone:"Europe/Istanbul",hour:"2-digit",minute:"2-digit"}).format(new Date(match.fixture.date));
+      return time+" "+match.teams.home.name+" – "+match.teams.away.name;
+     }).join(" · ")+"."
+    : " Bugün için ESPN'in desteklediği liglerde sıradaki fikstür bilgisi alınamadı.";
+   $("status").textContent="Şu anda desteklenen liglerde doğrulanmış canlı maç bulunamadı."+upcomingText+" "+primaryStatus+" Maç başladığında kaynaklar otomatik yeniden kontrol edilecek.";
    return;
   }
   const cacheNote=savedLiveCache&&cachedMatches.length
