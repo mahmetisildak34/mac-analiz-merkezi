@@ -3174,21 +3174,8 @@ async function loadLiveMatchesNow(){
  let primaryErrorText="",primaryCount=0,espnErrorText="",primaryLiveMatches=[];
   let fallbackSchedule=[],espnCount=0,espnLiveCount=0,footballDataCount=0,sportScoreCount=0;
  try{
-  // Ana kaynak: API-Football live=all bütün ligleri döndürmelidir.
-  try{
-   const data=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
-   primaryCount=Array.isArray(data.response)?data.response.length:0;
-   const primaryLive=(data.response||[]).filter(isLive);
-   if(primaryLive.length){
-    // ESPN tüm ligleri aşağıda tek kontrollü taramada sorgulanır.
-    // Maç başına ayrıca ESPN isteği atmak gereksiz istek yükü oluşturur.
-    primaryLiveMatches=primaryLive;
-   }
-   if(data.errors&&Object.keys(data.errors).length)primaryErrorText=JSON.stringify(data.errors);
-   else primaryErrorText=primaryCount
-    ? "API-Football "+primaryCount+" kayıt döndürdü ancak canlı durum kodu eşleşmedi."
-    : "API-Football live=all boş yanıt döndürdü.";
-  }catch(error){primaryErrorText=String(error?.message||error);}
+  // ESPN is the first live-score source. API-Football is a controlled fallback only.
+  primaryErrorText="API-Football canlı isteği ESPN kontrolünden sonraya alındı.";
   // Yedek kaynak: ESPN'deki desteklenen ligler, kontrollü eşzamanlılıkla taranır.
   $("status").textContent="Ana kaynak yanıt vermedi; ESPN ligleri taranıyor...";
   const date=mamIstanbulDateString();
@@ -3257,6 +3244,18 @@ async function loadLiveMatchesNow(){
    }
    espnErrorText="ESPN taraması tamamlandı; desteklenen liglerde canlı maç döndürmedi.";
   }catch(error){espnErrorText=String(error?.message||error);}
+  // Only query API-Football if ESPN did not provide any live matches.
+  if(!espnLiveCount){
+   try{
+    const data=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
+    primaryCount=Array.isArray(data.response)?data.response.length:0;
+    primaryLiveMatches=(data.response||[]).filter(isLive);
+    if(data.errors&&Object.keys(data.errors).length)primaryErrorText=JSON.stringify(data.errors);
+    else primaryErrorText=primaryCount
+     ? "API-Football "+primaryCount+" kayıt döndürdü ancak canlı durum kodu eşleşmedi."
+     : "API-Football live=all boş yanıt döndürdü.";
+   }catch(error){primaryErrorText=String(error?.message||error);}
+  }
   // ESPN'de o anda maç bulunmasa bile API-Football canlı liste döndürdüyse kaybetme.
   if(primaryLiveMatches.length){
    mamNotifyLiveGoalChanges(primaryLiveMatches);
