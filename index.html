@@ -6154,10 +6154,14 @@ async function analyze(button){
   const total=lh+la;
   let win=0,draw=0,lose=0;
 
-  for(let h=0;h<=10;h++)for(let a=0;a<=10;a++){
+  for(let h=0;h<=12;h++)for(let a=0;a<=12;a++){
    const p=poisson(lh,h)*poisson(la,a);
    if(h>a)win+=p;else if(h===a)draw+=p;else lose+=p;
   }
+  // Normalize the finite score grid so 1-X-2 always sums to exactly 100%.
+  const outcomeMass=win+draw+lose;
+  if(!Number.isFinite(outcomeMass)||outcomeMass<=0)throw new Error("Maç sonucu olasılıkları doğrulanamadı.");
+  win/=outcomeMass;draw/=outcomeMass;lose/=outcomeMass;
 
   const over15=overProb(total,2);
   const over25=overProb(total,3);
@@ -6240,6 +6244,7 @@ async function analyze(button){
     <div class="stat"><span>${esc(awayName)} deplasman</span><b>${awayVenue.wins}-${awayVenue.draws}-${awayVenue.losses}</b><span>${awayVenue.count} maç</span></div>
    </div>
    <p class="note">${esc(homeName)}: ${homeOverall.count} doğrulanmış maç · ${esc(awayName)}: ${awayOverall.count} doğrulanmış maç. Model hesabı ${hs.count} ev sahibi / ${as.count} deplasman odaklı maç kullanıyor.</p>
+   ${(homeScoreConflicts||awayScoreConflicts)?'<p class="note">⚠️ Kaynaklar arası skor uyuşmazlığı nedeniyle '+homeScoreConflicts+' ev sahibi ve '+awayScoreConflicts+' deplasman geçmiş kaydı model dışında bırakıldı.</p>':''}
    ${(homeVenueFallback||awayVenueFallback)?"<p class=\"note\">⚠️ İç saha veya deplasman örneği bulunamadığında model o takımın tüm geçmiş maçlarına geri döndü.</p>":""}
    ${lowSample?'<p class="note">⚠️ Uyarı: Takımlardan en az birinde 3 maçtan az geçmiş veri var. Tahmin düşük örneklem nedeniyle daha az güvenilirdir.</p>':''}
    <div class="section-title">Maç sonucu olasılıkları</div>
