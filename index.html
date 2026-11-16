@@ -3091,7 +3091,9 @@ function mamEnrichLiveScoresWithEspn(primaryMatches,espnMatches){
    minute:{apiFootball:Number.isFinite(apiMinute)?apiMinute:null,espn:comparison.elapsed,displayClock:comparison.displayClock,matched:minuteComparable?minuteMatched:null},
    checkedAt:new Date().toISOString()};
   if((scoreComparable&&!scoreMatched)||(minuteComparable&&!minuteMatched))console.warn("MAM canlı veri kaynakları arasında fark:",{fixtureId:match.fixture?.id,home:match.teams?.home?.name,away:match.teams?.away?.name,check});
-  return {...match,_mamLiveCrossCheck:check};
+  const scoreConflict=scoreComparable&&!scoreMatched;
+  const minuteConflict=minuteComparable&&!minuteMatched;
+  return {...match,_mamLiveCrossCheck:check,_mamLiveConflict:scoreConflict||minuteConflict};
  });
  if(checked)console.info("MAM canlı çapraz kontrol:",{checked,scoreMismatches,minuteMismatches});
  return result;
@@ -3244,15 +3246,18 @@ async function loadLiveMatchesNow(){
      if(!mergedByPair.has(key))mergedByPair.set(key,match);
     });
     const combinedLive=[...mergedByPair.values()];
-    mamNotifyLiveGoalChanges(combinedLive);
-    allMatches=combinedLive;
-    mamSaveLiveMatchCache(combinedLive);
+    const conflictedLive=combinedLive.filter(match=>match._mamLiveConflict);
+    const verifiedLive=combinedLive.filter(match=>!match._mamLiveConflict);
+    mamNotifyLiveGoalChanges(verifiedLive);
+    allMatches=verifiedLive;
+    mamSaveLiveMatchCache(verifiedLive);
     renderMatches();
     warmLiveTeamHistories(allMatches);
-    const crossChecks=allMatches.map(match=>match._mamLiveCrossCheck).filter(Boolean);
+    const crossChecks=combinedLive.map(match=>match._mamLiveCrossCheck).filter(Boolean);
     const scoreDiffs=crossChecks.filter(check=>check.score?.matched===false).length;
     const minuteDiffs=crossChecks.filter(check=>check.minute?.matched===false).length;
-    $("status").textContent=allMatches.length+" canlı maç · ESPN/API-Football karşılaştırması: "+crossChecks.length+" eşleşme, "+scoreDiffs+" skor farkı, "+minuteDiffs+" dakika farkı · Son kontrol: "+new Date().toLocaleTimeString("tr-TR",{timeZone:"Europe/Istanbul"});
+    const conflictNames=conflictedLive.map(match=>(match.teams?.home?.name||"")+" – "+(match.teams?.away?.name||""));
+    $("status").textContent=verifiedLive.length+" doğrulanmış canlı maç · "+conflictedLive.length+" çelişkili maç analizden çıkarıldı · Eşleşme "+crossChecks.length+" · Skor farkı "+scoreDiffs+" · Dakika farkı "+minuteDiffs+(conflictNames.length?" · Kontrol bekliyor: "+conflictNames.join("; "):"");
     return;
    }
    espnErrorText="ESPN taraması tamamlandı; desteklenen liglerde canlı maç döndürmedi.";
