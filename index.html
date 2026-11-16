@@ -3437,7 +3437,7 @@ async function loadLiveStats(button,forceRefresh=false){
  panel.hidden=false;panel.innerHTML='<div class="small">Canlı istatistikler alınıyor…</div>';
  button.disabled=true;
  try{
-  let homeTeam,awayTeam,statsRows=[],sourceLabel,payload=null;
+  let homeTeam,awayTeam,statsRows=[],sourceLabel,payload=null,statsCrossCheckNote="";
   if(source==="sportscore"){
    const backup=await mamSportScoreLiveStats(button);
    homeTeam=backup.homeName||button.dataset.liveHomeName||"Ev sahibi";
@@ -3588,6 +3588,69 @@ async function loadLiveStats(button,forceRefresh=false){
     sourceLabel="ESPN yedek kaynak";
    }
   }
+  // Compare API-Football live metrics with ESPN for the same event. Primary values remain authoritative.
+  if(source!=="espn"&&source!=="sportscore"&&statsRows.length){
+   try{
+    const leagueId=String(button.dataset.liveLeagueId||"");
+    const slug=String(button.dataset.liveLeague||ESPN_LEAGUES[leagueId]?.slug||"");
+    const date=String(button.dataset.liveDate||"");
+    if(slug&&date){
+     const event=await mamFindEspnLiveEvent({slug,date,homeName,awayName});
+     if(event?.id){
+      const secondary=await api("espn/"+slug+"/summary?"+qs({event:String(event.id)}));
+      const sides=[
+       ...(Array.isArray(secondary.boxscore?.teams)?secondary.boxscore.teams:[]),
+       ...(Array.isArray(secondary.header?.competitions?.[0]?.competitors)?secondary.header.competitions[0].competitors:[])
+      ];
+      const h=sides.find(side=>side.homeAway==="home"),a=sides.find(side=>side.homeAway==="away");
+      const keyFor=name=>{
+       const key=String(name||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+       if(key.includes("possession"))return "possession";
+       if(key.includes("shotsontarget")||key.includes("shotsongoal"))return "shotsontarget";
+       if(key.includes("shotsofftarget")||key.includes("shotsoffgoal"))return "shotsofftarget";
+       if(key.includes("totalshots")||key==="shots")return "totalshots";
+       if(key.includes("blockedshots"))return "blockedshots";
+       if(key.includes("corner"))return "corners";
+       if(key.includes("foul"))return "fouls";
+       if(key.includes("offside"))return "offsides";
+       if(key.includes("yellowcard"))return "yellowcards";
+       if(key.includes("redcard"))return "redcards";
+       if(key.includes("save"))return "saves";
+       if(key.includes("pass"))return "passes";
+       return "";
+      };
+      const readSide=side=>{
+       const out={};
+       for(const item of side?.statistics||[]){
+        const key=keyFor(item.name||item.label||item.abbreviation);
+        const value=item.displayValue??item.value;
+        if(key&&value!=null&&value!==""){
+         const number=Number(String(value).replace("%","").replace(",",".").trim());
+         if(Number.isFinite(number))out[key]=number;
+        }
+       }
+       return out;
+      };
+      const eh=readSide(h),ea=readSide(a);
+      const primaryKey=label=>({"topla oynama":"possession","toplam şut":"totalshots","isabetli şut":"shotsontarget","isabetsiz şut":"shotsofftarget","engellenen şut":"blockedshots","korner":"corners","faul":"fouls","ofsayt":"offsides","sarı kart":"yellowcards","kırmızı kart":"redcards","kurtarış":"saves","pas":"passes"})[String(label||"").toLowerCase()]||"";
+      let compared=0,different=0;
+      for(const [label,left,right] of statsRows){
+       const key=primaryKey(label);
+       if(!key||eh[key]===undefined||ea[key]===undefined)continue;
+       const pHome=Number(String(left??"").replace("%","").replace(",",".").trim());
+       const pAway=Number(String(right??"").replace("%","").replace(",",".").trim());
+       if(!Number.isFinite(pHome)||!Number.isFinite(pAway))continue;
+       compared++;
+       const tolerance=key==="possession"?2:0;
+       if(Math.abs(pHome-eh[key])>tolerance||Math.abs(pAway-ea[key])>tolerance)different++;
+      }
+      statsCrossCheckNote=compared
+       ?"ESPN çapraz kontrolü: "+compared+" ortak istatistik karşılaştırıldı, "+different+" farklı değer."
+       :"ESPN kaynağı açıldı ancak ortak istatistik bulunamadı.";
+     }else statsCrossCheckNote="ESPN çapraz kontrolünde aynı karşılaşma bulunamadı.";
+    }
+   }catch(compareError){statsCrossCheckNote="ESPN çapraz kontrolü yapılamadı: "+String(compareError?.message||compareError);}
+  }
   // Sağlayıcının gerçek xG verisi varsa onu kullan; yoksa yalnızca şut sayılarına dayalı kaba model tahmini üret.
   if(source!=="espn"){
    const xgTypes=["expected_goals","expected goals","xg"];
@@ -3618,7 +3681,7 @@ async function loadLiveStats(button,forceRefresh=false){
    const homePct=total>0?Math.max(0,l)/total*100:50,awayPct=total>0?Math.max(0,r)/total*100:50;
    return '<div class="mam-live-stat-row"><div class="mam-live-stat-values"><b>'+esc(left)+'</b><span class="mam-live-stat-label">'+esc(label)+'</span><b>'+esc(right)+'</b></div><div class="mam-live-stat-track"><span class="mam-live-stat-home" style="width:'+homePct+'%"></span><span class="mam-live-stat-away" style="width:'+awayPct+'%"></span></div></div>';
   }).join("");
-  panel.innerHTML='<div class="mam-live-stats-title">Genel İstatistikler</div>'+(rows||'<div class="mam-live-stats-foot">Bu karşılaşma için sağlayıcı henüz istatistik paylaşmadı. Maç devam ederken tekrar kontrol edebilirsin.</div>')+'<div class="mam-live-stats-foot">Kaynak: '+sourceLabel+'. Panel açıkken maç sürerken 60 saniyede bir yenilenir.'+(!hasRealXg?' Model xG yaklaşık hesaplamadır; gerçek sağlayıcı xG verisi değildir.':' Gerçek xG sağlayıcıdan alınmıştır.')+'</div>';
+  panel.innerHTML='<div class="mam-live-stats-title">Genel İstatistikler</div>'+(rows||'<div class="mam-live-stats-foot">Bu karşılaşma için sağlayıcı henüz istatistik paylaşmadı. Maç devam ederken tekrar kontrol edebilirsin.</div>')+'<div class="mam-live-stats-foot">Kaynak: '+sourceLabel+'. Panel açıkken maç sürerken 60 saniyede bir yenilenir.'+(!hasRealXg?' Model xG yaklaşık hesaplamadır; gerçek sağlayıcı xG verisi değildir.':' Gerçek xG sağlayıcıdan alınmıştır.')+(statsCrossCheckNote?" "+esc(statsCrossCheckNote):"")+'</div>';
   await mamPersistLiveStatsToD1(fixtureId,sourceLabel,statsRows);
  }catch(primaryError){
   // SportScore zaten doğrudan denenmiştir; diğer kaynaklarda yedek olarak kullanılır.
