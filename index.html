@@ -4434,6 +4434,11 @@ function mamTickVisibleMatchClock(){
   if(clock)clock.textContent="🔴 "+elapsed+"' · Canlı";
  }
 }
+async function refreshVisibleFixtureLists(){
+ if(document.hidden)return;
+ if(mamScreenMode==="live")return loadLiveMatches();
+ if(mamScreenMode==="upcoming")return loadMatches();
+}
 if(!window.mamLiveStatsTimer){
  window.mamLiveScoreTimer=setInterval(refreshOpenLiveScore,8000);
  window.mamLiveStatsTimer=setInterval(refreshOpenLiveStats,5000);
