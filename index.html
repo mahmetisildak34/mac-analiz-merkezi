@@ -3607,9 +3607,21 @@ function mamAbsenceCacheKey(date){return "mam_absences_date_v1_"+String(date||""
 function mamReadAbsenceCache(date){
  try{const item=JSON.parse(localStorage.getItem(mamAbsenceCacheKey(date))||"null");return item&&Date.now()-Number(item.time||0)<4*60*60*1000&&Array.isArray(item.rows)?item.rows:null;}catch(_){return null;}
 }
-function mamRowsForFixture(rows,fixtureId){
+function mamAbsenceTeamKey(value){
+ return String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g," ").replace(/\\b(fc|cf|sc|afc|club|football|kulubu|kulübü)\\b/g," ").replace(/\\s+/g," ").trim();
+}
+function mamRowsForFixture(rows,fixtureId,homeName="",awayName="",date=""){
  const id=String(fixtureId||"");
- return (Array.isArray(rows)?rows:[]).filter(x=>String(x.fixture?.id??x.fixture_id??x.fixtureId??"")===id);
+ const home=mamAbsenceTeamKey(homeName),away=mamAbsenceTeamKey(awayName);
+ return (Array.isArray(rows)?rows:[]).filter(x=>{
+  const rowId=String(x.fixtureId||x.fixture?.id||x.fixture_id||"");
+  if(rowId===id)return true;
+  if(!home||!away)return false;
+  const rowDate=String(x.fixture?.date||x.date||"").slice(0,10);
+  if(date&&rowDate&&rowDate!==date)return false;
+  const team=mamAbsenceTeamKey(x.team);
+  return !!team&&(team===home||team===away||home.includes(team)||away.includes(team)||team.includes(home)||team.includes(away));
+ });
 }
 function mamNormalizeAbsenceRows(rows){
  return (Array.isArray(rows)?rows:[]).map(x=>{
@@ -3637,7 +3649,7 @@ async function autoScanMatchAbsences(){
    }
    const normalized=mamNormalizeAbsenceRows(rows);
    buttons.filter(b=>b.dataset.date===date).forEach(button=>{
-    const fixtureRows=mamRowsForFixture(normalized,button.dataset.id);
+    const fixtureRows=mamRowsForFixture(normalized,button.dataset.id,button.dataset.homeName,button.dataset.awayName,date);
     const summary=document.getElementById("absences-summary-"+button.dataset.id);
     if(summary){
      summary.textContent=fixtureRows.length?("🚑 "+fixtureRows.length+" doğrulanmış eksik oyuncu"):"Eksik oyuncu kaydı bulunamadı";
@@ -3666,7 +3678,7 @@ async function loadMatchAbsences(button){
   const date=String(button.dataset.date||"");
   const cached=mamReadAbsenceCache(date);
   if(cached){
-   rows=mamRowsForFixture(mamNormalizeAbsenceRows(cached),fixtureId);
+   rows=mamRowsForFixture(mamNormalizeAbsenceRows(cached),fixtureId,button.dataset.homeName,button.dataset.awayName,date);
   }else if(/^\\d+$/.test(fixtureId)){
    const payload=await api("injuries?"+qs({fixture:fixtureId}));
    rows=Array.isArray(payload.response)?payload.response:[];
@@ -4369,7 +4381,7 @@ function renderMatches(){
    <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
    <div class="absences-summary" id="absences-summary-${esc(f.id)}">Eksikler otomatik kontrol ediliyor…</div>
-   <button type="button" class="absencesBtn secondary" data-id="${esc(f.id)}" data-date="${esc(f.date?.slice(0,10))}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" style="width:100%;margin-top:8px">🚑 Sakat ve cezalı oyuncuları gör</button>
+   <button type="button" class="absencesBtn secondary" data-id="${esc(f.id)}" data-date="${esc(f.date?.slice(0,10))}" data-home-name="${esc(t.home?.name||"")}" data-away-name="${esc(t.away?.name||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" style="width:100%;margin-top:8px">🚑 Sakat ve cezalı oyuncuları gör</button>
    <div class="absences-panel" id="absences-${esc(f.id)}" hidden></div>
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
