@@ -1656,7 +1656,8 @@ const $=id=>document.getElementById(id);
 const WORKER="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
 const CACHE_HOURS=12;
 const today=new Date();
-$("date").value=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+const mamInitialIstanbulDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(today);
+$("date").value=mamInitialIstanbulDate;
 
 function esc(value){
  return String(value??"").replace(/[&<>"']/g,c=>({
@@ -2626,6 +2627,7 @@ async function loadMatches(){
  try{
   let source="API-Football";
   let primaryFixtureCount=0;
+  let primaryFixtureDiagnostic="API-Football: sorgu bekleniyor";
   // Read the centralized D1 archive for a safe supplement/fallback on nearby
   // dates. Fresh API-Football results remain authoritative when available.
   const selectedDate=new Date(date+"T12:00:00");
@@ -2657,6 +2659,7 @@ async function loadMatches(){
    const data=await api("fixtures?"+qs(fixtureParams));
    const freshMatches=data.response||[];
    primaryFixtureCount=freshMatches.length;
+   primaryFixtureDiagnostic="API-Football: başarılı yanıt, "+primaryFixtureCount+" maç";
    allMatches=freshMatches;
    if(freshMatches.length){
     try{localStorage.setItem(fixtureCacheKey,JSON.stringify({time:Date.now(),matches:freshMatches}));}catch(e){}
@@ -2685,6 +2688,12 @@ async function loadMatches(){
       console.warn("Football-data.org boş fikstür yedeği:",fallbackError);
      }
     }
+    // API-Football can return HTTP success with an empty fixture list.
+    // Preserve the last centralized archive as a final fallback for this date.
+    if(!alternative.length&&archivedDayRows.length){
+     alternative=archivedDayRows;
+     alternativeSource="D1 arşiv yedeği";
+    }
     if(alternative.length){
      allMatches=alternative;
      source=alternativeSource;
@@ -2692,6 +2701,7 @@ async function loadMatches(){
    }
   }catch(primaryError){
    const message=String(primaryError?.message||primaryError||"Bilinmeyen API-Football hatası");
+   primaryFixtureDiagnostic="API-Football bağlantı hatası: "+message;
    // Bu blok yalnızca API-Football fikstür isteğinin hatasını yakalar.
    // Hata metni sağlayıcıya göre değişebildiğinden regex ile filtreleme yapma:
    // kota, 403, ağ, zaman aşımı veya Worker hatalarının tamamında yedeğe geç.
@@ -2801,7 +2811,7 @@ async function loadMatches(){
    const detail=window.mamLastFixtureFallbackErrors?.length?" Denenen kaynaklar: "+window.mamLastFixtureFallbackErrors.join(" | "):"";
    $("status").textContent="Bu tarih için maç bulunamadı. Kaynak: "+source+"."+detail;
   }else{
-   $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+".";
+   $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+". "+primaryFixtureDiagnostic;
   }
  }catch(e){
   // A failed refresh must never erase the last known-good fixture snapshot.
@@ -3044,29 +3054,34 @@ function mamSaveLiveMatchCache(matches){
  try{if(Array.isArray(matches)&&matches.length)localStorage.setItem(MAM_LIVE_MATCH_CACHE_KEY,JSON.stringify({savedAt:Date.now(),matches}));}catch(_){}
 }
 function mamEnrichLiveScoresWithEspn(primaryMatches,espnMatches){
- const normalize=value=>{let name=String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,"");const aliases={turkiye:"turkey",czechrepublic:"czechia",korearepublic:"southkorea",unitedstates:"usa",unitedstatesofamerica:"usa",iranislamicrepublic:"iran",bosniaandherzegovina:"bosnia"};return aliases[name]||name;};
+ const normalize=value=>{
+  let name=String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,"");
+  const aliases={turkiye:"turkey",czechrepublic:"czechia",korearepublic:"southkorea",unitedstates:"usa",unitedstatesofamerica:"usa",iranislamicrepublic:"iran",bosniaandherzegovina:"bosnia"};
+  return aliases[name]||name;
+ };
  const liveMap=new Map();
  for(const match of (Array.isArray(espnMatches)?espnMatches:[])){
-  const leagueId=String(match.league?.id||"");
   const home=normalize(match.teams?.home?.name),away=normalize(match.teams?.away?.name);
   const state=String(match.fixture?.status?.short||"").toUpperCase();
   const homeScore=Number(match.goals?.home),awayScore=Number(match.goals?.away);
-  if(!leagueId||!home||!away||match.goals?.home==null||match.goals?.away==null||!Number.isFinite(homeScore)||!Number.isFinite(awayScore)||!["LIVE","1H","2H","HT","ET","P","INT","IN_PLAY","PAUSED"].includes(state))continue;
-  liveMap.set(leagueId+"|"+home+"|"+away,{
-   source:"ESPN",home:homeScore,away:awayScore,
+  if(!home||!away||match.goals?.home==null||match.goals?.away==null||!Number.isFinite(homeScore)||!Number.isFinite(awayScore)||!["LIVE","1H","2H","HT","ET","P","INT","IN_PLAY","PAUSED"].includes(state))continue;
+  const kickoff=Date.parse(match.fixture?.date||""),key=home+"|"+away,rows=liveMap.get(key)||[];
+  rows.push({source:"ESPN",home:homeScore,away:awayScore,
    elapsed:match.fixture?.status?.elapsed!=null&&Number.isFinite(Number(match.fixture.status.elapsed))?Number(match.fixture.status.elapsed):null,
-   displayClock:String(match.fixture?.status?.displayClock||"")
-  });
+   displayClock:String(match.fixture?.status?.displayClock||""),kickoff:Number.isFinite(kickoff)?kickoff:null});
+  liveMap.set(key,rows);
  }
  let checked=0,scoreMismatches=0,minuteMismatches=0;
  const result=(Array.isArray(primaryMatches)?primaryMatches:[]).map(match=>{
-  const leagueId=String(match.league?.id||"");
-  const home=normalize(match.teams?.home?.name),away=normalize(match.teams?.away?.name);
-  const comparison=liveMap.get(leagueId+"|"+home+"|"+away);
+  const home=normalize(match.teams?.home?.name),away=normalize(match.teams?.away?.name),kickoff=Date.parse(match.fixture?.date||"");
+  const candidates=(liveMap.get(home+"|"+away)||[]).map(candidate=>({...candidate,delta:candidate.kickoff===null||!Number.isFinite(kickoff)?Infinity:Math.abs(candidate.kickoff-kickoff)}))
+   .filter(candidate=>candidate.delta<=6*60*60*1000).sort((a,b)=>a.delta-b.delta);
+  // Provider league IDs differ for some cups and international competitions.
+  // Normalized team pair plus a bounded kickoff window is the cross-source key.
+  const comparison=candidates[0];
   if(!comparison)return match;
   checked++;
-  const current=match.goals||{};
-  const apiHome=Number(current.home),apiAway=Number(current.away);
+  const current=match.goals||{},apiHome=Number(current.home),apiAway=Number(current.away);
   const scoreComparable=current.home!=null&&current.away!=null&&Number.isFinite(apiHome)&&Number.isFinite(apiAway);
   const scoreMatched=scoreComparable&&apiHome===comparison.home&&apiAway===comparison.away;
   const apiMinute=Number(match.fixture?.status?.elapsed);
@@ -3074,16 +3089,14 @@ function mamEnrichLiveScoresWithEspn(primaryMatches,espnMatches){
   const minuteMatched=minuteComparable&&Math.abs(apiMinute-comparison.elapsed)<=2;
   if(scoreComparable&&!scoreMatched)scoreMismatches++;
   if(minuteComparable&&!minuteMatched)minuteMismatches++;
-  const check={
-   source:"ESPN",
+  const check={source:"ESPN",matchMethod:"team-pair+kickoff-window",kickoffDifferenceMinutes:Number.isFinite(comparison.delta)?Math.round(comparison.delta/60000):null,
    score:{apiFootball:{home:current.home,away:current.away},espn:{home:comparison.home,away:comparison.away},matched:scoreMatched},
    minute:{apiFootball:Number.isFinite(apiMinute)?apiMinute:null,espn:comparison.elapsed,displayClock:comparison.displayClock,matched:minuteComparable?minuteMatched:null},
-   checkedAt:new Date().toISOString()
-  };
-  if((scoreComparable&&!scoreMatched)||(minuteComparable&&!minuteMatched)){
-   console.warn("MAM canlı veri kaynakları arasında fark:",{fixtureId:match.fixture?.id,home:match.teams?.home?.name,away:match.teams?.away?.name,check});
-  }
-  return {...match,_mamLiveCrossCheck:check};
+   checkedAt:new Date().toISOString()};
+  if((scoreComparable&&!scoreMatched)||(minuteComparable&&!minuteMatched))console.warn("MAM canlı veri kaynakları arasında fark:",{fixtureId:match.fixture?.id,home:match.teams?.home?.name,away:match.teams?.away?.name,check});
+  const scoreConflict=scoreComparable&&!scoreMatched;
+  const minuteConflict=minuteComparable&&!minuteMatched;
+  return {...match,_mamLiveCrossCheck:check,_mamLiveConflict:scoreConflict||minuteConflict};
  });
  if(checked)console.info("MAM canlı çapraz kontrol:",{checked,scoreMismatches,minuteMismatches});
  return result;
@@ -3137,8 +3150,8 @@ async function loadLiveMatchesNow(){
  $("status").textContent="Canlı maç akışı kontrol ediliyor...";
  // Eski ekran/cihaz/D1 kayıtlarını canlı veri olarak yeniden göstermiyoruz.
  // Canlı listede yalnızca bu yenilemede sağlayıcıdan gelen doğrulanmış maçlar gösterilir.
- const previousMatches=[];
- const savedLiveCache=null;
+ const previousMatches=allMatches.slice();
+ const savedLiveCache=mamReadLiveMatchCache();
  const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"]);
  const isLive=match=>liveStatuses.has(String(match?.fixture?.status?.short||"").toUpperCase());
  // Eski canlı statüsünde kalmış maçları gerçek canlı akış gibi göstermeyelim.
@@ -3236,15 +3249,18 @@ async function loadLiveMatchesNow(){
      if(!mergedByPair.has(key))mergedByPair.set(key,match);
     });
     const combinedLive=[...mergedByPair.values()];
-    mamNotifyLiveGoalChanges(combinedLive);
-    allMatches=combinedLive;
-    mamSaveLiveMatchCache(combinedLive);
+    const conflictedLive=combinedLive.filter(match=>match._mamLiveConflict);
+    const verifiedLive=combinedLive.filter(match=>!match._mamLiveConflict);
+    mamNotifyLiveGoalChanges(verifiedLive);
+    allMatches=verifiedLive;
+    mamSaveLiveMatchCache(verifiedLive);
     renderMatches();
     warmLiveTeamHistories(allMatches);
-    const crossChecks=allMatches.map(match=>match._mamLiveCrossCheck).filter(Boolean);
+    const crossChecks=combinedLive.map(match=>match._mamLiveCrossCheck).filter(Boolean);
     const scoreDiffs=crossChecks.filter(check=>check.score?.matched===false).length;
     const minuteDiffs=crossChecks.filter(check=>check.minute?.matched===false).length;
-    $("status").textContent=allMatches.length+" canlı maç · ESPN/API-Football karşılaştırması: "+crossChecks.length+" eşleşme, "+scoreDiffs+" skor farkı, "+minuteDiffs+" dakika farkı · Son kontrol: "+new Date().toLocaleTimeString("tr-TR",{timeZone:"Europe/Istanbul"});
+    const conflictNames=conflictedLive.map(match=>(match.teams?.home?.name||"")+" – "+(match.teams?.away?.name||""));
+    $("status").textContent=verifiedLive.length+" doğrulanmış canlı maç · "+conflictedLive.length+" çelişkili maç analizden çıkarıldı · Eşleşme "+crossChecks.length+" · Skor farkı "+scoreDiffs+" · Dakika farkı "+minuteDiffs+(conflictNames.length?" · Kontrol bekliyor: "+conflictNames.join("; "):"");
     return;
    }
    espnErrorText="ESPN taraması tamamlandı; desteklenen liglerde canlı maç döndürmedi.";
@@ -5371,28 +5387,36 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const hm=(m.mamSource==="football-data-team"&&Number(m.teams?.home?.id)===Number(teamId))||isTarget(h),am=(m.mamSource==="football-data-team"&&Number(m.teams?.away?.id)===Number(teamId))||isTarget(a);
     if(hm===am)return;
     const gh=m.goals?.home,ga=m.goals?.away;
-    if(gh===null||ga===null||gh===undefined||ga===undefined)return;
+    // Empty strings and non-numeric placeholders must never become artificial 0-0 results.
+    if(gh===null||ga===null||gh===undefined||ga===undefined||String(gh).trim()===""||String(ga).trim()===""||!Number.isFinite(Number(gh))||!Number.isFinite(Number(ga)))return;
     const d=String(m.fixture?.date||"").slice(0,10);
-    if(!d||d>=matchDate)return;
-    // Cross-provider identity deliberately excludes provider fixture IDs and league labels:
-    // ESPN, CSV and D1 use different IDs/names for the same real-world fixture.
-    const identity=[d,normalize(h),normalize(a),Number(gh),Number(ga)].join("|");
-    const normalizedMatch={...m,teams:{
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d>=matchDate)return;
+    // A real fixture has one identity even when providers disagree on the score.
+    const identity=[d,normalize(h),normalize(a)].join("|");
+    const normalizedMatch={...m,goals:{home:Number(gh),away:Number(ga)},teams:{
       home:{...m.teams.home,id:hm?Number(teamId):-1},
       away:{...m.teams.away,id:am?Number(teamId):-1}
     }};
     if(seen.has(identity)){
-      // Keep one fixture row, but merge useful fields from every source.
       const index=seen.get(identity),previous=output[index];
       const mergeSide=(older={},newer={})=>({...newer,...older});
+      const previousScore={home:Number(previous.goals?.home),away:Number(previous.goals?.away)};
+      const incomingScore={home:Number(gh),away:Number(ga)};
+      const scoreConflict=previousScore.home!==incomingScore.home||previousScore.away!==incomingScore.away;
+      const conflictRows=scoreConflict?[...(previous.mamScoreConflicts||[]),{
+        source:m.mamSource||"unknown",keptSource:previous.mamSource||"unknown",
+        kept:previousScore,incoming:incomingScore,checkedAt:new Date().toISOString()
+      }]:previous.mamScoreConflicts||[];
       output[index]={
         ...normalizedMatch,...previous,
         fixture:{...(normalizedMatch.fixture||{}),...(previous.fixture||{})},
+        goals:previous.goals,
         score:previous.score||normalizedMatch.score,
         statistics:{
           home:mergeSide(normalizedMatch.statistics?.home,previous.statistics?.home),
           away:mergeSide(normalizedMatch.statistics?.away,previous.statistics?.away)
         },
+        mamScoreConflicts:conflictRows,
         mamSources:[...new Set([...(previous.mamSources||[previous.mamSource||"unknown"]),m.mamSource||"unknown"])]
       };
       return;
@@ -5400,7 +5424,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     seen.set(identity,output.length);
     output.push({...normalizedMatch,mamSources:[m.mamSource||"unknown"]});
   };
-
   // Süper Lig geçmişi için doğrudan uygulamadaki sezon CSV arşivini kullan.
   // Cloudflare KV geçmiş sorguları beklemeye neden olabildiği için bu ligde atlanır.
 
@@ -5867,6 +5890,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 /* TAKIM İSTATİSTİKLERİ */
 function teamStats(matches, teamId, venue){
  const valid = (Array.isArray(matches) ? matches : []).filter(m => {
+  if(Array.isArray(m.mamScoreConflicts)&&m.mamScoreConflicts.length)return false;
   const homeId = Number(m.teams?.home?.id);
   const awayId = Number(m.teams?.away?.id);
   const isHome = homeId === Number(teamId);
@@ -5874,11 +5898,11 @@ function teamStats(matches, teamId, venue){
   if(!isHome && !isAway) return false;
   if(venue === "home" && !isHome) return false;
   if(venue === "away" && !isAway) return false;
-  return Number.isFinite(Number(m.goals?.home)) &&
-         Number.isFinite(Number(m.goals?.away)) &&
-         m.goals?.home !== null && m.goals?.away !== null;
+  const homeGoals=m.goals?.home,awayGoals=m.goals?.away;
+  return homeGoals!==null&&homeGoals!==undefined&&awayGoals!==null&&awayGoals!==undefined&&
+         String(homeGoals).trim()!==""&&String(awayGoals).trim()!==""&&
+         Number.isFinite(Number(homeGoals))&&Number.isFinite(Number(awayGoals));
  });
-
  let gf=0, ga=0, firstGF=0, firstGA=0, secondGF=0, secondGA=0;
  let halfCount=0, firstBoth=0, secondBoth=0,wins=0,draws=0,losses=0,cleanSheets=0,btts=0,over25=0;
 
@@ -6108,9 +6132,12 @@ async function analyze(button){
    getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id),
    getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id)
   ]);
-  const homeMatches=homeHistory.slice(0,10);
-  const awayMatches=awayHistory.slice(0,10);
-
+  const homeScoreConflicts=homeHistory.filter(m=>Array.isArray(m.mamScoreConflicts)&&m.mamScoreConflicts.length).length;
+  const awayScoreConflicts=awayHistory.filter(m=>Array.isArray(m.mamScoreConflicts)&&m.mamScoreConflicts.length).length;
+  // Conflicting provider scores are quarantined, never fed into the prediction model.
+  const homeMatches=homeHistory.filter(m=>!Array.isArray(m.mamScoreConflicts)||!m.mamScoreConflicts.length).slice(0,10);
+  const awayMatches=awayHistory.filter(m=>!Array.isArray(m.mamScoreConflicts)||!m.mamScoreConflicts.length).slice(0,10);
+  
   const homeOverall=teamStats(homeMatches,homeId,"all");
   const awayOverall=teamStats(awayMatches,awayId,"all");
   const homeVenue=teamStats(homeMatches,homeId,"home");
@@ -6135,10 +6162,14 @@ async function analyze(button){
   const total=lh+la;
   let win=0,draw=0,lose=0;
 
-  for(let h=0;h<=10;h++)for(let a=0;a<=10;a++){
+  for(let h=0;h<=12;h++)for(let a=0;a<=12;a++){
    const p=poisson(lh,h)*poisson(la,a);
    if(h>a)win+=p;else if(h===a)draw+=p;else lose+=p;
   }
+  // Normalize the finite score grid so 1-X-2 always sums to exactly 100%.
+  const outcomeMass=win+draw+lose;
+  if(!Number.isFinite(outcomeMass)||outcomeMass<=0)throw new Error("Maç sonucu olasılıkları doğrulanamadı.");
+  win/=outcomeMass;draw/=outcomeMass;lose/=outcomeMass;
 
   const over15=overProb(total,2);
   const over25=overProb(total,3);
@@ -6221,6 +6252,7 @@ async function analyze(button){
     <div class="stat"><span>${esc(awayName)} deplasman</span><b>${awayVenue.wins}-${awayVenue.draws}-${awayVenue.losses}</b><span>${awayVenue.count} maç</span></div>
    </div>
    <p class="note">${esc(homeName)}: ${homeOverall.count} doğrulanmış maç · ${esc(awayName)}: ${awayOverall.count} doğrulanmış maç. Model hesabı ${hs.count} ev sahibi / ${as.count} deplasman odaklı maç kullanıyor.</p>
+   ${(homeScoreConflicts||awayScoreConflicts)?'<p class="note">⚠️ Kaynaklar arası skor uyuşmazlığı nedeniyle '+homeScoreConflicts+' ev sahibi ve '+awayScoreConflicts+' deplasman geçmiş kaydı model dışında bırakıldı.</p>':''}
    ${(homeVenueFallback||awayVenueFallback)?"<p class=\"note\">⚠️ İç saha veya deplasman örneği bulunamadığında model o takımın tüm geçmiş maçlarına geri döndü.</p>":""}
    ${lowSample?'<p class="note">⚠️ Uyarı: Takımlardan en az birinde 3 maçtan az geçmiş veri var. Tahmin düşük örneklem nedeniyle daha az güvenilirdir.</p>':''}
    <div class="section-title">Maç sonucu olasılıkları</div>
@@ -7179,7 +7211,7 @@ const openStandingTeamHistory=async row=>{
  });
  const dateInput=$("date"),strip=$("mamDateStrip");
  if(!dateInput||!strip)return;
- const localDate=(offset)=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+ const localDate=(offset)=>{const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());const get=type=>Number(parts.find(part=>part.type===type)?.value||0);const d=new Date(Date.UTC(get("year"),get("month")-1,get("day")+offset,12));return d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0");};
  const label=(offset)=>{const d=new Date(localDate(offset)+"T12:00:00");return d.toLocaleDateString("tr-TR",{weekday:"short",day:"2-digit",month:"2-digit"});};
  strip.querySelectorAll("[data-day-offset]").forEach(chip=>{
   const offset=Number(chip.dataset.dayOffset);chip.querySelector("b").textContent=label(offset);
@@ -7369,6 +7401,11 @@ const openStandingTeamHistory=async row=>{
 }
 </style>
 
+<style id="mam-mobile-match-header-overflow-fix">
+@media(max-width:600px){
+ #matches article.match.match-modern:not(.in-detail) .match-head{display:none!important}
+}
+</style>
 </body>
 </html>
 
