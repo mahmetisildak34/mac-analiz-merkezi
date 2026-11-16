@@ -2391,11 +2391,14 @@ async function getEspnMatchStats(leagueId,eventId){
     else if(/yellowcard/.test(key))result.yellowCards=number;
     else if(/redcard/.test(key))result.redCards=number;
    }
+   if(result.shots===undefined&&Number.isFinite(result.shotsOnTarget)&&Number.isFinite(result.shotsOffTarget)&&Number.isFinite(result.blockedShots)){
+    result.shots=result.shotsOnTarget+result.shotsOffTarget+result.blockedShots;
+   }
    return result;
   };
   const home=teams.find(x=>x.homeAway==="home");
   const away=teams.find(x=>x.homeAway==="away");
-  if(!home||!away)return null;
+  if(!home||!away)return {home:{},away:{}};
   return {home:readStats(home),away:readStats(away)};
  });
 }
@@ -2426,6 +2429,9 @@ async function getApiFootballMatchStats(fixtureId){
     else if(key==="xg"||/expectedgoals/.test(key))result.xg=number;
     else if(/yellowcards?/.test(key))result.yellowCards=number;
     else if(/redcards?/.test(key))result.redCards=number;
+   }
+   if(result.shots===undefined&&Number.isFinite(result.shotsOnTarget)&&Number.isFinite(result.shotsOffTarget)&&Number.isFinite(result.blockedShots)){
+    result.shots=result.shotsOnTarget+result.shotsOffTarget+result.blockedShots;
    }
    return result;
   };
