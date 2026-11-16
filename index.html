@@ -2661,8 +2661,10 @@ async function loadMatches(){
     }
    }
   }catch(primaryError){
-   const message=String(primaryError.message||primaryError);
-   if(!/kota beklemesinde|kota korumasında|günlük güvenli istek bütçesi doldu|güvenli istek bütçesi|şu an sınırda|rate.?limit|Too many requests|API dakika başına istek kotasını doldurdu|plan|date|429|quota|403|forbidden|unauthorized|API hatası|Worker request failed|zaman aşımı|bağlantı hatası/i.test(message))throw primaryError;
+   const message=String(primaryError?.message||primaryError||"Bilinmeyen API-Football hatası");
+   // Bu blok yalnızca API-Football fikstür isteğinin hatasını yakalar.
+   // Hata metni sağlayıcıya göre değişebildiğinden regex ile filtreleme yapma:
+   // kota, 403, ağ, zaman aşımı veya Worker hatalarının tamamında yedeğe geç.
    $("status").textContent="API-Football kotası/tarih erişimi kullanılamıyor. ESPN büyük lig fikstürleri deneniyor...";
    let alternative=[];
    let alternativeSource="";
