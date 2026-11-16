@@ -2692,7 +2692,7 @@ async function loadMatches(){
     alternativeSource="D1 tarihsel/gelecek arşivi";
    }
    if(!alternative.length){
-    allMatches=[];
+    // Son başarılı listeyi burada silme; dış hata yakalayıcı önbellekten geri yükleyebilir.
     throw new Error("API-Football kotası dolu. "+espnFailure+" | "+footballDataFailure+" Seçilen tarih için doğrulanmış yeni fikstür bulunamadı.");
    }
    allMatches=alternative;
@@ -2715,6 +2715,11 @@ async function loadMatches(){
    });
    allMatches=[...merged.values()].sort((a,b)=>Date.parse(a.fixture?.date||0)-Date.parse(b.fixture?.date||0));
    if(source==="API-Football")source="API-Football + D1 fikstür tamamlayıcısı";
+  }
+  // Herhangi bir sağlayıcıdan başarıyla alınan fikstürü kaynak bağımsız şekilde sakla.
+  // Böylece API kotası dolsa veya sayfa yenilense bile son çalışan liste kaybolmaz.
+  if(allMatches.length){
+   try{localStorage.setItem(fixtureCacheKey,JSON.stringify({time:Date.now(),matches:allMatches,source}));}catch(_){}
   }
   renderMatches();
   if(!allMatches.length){
