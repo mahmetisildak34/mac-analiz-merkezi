@@ -2368,7 +2368,7 @@ async function getEspnMatchStats(leagueId,eventId){
  return mamCachedMatchStats(cacheKey,async()=>{
   const data=await api("espn/"+league.slug+"/summary?"+qs({event:String(eventId)}));
   const teams=Array.isArray(data.boxscore?.teams)?data.boxscore.teams:[];
-  if(teams.length<2)return null;
+  if(teams.length<2)return {home:{},away:{}};
   const normalizeStat=value=>String(value||"").toLowerCase().replace(/[^a-z]/g,"");
   const readStats=team=>{
    const result={};
@@ -2381,7 +2381,7 @@ async function getEspnMatchStats(leagueId,eventId){
     else if(/shotsontarget|shotsongoal|ontarget/.test(key))result.shotsOnTarget=number;
     else if(/blockedshots/.test(key))result.blockedShots=number;
     else if(/shotsofftarget|offtarget/.test(key))result.shotsOffTarget=number;
-    else if(/totalshots|shots$/.test(key))result.shots=number;
+    else if(/totalshots|shots$/.test(key)||key==="sh"||key==="s")result.shots=number;
     else if(/possession/.test(key))result.possession=number;
     else if(/foul/.test(key))result.fouls=number;
     else if(/offside/.test(key))result.offsides=number;
@@ -2405,7 +2405,7 @@ async function getApiFootballMatchStats(fixtureId){
  return mamCachedMatchStats(cacheKey,async()=>{
   const data=await api("fixtures/statistics?"+qs({fixture:fixtureId}));
   const rows=Array.isArray(data.response)?data.response:[];
-  if(rows.length<2)return null;
+  if(rows.length<2)return {home:{},away:{}};
   const readStats=row=>{
    const result={};
    for(const stat of (row.statistics||[])){
@@ -4871,7 +4871,7 @@ function mamEnrichHistoricalStats(matches,leagueId){
   const id=String(match.fixture?.id||"");
   const isEspn=id.startsWith("espn-")||String(match.mamSource||"").toLowerCase()==="espn";
   const providerId=isEspn&&id.startsWith("espn-")?id.slice(id.lastIndexOf("-")+1):id;
-  return /^\\d+$/.test(providerId);
+  return /^\d+$/.test(providerId);
  }).slice(0,String(leagueId)==="848"?20:8);
  let changed=false;
  return Promise.all(candidates.map(async match=>{
