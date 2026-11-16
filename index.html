@@ -3599,7 +3599,7 @@ async function loadLiveStats(button,forceRefresh=false){
     const slug=String(button.dataset.liveLeague||ESPN_LEAGUES[leagueId]?.slug||"");
     const date=String(button.dataset.liveDate||"");
     if(slug&&date){
-     const event=await mamFindEspnLiveEvent({slug,date,homeName,awayName});
+     const event=await mamFindEspnLiveEvent({slug,date,homeName:homeTeam,awayName:awayTeam});
      if(event?.id){
       const secondary=await api("espn/"+slug+"/summary?"+qs({event:String(event.id)}));
       const sides=[
