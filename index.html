@@ -1722,7 +1722,10 @@ async function api(path){
         }
         throw new Error("İstek sınırı: "+provider+" şu an sınırda. Kota türüne göre otomatik bekleme uygulanıyor; yedek kaynaklar kullanılabilir.");
       }
-      if(/plan|date/i.test(errorText)){
+      // API-Football live=all isteğinde tarih parametresi yoktur.
+      // Sağlayıcının genel hata metninde "plan/date" geçmesi canlı akışı
+      // yanlışlıkla tarih erişim hatası gibi göstermemeli; ESPN yedeği çalışsın.
+      if(!isLive&&/plan|date/i.test(errorText)){
         throw new Error("Seçilen tarih mevcut API-Football planınızda desteklenmiyor.");
       }
       throw new Error("API hatası ("+response.status+"): "+errorText);
