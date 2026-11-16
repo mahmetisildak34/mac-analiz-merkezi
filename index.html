@@ -2679,7 +2679,7 @@ async function loadMatches(){
    if(!alternative.length){
     $("status").textContent="ESPN sonuç vermedi. Football-data.org yedek kaynağı deneniyor...";
     try{
-     alternative=await footballDataFixtures(date);
+     alternative=await footballDataFixtures(date,mamScreenMode==="upcoming"?(()=>{const end=new Date(date+"T12:00:00");end.setDate(end.getDate()+30);return end.toISOString().slice(0,10);})():date);
      if(alternative.length)alternativeSource="Football-data.org";
     }catch(fallbackError){
      footballDataFailure=String(fallbackError.message||fallbackError);
