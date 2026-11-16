@@ -6470,9 +6470,14 @@ window.mamSportScoreTeamSchedule = async function mamSportScoreTeamSchedule(team
   if(!response.ok)throw new Error("SportScore HTTP "+response.status);
   return response.json();
  };
- const search=await request(base+"/v1/search/?"+qs({q:teamName,sport:"football",limit:12,src:"mac-analiz-merkezi"}));
  const norm=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football|club|de|the|fc|cf|afc)\b/g," ").replace(/[^a-z0-9]/g,"");
  const wanted=norm(teamName),candidates=[];
+ const aliases={
+  "realunionirun":["Real Union Club de Irun","Real Union Irun"],
+  "realunionclubdeirun":["Real Union Irun","Real Union Club de Irun"]
+ };
+ const searchTerms=[String(teamName||"").trim(),...(aliases[wanted]||[])];
+ const uniqueSearchTerms=[...new Set(searchTerms.filter(Boolean))];
  const walk=(value,depth=0)=>{
   if(!value||typeof value!=="object"||depth>8)return;
   if(Array.isArray(value)){value.forEach(x=>walk(x,depth+1));return;}
@@ -6481,11 +6486,25 @@ window.mamSportScoreTeamSchedule = async function mamSportScoreTeamSchedule(team
   if(slug&&name)candidates.push({slug:String(slug),name:String(name),type:String(value.type||value.entity_type||"").toLowerCase()});
   Object.values(value).forEach(x=>{if(x&&typeof x==="object")walk(x,depth+1);});
  };
- walk(search);
+ // Some providers index the club under its formal name rather than the fixture short name.
+ for(const query of uniqueSearchTerms){
+  const search=await request(base+"/v1/search/?"+qs({q:query,sport:"football",limit:20,src:"mac-analiz-merkezi"}));
+  walk(search);
+  if(candidates.some(x=>norm(x.name)===wanted))break;
+ }
  const unique=[...new Map(candidates.map(x=>[x.slug,x])).values()];
- const exact=unique.find(x=>norm(x.name)===wanted);
- const close=exact||unique.find(x=>norm(x.name).includes(wanted)||wanted.includes(norm(x.name)));
- if(!close)throw new Error("SportScore takım aramasında eşleşme bulunamadı: "+teamName);
+ const teamCandidates=unique.filter(x=>!x.type||x.type.includes("team")||x.type.includes("club"));
+ const pool=teamCandidates.length?teamCandidates:unique;
+ const acceptedNames=[wanted,...(aliases[wanted]||[]).map(norm)];
+ const exact=pool.find(x=>acceptedNames.includes(norm(x.name)));
+ const close=exact||pool.find(x=>{
+  const candidate=norm(x.name);
+  return candidate.length>=Math.min(6,wanted.length)&&acceptedNames.some(target=>
+   Math.min(candidate.length,target.length)/Math.max(candidate.length,target.length)>=0.68&&
+   (candidate.includes(target)||target.includes(candidate))
+  );
+ });
+ if(!close)throw new Error("SportScore takım aramasında eşleşme bulunamadı: "+teamName+" (aranan: "+uniqueSearchTerms.join(" / ")+")");
  const data=await request(base+"/widget/team/?"+qs({sport:"football",slug:close.slug,limit:30,src:"mac-analiz-merkezi"}));
  const records=[];
  const add=value=>{
@@ -6516,8 +6535,8 @@ window.mamSportScoreTeamSchedule = async function mamSportScoreTeamSchedule(team
  };
  walkMatches(data);
  const matches=[...new Map(records.map(m=>[m.fixture.id,m])).values()];
- try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
  if(!matches.length)throw new Error("SportScore takım takviminde maç kaydı bulunamadı.");
+ try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
  return matches;
 }
 
