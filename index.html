@@ -2685,6 +2685,12 @@ async function loadMatches(){
       console.warn("Football-data.org boş fikstür yedeği:",fallbackError);
      }
     }
+    // API-Football can return HTTP success with an empty fixture list.
+    // Preserve the last centralized archive as a final fallback for this date.
+    if(!alternative.length&&archivedDayRows.length){
+     alternative=archivedDayRows;
+     alternativeSource="D1 arşiv yedeği";
+    }
     if(alternative.length){
      allMatches=alternative;
      source=alternativeSource;
