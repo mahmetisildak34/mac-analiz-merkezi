@@ -2599,7 +2599,7 @@ async function loadMatches(){
 }
 
 async function getTFFSuperLigUpcoming(){
- const key="mam_tff_superlig_upcoming_analysis_v5";
+ const key="mam_tff_superlig_upcoming_analysis_v6";
  try{
   const cached=JSON.parse(localStorage.getItem(key)||"null");
   if(cached?.time&&Date.now()-cached.time<2*60*1000&&Array.isArray(cached.matches))return cached.matches;
@@ -2639,15 +2639,44 @@ async function getTFFSuperLigUpcoming(){
   if(response.ok){
    const archived=await response.json();
    const combined=[...fixtures,...(Array.isArray(archived?.fixtures)?archived.fixtures.map(normalizeTffFixture):[])];
-   const seen=new Set();
-   fixtures=combined.filter(match=>{
-    const home=String(match.teams?.home?.name||"").toLocaleLowerCase("tr-TR");
-    const away=String(match.teams?.away?.name||"").toLocaleLowerCase("tr-TR");
-    const date=String(match.fixture?.date||"");
-    const key=[date.slice(0,16),home,away].join("|");
-    if(seen.has(key))return false;
-    seen.add(key);return true;
-   });
+   const cleanTeam=value=>String(value||"").toLocaleLowerCase("tr-TR")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
+    .replace(/�/g,"").replace(/[^a-z0-9]/g,"")
+    .replace(/(as|aş|fk|sk|spor|kulubu|kulubu|futbol|club)$/g,"");
+   const similarity=(left,right)=>{
+    if(!left||!right)return 0;
+    if(left===right||left.includes(right)||right.includes(left))return 1;
+    const previous=Array.from({length:right.length+1},(_,i)=>i);
+    for(let i=1;i<=left.length;i++){
+     let diagonal=previous[0];previous[0]=i;
+     for(let j=1;j<=right.length;j++){
+      const above=previous[j];
+      previous[j]=Math.min(previous[j]+1,previous[j-1]+1,diagonal+(left[i-1]===right[j-1]?0:1));
+      diagonal=above;
+     }
+    }
+    return 1-previous[right.length]/Math.max(left.length,right.length);
+   };
+   const matchQuality=match=>{
+    const names=[match.teams?.home?.name,match.teams?.away?.name].map(name=>String(name||""));
+    return names.reduce((score,name)=>score+(name.includes("�")?0:2)+Math.min(name.length,30)/100,0);
+   };
+   const unique=[];
+   for(const match of combined){
+    const kickoff=Date.parse(match.fixture?.date||"");
+    const minute=Number.isFinite(kickoff)?Math.floor(kickoff/60000):String(match.fixture?.date||"").slice(0,16);
+    const home=cleanTeam(match.teams?.home?.name),away=cleanTeam(match.teams?.away?.name);
+    const duplicateIndex=unique.findIndex(existing=>{
+     const existingTime=Date.parse(existing.fixture?.date||"");
+     const existingMinute=Number.isFinite(existingTime)?Math.floor(existingTime/60000):String(existing.fixture?.date||"").slice(0,16);
+     if(existingMinute!==minute)return false;
+     const eh=cleanTeam(existing.teams?.home?.name),ea=cleanTeam(existing.teams?.away?.name);
+     return similarity(home,eh)>=0.72&&similarity(away,ea)>=0.72;
+    });
+    if(duplicateIndex<0)unique.push(match);
+    else if(matchQuality(match)>matchQuality(unique[duplicateIndex]))unique[duplicateIndex]=match;
+   }
+   fixtures=unique;
   }
  }catch(mergeError){console.warn("TFF statik fikstür tamamlayıcısı alınamadı.",mergeError);}
  const stableTeamId=name=>{
