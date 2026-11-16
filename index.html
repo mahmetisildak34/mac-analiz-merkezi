@@ -5801,7 +5801,7 @@ async function analyze(button){
   const action=button.dataset.liveAction;
   $("mamLiveNav").querySelectorAll(".mam-live-nav-item").forEach(item=>item.classList.toggle("active",item===button));
   if(action==="live"){setMamScreen("live");await loadLiveMatches();}
-  if(action==="fixtures"){setMamScreen("home");await loadMatches();$("date")?.scrollIntoView({behavior:"smooth",block:"center"});}
+  if(action==="fixtures"){setMamScreen("upcoming");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});}
   if(action==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için yukarıdan bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});}
   if(action==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
