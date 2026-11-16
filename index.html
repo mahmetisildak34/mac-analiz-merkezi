@@ -1623,6 +1623,9 @@ async function api(path){
   const isTffFixtures=cleanPath==="superlig/fixtures";
   const isPrimaryApi=!isArchive&&!isTffFixtures&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/")&&!cleanPath.startsWith("fixturesdownload/");
   const primaryCooldownKey="mam_api_football_cooldown_until";
+  const dailyCooldownKey="mam_api_football_daily_cooldown_until";
+  const rateCooldownKey="mam_api_football_rate_cooldown_until";
+  const livePrimaryKey="mam_api_football_live_next_allowed";
   const cacheKey="mam_api_cache_v2_"+cleanPath;
   const cached=localStorage.getItem(cacheKey);
   let cachedEntry=null;
@@ -1639,21 +1642,36 @@ async function api(path){
   // Read fresh cache before enforcing API-Football cooldown. A quota must not
   // hide data that was already fetched successfully.
   if(isPrimaryApi){
-    const cooldownUntil=Number(localStorage.getItem(primaryCooldownKey)||0);
-    if(cooldownUntil>Date.now()){
-      const minutes=Math.max(1,Math.ceil((cooldownUntil-Date.now())/60000));
-      throw new Error("API-Football kota beklemesinde ("+minutes+" dk). ESPN ve Football-data.org yedekleri kullanılabilir.");
+    const now=Date.now();
+    const cooldownUntil=Math.max(
+      Number(localStorage.getItem(primaryCooldownKey)||0),
+      Number(localStorage.getItem(dailyCooldownKey)||0),
+      Number(localStorage.getItem(rateCooldownKey)||0)
+    );
+    if(cooldownUntil>now){
+      const minutes=Math.max(1,Math.ceil((cooldownUntil-now)/60000));
+      throw new Error("API-Football geçici kota korumasında ("+minutes+" dk). Canlı veri için yedek kaynaklar deneniyor.");
+    }
+    // Free plan has only 100 calls/day. Poll the primary live endpoint at most
+    // once per 30 minutes; the faster ESPN fallback handles frequent live refreshes.
+    if(isLive){
+      const nextAllowed=Number(localStorage.getItem(livePrimaryKey)||0);
+      if(nextAllowed>now)throw new Error("API-Football canlı sorgusu kota koruması nedeniyle bekletiliyor; ESPN yedeği kullanılacak.");
     }
   }
 
   const request=async()=>{
-    // Reserve part of the free daily API-Football quota for live scores.
-    if(isLive&&isPrimaryApi){
-      const day=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Istanbul"});
-      const budgetKey="mam_live_api_budget_"+day;
+    // One shared browser-side daily budget for ALL API-Football endpoints,
+    // not just livescore. Keep a safety reserve below the provider's 100/day cap.
+    if(isPrimaryApi){
+      const day=new Date().toISOString().slice(0,10);
+      const budgetKey="mam_api_football_budget_"+day;
       let used=0;try{used=Number(localStorage.getItem(budgetKey)||0)||0;}catch(_){}
-      if(used>=60)throw new Error("Canlı skor günlük API kotası koruması: bugün için ayrılan 60 istek kullanıldı. ESPN ve kayıtlı veriler deneniyor.");
+      if(used>=85)throw new Error("API-Football günlük güvenli istek bütçesi doldu (85/100). ESPN ve diğer yedek kaynaklar kullanılacak.");
       try{localStorage.setItem(budgetKey,String(used+1));}catch(_){}
+      if(isLive){
+        try{localStorage.setItem(livePrimaryKey,String(Date.now()+30*60*1000));}catch(_){}
+      }
     }
     // Only API-Football is subject to this conservative rate limit.
     // ESPN and Football-data.org fallback calls must not wait in this queue.
@@ -1693,11 +1711,16 @@ async function api(path){
       if(/rate.?limit|too many requests|request limit|requests limit|quota/i.test(errorText)){
         const provider=isPrimaryApi?"API-Football":cleanPath.startsWith("espn/")?"ESPN":"Football-data.org";
         if(isPrimaryApi){
-          // Kota dolduğunda 15 dakika boyunca ana sağlayıcıya yeni istek atma.
-          // Yedek ESPN ve Football-data.org istekleri bu beklemeden etkilenmez.
-          try{localStorage.setItem(primaryCooldownKey,String(Date.now()+15*60*1000));}catch(_){}
+          const remaining=Number(response.headers.get("x-ratelimit-requests-remaining"));
+          const dailyQuota=remaining===0||/daily|per day|day limit|daily quota|limit_day|quota exceeded|requests per day/i.test(errorText);
+          if(dailyQuota){
+            const nextUtcMidnight=Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth(),new Date().getUTCDate()+1);
+            try{localStorage.setItem(dailyCooldownKey,String(nextUtcMidnight));}catch(_){}
+          }else{
+            try{localStorage.setItem(rateCooldownKey,String(Date.now()+60*1000));}catch(_){}
+          }
         }
-        throw new Error("Too many requests: "+provider+" istek sınırına ulaşıldı. Bir süre sonra tekrar dene; diğer kaynaklar kullanılabilir.");
+        throw new Error("İstek sınırı: "+provider+" şu an sınırda. Kota türüne göre otomatik bekleme uygulanıyor; yedek kaynaklar kullanılabilir.");
       }
       if(/plan|date/i.test(errorText)){
         throw new Error("Seçilen tarih mevcut API-Football planınızda desteklenmiyor.");
@@ -1710,6 +1733,13 @@ async function api(path){
       const fixtureParams=new URLSearchParams(cleanPath.split("?")[1]||"");
       const archiveLeague=fixtureParams.get("league")||data.response[0]?.league?.id||"";
       if(archiveLeague)await mamSaveMatchesToD1(data.response,archiveLeague);
+    }
+    if(isPrimaryApi){
+      const remaining=Number(response.headers.get("x-ratelimit-requests-remaining"));
+      if(remaining===0){
+        const nextUtcMidnight=Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth(),new Date().getUTCDate()+1);
+        try{localStorage.setItem(dailyCooldownKey,String(nextUtcMidnight));}catch(_){}
+      }
     }
     if(!isLineupRequest&&!isArchiveBackfill){try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));}catch(e){}}
     return data;
@@ -2789,6 +2819,42 @@ async function mamEnrichLiveScoresWithEspn(matches,date){
  if(mismatches)console.warn("MAM canlı skor çapraz kontrolünde farklılık:",mismatches);
  return checked;
 }
+function mamNotifyLiveGoalChanges(matches){
+ if(!Array.isArray(matches)||!matches.length)return;
+ const key="mam_live_goal_score_state_v1";
+ let previous={};
+ try{previous=JSON.parse(localStorage.getItem(key)||"{}")||{};}catch(_){previous={};}
+ const next={...previous};
+ const notifications=[];
+ for(const match of matches){
+  const id=String(match?.fixture?.id??"");
+  const home=Number(match?.goals?.home),away=Number(match?.goals?.away);
+  if(!id||!Number.isFinite(home)||!Number.isFinite(away))continue;
+  const old=previous[id];
+  if(old&&Number.isFinite(Number(old.home))&&Number.isFinite(Number(old.away))){
+   if(home>Number(old.home))notifications.push({match,side:"home",score:home+" – "+away});
+   if(away>Number(old.away))notifications.push({match,side:"away",score:home+" – "+away});
+  }
+  next[id]={home,away,updatedAt:Date.now()};
+ }
+ try{localStorage.setItem(key,JSON.stringify(Object.fromEntries(Object.entries(next).slice(-250))));}catch(_){}
+ if(!notifications.length)return;
+ let host=document.getElementById("mamGoalToastHost");
+ if(!host){
+  host=document.createElement("div");host.id="mamGoalToastHost";
+  host.style.cssText="position:fixed;z-index:100000;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;right:12px;display:grid;gap:8px;pointer-events:none";
+  document.body.appendChild(host);
+ }
+ for(const item of notifications){
+  const homeName=item.match.teams?.home?.name||"Ev sahibi";
+  const awayName=item.match.teams?.away?.name||"Deplasman";
+  const team=item.side==="home"?homeName:awayName;
+  const toast=document.createElement("div");
+  toast.textContent="⚽ GOL! "+team+" · "+homeName+" "+item.score+" "+awayName;
+  toast.style.cssText="padding:13px 15px;border-radius:14px;background:#123b2b;color:#fff;border:1px solid #43c58a;box-shadow:0 8px 28px rgba(0,0,0,.24);font:800 13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif";
+  host.appendChild(toast);setTimeout(()=>toast.remove(),6500);
+ }
+}
 let mamLiveLoadPromise=null;
 function loadLiveMatches(){
  if(mamLiveLoadPromise)return mamLiveLoadPromise;
@@ -2841,6 +2907,7 @@ async function loadLiveMatchesNow(){
     }catch(scoreCheckError){
      console.warn("ESPN canlı skor çapraz kontrolü yapılamadı; API-Football skoru korunuyor.",scoreCheckError);
     }
+    mamNotifyLiveGoalChanges(verifiedLive);
     allMatches=verifiedLive;
     mamSaveLiveMatchCache(verifiedLive);
     renderMatches();
@@ -2892,6 +2959,7 @@ async function loadLiveMatchesNow(){
     recentCachedLive.forEach(match=>{const key=matchPair(match);if(!freshPairs.has(key))mergedByPair.set(key,match);});
     fallbackLive.forEach(match=>mergedByPair.set(matchPair(match),match));
     const combinedLive=[...mergedByPair.values()];
+    mamNotifyLiveGoalChanges(fallbackLive);
     allMatches=combinedLive;
     mamSaveLiveMatchCache(fallbackLive);
     renderMatches();
@@ -2906,6 +2974,7 @@ async function loadLiveMatchesNow(){
   try{
    const backupLive=(await footballDataLiveFixtures()).filter(isLive);
    if(backupLive.length){
+    mamNotifyLiveGoalChanges(backupLive);
     allMatches=backupLive;
     mamSaveLiveMatchCache(backupLive);
     renderMatches();
@@ -2921,6 +2990,7 @@ async function loadLiveMatchesNow(){
   try{
    const sportScoreLive=(await mamSportScoreLiveFixtures()).filter(isLive);
    if(sportScoreLive.length){
+    mamNotifyLiveGoalChanges(sportScoreLive);
     allMatches=sportScoreLive;
     mamSaveLiveMatchCache(allMatches);
     renderMatches();
