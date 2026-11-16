@@ -1783,6 +1783,9 @@ async function api(path){
     catch(e){throw new Error("Sunucudan okunabilir yanıt alınamadı.");}
 
     const errorText=JSON.stringify(data.errors||data.error||data);
+    // Preserve provider HTTP status and sanitized error details for the dedicated
+    // /status diagnostic, including provider-side 401/429 responses.
+    if(isDiagnostic&&data.diagnostic)return data;
     if(!response.ok||(data.errors&&Object.keys(data.errors).length)){
       // 429/kota hatasında boş ekran yerine en fazla 10 dakikalık son başarılı veri.
       if(isLiveStats&&cachedEntry?.time&&cachedEntry.data&&Date.now()-cachedEntry.time<10*60*1000){
