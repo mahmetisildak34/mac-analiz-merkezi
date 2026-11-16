@@ -5820,9 +5820,14 @@ async function analyze(button){
    html+=`<div class="statgrid">
     <div class="stat"><span>${esc(homeName)} korner ort.</span><b>${hc.average.toFixed(2)}</b></div>
     <div class="stat"><span>${esc(awayName)} korner ort.</span><b>${ac.average.toFixed(2)}</b></div></div>`;
-   html+=probHTML("8.5 Korner Üst",overProb(expectedCorners,9));
-   html+=probHTML("9.5 Korner Üst",overProb(expectedCorners,10));
-   html+=probHTML("10.5 Korner Üst",overProb(expectedCorners,11));
+   const cornerOver85=overProb(expectedCorners,9),cornerOver95=overProb(expectedCorners,10),cornerOver105=overProb(expectedCorners,11);
+   html+=probHTML("8.5 Korner Üst",cornerOver85);
+   html+=probHTML("8.5 Korner Alt",1-cornerOver85);
+   html+=probHTML("9.5 Korner Üst",cornerOver95);
+   html+=probHTML("9.5 Korner Alt",1-cornerOver95);
+   html+=probHTML("10.5 Korner Üst",cornerOver105);
+   html+=probHTML("10.5 Korner Alt",1-cornerOver105);
+   html+='<p class="note">Alt olasılıkları aynı toplam korner modelinin tamamlayıcısıdır; yarım çizgilerde iade durumu bulunmaz.</p>';
   }else{
    html+='<p class="note">Gerçek korner verisi yetersiz (her takım için en az 3 maç gerekli). Tahmin üretilmedi.</p>';
   }
@@ -5868,7 +5873,15 @@ async function analyze(button){
    {name:"1 - Ev sahibi",probability:win},{name:"X - Beraberlik",probability:draw},{name:"2 - Deplasman",probability:lose},
    {name:"1X - Ev sahibi kaybetmez",probability:win+draw},{name:"X2 - Deplasman kaybetmez",probability:lose+draw},
    {name:"1.5 Üst",probability:over15},{name:"2.5 Üst",probability:over25},{name:"3.5 Üst",probability:over35},
-   {name:"KG Var",probability:btts},{name:"KG Yok",probability:1-btts}
+   {name:"KG Var",probability:btts},{name:"KG Yok",probability:1-btts},
+   ...(hc.count>=3&&ac.count>=3?[
+    {name:"8.5 Korner Üst",probability:overProb(hc.average+ac.average,9)},
+    {name:"8.5 Korner Alt",probability:1-overProb(hc.average+ac.average,9)},
+    {name:"9.5 Korner Üst",probability:overProb(hc.average+ac.average,10)},
+    {name:"9.5 Korner Alt",probability:1-overProb(hc.average+ac.average,10)},
+    {name:"10.5 Korner Üst",probability:overProb(hc.average+ac.average,11)},
+    {name:"10.5 Korner Alt",probability:1-overProb(hc.average+ac.average,11)}
+   ]:[])
   ]);
   target.innerHTML=html;
   target.dataset.analysisDone="1";
