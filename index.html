@@ -5448,7 +5448,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         }
       }
       if(espnTeamId){
-        // Mevcut sezon CSV'sinde 10'dan az maç varsa ESPN'den son üç sezonu tamamla.        const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
+        // Mevcut sezon CSV'sinde 10'dan az maç varsa ESPN'den son üç sezonu tamamla.
+        const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
         const seasonStart=matchMonth>=7?matchYear:matchYear-1;
         const uefaSlugByLeague={"2":"uefa.champions","3":"uefa.europa","848":"uefa.europa.conf"};
         // Her UEFA kupasının arşivi kesin olarak kendi turnuvasıyla sınırlı tutulur.
@@ -5530,7 +5531,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // Bu çağrı yalnızca takım geçmişi açıldığında yapılır; arka planda sınırsız istek üretmez.
   if(!archiveOnly&&output.length<10){
     try{
-      const sportScoreMatches=await mamSportScoreTeamSchedule(teamName);
+      const sportScoreMatches=await window.mamSportScoreTeamSchedule(teamName);
       for(const match of sportScoreMatches)addMatch(match);
     }catch(sportScoreError){
       sourceError+=" SportScore geçmişi: "+String(sportScoreError?.message||sportScoreError);
@@ -6448,7 +6449,7 @@ async function analyze(button){
   
 // SportScore: takım araması + takımın geçmiş/gelecek fikstürü.
 // Resmî API dokümanı: CORS açık, anahtarsız GET; ücretsiz kullanımda görünür Powered by SportScore atfı gerekir.
-async function mamSportScoreTeamSchedule(teamName){
+window.mamSportScoreTeamSchedule = async function mamSportScoreTeamSchedule(teamName){
  const cacheKey="mam_sportscore_team_v1_"+String(teamName||"").toLowerCase();
  try{
   const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");
@@ -6707,7 +6708,7 @@ const openStandingTeamHistory=async row=>{
    // Sağlayıcıda takım fikstürü eksikse SportScore'dan aynı takımın geçmiş ve gelecek maçlarını tamamla.
    if(recent.length<10||!upcoming.length){
     try{
-     const ssMatches=await mamSportScoreTeamSchedule(teamName);
+     const ssMatches=await window.mamSportScoreTeamSchedule(teamName);
      const ssPast=ssMatches.filter(m=>m.goals?.home!=null&&m.goals?.away!=null&&Date.parse(m.fixture.date)<Date.now())
       .sort((a,b)=>Date.parse(b.fixture.date)-Date.parse(a.fixture.date)).map(m=>({...m,teams:{
        home:{...m.teams.home,name:norm(m.teams.home.name)===wanted?teamName:m.teams.home.name},
