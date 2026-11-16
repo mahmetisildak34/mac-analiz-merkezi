@@ -5083,19 +5083,17 @@ async function mamLoadD1LeagueArchive(leagueId, matchDate, teamName, teamId, tea
   const teamCacheKey="mam_d1_archive_v3_"+String(leagueId)+"_"+String(matchDate)+"_"+String(teamSource||"")+"_"+String(teamId||"")+"_"+aliases.join("_");
   const sharedCacheKey="mam_d1_archive_v2_"+String(leagueId)+"_"+String(matchDate);
   const normalizeArchiveTeam=value=>String(value||"").normalize("NFD").toLowerCase()
-    .replace(/[\\u0300-\\u036f]/g,"").replace(/ı/g,"i")
+    .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
     .replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim()
-    .replace(/\\b(football club|football|club|de|the|fc|cf|afc|a s|as|anonim sirketi|sirketi)\\b/g,"")
-    .replace(/\\s+/g," ").trim();
+    .replace(/\b(football club|football|club|de|the|fc|cf|afc|a s|as|anonim sirketi|sirketi)\b/g,"")
+    .replace(/\s+/g," ").trim();
   const accepted=acceptedNames instanceof Set?acceptedNames:new Set(aliases.map(normalizeArchiveTeam));
   const filterForTeam=rows=>{
     if(!Array.isArray(rows))return [];
     return rows.filter(match=>{
       const home=normalizeArchiveTeam(match?.teams?.home?.name);
       const away=normalizeArchiveTeam(match?.teams?.away?.name);
-      const idMatch=/^\\d+$/.test(String(teamId||""))&&
-        (String(match?.teams?.home?.id??"")===String(teamId)||String(match?.teams?.away?.id??"")===String(teamId));
-      return accepted.has(home)||accepted.has(away)||idMatch;
+      return accepted.has(home)||accepted.has(away);
     });
   };
 
