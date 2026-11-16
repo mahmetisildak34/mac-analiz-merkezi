@@ -3391,7 +3391,13 @@ async function loadLiveStats(button,forceRefresh=false){
  button.disabled=true;
  try{
   let homeTeam,awayTeam,statsRows=[],sourceLabel,payload=null;
-  if(source==="espn"){
+  if(source==="sportscore"){
+   const backup=await mamSportScoreLiveStats(button);
+   homeTeam=backup.homeName||button.dataset.liveHomeName||"Ev sahibi";
+   awayTeam=backup.awayName||button.dataset.liveAwayName||"Deplasman";
+   statsRows=backup.rows;
+   sourceLabel="SportScore";
+  }else if(source==="espn"){
    if(!/^\d+$/.test(fixtureId)||!leagueSlug)throw new Error("ESPN maç bilgisi eksik.");
    payload=await api("espn/"+leagueSlug+"/summary?"+qs({event:fixtureId}));
    const normalize=value=>String(value||"").toLowerCase().replace(/[^a-z0-9]/g,"");
@@ -3568,8 +3574,10 @@ async function loadLiveStats(button,forceRefresh=false){
   panel.innerHTML='<div class="mam-live-stats-title">Genel İstatistikler</div>'+(rows||'<div class="mam-live-stats-foot">Bu karşılaşma için sağlayıcı henüz istatistik paylaşmadı. Maç devam ederken tekrar kontrol edebilirsin.</div>')+'<div class="mam-live-stats-foot">Kaynak: '+sourceLabel+'. Panel açıkken maç sürerken 60 saniyede bir yenilenir.'+(!hasRealXg?' Model xG yaklaşık hesaplamadır; gerçek sağlayıcı xG verisi değildir.':' Gerçek xG sağlayıcıdan alınmıştır.')+'</div>';
   await mamPersistLiveStatsToD1(fixtureId,sourceLabel,statsRows);
  }catch(primaryError){
-  // İstatistik kaynağı API-Football/ESPN başarısızsa lig kodundan bağımsız SportScore yedeği.
-  try{
+  // SportScore zaten doğrudan denenmiştir; diğer kaynaklarda yedek olarak kullanılır.
+  if(source==="sportscore"){
+   panel.innerHTML='<span class="error">SportScore istatistikleri alınamadı: '+esc(String(primaryError.message||primaryError))+'</span>';
+  }else try{
    const backup=await mamSportScoreLiveStats(button);
    const rows=backup.rows.map(([label,left,right])=>{
     const n=value=>{const x=Number(String(value??"").replace("%","").replace(",",".").trim());return Number.isFinite(x)?x:null;};
