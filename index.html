@@ -3963,7 +3963,9 @@ function makeMamDetailTab(article){
  const liveButton=article.querySelector(".liveStatsBtn");
  const livePanel=article.querySelector(".liveStats");
  const lineupButton=article.querySelector(".lineupBtn");
- const lineupPanel=article.querySelector(".lineup-panel");\n const absencesButton=article.querySelector(".absencesBtn");\n const absencesPanel=article.querySelector(".absences-panel");
+ const lineupPanel=article.querySelector(".lineup-panel");
+ const absencesButton=article.querySelector(".absencesBtn");
+ const absencesPanel=article.querySelector(".absences-panel");
  const prediction=article.querySelector(".pred:not(.liveStats)");
  const preview=article.querySelector(".analysis-preview");
  const tabs=document.createElement("div");tabs.className="match-detail-tabs";
@@ -4016,7 +4018,9 @@ function makeMamDetailTab(article){
  formResult.innerHTML='<div class="match-detail-note">Takımların doğrulanmış son maçları bu bölümden yüklenecek. Veri bulunamazsa sonuç uydurulmaz.</div>';
  sections.form.append(formButton,formResult);
  if(lineupButton)sections.lineup.appendChild(lineupButton);
- if(lineupPanel)sections.lineup.appendChild(lineupPanel);\n if(absencesButton)sections.absences.appendChild(absencesButton);\n if(absencesPanel)sections.absences.appendChild(absencesPanel);
+ if(lineupPanel)sections.lineup.appendChild(lineupPanel);
+ if(absencesButton)sections.absences.appendChild(absencesButton);
+ if(absencesPanel)sections.absences.appendChild(absencesPanel);
  else sections.lineup.innerHTML='<div class="match-detail-note">Bu maç için kadro verisi henüz mevcut değil.</div>';
  if(liveButton)sections.stats.appendChild(liveButton);
  if(livePanel)sections.stats.appendChild(livePanel);
@@ -4301,7 +4305,8 @@ function renderMatches(){
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isSportScore?rawId.slice("sportscore-".length):isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-minute="'+esc(effectiveElapsed??"")+'" data-live-home-score="'+esc(g.home??0)+'" data-live-away-score="'+esc(g.away??0)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
    <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
-   <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>\n   <button type="button" class="absencesBtn secondary" data-id="${esc(f.id)}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" style="width:100%;margin-top:8px">🚑 Sakat ve cezalı oyuncuları kontrol et</button>\n   <div class="absences-panel" id="absences-${esc(f.id)}" hidden></div>
+   <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
+   <button type="button" class="absencesBtn secondary" data-id="${esc(f.id)}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" style="width:100%;margin-top:8px">🚑 Sakat ve cezalı oyuncuları kontrol et</button>\n   <div class="absences-panel" id="absences-${esc(f.id)}" hidden></div>
    <div class="pred" id="pred-${esc(f.id)}">Analiz henüz yapılmadı.</div>
   </article>`;
  }).join("")+'</section>';
