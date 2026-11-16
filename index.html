@@ -1621,13 +1621,14 @@ async function api(path){
   const yesterdayEspnDate=mamIstanbulDateString(new Date(Date.now()-24*60*60*1000)).replace(/-/g,"");
   const isEspnScoreboard=/^espn\/[^/]+\/scoreboard\?/.test(cleanPath);
   const isEspnLiveScoreboard=isEspnScoreboard&&(cleanPath.includes("dates="+todayEspnDate)||cleanPath.includes("dates="+yesterdayEspnDate));
-  const isLive=cleanPath.includes("live=all")||isEspnLiveScoreboard||(/^football-data\/matches\?/.test(cleanPath)&&/(?:^|&)status=/.test(cleanPath.split("?")[1]||""));
+  const isSportScore=cleanPath.startsWith("sportscore/");
+  const isLive=isSportScore||cleanPath.includes("live=all")||(/^football-data\/matches\?/.test(cleanPath)&&/(?:^|&)status=/.test(cleanPath.split("?")[1]||""));
   const isEspnSummary=/^espn\/[^/]+\/summary\?/.test(cleanPath);
   const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||isEspnSummary;
   const isLineupRequest=cleanPath.startsWith("fixtures?id=")||cleanPath.startsWith("fixtures/lineups?")||cleanPath.startsWith("fixtures/players?");
   const isArchive=cleanPath.startsWith("archive/");
   const isTffFixtures=cleanPath==="superlig/fixtures";
-  const isPrimaryApi=!isArchive&&!isTffFixtures&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/")&&!cleanPath.startsWith("fixturesdownload/");
+  const isPrimaryApi=!isArchive&&!isTffFixtures&&!isSportScore&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/")&&!cleanPath.startsWith("fixturesdownload/");
   const primaryCooldownKey="mam_api_football_cooldown_until";
   const dailyCooldownKey="mam_api_football_daily_cooldown_until";
   const rateCooldownKey="mam_api_football_rate_cooldown_until";
@@ -2798,7 +2799,7 @@ async function mamSportScoreLiveFixtures(force=false){
  const cacheKey="mam_sportscore_live_fixtures_v1";
  let cached=null;try{cached=JSON.parse(localStorage.getItem(cacheKey)||"null");}catch(_){}
  if(!force&&cached?.time&&Array.isArray(cached.matches)&&Date.now()-cached.time<55000)return cached.matches;
- const url="https://sportscore.com/api/widget/matches/?"+qs({sport:"football",limit:50,src:"mac-analiz-merkezi"});
+ const url=WORKER+"/api/sportscore/widget/matches?"+qs({sport:"football",limit:50,src:"mac-analiz-merkezi"});
  const response=await fetch(url,{headers:{Accept:"application/json"}});
  if(!response.ok)throw new Error("SportScore canlı maç listesi HTTP "+response.status);
  const payload=await response.json(),rows=Array.isArray(payload.matches)?payload.matches:[];
@@ -3136,7 +3137,7 @@ async function loadLiveMatchesNow(){
 
 
 async function mamSportScoreLiveStats(button){
- const base="https://sportscore.com/api/widget/";
+ const base=WORKER+"/api/sportscore/widget/";
  const clean=value=>String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
  const homeName=clean(button.dataset.liveHomeName),awayName=clean(button.dataset.liveAwayName);
  if(!homeName||!awayName)throw new Error("SportScore eşleştirmesi için takım adları eksik.");
@@ -3148,7 +3149,7 @@ async function mamSportScoreLiveStats(button){
   if(cached?.time&&Date.now()-cached.time<55000)envelope=cached.data;
  }catch(_){}
  if(!envelope){
-  const url="https://sportscore.com/api/v1/fixtures/?sport=football&date="+encodeURIComponent(date)+"&status=live&limit=200&src=mac-analiz-merkezi";
+  const url=WORKER+"/api/sportscore/v1/fixtures?sport=football&date="+encodeURIComponent(date)+"&status=live&limit=200&src=mac-analiz-merkezi";
   const response=await fetch(url);
   if(!response.ok)throw new Error("SportScore günlük canlı fikstür HTTP "+response.status);
   envelope=await response.json();
@@ -3160,7 +3161,7 @@ async function mamSportScoreLiveStats(button){
   return (h===homeName&&a===awayName)||(h.includes(homeName)&&a.includes(awayName))||(homeName.includes(h)&&awayName.includes(a));
  });
  if(!match?.slug)throw new Error("SportScore canlı listesinde bu maç için eşleşen detay kaydı yok.");
- const detailResponse=await fetch(base+"match/?sport=football&slug="+encodeURIComponent(match.slug)+"&src=mac-analiz-merkezi");
+ const detailResponse=await fetch(base+"match?sport=football&slug="+encodeURIComponent(match.slug)+"&src=mac-analiz-merkezi");
  if(!detailResponse.ok)throw new Error("SportScore maç detayı HTTP "+detailResponse.status);
  const detail=await detailResponse.json();
  const root=detail.match||detail.data?.match||detail.data||detail;
