@@ -51,7 +51,7 @@ assert.match(html, /mamTodayFilter==="upcoming"/, "Upcoming tab filter is not wi
 assert.match(html, /mamTodayFilter==="finished"/, "Finished tab filter is not wired");
 assert.match(html, /const groupedMatches=\[\.\.\.list\.reduce\(/, "Fixtures must be grouped by league");
 assert.match(html, /class="mam-league-heading"/, "League heading must be shown for each fixture group");
-assert.match(html, /data-mam-bottom="live"/, "Live match bottom-navigation item missing");
+assert.match(html, /<nav id="mamLiveNav"[^>]*>[\s\S]*?data-live-action="live"/, "Dedicated live-screen navigation is missing");
 assert.match(html, /\.mam-screen-live #mamLiveNav:not\(\[hidden\]\)\{display:flex!important/, "Existing live screen shortcuts remain hidden");
 assert.match(html, /function mamCanonicalMatchStatus\(match\)/, "Provider match-status normalization missing");
 assert.match(html, /const mamStatusRank=m=>/, "Daily scoreboard status ordering missing");
