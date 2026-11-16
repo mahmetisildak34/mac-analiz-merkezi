@@ -5795,17 +5795,19 @@ async function analyze(button){
   const awayOverall=teamStats(awayMatches,awayId,"all");
   const homeVenue=teamStats(homeMatches,homeId,"home");
   const awayVenue=teamStats(awayMatches,awayId,"away");
-  // Do not generate a match forecast from incomplete or venue-mismatched history.
-  // Minimum: 5 verified matches per team overall and 3 relevant venue matches.
-  if(homeOverall.count<5||awayOverall.count<5||homeVenue.count<3||awayVenue.count<3){
+  // Ana gol modeli için her takımda en az 5 doğrulanmış maç gerekir.
+  // İlgili saha örneklemi 3'ün altındaysa tahmini durdurma: takımın tüm saha maçlarını kullan
+  // ve aşağıda bu düşük örneklemi açıkça belirt. Şut/korner/kart metrikleri kendi veri kapılarıyla ayrıdır.
+  if(homeOverall.count<5||awayOverall.count<5){
    throw new Error("Güvenilir analiz için geçmiş veri yetersiz. "+
-    button.dataset.homeName+": "+homeOverall.count+" toplam / "+homeVenue.count+" iç saha maç; "+
-    button.dataset.awayName+": "+awayOverall.count+" toplam / "+awayVenue.count+" deplasman maç. "+
-    "Gerekli: her takımda en az 5 geçmiş maç ve ilgili sahada en az 3 maç. Veri tamamlanmadan tahmin gösterilmiyor.");
+    button.dataset.homeName+": "+homeOverall.count+" toplam maç; "+
+    button.dataset.awayName+": "+awayOverall.count+" toplam maç. "+
+    "Gerekli: her takımda en az 5 doğrulanmış geçmiş maç. Veri tamamlanmadan tahmin gösterilmiyor.");
   }
-  const hs=homeVenue;
-  const as=awayVenue;
-  const homeVenueFallback=false,awayVenueFallback=false;
+  const homeVenueFallback=homeVenue.count<3;
+  const awayVenueFallback=awayVenue.count<3;
+  const hs=homeVenueFallback?homeOverall:homeVenue;
+  const as=awayVenueFallback?awayOverall:awayVenue;
   const lowSample=hs.count<5||as.count<5;
 
   const lh=Math.max(.15,Math.min(4,(hs.gf+as.ga)/2));
@@ -5863,10 +5865,15 @@ async function analyze(button){
       '<p class="note">Sarı kart: '+metricCell(id,matches,"yellowCards",side)+'</p>'+
       '<p class="note">Kırmızı kart: '+metricCell(id,matches,"redCards",side)+'</p></div>';
   };
+  const venueFallbackNote=(homeVenueFallback||awayVenueFallback)
+    ? '<p class="note">Not: '+(homeVenueFallback?esc(homeName)+' için iç saha örneklemi 3 maçın altında; gol modeli tüm saha maçlarını kullandı. ':'')+
+      (awayVenueFallback?esc(awayName)+' için deplasman örneklemi 3 maçın altında; gol modeli tüm saha maçlarını kullandı. ':'')+
+      'Bu nedenle saha özelindeki gol tahmini daha düşük güven düzeyindedir.</p>'
+    : '';
   const venueComparison='<div class="section-title">🏟️ Ev / deplasman performansı</div>'+
     '<div class="statgrid">'+venueCard(homeName,homeVenue,homeMatches,homeId,"home")+
     venueCard(awayName,awayVenue,awayMatches,awayId,"away")+'</div>'+
-    '<p class="note">Her istatistik yalnızca mevcut doğrulanmış kayıtlardan hesaplanır. Örneklem 3 maçın altındaysa ortalama gösterilmez. Maç sonucu tahmini ayrı modeldir.</p>';
+    '<p class="note">Şut, korner ve kart ortalamaları yalnızca ilgili doğrulanmış maç verisi yeterliyse gösterilir. Maç sonucu tahmini ayrı gol modelidir.</p>'+venueFallbackNote;
   let html=`<b>📊 KENDİ İSTATİSTİKSEL ANALİZİMİZ</b>
    <div class="section-title">🏆 Modelin maç sonucu tahmini</div>
    <div class="statgrid">
