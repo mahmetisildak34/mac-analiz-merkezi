@@ -5129,7 +5129,7 @@ function mamEnrichHistoricalStats(matches,leagueId){
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false, teamSource=""){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v75_"+leagueId+"_"+teamSource+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v76_"+leagueId+"_"+teamSource+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -6128,11 +6128,11 @@ async function analyze(button){
   // Ana gol modeli için her takımda en az 5 doğrulanmış maç gerekir.
   // İlgili saha örneklemi 3'ün altındaysa tahmini durdurma: takımın tüm saha maçlarını kullan
   // ve aşağıda bu düşük örneklemi açıkça belirt. Şut/korner/kart metrikleri kendi veri kapılarıyla ayrıdır.
-  if(homeOverall.count<5||awayOverall.count<5){
+  if(homeOverall.count<10||awayOverall.count<10){
    throw new Error("Güvenilir analiz için geçmiş veri yetersiz. "+
     button.dataset.homeName+": "+homeOverall.count+" toplam maç; "+
     button.dataset.awayName+": "+awayOverall.count+" toplam maç. "+
-    "Gerekli: her takımda en az 5 doğrulanmış geçmiş maç. Veri tamamlanmadan tahmin gösterilmiyor.");
+    "Gerekli: her takımda 10 doğrulanmış geçmiş maç. Veri tamamlanmadan tahmin gösterilmiyor.");
   }
   const homeVenueFallback=homeVenue.count<3;
   const awayVenueFallback=awayVenue.count<3;
