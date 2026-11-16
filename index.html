@@ -2619,12 +2619,9 @@ async function loadMatches(){
     console.warn("Merkezi gelecek fikstür arşivi kullanılamadı; mevcut kaynaklar deneniyor.",archiveError);
    }
   }
-  if(archivedDayRows.length){
-   // D1 is the primary fixture source for current/upcoming dates; do not spend
-   // API-Football quota when the archive already has the requested day's matches.
-   allMatches=archivedDayRows;
-   source="D1 hızlı fikstür arşivi";
-  }else try{
+  // API-Football is the primary fixture provider. D1 is retained as a
+  // supplement/fallback and must not silently replace a fresh primary response.
+  try{
    const data=await api("fixtures?"+qs({date:date,timezone:"Europe/Istanbul"}));
    const freshMatches=data.response||[];
    allMatches=freshMatches;
