@@ -2467,13 +2467,10 @@ async function loadMatches(){
   const lastArchiveDate=new Date(today);lastArchiveDate.setDate(lastArchiveDate.getDate()+30);
   if(selectedDate>=today&&selectedDate<=lastArchiveDate){
    try{
-    // Read the same known-good 30-day D1 snapshot for every future/current date.
-    // The Worker exact-date SQL path can miss rows when kickoff values carry mixed UTC offsets;
-    // filter by Istanbul calendar date here, using the identical rule as the upcoming list.
-    const archiveQuery=mamScreenMode==="upcoming"
-     ? qs({days:30,limit:2000})
-     : qs({date,league:$("league").value==="all"?undefined:$("league").value,limit:2000});
-    const archive=await api("archive/upcoming?"+archiveQuery);
+    // Always read the same known-good D1 rolling snapshot, independent of API-Football.
+    // Filter the selected Istanbul calendar day locally so a single-day SQL/date mismatch
+    // cannot hide fixtures that are already present in the 30-day archive.
+    const archive=await api("archive/upcoming?"+qs({days:30,limit:2000}));
     const archivedRows=Array.isArray(archive?.response)?archive.response:[];
     const localDate=value=>{
      const stamp=Date.parse(value||"");
@@ -2487,8 +2484,9 @@ async function loadMatches(){
     console.warn("Merkezi gelecek fikstür arşivi kullanılamadı; mevcut kaynaklar deneniyor.",archiveError);
    }
   }
-  if(mamScreenMode==="upcoming"&&archivedDayRows.length){
-   // The D1 archive already contains the upcoming window; avoid a second, slower date-fixture request.
+  if(archivedDayRows.length){
+   // D1 is the primary fixture source for current/upcoming dates; do not spend
+   // API-Football quota when the archive already has the requested day's matches.
    allMatches=archivedDayRows;
    source="D1 hızlı fikstür arşivi";
   }else try{
@@ -2591,10 +2589,21 @@ async function loadMatches(){
    $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+".";
   }
  }catch(e){
-  allMatches=[];
+  // A failed refresh must never erase the last known-good fixture snapshot.
+  let fallbackMatches=previousMatches;
+  try{
+   const cached=JSON.parse(localStorage.getItem(fixtureCacheKey)||"null");
+   if(Array.isArray(cached?.matches)&&cached.matches.length)fallbackMatches=cached.matches;
+  }catch(_){}
+  allMatches=fallbackMatches;
   renderMatches();
-  $("status").innerHTML='<span class="error">Seçilen tarih için güncel fikstür doğrulanamadı. Eski maç listesi gizlendi. '+esc(e.message)+'</span>';
-  $("matches").innerHTML='<div class="empty">Bu tarih için güncel veri alınamadı. Kaynaklar tekrar erişilebilir olduğunda Yenile ile yeniden dene.</div>';
+  const errorText=esc(e.message||e);
+  if(allMatches.length){
+   $("status").innerHTML='<span class="error">Güncel veri alınamadı; son başarılı maç listesi korunuyor. '+errorText+'</span>';
+  }else{
+   $("status").innerHTML='<span class="error">Güncel fikstür şu an alınamadı. '+errorText+'</span>';
+   $("matches").innerHTML='<div class="empty">Henüz kayıtlı maç bulunamadı. Kaynaklar tekrar erişilebilir olduğunda Yenile ile yeniden dene.</div>';
+  }
  }finally{button.disabled=false}
 }
 
