@@ -1587,6 +1587,10 @@ button{transition:filter .15s ease,transform .15s ease}
 <button id="loadStandings" hidden type="button" aria-hidden="true" tabindex="-1">Puan durumu</button>
 <div id="standings" hidden aria-hidden="true"></div>
 <div id="status" class="status"></div>
+<div id="mamApiDiagnostic" class="panel" style="margin:12px 0;padding:12px">
+ <button id="mamApiDiagnosticRun" type="button" class="secondary" style="width:100%">🔎 API-Football bağlantısını test et</button>
+ <div id="mamApiDiagnosticResult" role="status" aria-live="polite" style="margin-top:10px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px"></div>
+</div>
 <button type="button" id="couponToggle" class="secondary" style="width:100%;margin-top:12px" aria-expanded="false" aria-controls="couponPanel">🎟️ Kupon oluşturucuyu aç</button>
 
 <div class="panel coupon-panel" id="couponPanel" hidden>
@@ -1695,8 +1699,9 @@ async function api(path){
   const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||isEspnSummary;
   const isLineupRequest=cleanPath.startsWith("fixtures?id=")||cleanPath.startsWith("fixtures/lineups?")||cleanPath.startsWith("fixtures/players?");
   const isArchive=cleanPath.startsWith("archive/");
+  const isDiagnostic=cleanPath==="football/status";
   const isTffFixtures=cleanPath==="superlig/fixtures";
-  const isPrimaryApi=!isArchive&&!isTffFixtures&&!isSportScore&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/")&&!cleanPath.startsWith("fixturesdownload/");
+  const isPrimaryApi=!isDiagnostic&&!isArchive&&!isTffFixtures&&!isSportScore&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/")&&!cleanPath.startsWith("fixturesdownload/");
   const primaryCooldownKey="mam_api_football_cooldown_until";
   const dailyCooldownKey="mam_api_football_daily_cooldown_until";
   const rateCooldownKey="mam_api_football_rate_cooldown_until";
@@ -1709,7 +1714,7 @@ async function api(path){
   // Canlı istatistikleri de kısa süreli önbellekten sun: aynı maç tekrar açıldığında
   // gereksiz API-Football isteği gönderilmesin. Hata halinde son başarılı veri korunur.
   const isArchiveBackfill=cleanPath.startsWith("archive/backfill-all?");
-  if(cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLineupRequest&&!isArchiveBackfill){
+  if(!isDiagnostic&&cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLineupRequest&&!isArchiveBackfill){
     const cacheAge=isLive?5*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?15*1000:30*60*1000;
     if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
   }
@@ -1778,6 +1783,9 @@ async function api(path){
     catch(e){throw new Error("Sunucudan okunabilir yanıt alınamadı.");}
 
     const errorText=JSON.stringify(data.errors||data.error||data);
+    // Preserve provider HTTP status and sanitized error details for the dedicated
+    // /status diagnostic, including provider-side 401/429 responses.
+    if(isDiagnostic&&data.diagnostic)return data;
     if(!response.ok||(data.errors&&Object.keys(data.errors).length)){
       // 429/kota hatasında boş ekran yerine en fazla 10 dakikalık son başarılı veri.
       if(isLiveStats&&cachedEntry?.time&&cachedEntry.data&&Date.now()-cachedEntry.time<10*60*1000){
@@ -7369,6 +7377,37 @@ const openStandingTeamHistory=async row=>{
 }
 </style>
 
+<script>
+(function(){
+ const button=document.getElementById("mamApiDiagnosticRun");
+ const output=document.getElementById("mamApiDiagnosticResult");
+ if(!button||!output)return;
+ button.addEventListener("click",async function(){
+  button.disabled=true;
+  output.textContent="API-Football /status kontrol ediliyor…";
+  try{
+   const result=await api("football/status");
+   const sub=result.subscription||{}, quota=result.requests||{};
+   const rows=[
+    "Secret tanımlı: "+(result.secretConfigured?"EVET":"HAYIR"),
+    "Worker sağlayıcıya ulaştı: "+(result.workerReachedProvider?"EVET":"HAYIR"),
+    "API-Football HTTP: "+(result.providerHttpStatus??"bilinmiyor"),
+    "API anahtarı / sağlayıcı yanıtı: "+(result.providerOk?"KABUL EDİLDİ":"HATA"),
+    "Hesap bilgisi alındı: "+(result.accountPresent?"EVET":"HAYIR"),
+    "Plan: "+(sub.plan||"bilinmiyor"),
+    "Abonelik aktif: "+(sub.active===true?"EVET":sub.active===false?"HAYIR":"BİLİNMİYOR"),
+    "Günlük kullanım: "+(quota.current??"bilinmiyor")+" / "+(quota.dailyLimit??"bilinmiyor"),
+    "Hata ayrıntısı: "+(Object.keys(result.errors||{}).length?JSON.stringify(result.errors):"yok"),
+    "Kontrol zamanı: "+(result.checkedAt||"bilinmiyor")
+   ];
+   if(Number(result.providerHttpStatus)===429)rows.push("NOT: Sağlayıcı 429 döndürdü. Kota/rate-limit veya paylaşımlı çıkış IP kısıtı ayrıştırılmalı.");
+   output.textContent=rows.join("\n");
+  }catch(error){
+   output.textContent="TEST BAŞARISIZ\n"+String(error.message||error)+"\nOturum, Secret, Worker rotası veya sağlayıcı yanıtı kontrol edilmeli.";
+  }finally{button.disabled=false;}
+ });
+})();
+</script>
 </body>
 </html>
 
