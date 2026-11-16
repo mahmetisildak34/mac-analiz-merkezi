@@ -3160,7 +3160,7 @@ async function loadLiveMatchesNow(){
   $("status").textContent="Son kayıtlı canlı maçlar yükleniyor; güncel skorlar kontrol ediliyor...";
  }
  let primaryErrorText="",primaryCount=0,espnErrorText="",primaryLiveMatches=[];
-  let fallbackSchedule=[],espnCount=0,footballDataCount=0,sportScoreCount=0;
+  let fallbackSchedule=[],espnCount=0,espnLiveCount=0,footballDataCount=0,sportScoreCount=0;
  try{
   // Ana kaynak: API-Football live=all bütün ligleri döndürmelidir.
   try{
@@ -3206,6 +3206,7 @@ async function loadLiveMatchesNow(){
    // ESPN canlı taraması yalnızca ekranda gösterilmez; bulunan tüm maçlar merkezi D1 arşivine de yazılır.
    if(fallback.length)await mamSaveMatchesToD1(fallback);
    const fallbackLive=fallback.filter(isLive);
+   espnLiveCount=fallbackLive.length;
    // Cross-check the primary live score and elapsed minute against the ESPN events already fetched.
    primaryLiveMatches=mamEnrichLiveScoresWithEspn(primaryLiveMatches,fallbackLive);
    if(fallbackLive.length){
@@ -3330,7 +3331,7 @@ async function loadLiveMatchesNow(){
       return time+" "+match.teams.home.name+" – "+match.teams.away.name;
      }).join(" · ")+"."
     : " Bugün için ESPN'in desteklediği liglerde sıradaki fikstür bilgisi alınamadı.";
-   $("status").textContent="Şu anda doğrulanmış canlı maç bulunamadı."+upcomingText+" Kaynak kontrolü: API-Football "+primaryCount+" kayıt; ESPN "+espnCount+" maç kaydı; Football-data.org "+footballDataCount+" canlı kayıt; SportScore "+sportScoreCount+" canlı kayıt. "+primaryStatus+" Maç başladığında kaynaklar otomatik yeniden kontrol edilecek.";
+   $("status").textContent="Şu anda doğrulanmış canlı maç bulunamadı."+upcomingText+" Kaynak kontrolü: API-Football "+primaryCount+" kayıt; ESPN "+espnCount+" skor tabelası kaydı ("+espnLiveCount+" canlı); Football-data.org "+footballDataCount+" canlı kayıt; SportScore "+sportScoreCount+" canlı kayıt. "+primaryStatus+" Maç başladığında kaynaklar otomatik yeniden kontrol edilecek.";
    return;
   }
   const cacheNote=savedLiveCache&&cachedMatches.length
