@@ -5681,6 +5681,16 @@ function optionalMetric(matches, teamId, metric, venue){
    }
   }
 
+  if(metric==="shots"&&value!==null){
+   let sot=Number(nested?.shotsOnTarget??nested?.shotsOnGoal??NaN);
+   if(!Number.isFinite(sot)&&Array.isArray(m.statistics)){
+    const row=m.statistics.find(x=>Number(x.team?.id)===Number(teamId));
+    const stat=row?.statistics?.find(x=>/shots on goal|shots on target/i.test(String(x.type||"")));
+    const parsed=Number(String(stat?.value??"").replace(/[% ,]/g,""));
+    if(stat?.value!==null&&stat?.value!==undefined&&stat?.value!==""&&Number.isFinite(parsed))sot=parsed;
+   }
+   if(Number.isFinite(sot)&&value<sot)value=null;
+  }
   if(value !== null && Number.isFinite(value)) values.push(value);
  }
 
