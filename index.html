@@ -1604,6 +1604,12 @@ function qs(values){
  return p.toString();
 }
 
+function mamIstanbulDateString(value=new Date()){
+ const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(value);
+ const part=type=>parts.find(item=>item.type===type)?.value||"";
+ return part("year")+"-"+part("month")+"-"+part("day");
+}
+
 let apiQueue=Promise.resolve();
 let lastApiCall=0;
 
@@ -1611,8 +1617,8 @@ async function api(path){
   const cleanPath=String(path).replace(/^\/+/, "");
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings")||/^espn\/[a-zA-Z0-9._-]+\/standings\?/.test(cleanPath);
-  const todayEspnDate=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Istanbul"}).replace(/-/g,"");
-  const yesterdayEspnDate=new Date(Date.now()-24*60*60*1000).toLocaleDateString("en-CA",{timeZone:"Europe/Istanbul"}).replace(/-/g,"");
+  const todayEspnDate=mamIstanbulDateString().replace(/-/g,"");
+  const yesterdayEspnDate=mamIstanbulDateString(new Date(Date.now()-24*60*60*1000)).replace(/-/g,"");
   const isEspnScoreboard=/^espn\/[^/]+\/scoreboard\?/.test(cleanPath);
   const isEspnLiveScoreboard=isEspnScoreboard&&(cleanPath.includes("dates="+todayEspnDate)||cleanPath.includes("dates="+yesterdayEspnDate));
   const isLive=cleanPath.includes("live=all")||isEspnLiveScoreboard||(/^football-data\/matches\?/.test(cleanPath)&&/(?:^|&)status=/.test(cleanPath.split("?")[1]||""));
@@ -2959,7 +2965,7 @@ async function loadLiveMatchesNow(){
   }catch(error){primaryErrorText=String(error?.message||error);}
   // Yedek kaynak: ESPN'deki desteklenen ligler, kontrollü eşzamanlılıkla taranır.
   $("status").textContent="Ana kaynak yanıt vermedi; ESPN ligleri taranıyor...";
-  const date=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Istanbul"});
+  const date=mamIstanbulDateString();
   try{
    let fallback=await espnFixtures(date,true);
    // Türkiye saatiyle gece yarısından sonra, UTC/ESPN takviminde bir önceki güne ait
