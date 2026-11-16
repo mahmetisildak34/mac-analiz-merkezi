@@ -4859,6 +4859,33 @@ async function mamLoadD1LeagueArchive(leagueId, matchDate, teamName, teamId, tea
   return matches;
 }
 const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
+function mamEnrichHistoricalStats(matches,leagueId){
+ const list=Array.isArray(matches)?matches:[];
+ const required=["corners","shotsOnTarget","shots","yellowCards","redCards"];
+ const needsStats=match=>{
+  const s=match.statistics||{};
+  return !required.every(key=>s.home?.[key]!==undefined&&s.home?.[key]!==null&&s.away?.[key]!==undefined&&s.away?.[key]!==null);
+ };
+ const candidates=String(leagueId)==="203"?[]:list.filter(match=>{
+  if(!needsStats(match))return false;
+  const id=String(match.fixture?.id||"");
+  const isEspn=id.startsWith("espn-")||String(match.mamSource||"").toLowerCase()==="espn";
+  const providerId=isEspn&&id.startsWith("espn-")?id.slice(id.lastIndexOf("-")+1):id;
+  return /^\\d+$/.test(providerId);
+ }).slice(0,String(leagueId)==="848"?20:8);
+ let changed=false;
+ return Promise.all(candidates.map(async match=>{
+  try{
+   const id=String(match.fixture?.id||"");
+   const isEspn=id.startsWith("espn-")||String(match.mamSource||"").toLowerCase()==="espn";
+   const providerId=isEspn&&id.startsWith("espn-")?id.slice(id.lastIndexOf("-")+1):id;
+   const fresh=isEspn?await getEspnMatchStats(leagueId,providerId):await getApiFootballMatchStats(providerId);
+   if(!fresh)return;
+   const merged={home:{...(match.statistics?.home||{}),...(fresh.home||{})},away:{...(match.statistics?.away||{}),...(fresh.away||{})}};
+   if(JSON.stringify(merged)!==JSON.stringify(match.statistics||{})){match.statistics=merged;changed=true;}
+  }catch(_){}
+ })).then(()=>({changed}));
+}
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false, teamSource=""){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
@@ -4868,6 +4895,12 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     try{
       const saved=JSON.parse(cached);
       if(Array.isArray(saved.matches)&&saved.matches.length&&Date.now()-saved.time<6*60*60*1000){
+        // Eski cache kayıtlarında maç sonucu var ama istatistikler eksik olabilir.
+        // Cache hit olsa bile yalnızca eksik istatistikleri tamamlamayı dene.
+        const enriched=await mamEnrichHistoricalStats(saved.matches,leagueId);
+        if(enriched.changed){
+          try{localStorage.setItem(key,JSON.stringify({time:saved.time,matches:saved.matches}));}catch(_){}
+        }
         return saved.matches;
       }
     }catch(e){}
@@ -5581,26 +5614,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   output.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
   const result=output.slice(0,20);
-  // Son geçmiş maçların gerçek istatistiklerini doğru sağlayıcıdan tamamla.
-  // İstek sayısını sınırlı tutuyoruz; bulunan sonuçlar yerel önbelleğe alınır.
-  const candidates=String(leagueId)==="203"?[]:result.filter(match=>{
-    if(match.statistics)return false;
-    const id=String(match.fixture?.id||"");
-    const isEspn=id.startsWith("espn-")||String(match.mamSource||"").toLowerCase()==="espn";
-    const providerId=isEspn&&id.startsWith("espn-")?id.slice(id.lastIndexOf("-")+1):id;
-    return /^\d+$/.test(providerId);
-  }).slice(0,String(leagueId)==="848"?20:8);
-  await Promise.all(candidates.map(async match=>{
-    try{
-      const fixtureId=String(match.fixture?.id||"");
-      const isEspn=fixtureId.startsWith("espn-")||String(match.mamSource||"").toLowerCase()==="espn";
-      const providerId=isEspn&&fixtureId.startsWith("espn-")?fixtureId.slice(fixtureId.lastIndexOf("-")+1):fixtureId;
-      const stats=isEspn
-        ? await getEspnMatchStats(leagueId,providerId)
-        : await getApiFootballMatchStats(providerId);
-      if(stats)match.statistics=stats;
-    }catch(e){/* İstatistik yoksa skor ve form geçmişi korunur. */}
-  }));
+  // Eksik alanları kaynak sağlayıcıdan tamamla; mevcut CSV/ESPN alanlarını koru.
+  await mamEnrichHistoricalStats(result,leagueId);
   // Bulunan tamamlanmış takım maçlarını merkezi D1 arşivine kaydet.
   await mamSaveMatchesToD1(result,leagueId);
   try{localStorage.setItem(key,JSON.stringify({time:Date.now(),matches:result}));}catch(e){}
