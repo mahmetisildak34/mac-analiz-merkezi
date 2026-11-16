@@ -2118,6 +2118,37 @@ async function loadStandings(){
    box.append(bulk,progress);
   }
 
+  if(["39","203","61","2","3","848","88","94"].includes(String(leagueId))){
+   const leagueNames={"39":"Premier League","203":"Süper Lig","61":"Ligue 1","2":"Şampiyonlar Ligi","3":"Avrupa Ligi","848":"Konferans Ligi","88":"Eredivisie","94":"Primeira Liga"};
+   const leagueName=leagueNames[String(leagueId)]||"Öncelikli lig";
+   const bulk=document.createElement("button");
+   bulk.type="button";bulk.className="secondary";bulk.style.cssText="width:100%;margin-top:12px;";
+   bulk.textContent="↻ "+leagueName+" · "+rows.length+" takımın geçmişini tamamla";
+   const progress=document.createElement("p");progress.className="note";
+   progress.textContent="Her takım için son 10 tamamlanmış maçı kaynaklardan toplayıp önbelleğe al.";
+   bulk.addEventListener("click",async()=>{
+    if(bulk.disabled)return;
+    bulk.disabled=true;let done=0,ready=0,failed=[];
+    const d=new Date();d.setDate(d.getDate()+1);
+    const cutoff=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    progress.textContent="0 / "+rows.length+" takım kontrol ediliyor.";
+    for(let i=0;i<rows.length;i+=2){
+     const batch=rows.slice(i,i+2);
+     const results=await Promise.allSettled(batch.map(team=>getTeamFixtures(team.teamId,cutoff,team.name,String(leagueId),"",false)));
+     results.forEach((result,index)=>{
+      done++;
+      if(result.status==="fulfilled"&&result.value.length>=10)ready++;
+      else failed.push(batch[index].name+(result.status==="fulfilled"?" ("+result.value.length+" maç)":" ("+(result.reason?.message||"hata")+")"));
+     });
+     progress.textContent=done+" / "+rows.length+" takım işlendi · "+ready+" takımda 10 geçmiş maç hazır.";
+     bulk.textContent="Tamamlanıyor… "+done+"/"+rows.length;
+    }
+    bulk.disabled=false;bulk.textContent="↻ "+leagueName+" geçmişlerini yeniden kontrol et";
+    progress.textContent=ready+" / "+rows.length+" takımda 10 geçmiş maç hazır."+(failed.length?" Eksik kalanlar: "+failed.join(", "):" Tüm takımların geçmişleri hazır.");
+   });
+   box.append(bulk,progress);
+  }
+
   if(String(leagueId)==="135"){
    const bulk=document.createElement("button");
    bulk.type="button";bulk.className="secondary";bulk.style.cssText="width:100%;margin-top:12px;";
