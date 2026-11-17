@@ -4538,6 +4538,7 @@ window.addEventListener("popstate",()=>{if(mamActiveMatch)closeMamMatchDetail();
 let mamScreenMode="home";
 let mamTodayFilter="all";
 function setMamScreen(mode){
+ document.body.classList.toggle("mam-hide-bottom-nav",mode==="special-archive");
  if(mode==="special"||mode==="special-archive"){
   mamScreenMode=mode;
   const main=document.querySelector("main");
@@ -8069,4 +8070,5 @@ input,select,.league-trigger{
   font-size:8px!important;line-height:1.25!important;
  }
 }
+.mam-hide-bottom-nav .mam-bottom-nav{display:none!important}
 </style>
