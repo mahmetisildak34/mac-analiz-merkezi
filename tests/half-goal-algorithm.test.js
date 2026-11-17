@@ -1,7 +1,7 @@
 "use strict";
 const test=require("node:test");
 const assert=require("node:assert/strict");
-const {halfTeamStats,halfTeamMetrics,halfPassesThreshold}=require("../half-goal-algorithm.js");
+const {halfTeamStats,halfTeamMetrics,halfPassesThreshold,halfMatchQualification}=require("../half-goal-algorithm.js");
 const match=(overrides={})=>({leagueId:39,kickoff:"2026-11-01T15:00:00Z",home:"Alpha FC",away:"Beta FC",halftimeHome:1,halftimeAway:0,homeGoals:2,awayGoals:1,...overrides});
 test("counts first-half and second-half scoring independently",()=>{
  const m=halfTeamMetrics(halfTeamStats([match()]).get("39|alpha fc"));
@@ -30,4 +30,12 @@ test("threshold tests scoring, not conceding, and uses inclusive boundary",()=>{
  assert.equal(halfPassesThreshold(metrics,"second",70),false);
  assert.equal(halfPassesThreshold(metrics,"all",70),true);
  assert.equal(halfPassesThreshold(null,"first",70),false);
+});
+
+test("requires both teams to score in both halves at 60%, and marks 70% all-four as favorite",()=>{
+ const team=(firstScored,secondScored)=>({firstScored,secondScored});
+ assert.deepEqual(halfMatchQualification(team(60,69),team(70,60)),{eligible:true,favorite:false,rates:{homeFirst:60,homeSecond:69,awayFirst:70,awaySecond:60}});
+ assert.equal(halfMatchQualification(team(70,75),team(80,70)).favorite,true);
+ assert.equal(halfMatchQualification(team(90,90),team(59,100)).eligible,false);
+ assert.equal(halfMatchQualification(team(null,90),team(90,90)).eligible,false);
 });

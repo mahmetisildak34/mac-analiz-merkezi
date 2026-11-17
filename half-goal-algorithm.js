@@ -40,7 +40,15 @@
   const values=filter==="first"?[metrics.firstScored]:filter==="second"?[metrics.secondScored]:filter==="both"?[metrics.bothScored]:[metrics.firstScored,metrics.secondScored,metrics.bothScored];
   return values.some(value=>value!==null&&value>=threshold);
  }
- const api=Object.freeze({halfTeamStats,halfTeamMetrics,halfPassesThreshold});
+ function halfMatchQualification(home,away,eligibleThreshold=60,favoriteThreshold=70){
+  if(!home||!away)return {eligible:false,favorite:false,rates:null};
+  const rates={homeFirst:home.firstScored,homeSecond:home.secondScored,awayFirst:away.firstScored,awaySecond:away.secondScored};
+  const values=Object.values(rates);
+  const valid=values.every(value=>Number.isFinite(value));
+  const eligible=valid&&values.every(value=>value>=eligibleThreshold);
+  return {eligible,favorite:eligible&&values.every(value=>value>=favoriteThreshold),rates};
+ }
+ const api=Object.freeze({halfTeamStats,halfTeamMetrics,halfPassesThreshold,halfMatchQualification});
  if(typeof module!=="undefined"&&module.exports)module.exports=api;
  root.MamHalfGoalAlgorithm=api;
 })(typeof globalThis!=="undefined"?globalThis:this);
