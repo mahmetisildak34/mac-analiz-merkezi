@@ -7453,14 +7453,14 @@ const openStandingTeamHistory=async row=>{
    const stats=halfTeamStats(mamHalfData.history||[]);
    let rows=(mamHalfData.upcoming||[]).filter(m=>(league==="all"||String(m.leagueId)===league)&&(!teamQuery||(m.home+" "+m.away).toLocaleLowerCase("tr-TR").includes(teamQuery))).map(m=>{
     const a=halfTeamMetrics(stats.get(String(m.home).toLocaleLowerCase("tr-TR").trim())),b=halfTeamMetrics(stats.get(String(m.away).toLocaleLowerCase("tr-TR").trim()));
-    if(!a||!b||a.samples<5||b.samples<5)return null;
+    if(!a||!b||a.samples<10||b.samples<10)return null;
     if(only50&&!halfPassesThreshold(a,filter,threshold)&&!halfPassesThreshold(b,filter,threshold))return null;
     const score=m=>Math.max(m.firstScored||0,m.firstConceded||0,m.secondScored||0,m.secondConceded||0,m.bothScored||0);
     return {...m,teamA:a,teamB:b,rank:Math.max(score(a),score(b))};
    }).filter(Boolean);
    rows.sort((a,b)=>b.rank-a.rank);
-   meta.textContent="Gelecek 30 gün · "+(mamHalfData.upcomingCount||0)+" fikstür · Her takım için en az 5 doğrulanmış geçmiş maç · %50 ve üzeri oranlar";
-   box.innerHTML=rows.slice(0,200).map(m=>'<article class="mam-half-card"><div class="mam-half-card-top"><span>'+halfEsc(m.leagueName)+' · '+halfEsc(m.kickoff?.slice(0,16)?.replace("T"," "))+'</span><span>'+halfEsc(m.country)+'</span></div><div class="mam-half-teams">'+halfEsc(m.home)+' – '+halfEsc(m.away)+'</div>'+halfTeamCard({name:m.home},m.teamA)+halfTeamCard({name:m.away},m.teamB)+'<div class="mam-half-meta">Oranlar yalnızca doğrulanmış devre skorları bulunan geçmiş maçlardan hesaplandı; bu değerler tahmin veya garanti değildir.</div></article>').join("")||'<div class="mam-half-empty">En az 5 doğrulanmış geçmiş maçı olan ve seçili kategoride %50 eşiğini karşılayan gelecek maç bulunamadı.</div>';
+   meta.textContent="Gelecek 30 gün · "+(mamHalfData.upcomingCount||0)+" fikstür · Her takım için en az 10 doğrulanmış geçmiş maç · %50 ve üzeri tarihsel oranlar";
+   box.innerHTML=rows.slice(0,200).map(m=>'<article class="mam-half-card"><div class="mam-half-card-top"><span>'+halfEsc(m.leagueName)+' · '+halfEsc(m.kickoff?.slice(0,16)?.replace("T"," "))+'</span><span>'+halfEsc(m.country)+'</span></div><div class="mam-half-teams">'+halfEsc(m.home)+' – '+halfEsc(m.away)+'</div>'+halfTeamCard({name:m.home},m.teamA)+halfTeamCard({name:m.away},m.teamB)+'<div class="mam-half-meta">Oranlar yalnızca doğrulanmış devre skorları bulunan geçmiş maçlardan hesaplandı; bu değerler tahmin veya garanti değildir.</div></article>').join("")||'<div class="mam-half-empty">Her iki takımın da en az 10 doğrulanmış geçmiş maçı bulunmalı ve seçili kategoride %50 eşiğini karşılamalı.</div>';
   }
  }
  async function loadMamHalfArchive(force=false){
