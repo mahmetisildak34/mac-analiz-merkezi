@@ -7397,7 +7397,7 @@ const openStandingTeamHistory=async row=>{
 
  let mamHalfData=null,mamHalfView="history";
  const halfEsc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
- const {halfTeamStats,halfTeamMetrics,halfPassesThreshold}=window.MamHalfGoalAlgorithm;
+ const {halfTeamStats,halfTeamMetrics,halfPassesThreshold,halfMatchQualification}=window.MamHalfGoalAlgorithm;
  function halfKickoffDisplay(value){
   if(!value)return "Tarih bekleniyor";
   const date=new Date(value);
