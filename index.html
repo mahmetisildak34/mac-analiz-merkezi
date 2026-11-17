@@ -1835,7 +1835,7 @@ async function api(path){
     try{data=await response.json();}
     catch(e){throw new Error("Sunucudan okunabilir yanıt alınamadı.");}
 
-    const errorText=JSON.stringify(data.errors||data.error||data);
+    const errorText=JSON.stringify((isArchive&&data.detail)?{error:data.error||"Archive request failed",detail:data.detail}:data.errors||data.error||data);
     // Preserve provider HTTP status and sanitized error details for the dedicated
     // /status diagnostic, including provider-side 401/429 responses.
     if(isDiagnostic&&data.diagnostic)return data;
