@@ -3,9 +3,10 @@
  */
 (function(root){
  "use strict";
+ function halfTeamKey(name){return String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();}
  function halfTeamStats(rows){
   const map=new Map(),seenFixtures=new Set();
-  const keyOf=name=>String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();
+  const keyOf=halfTeamKey;
   const uniqueRows=[];
   for(const m of rows){
    const home=keyOf(m.home),away=keyOf(m.away),day=String(m.kickoff||"").slice(0,10),league=String(m.leagueId||"");
