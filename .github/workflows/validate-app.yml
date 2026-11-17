@@ -13,6 +13,8 @@ on:
     paths:
       - "index.html"
       - ".github/workflows/validate-app.yml"
+      - "half-goal-algorithm.js"
+      - "tests/half-goal-algorithm.test.js"
 
 permissions:
   contents: read
