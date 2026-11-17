@@ -1,7 +1,7 @@
 "use strict";
 const test=require("node:test");
 const assert=require("node:assert/strict");
-const {halfTeamStats,halfTeamMetrics,halfPassesThreshold,halfMatchQualification}=require("../half-goal-algorithm.js");
+const {halfTeamKey,halfTeamStats,halfTeamMetrics,halfPassesThreshold,halfMatchQualification}=require("../half-goal-algorithm.js");
 const match=(overrides={})=>({leagueId:39,kickoff:"2026-11-01T15:00:00Z",home:"Alpha FC",away:"Beta FC",halftimeHome:1,halftimeAway:0,homeGoals:2,awayGoals:1,...overrides});
 test("counts first-half and second-half scoring independently",()=>{
  const m=halfTeamMetrics(halfTeamStats([match()]).get("39|alpha fc"));
@@ -38,4 +38,23 @@ test("requires both teams to score in both halves at 60%, and marks 70% all-four
  assert.equal(halfMatchQualification(team(70,75),team(80,70)).favorite,true);
  assert.equal(halfMatchQualification(team(90,90),team(59,100)).eligible,false);
  assert.equal(halfMatchQualification(team(null,90),team(90,90)).eligible,false);
+});
+
+test("uses one canonical team key for Turkish and accented names",()=>{
+ assert.equal(halfTeamKey("İstanbul Başakşehir"),halfTeamKey("istanbul basaksehir"));
+ assert.equal(halfTeamKey("Fenerbahçe"),halfTeamKey("FENERBAHCE"));
+});
+test("does not treat missing halftime scores as zero",()=>{
+ const stats=halfTeamStats([match({halftimeHome:null}),match({halftimeAway:""})]);
+ assert.equal(stats.size,0);
+});
+test("preserves zero as a valid verified score",()=>{
+ const stats=halfTeamStats([match({halftimeHome:0,halftimeAway:0,homeGoals:0,awayGoals:0})]);
+ assert.equal(stats.get("39|alpha fc").matches,1);
+ assert.equal(halfTeamMetrics(stats.get("39|alpha fc")).firstScored,0);
+});
+test("team matching keys keep same-name teams isolated by league",()=>{
+ const stats=halfTeamStats([match({home:"İstanbul Başakşehir"}),match({leagueId:140,home:"Istanbul Basaksehir"})]);
+ assert.ok(stats.has("39|istanbul basaksehir"));
+ assert.ok(stats.has("140|istanbul basaksehir"));
 });
