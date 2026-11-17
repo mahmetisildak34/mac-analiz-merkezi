@@ -7397,11 +7397,20 @@ const openStandingTeamHistory=async row=>{
  let mamHalfData=null,mamHalfView="history";
  const halfEsc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
  function halfTeamStats(rows){
-  const map=new Map();
-  const keyOf=name=>String(name||"").toLocaleLowerCase("tr-TR").trim();
+  const map=new Map(),seenFixtures=new Set();
+  const keyOf=name=>String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();
+  // A fixture can arrive from more than one provider. Count it only once per league/date/team pair.
+  const uniqueRows=[];
   for(const m of rows){
+   const home=keyOf(m.home),away=keyOf(m.away),day=String(m.kickoff||"").slice(0,10),league=String(m.leagueId||"");
+   if(!home||!away||!day)continue;
+   const fixtureKey=[league,day,...[home,away].sort()].join("|");
+   if(seenFixtures.has(fixtureKey))continue;
+   seenFixtures.add(fixtureKey);uniqueRows.push(m);
+  }
+  for(const m of uniqueRows){
    const halfHome=Number(m.halftimeHome),halfAway=Number(m.halftimeAway),fullHome=Number(m.homeGoals),fullAway=Number(m.awayGoals);
-   if(![halfHome,halfAway,fullHome,fullAway].every(Number.isFinite)||fullHome<halfHome||fullAway<halfAway)continue;
+   if(![halfHome,halfAway,fullHome,fullAway].every(Number.isFinite)||halfHome<0||halfAway<0||fullHome<halfHome||fullAway<halfAway)continue;
    const sides=[
     {name:m.home,firstScored:halfHome>0,firstConceded:halfAway>0,secondScored:(fullHome-halfHome)>0,secondConceded:(fullAway-halfAway)>0},
     {name:m.away,firstScored:halfAway>0,firstConceded:halfHome>0,secondScored:(fullAway-halfAway)>0,secondConceded:(fullHome-halfHome)>0}
