@@ -1,0 +1,24 @@
+name: Half-goal algorithm regression tests
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - "half-goal-algorithm.js"
+      - "tests/half-goal-algorithm.test.js"
+      - ".github/workflows/half-goal-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "half-goal-algorithm.js"
+      - "tests/half-goal-algorithm.test.js"
+      - ".github/workflows/half-goal-tests.yml"
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test tests/half-goal-algorithm.test.js
