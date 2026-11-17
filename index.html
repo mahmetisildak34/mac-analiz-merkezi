@@ -1463,7 +1463,7 @@ button{transition:filter .15s ease,transform .15s ease}
 .mam-half-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mam-half-tabs button{min-height:43px!important;background:#111d3b!important;border:1px solid rgba(145,151,255,.35)!important;color:#dce5ff!important}
 .mam-half-tabs button.active{background:linear-gradient(135deg,#7040d5,#3c2a91)!important;border-color:#bb8aff!important}
-.mam-half-filters{display:grid;grid-template-columns:1fr auto;align-items:end;gap:10px}
+.mam-half-filters{display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:10px}
 .mam-half-filters label{display:grid;gap:6px;color:#b9c6e3;font-size:12px;font-weight:800}
 .mam-half-filters select{width:100%;min-height:42px;padding:8px;background:#0b1730;color:#fff;border:1px solid rgba(145,151,255,.35);border-radius:10px}
 .mam-half-threshold{display:flex!important;align-items:center;gap:6px!important;min-height:42px;white-space:nowrap}
@@ -1688,10 +1688,10 @@ Veri kaynakları: API-Football, ESPN ve Football-data.org. Geçmiş takım veril
  <button type="button" id="mamHalfGoalOpen" class="mam-special-card"><span>⚽</span><span><b>Yarı Gol Arşivi</b><small>İlk yarı, ikinci yarı ve iki yarıda da gol çıkan maçlar</small></span><strong>›</strong></button>
 </section>
 <section id="mamHalfGoalScreen" class="mam-special-screen" hidden>
- <div class="mam-special-heading"><button type="button" id="mamHalfGoalBack" class="mam-special-back">← Özel'e dön</button><span>⚽ YARI GOL ARŞİVİ</span><h2>Yarı Gol Arşivi</h2><p>Geçmiş ve gelecek maçlar tek arşivde. İlk aşamada sayfa iskeleti hazır; maç verisi ve doğrulanmış olasılık filtreleri sonraki aşamada bağlanacak.</p></div>
+ <div class="mam-special-heading"><button type="button" id="mamHalfGoalBack" class="mam-special-back">← Özel'e dön</button><span>⚽ YARI GOL ARŞİVİ</span><h2>Yarı Gol Arşivi</h2><p>Mevcut arşivde devre skoru doğrulanabilen geçmiş maçları ve bu takımların geçmiş performansına göre gelecek fikstürü incele.</p></div>
  <div class="mam-half-controls">
  <div class="mam-half-tabs"><button type="button" class="active" data-half-view="history">Geçmiş maçlar</button><button type="button" data-half-view="upcoming">Gelecek maçlar</button></div>
- <div class="mam-half-filters"><label>Gol filtresi<select id="mamHalfFilter"><option value="all">Tüm yarı sonuçları</option><option value="first">İlk yarıda gol</option><option value="second">İkinci yarıda gol</option><option value="both">İki yarıda da gol</option></select></label><label class="mam-half-threshold"><input type="checkbox" id="mamHalf80" checked> %80 ve üzeri</label></div>
+ <div class="mam-half-filters"><label>Lig<select id="mamHalfLeague"><option value="all">Tüm ligler</option></select></label><label>Gol filtresi<select id="mamHalfFilter"><option value="all">Tüm yarı sonuçları</option><option value="first">İlk yarıda gol</option><option value="second">İkinci yarıda gol</option><option value="both">İki yarıda da gol</option></select></label><label class="mam-half-threshold"><input type="checkbox" id="mamHalf80" checked> %80 ve üzeri</label><label>Takım ara<input id="mamHalfTeam" type="search" placeholder="Takım adı"></label></div>
  <div class="mam-half-meta" id="mamHalfMeta">Arşiv verisi bekleniyor.</div>
  <div id="mamHalfResults" class="mam-half-results"><div class="mam-special-placeholder"><b>Arşiv verisi yükleniyor</b><span>Yalnızca doğrulanabilir devre skoru bulunan maçlar kullanılacak.</span></div></div>
  <button type="button" id="mamHalfRefresh" class="mam-special-back">↻ Arşivi yenile</button>
@@ -7409,10 +7409,12 @@ const openStandingTeamHistory=async row=>{
  function halfRate(values){return values.length?Math.round(values.filter(Boolean).length/values.length*100):null;}
  function halfRender(){
   const box=$("mamHalfResults"),meta=$("mamHalfMeta");if(!box||!mamHalfData)return;
-  const filter=$("mamHalfFilter")?.value||"all",only80=$("mamHalf80")?.checked!==false;
+  const filter=$("mamHalfFilter")?.value||"all",only80=$("mamHalf80")?.checked!==false,league=$("mamHalfLeague")?.value||"all",teamQuery=String($("mamHalfTeam")?.value||"").toLocaleLowerCase("tr-TR").trim();
   document.querySelectorAll("[data-half-view]").forEach(b=>b.classList.toggle("active",b.dataset.halfView===mamHalfView));
   if(mamHalfView==="history"){
    let rows=mamHalfData.history||[];
+   if(league!=="all")rows=rows.filter(m=>String(m.leagueId)===league);
+   if(teamQuery)rows=rows.filter(m=>(m.home+" "+m.away).toLocaleLowerCase("tr-TR").includes(teamQuery));
    if(filter==="first")rows=rows.filter(m=>m.firstHalfGoal);
    if(filter==="second")rows=rows.filter(m=>m.secondHalfGoal);
    if(filter==="both")rows=rows.filter(m=>m.firstHalfGoal&&m.secondHalfGoal);
@@ -7430,7 +7432,7 @@ const openStandingTeamHistory=async row=>{
    box.innerHTML=rows.slice(0,250).map(m=>'<article class="mam-half-card"><div class="mam-half-card-top"><span>'+halfEsc(m.leagueName)+' · '+halfEsc(m.kickoff?.slice(0,10))+'</span><span>'+halfEsc(m.source)+'</span></div><div class="mam-half-teams">'+halfEsc(m.home)+' – '+halfEsc(m.away)+'</div><div class="mam-half-score">Devre '+m.halftimeHome+'–'+m.halftimeAway+' · Maç sonu '+m.homeGoals+'–'+m.awayGoals+'</div></article>').join("")||'<div class="mam-half-empty">Bu filtrede doğrulanmış maç bulunamadı. Eksik devre skorları tahmin edilmedi.</div>';
   }else{
    const stats=halfTeamStats(mamHalfData.history||[]);
-   let rows=(mamHalfData.upcoming||[]).map(m=>{
+   let rows=(mamHalfData.upcoming||[]).filter(m=>(league==="all"||String(m.leagueId)===league)&&(!teamQuery||(m.home+" "+m.away).toLocaleLowerCase("tr-TR").includes(teamQuery))).map(m=>{
     const a=stats.get(String(m.home).toLocaleLowerCase("tr-TR").trim()),b=stats.get(String(m.away).toLocaleLowerCase("tr-TR").trim());
     if(!a||!b||a.first.length<5||b.first.length<5)return null;
     const rate=(x,y)=>Math.round((halfRate(x)+halfRate(y))/2);
@@ -7453,11 +7455,15 @@ const openStandingTeamHistory=async row=>{
   try{
    const data=await api("archive/half-goals");
    if(!data?.ok)throw new Error(data?.error||"Arşiv yanıtı geçersiz");
-   mamHalfData=data;halfRender();
+   mamHalfData=data;
+   const leagueSelect=$("mamHalfLeague");if(leagueSelect){const current=leagueSelect.value;leagueSelect.innerHTML='<option value="all">Tüm ligler</option>'+(data.leagues||[]).map(l=>'<option value="'+halfEsc(l.id)+'">'+halfEsc(l.name)+' · '+halfEsc(l.country)+'</option>').join("");leagueSelect.value=current||"all";}
+   halfRender();
   }catch(error){box.innerHTML='<div class="mam-half-empty">Arşiv verisi alınamadı: '+halfEsc(error.message||error)+'</div>';meta.textContent="Bağlantı veya D1 yanıtı bekleniyor.";}
  }
  document.querySelectorAll("[data-half-view]").forEach(b=>b.addEventListener("click",()=>{mamHalfView=b.dataset.halfView;halfRender();}));
  $("mamHalfFilter")?.addEventListener("change",halfRender);
+ $("mamHalfLeague")?.addEventListener("change",halfRender);
+ $("mamHalfTeam")?.addEventListener("input",halfRender);
  $("mamHalf80")?.addEventListener("change",halfRender);
  $("mamHalfRefresh")?.addEventListener("click",()=>loadMamHalfArchive(true));
 
