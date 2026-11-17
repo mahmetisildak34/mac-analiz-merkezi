@@ -22,7 +22,7 @@ test("keeps league identity separate for same-named teams",()=>{
 test("recent five uses latest kickoff records",()=>{
  const rows=Array.from({length:6},(_,i)=>match({kickoff:`2026-11-${String(i+1).padStart(2,"0")}T15:00:00Z`,halftimeHome:i===5?0:1,homeGoals:i===5?0:2}));
  const m=halfTeamMetrics(halfTeamStats(rows).get("39|alpha fc"));
- assert.equal(m.samples,6);assert.equal(m.recent5.samples,5);assert.equal(m.recent5.firstScored,100);
+ assert.equal(m.samples,6);assert.equal(m.recent5.samples,5);assert.equal(m.recent5.firstScored,80);
 });
 test("threshold tests scoring, not conceding, and uses inclusive boundary",()=>{
  const metrics={firstScored:70,secondScored:20,bothScored:10};
