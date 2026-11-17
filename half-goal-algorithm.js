@@ -32,7 +32,7 @@
   }
   return map;
  }
- function halfTeamKey(name){return String(name||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();}
+ function halfTeamKey(name){return String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();}
  function halfRate(values){return values.length?Math.round(values.filter(Boolean).length/values.length*100):null;}
  function halfTeamMetrics(team){
   if(!team)return null;
