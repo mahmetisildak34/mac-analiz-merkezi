@@ -1442,6 +1442,22 @@ button{transition:filter .15s ease,transform .15s ease}
 @media(prefers-reduced-motion:reduce){.match-modern,.mam-home-shortcut{transition:none!important}}
 </style>
 
+<style id="mam-special-section-v1">
+.mam-special-screen{min-height:55vh;padding:18px 4px 110px;color:#f5f7ff}
+.mam-special-screen[hidden]{display:none!important}
+.mam-screen-special #mamSpecialScreen,.mam-screen-special-archive #mamHalfGoalScreen{display:block!important}
+.mam-screen-special> :not(#mamSpecialScreen),.mam-screen-special-archive> :not(#mamHalfGoalScreen){display:none!important}
+.mam-special-heading{padding:12px 4px 18px}
+.mam-special-heading>span{display:block;color:#c49aff;font-size:11px;font-weight:900;letter-spacing:1.2px;margin:12px 0}
+.mam-special-heading h2{font-size:27px;margin:8px 0;color:#fff}
+.mam-special-heading p{color:#b5c2df;font-size:13px;line-height:1.6}
+.mam-special-card{display:flex!important;align-items:center!important;gap:13px!important;width:100%!important;text-align:left!important;padding:17px!important;border:1px solid rgba(164,126,255,.55)!important;border-radius:17px!important;background:linear-gradient(135deg,#201747,#102c4b)!important;color:#fff!important}
+.mam-special-card>span:first-child{font-size:27px}.mam-special-card>span:nth-child(2){flex:1;display:grid;gap:5px}.mam-special-card small{color:#c1c9e4;font-size:11px;font-weight:500}.mam-special-card>strong{font-size:25px}
+.mam-special-back{background:#192746!important;color:#fff!important;border:1px solid #6475a5!important;margin-bottom:12px}
+.mam-special-placeholder{display:grid;gap:9px;padding:20px;border:1px dashed rgba(164,126,255,.5);border-radius:16px;background:#0d1933;color:#fff}
+.mam-special-placeholder span{font-size:12px;color:#b8c5e2}
+.mam-bottom-nav button[data-mam-bottom="special"].active{color:#d0aaff!important}
+</style>
 </head>
 <body>
 
@@ -1646,6 +1662,14 @@ Ana fikstür API-Football üzerinden alınır. Kota veya tarih erişimi sorunu o
 <div class="footer">
 Veri kaynakları: API-Football, ESPN ve Football-data.org. Geçmiş takım verileri SportScore ve Open Matchday kaynaklarından alınmaya çalışılır ve önbelleğe alınır. Canlı skorlar yenileme düğmesiyle güncellenir. Analiz sırasında takım geçmişi sorguları sırayla yapılır. Tahminler istatistiksel olasılıktır; kesin sonuç veya garanti değildir.
 </div>
+<section id="mamSpecialScreen" class="mam-special-screen" hidden>
+ <div class="mam-special-heading"><span>⭐ ÖZEL</span><h2>Özel Araçlar</h2><p>Maç analizleri için hazırladığımız özel arşiv ve filtreler.</p></div>
+ <button type="button" id="mamHalfGoalOpen" class="mam-special-card"><span>⚽</span><span><b>Yarı Gol Arşivi</b><small>İlk yarı, ikinci yarı ve iki yarıda da gol çıkan maçlar</small></span><strong>›</strong></button>
+</section>
+<section id="mamHalfGoalScreen" class="mam-special-screen" hidden>
+ <div class="mam-special-heading"><button type="button" id="mamHalfGoalBack" class="mam-special-back">← Özel'e dön</button><span>⚽ YARI GOL ARŞİVİ</span><h2>Yarı Gol Arşivi</h2><p>Geçmiş ve gelecek maçlar tek arşivde. İlk aşamada sayfa iskeleti hazır; maç verisi ve doğrulanmış olasılık filtreleri sonraki aşamada bağlanacak.</p></div>
+ <div class="mam-special-placeholder"><b>Arşiv hazırlanıyor</b><span>İlk yarı gol · İkinci yarı gol · Her iki yarıda gol</span></div>
+</section>
 </main>
 <nav class="mam-bottom-nav" aria-label="Alt gezinme">
  <button type="button" class="active" data-mam-bottom="home"><span>⌂</span>Ana Sayfa</button>
@@ -1653,6 +1677,7 @@ Veri kaynakları: API-Football, ESPN ve Football-data.org. Geçmiş takım veril
  <button type="button" data-mam-bottom="analysis"><span>▥</span>Analiz</button>
  <button type="button" data-mam-bottom="standings"><span>🏆</span>Ligler</button>
  <button type="button" data-mam-bottom="coupon"><span>🎟</span>Kupon</button>
+ <button type="button" data-mam-bottom="special"><span>⭐</span>Özel</button>
 </nav>
 
 <script>"use strict";
@@ -4485,6 +4510,21 @@ window.addEventListener("popstate",()=>{if(mamActiveMatch)closeMamMatchDetail();
 let mamScreenMode="home";
 let mamTodayFilter="all";
 function setMamScreen(mode){
+ if(mode==="special"||mode==="special-archive"){
+  mamScreenMode=mode;
+  const main=document.querySelector("main");
+  main.classList.remove("mam-screen-special","mam-screen-special-archive");
+  main.classList.add(mode==="special"?"mam-screen-special":"mam-screen-special-archive");
+  document.querySelectorAll("[data-mam-bottom]").forEach(b=>b.classList.toggle("active",b.dataset.mamBottom=== "special"));
+  $("mamSpecialScreen").hidden=mode!=="special";
+  $("mamHalfGoalScreen").hidden=mode!=="special-archive";
+  const header=$("mamSectionHeader");if(header)header.hidden=true;
+  const intro=document.querySelector(".mam-home-intro");if(intro)intro.hidden=true;
+  return;
+ }
+ const specialMain=document.querySelector("main");
+ specialMain.classList.remove("mam-screen-special","mam-screen-special-archive");
+
  mamScreenMode=mode;
  // Günlük pano ve gelecek fikstürü varsayılan olarak tüm liglerle açılır.
  // Kullanıcı isterse sonradan lig filtresinden tek bir ligi seçebilir.
@@ -7320,8 +7360,12 @@ const openStandingTeamHistory=async row=>{
   if(mode==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});if(!allMatches.length)await loadMatches();return;}
   if(mode==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel").scrollIntoView({behavior:"smooth",block:"start"});}
+  if(mode==="special"){setMamScreen("special");window.scrollTo({top:0,behavior:"smooth"});return;}
  }
  navButtons.forEach(button=>button.addEventListener("click",()=>go(button.dataset.mamShortcut||button.dataset.mamBottom)));
+ $("mamHalfGoalOpen")?.addEventListener("click",()=>{setMamScreen("special-archive");window.scrollTo({top:0,behavior:"smooth"});});
+ $("mamHalfGoalBack")?.addEventListener("click",()=>{setMamScreen("special");window.scrollTo({top:0,behavior:"smooth"});});
+
  document.querySelectorAll("[data-mam-league]").forEach(button=>button.addEventListener("click",async()=>{
   const select=$("league");if(!select)return;
   select.value=button.dataset.mamLeague;select.dispatchEvent(new Event("change",{bubbles:true}));
