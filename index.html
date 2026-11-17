@@ -7431,7 +7431,8 @@ const openStandingTeamHistory=async row=>{
  }
  function halfPassesThreshold(metrics,filter,threshold){
   if(!metrics)return false;
-  const values=filter==="first"?[metrics.firstScored,metrics.firstConceded]:filter==="second"?[metrics.secondScored,metrics.secondConceded]:filter==="both"?[metrics.bothScored]:[metrics.firstScored,metrics.firstConceded,metrics.secondScored,metrics.secondConceded,metrics.bothScored];
+  // Candidate selection is about the team scoring in a half, not merely conceding.
+  const values=filter==="first"?[metrics.firstScored]:filter==="second"?[metrics.secondScored]:filter==="both"?[metrics.bothScored]:[metrics.firstScored,metrics.secondScored,metrics.bothScored];
   return values.some(value=>value!==null&&value>=threshold);
  }
  function halfTeamCard(team,metrics){
@@ -7471,7 +7472,7 @@ const openStandingTeamHistory=async row=>{
     return {...m,teamA:a,teamB:b,rank:Math.max(score(a),score(b))};
    }).filter(Boolean);
    rows.sort((a,b)=>b.rank-a.rank);
-   const categoryFields=filter==="first"?[["İlk yarı gol atma","firstScored"],["İlk yarı gol yeme","firstConceded"]]:filter==="second"?[["İkinci yarı gol atma","secondScored"],["İkinci yarı gol yeme","secondConceded"]]:filter==="both"?[["İki yarıda gol","bothScored"]]:[["İlk yarı gol atma","firstScored"],["İlk yarı gol yeme","firstConceded"],["İkinci yarı gol atma","secondScored"],["İkinci yarı gol yeme","secondConceded"],["İki yarıda gol","bothScored"]];
+   const categoryFields=filter==="first"?[["İlk yarı gol atma","firstScored"]]:filter==="second"?[["İkinci yarı gol atma","secondScored"]]:filter==="both"?[["İki yarıda gol","bothScored"]]:[["İlk yarı gol atma","firstScored"],["İkinci yarı gol atma","secondScored"],["İki yarıda gol","bothScored"]];
    const leagueRanks=new Map();
    for(const [key,team] of stats){
     const leagueId=key.split("|",1)[0],metrics=halfTeamMetrics(team);
