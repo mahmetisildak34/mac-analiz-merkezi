@@ -55,4 +55,4 @@ jobs:
             node --check "$file"
           done
       - name: Run half-goal algorithm regression tests
-        run: node --test tests/half-goal-algorithm.test.js
+        run: node --test tests/*.test.js

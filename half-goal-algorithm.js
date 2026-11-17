@@ -3,9 +3,10 @@
  */
 (function(root){
  "use strict";
+ function halfTeamKey(name){return String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();}
  function halfTeamStats(rows){
   const map=new Map(),seenFixtures=new Set();
-  const keyOf=name=>String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();
+  const keyOf=halfTeamKey;
   const uniqueRows=[];
   for(const m of rows){
    const home=keyOf(m.home),away=keyOf(m.away),day=String(m.kickoff||"").slice(0,10),league=String(m.leagueId||"");
@@ -15,6 +16,8 @@
    seenFixtures.add(fixtureKey);uniqueRows.push(m);
   }
   for(const m of uniqueRows){
+   const rawScores=[m.halftimeHome,m.halftimeAway,m.homeGoals,m.awayGoals];
+   if(rawScores.some(value=>value==null||String(value).trim()===""))continue;
    const halfHome=Number(m.halftimeHome),halfAway=Number(m.halftimeAway),fullHome=Number(m.homeGoals),fullAway=Number(m.awayGoals);
    if(![halfHome,halfAway,fullHome,fullAway].every(Number.isFinite)||halfHome<0||halfAway<0||fullHome<halfHome||fullAway<halfAway)continue;
    const sides=[
@@ -29,6 +32,7 @@
   }
   return map;
  }
+ function halfTeamKey(name){return String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();}
  function halfRate(values){return values.length?Math.round(values.filter(Boolean).length/values.length*100):null;}
  function halfTeamMetrics(team){
   if(!team)return null;
@@ -48,7 +52,7 @@
   const eligible=valid&&values.every(value=>value>=eligibleThreshold);
   return {eligible,favorite:eligible&&values.every(value=>value>=favoriteThreshold),rates};
  }
- const api=Object.freeze({halfTeamStats,halfTeamMetrics,halfPassesThreshold,halfMatchQualification});
+ const api=Object.freeze({halfTeamKey,halfTeamStats,halfTeamMetrics,halfPassesThreshold,halfMatchQualification});
  if(typeof module!=="undefined"&&module.exports)module.exports=api;
  root.MamHalfGoalAlgorithm=api;
 })(typeof globalThis!=="undefined"?globalThis:this);
