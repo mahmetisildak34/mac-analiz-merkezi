@@ -16,6 +16,8 @@
    seenFixtures.add(fixtureKey);uniqueRows.push(m);
   }
   for(const m of uniqueRows){
+   const rawScores=[m.halftimeHome,m.halftimeAway,m.homeGoals,m.awayGoals];
+   if(rawScores.some(value=>value==null||String(value).trim()===""))continue;
    const halfHome=Number(m.halftimeHome),halfAway=Number(m.halftimeAway),fullHome=Number(m.homeGoals),fullAway=Number(m.awayGoals);
    if(![halfHome,halfAway,fullHome,fullAway].every(Number.isFinite)||halfHome<0||halfAway<0||fullHome<halfHome||fullAway<halfAway)continue;
    const sides=[
