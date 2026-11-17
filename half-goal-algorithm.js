@@ -29,6 +29,7 @@
   }
   return map;
  }
+ function halfTeamKey(name){return String(name||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();}
  function halfRate(values){return values.length?Math.round(values.filter(Boolean).length/values.length*100):null;}
  function halfTeamMetrics(team){
   if(!team)return null;
@@ -48,7 +49,7 @@
   const eligible=valid&&values.every(value=>value>=eligibleThreshold);
   return {eligible,favorite:eligible&&values.every(value=>value>=favoriteThreshold),rates};
  }
- const api=Object.freeze({halfTeamStats,halfTeamMetrics,halfPassesThreshold,halfMatchQualification});
+ const api=Object.freeze({halfTeamKey,halfTeamStats,halfTeamMetrics,halfPassesThreshold,halfMatchQualification});
  if(typeof module!=="undefined"&&module.exports)module.exports=api;
  root.MamHalfGoalAlgorithm=api;
 })(typeof globalThis!=="undefined"?globalThis:this);
