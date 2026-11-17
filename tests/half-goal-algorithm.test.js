@@ -58,3 +58,19 @@ test("team matching keys keep same-name teams isolated by league",()=>{
  assert.ok(stats.has("39|istanbul basaksehir"));
  assert.ok(stats.has("140|istanbul basaksehir"));
 });
+
+test("archive page loads the algorithm before using its exported functions",()=>{
+ const fs=require("node:fs");
+ const html=fs.readFileSync(require("node:path").join(__dirname,"..","index.html"),"utf8");
+ const scriptAt=html.indexOf('<script src="./half-goal-algorithm.js"></script>');
+ const appAt=html.indexOf('const {halfTeamKey,halfTeamStats,halfTeamMetrics,halfPassesThreshold,halfMatchQualification}=window.MamHalfGoalAlgorithm;');
+ assert.ok(scriptAt>=0,"algorithm script tag must exist");
+ assert.ok(appAt>scriptAt,"algorithm must load before archive app code");
+});
+test("upcoming opponent summary resolves league and team identity consistently",()=>{
+ const fs=require("node:fs");
+ const html=fs.readFileSync(require("node:path").join(__dirname,"..","index.html"),"utf8");
+ assert.match(html,/leagueRanks\.set\(leagueId,\{id:leagueId,/);
+ assert.match(html,/String\(f\.leagueId\)===String\(l\.id\)/);
+ assert.match(html,/halfTeamKey\(f\.home\)===halfTeamKey\(t\.name\)\|\|halfTeamKey\(f\.away\)===halfTeamKey\(t\.name\)/);
+});
