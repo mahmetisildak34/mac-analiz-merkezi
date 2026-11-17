@@ -7417,8 +7417,8 @@ const openStandingTeamHistory=async row=>{
    ];
    for(const side of sides){
     const key=String(m.leagueId||"")+"|"+keyOf(side.name);if(!key)continue;
-    if(!map.has(key))map.set(key,{name:side.name,firstScored:[],firstConceded:[],secondScored:[],secondConceded:[],bothScored:[],matches:0});
-    const t=map.get(key);t.firstScored.push(side.firstScored);t.firstConceded.push(side.firstConceded);t.secondScored.push(side.secondScored);t.secondConceded.push(side.secondConceded);t.bothScored.push(side.firstScored&&side.secondScored);t.matches++;
+    if(!map.has(key))map.set(key,{name:side.name,firstScored:[],firstConceded:[],secondScored:[],secondConceded:[],bothScored:[],recent:[],matches:0});
+    const t=map.get(key);t.firstScored.push(side.firstScored);t.firstConceded.push(side.firstConceded);t.secondScored.push(side.secondScored);t.secondConceded.push(side.secondConceded);t.bothScored.push(side.firstScored&&side.secondScored);t.recent.push({kickoff:m.kickoff||"",firstScored:side.firstScored,firstConceded:side.firstConceded,secondScored:side.secondScored,secondConceded:side.secondConceded,bothScored:side.firstScored&&side.secondScored});t.matches++;
    }
   }
   return map;
@@ -7426,7 +7426,8 @@ const openStandingTeamHistory=async row=>{
  function halfRate(values){return values.length?Math.round(values.filter(Boolean).length/values.length*100):null;}
  function halfTeamMetrics(team){
   if(!team)return null;
-  return {firstScored:halfRate(team.firstScored),firstConceded:halfRate(team.firstConceded),secondScored:halfRate(team.secondScored),secondConceded:halfRate(team.secondConceded),bothScored:halfRate(team.bothScored),samples:team.matches};
+  const recent=(team.recent||[]).slice().sort((a,b)=>String(b.kickoff).localeCompare(String(a.kickoff))).slice(0,5);
+  return {firstScored:halfRate(team.firstScored),firstConceded:halfRate(team.firstConceded),secondScored:halfRate(team.secondScored),secondConceded:halfRate(team.secondConceded),bothScored:halfRate(team.bothScored),recent5:{firstScored:halfRate(recent.map(x=>x.firstScored)),firstConceded:halfRate(recent.map(x=>x.firstConceded)),secondScored:halfRate(recent.map(x=>x.secondScored)),secondConceded:halfRate(recent.map(x=>x.secondConceded)),bothScored:halfRate(recent.map(x=>x.bothScored)),samples:recent.length},samples:team.matches};
  }
  function halfPassesThreshold(metrics,filter,threshold){
   if(!metrics)return false;
@@ -7435,7 +7436,9 @@ const openStandingTeamHistory=async row=>{
  }
  function halfTeamCard(team,metrics){
   const rows=[["İY gol atma",metrics.firstScored],["İY gol yeme",metrics.firstConceded],["2Y gol atma",metrics.secondScored],["2Y gol yeme",metrics.secondConceded],["İki yarı gol",metrics.bothScored]];
-  return '<div class="mam-half-team-panel"><div class="mam-half-team-title">'+halfEsc(team.name)+' <small>'+metrics.samples+' maç</small></div><div class="mam-half-team-grid">'+rows.map(([label,value])=>'<div class="mam-half-team-stat"><b>'+(value===null?'—':'%'+value)+'</b><small>'+label+'</small></div>').join("")+'</div></div>';
+  const recent=metrics.recent5||{},recentRows=[["İY gol atma",recent.firstScored],["İY gol yeme",recent.firstConceded],["2Y gol atma",recent.secondScored],["2Y gol yeme",recent.secondConceded],["İki yarı gol",recent.bothScored]];
+  const sampleNote=metrics.samples<15?"Sınırlı örneklem":metrics.samples<20?"Orta örneklem":"Daha geniş örneklem";
+  return '<div class="mam-half-team-panel"><div class="mam-half-team-title">'+halfEsc(team.name)+' <small>'+metrics.samples+' maç · '+sampleNote+'</small></div><div class="mam-half-team-grid">'+rows.map(([label,value])=>'<div class="mam-half-team-stat"><b>'+(value===null?'—':'%'+value)+'</b><small>'+label+'</small></div>').join("")+'</div><div class="mam-half-meta">Son '+(recent.samples||0)+' maç: '+recentRows.map(([label,value])=>halfEsc(label)+' '+(value===null?'—':'%'+value)).join(' · ')+'</div></div>';
  }
  function halfRender(){
   const box=$("mamHalfResults"),meta=$("mamHalfMeta");if(!box||!mamHalfData)return;
@@ -7480,7 +7483,7 @@ const openStandingTeamHistory=async row=>{
     leagueRanks.get(leagueId).teams.push({name:team.name,samples:metrics.samples,hits});
    }
    const leaguePanel='<section class="mam-half-card"><div class="mam-half-card-top"><b>%70+ LİG VE TAKIM LİSTESİ</b><span>En az 10 maç</span></div>'+([...leagueRanks.values()].sort((a,b)=>b.teams.length-a.teams.length).map(l=>'<div class="mam-half-team-panel"><div class="mam-half-team-title">'+halfEsc(l.name)+' <small>'+l.teams.length+' uygun takım</small></div>'+l.teams.sort((a,b)=>Math.max(...b.hits.map(x=>x.rate))-Math.max(...a.hits.map(x=>x.rate))).map(t=>'<div class="mam-half-meta"><b>'+halfEsc(t.name)+'</b> · '+t.samples+' maç · '+t.hits.map(h=>halfEsc(h.label)+' %'+h.rate).join(' / ')+'</div>').join('')+'</div>').join('')||'<div class="mam-half-empty">Bu filtrede %70 eşiğini geçen lig ve takım bulunamadı.</div>')+'</section>';
-   meta.textContent="Gelecek 30 gün · "+(mamHalfData.upcomingCount||0)+" fikstür · Her takım için en az 10 doğrulanmış geçmiş maç · %70 ve üzeri tarihsel oranlar";
+   meta.textContent="Gelecek 30 gün · "+(mamHalfData.upcomingCount||0)+" fikstür · Her takım için en az 10 doğrulanmış geçmiş maç · Sezon geneli ve son 5 maç ayrı izlenir · %70+ tarihsel oran";
    box.innerHTML=leaguePanel+rows.slice(0,200).map(m=>'<article class="mam-half-card"><div class="mam-half-card-top"><span>'+halfEsc(m.leagueName)+' · '+halfEsc(m.kickoff?.slice(0,16)?.replace("T"," "))+'</span><span>'+halfEsc(m.country)+'</span></div><div class="mam-half-teams">'+halfEsc(m.home)+' – '+halfEsc(m.away)+'</div>'+halfTeamCard({name:m.home},m.teamA)+halfTeamCard({name:m.away},m.teamB)+'<div class="mam-half-meta">Oranlar yalnızca doğrulanmış devre skorları bulunan geçmiş maçlardan hesaplandı; bu değerler tahmin veya garanti değildir.</div></article>').join("")||'<div class="mam-half-empty">Her iki takımın da en az 10 doğrulanmış geçmiş maçı bulunmalı ve seçili kategoride %70 eşiğini karşılamalı.</div>';
   }
  }
