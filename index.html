@@ -7474,10 +7474,25 @@ const openStandingTeamHistory=async row=>{
     const a=halfTeamMetrics(stats.get(String(m.leagueId||"")+"|"+String(m.home||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim())),b=halfTeamMetrics(stats.get(String(m.leagueId||"")+"|"+String(m.away||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim()));
     if(!a||!b||a.samples<10||b.samples<10)return null;
     if(only50&&!halfPassesThreshold(a,filter,threshold)&&!halfPassesThreshold(b,filter,threshold))return null;
-    const score=m=>Math.max(m.firstScored||0,m.firstConceded||0,m.secondScored||0,m.secondConceded||0,m.bothScored||0);
-    return {...m,teamA:a,teamB:b,rank:Math.max(score(a),score(b))};
+    const fields=filter==="first"?["firstScored"]:filter==="second"?["secondScored"]:filter==="both"?["bothScored"]:["firstScored","secondScored","bothScored"];
+    const attackScore=m=>{
+     const season=fields.map(k=>m[k]).filter(Number.isFinite);
+     const recent=fields.map(k=>m.recent5?.[k]).filter(Number.isFinite);
+     if(!season.length)return 0;
+     const seasonRate=season.reduce((x,y)=>x+y,0)/season.length;
+     const recentRate=recent.length?recent.reduce((x,y)=>x+y,0)/recent.length:seasonRate;
+     return Math.round(seasonRate*0.65+recentRate*0.35);
+    };
+    const opponentSupport=(attacker,opponent)=>{
+     const concededFields=filter==="first"?["firstConceded"]:filter==="second"?["secondConceded"]:filter==="both"?[]:["firstConceded","secondConceded"];
+     const conceded=concededFields.map(k=>opponent[k]).filter(Number.isFinite);
+     return conceded.length?conceded.reduce((x,y)=>x+y,0)/conceded.length:0;
+    };
+    const homeScore=attackScore(a)*0.8+opponentSupport(a,b)*0.2;
+    const awayScore=attackScore(b)*0.8+opponentSupport(b,a)*0.2;
+    return {...m,teamA:a,teamB:b,rank:Math.round(Math.max(homeScore,awayScore)),homeScore:Math.round(homeScore),awayScore:Math.round(awayScore)};
    }).filter(Boolean);
-   rows.sort((a,b)=>new Date(a.kickoff||0)-new Date(b.kickoff||0));
+   rows.sort((a,b)=>b.rank-a.rank||new Date(a.kickoff||0)-new Date(b.kickoff||0));
    const categoryFields=filter==="first"?[["İlk yarı gol atma","firstScored"]]:filter==="second"?[["İkinci yarı gol atma","secondScored"]]:filter==="both"?[["İki yarıda gol","bothScored"]]:[["İlk yarı gol atma","firstScored"],["İkinci yarı gol atma","secondScored"],["İki yarıda gol","bothScored"]];
    const leagueRanks=new Map();
    for(const [key,team] of stats){
