@@ -6,11 +6,15 @@ on:
     paths:
       - "index.html"
       - ".github/workflows/validate-app.yml"
+      - "half-goal-algorithm.js"
+      - "tests/half-goal-algorithm.test.js"
   pull_request:
     branches: [main]
     paths:
       - "index.html"
       - ".github/workflows/validate-app.yml"
+      - "half-goal-algorithm.js"
+      - "tests/half-goal-algorithm.test.js"
 
 permissions:
   contents: read
@@ -50,3 +54,5 @@ jobs:
           for file in /tmp/app-inline-*.js; do
             node --check "$file"
           done
+      - name: Run half-goal algorithm regression tests
+        run: node --test tests/half-goal-algorithm.test.js

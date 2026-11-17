@@ -1,0 +1,33 @@
+"use strict";
+const test=require("node:test");
+const assert=require("node:assert/strict");
+const {halfTeamStats,halfTeamMetrics,halfPassesThreshold}=require("../half-goal-algorithm.js");
+const match=(overrides={})=>({leagueId:39,kickoff:"2026-11-01T15:00:00Z",home:"Alpha FC",away:"Beta FC",halftimeHome:1,halftimeAway:0,homeGoals:2,awayGoals:1,...overrides});
+test("counts first-half and second-half scoring independently",()=>{
+ const m=halfTeamMetrics(halfTeamStats([match()]).get("39|alpha fc"));
+ assert.equal(m.firstScored,100);assert.equal(m.secondScored,100);assert.equal(m.bothScored,100);
+});
+test("deduplicates reversed provider fixture rows",()=>{
+ const rows=[match(),match({home:"Beta FC",away:"Alpha FC",halftimeHome:0,halftimeAway:1,homeGoals:1,awayGoals:2})];
+ const stats=halfTeamStats(rows);assert.equal(stats.get("39|alpha fc").matches,1);
+});
+test("rejects impossible or incomplete score records",()=>{
+ const stats=halfTeamStats([match({homeGoals:0}),match({halftimeHome:"x"})]);
+ assert.equal(stats.size,0);
+});
+test("keeps league identity separate for same-named teams",()=>{
+ const stats=halfTeamStats([match(),match({leagueId:140})]);
+ assert.ok(stats.has("39|alpha fc"));assert.ok(stats.has("140|alpha fc"));
+});
+test("recent five uses latest kickoff records",()=>{
+ const rows=Array.from({length:6},(_,i)=>match({kickoff:`2026-11-${String(i+1).padStart(2,"0")}T15:00:00Z`,halftimeHome:i===5?0:1,homeGoals:i===5?0:2}));
+ const m=halfTeamMetrics(halfTeamStats(rows).get("39|alpha fc"));
+ assert.equal(m.samples,6);assert.equal(m.recent5.samples,5);assert.equal(m.recent5.firstScored,80);
+});
+test("threshold tests scoring, not conceding, and uses inclusive boundary",()=>{
+ const metrics={firstScored:70,secondScored:20,bothScored:10};
+ assert.equal(halfPassesThreshold(metrics,"first",70),true);
+ assert.equal(halfPassesThreshold(metrics,"second",70),false);
+ assert.equal(halfPassesThreshold(metrics,"all",70),true);
+ assert.equal(halfPassesThreshold(null,"first",70),false);
+});
