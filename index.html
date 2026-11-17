@@ -1458,7 +1458,28 @@ button{transition:filter .15s ease,transform .15s ease}
 .mam-special-placeholder span{font-size:12px;color:#b8c5e2}
 .mam-bottom-nav button[data-mam-bottom="special"].active{color:#d0aaff!important}
 </style>
-</head>
+<style id="mam-half-goal-ui-v1">
+.mam-half-controls{display:grid;gap:12px}
+.mam-half-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mam-half-tabs button{min-height:43px!important;background:#111d3b!important;border:1px solid rgba(145,151,255,.35)!important;color:#dce5ff!important}
+.mam-half-tabs button.active{background:linear-gradient(135deg,#7040d5,#3c2a91)!important;border-color:#bb8aff!important}
+.mam-half-filters{display:grid;grid-template-columns:1fr auto;align-items:end;gap:10px}
+.mam-half-filters label{display:grid;gap:6px;color:#b9c6e3;font-size:12px;font-weight:800}
+.mam-half-filters select{width:100%;min-height:42px;padding:8px;background:#0b1730;color:#fff;border:1px solid rgba(145,151,255,.35);border-radius:10px}
+.mam-half-threshold{display:flex!important;align-items:center;gap:6px!important;min-height:42px;white-space:nowrap}
+.mam-half-threshold input{width:18px;height:18px}
+.mam-half-meta{color:#9eafd0;font-size:11px;line-height:1.5}
+.mam-half-results{display:grid;gap:9px}
+.mam-half-card{padding:13px;border-radius:14px;background:linear-gradient(145deg,#101f3c,#0a162e);border:1px solid rgba(145,151,255,.32);color:#f4f7ff}
+.mam-half-card-top{display:flex;justify-content:space-between;gap:8px;color:#aebcda;font-size:10px;margin-bottom:8px}
+.mam-half-teams{font-weight:850;font-size:13px;line-height:1.5}
+.mam-half-score{color:#c6a1ff;font-size:12px;margin-top:5px}
+.mam-half-rates{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.mam-half-rate{padding:8px 5px;border-radius:9px;background:#0a1930;text-align:center}
+.mam-half-rate b{display:block;color:#6de3bd;font-size:16px}
+.mam-half-rate small{display:block;color:#aebcda;font-size:9px;margin-top:3px}
+.mam-half-empty{padding:15px;border:1px dashed rgba(145,151,255,.35);border-radius:12px;color:#b5c2df;font-size:12px;line-height:1.5}
+</style></head>
 <body>
 
 
@@ -1668,7 +1689,13 @@ Veri kaynakları: API-Football, ESPN ve Football-data.org. Geçmiş takım veril
 </section>
 <section id="mamHalfGoalScreen" class="mam-special-screen" hidden>
  <div class="mam-special-heading"><button type="button" id="mamHalfGoalBack" class="mam-special-back">← Özel'e dön</button><span>⚽ YARI GOL ARŞİVİ</span><h2>Yarı Gol Arşivi</h2><p>Geçmiş ve gelecek maçlar tek arşivde. İlk aşamada sayfa iskeleti hazır; maç verisi ve doğrulanmış olasılık filtreleri sonraki aşamada bağlanacak.</p></div>
- <div class="mam-special-placeholder"><b>Arşiv hazırlanıyor</b><span>İlk yarı gol · İkinci yarı gol · Her iki yarıda gol</span></div>
+ <div class="mam-half-controls">
+ <div class="mam-half-tabs"><button type="button" class="active" data-half-view="history">Geçmiş maçlar</button><button type="button" data-half-view="upcoming">Gelecek maçlar</button></div>
+ <div class="mam-half-filters"><label>Gol filtresi<select id="mamHalfFilter"><option value="all">Tüm yarı sonuçları</option><option value="first">İlk yarıda gol</option><option value="second">İkinci yarıda gol</option><option value="both">İki yarıda da gol</option></select></label><label class="mam-half-threshold"><input type="checkbox" id="mamHalf80" checked> %80 ve üzeri</label></div>
+ <div class="mam-half-meta" id="mamHalfMeta">Arşiv verisi bekleniyor.</div>
+ <div id="mamHalfResults" class="mam-half-results"><div class="mam-special-placeholder"><b>Arşiv verisi yükleniyor</b><span>Yalnızca doğrulanabilir devre skoru bulunan maçlar kullanılacak.</span></div></div>
+ <button type="button" id="mamHalfRefresh" class="mam-special-back">↻ Arşivi yenile</button>
+</div>
 </section>
 </main>
 <nav class="mam-bottom-nav" aria-label="Alt gezinme">
@@ -7363,7 +7390,77 @@ const openStandingTeamHistory=async row=>{
   if(mode==="special"){setMamScreen("special");window.scrollTo({top:0,behavior:"smooth"});return;}
  }
  navButtons.forEach(button=>button.addEventListener("click",()=>go(button.dataset.mamShortcut||button.dataset.mamBottom)));
- $("mamHalfGoalOpen")?.addEventListener("click",()=>{setMamScreen("special-archive");window.scrollTo({top:0,behavior:"smooth"});});
+ $("mamHalfGoalOpen")?.addEventListener("click",()=>{setMamScreen("special-archive");loadMamHalfArchive();window.scrollTo({top:0,behavior:"smooth"});});
+
+ let mamHalfData=null,mamHalfView="history";
+ const halfEsc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+ function halfTeamStats(rows){
+  const map=new Map();
+  for(const m of rows){
+   for(const name of [m.home,m.away]){
+    const key=String(name||"").toLocaleLowerCase("tr-TR").trim();
+    if(!key)continue;
+    if(!map.has(key))map.set(key,{name,first:[],second:[],both:[]});
+    const t=map.get(key);t.first.push(m.firstHalfGoal);t.second.push(m.secondHalfGoal);t.both.push(m.firstHalfGoal&&m.secondHalfGoal);
+   }
+  }
+  return map;
+ }
+ function halfRate(values){return values.length?Math.round(values.filter(Boolean).length/values.length*100):null;}
+ function halfRender(){
+  const box=$("mamHalfResults"),meta=$("mamHalfMeta");if(!box||!mamHalfData)return;
+  const filter=$("mamHalfFilter")?.value||"all",only80=$("mamHalf80")?.checked!==false;
+  document.querySelectorAll("[data-half-view]").forEach(b=>b.classList.toggle("active",b.dataset.halfView===mamHalfView));
+  if(mamHalfView==="history"){
+   let rows=mamHalfData.history||[];
+   if(filter==="first")rows=rows.filter(m=>m.firstHalfGoal);
+   if(filter==="second")rows=rows.filter(m=>m.secondHalfGoal);
+   if(filter==="both")rows=rows.filter(m=>m.firstHalfGoal&&m.secondHalfGoal);
+   if(only80){
+    const teams=halfTeamStats(mamHalfData.history||[]);
+    rows=rows.filter(m=>{
+     const a=teams.get(String(m.home).toLocaleLowerCase("tr-TR").trim());
+     const b=teams.get(String(m.away).toLocaleLowerCase("tr-TR").trim());
+     if(!a||!b)return false;
+     const rates={first:(halfRate(a.first)+halfRate(b.first))/2,second:(halfRate(a.second)+halfRate(b.second))/2,both:(halfRate(a.both)+halfRate(b.both))/2};
+     return filter==="first"?rates.first>=80:filter==="second"?rates.second>=80:filter==="both"?rates.both>=80:Math.max(rates.first,rates.second,rates.both)>=80;
+    });
+   }
+   meta.textContent="Devre skoru doğrulanmış "+(mamHalfData.historyWithHalfTime||0)+" geçmiş maç · Gösterilen: "+rows.length+" · Tarama: son 365 gün";
+   box.innerHTML=rows.slice(0,250).map(m=>'<article class="mam-half-card"><div class="mam-half-card-top"><span>'+halfEsc(m.leagueName)+' · '+halfEsc(m.kickoff?.slice(0,10))+'</span><span>'+halfEsc(m.source)+'</span></div><div class="mam-half-teams">'+halfEsc(m.home)+' – '+halfEsc(m.away)+'</div><div class="mam-half-score">Devre '+m.halftimeHome+'–'+m.halftimeAway+' · Maç sonu '+m.homeGoals+'–'+m.awayGoals+'</div></article>').join("")||'<div class="mam-half-empty">Bu filtrede doğrulanmış maç bulunamadı. Eksik devre skorları tahmin edilmedi.</div>';
+  }else{
+   const stats=halfTeamStats(mamHalfData.history||[]);
+   let rows=(mamHalfData.upcoming||[]).map(m=>{
+    const a=stats.get(String(m.home).toLocaleLowerCase("tr-TR").trim()),b=stats.get(String(m.away).toLocaleLowerCase("tr-TR").trim());
+    if(!a||!b||a.first.length<5||b.first.length<5)return null;
+    const rate=(x,y)=>Math.round((halfRate(x)+halfRate(y))/2);
+    return {...m,samplesA:a.first.length,samplesB:b.first.length,first:rate(a.first,b.first),second:rate(a.second,b.second),both:rate(a.both,b.both)};
+   }).filter(Boolean);
+   if(filter==="first")rows=rows.filter(m=>m.first>= (only80?80:0));
+   else if(filter==="second")rows=rows.filter(m=>m.second>= (only80?80:0));
+   else if(filter==="both")rows=rows.filter(m=>m.both>= (only80?80:0));
+   else if(only80)rows=rows.filter(m=>Math.max(m.first,m.second,m.both)>=80);
+   rows.sort((a,b)=>Math.max(b.first,b.second,b.both)-Math.max(a.first,a.second,a.both));
+   meta.textContent="Gelecek 30 gün · "+(mamHalfData.upcomingCount||0)+" fikstür · En az 5 geçmiş maç/takım şartı · Sıralama geçmiş frekansına göre";
+   box.innerHTML=rows.slice(0,200).map(m=>'<article class="mam-half-card"><div class="mam-half-card-top"><span>'+halfEsc(m.leagueName)+' · '+halfEsc(m.kickoff?.slice(0,16)?.replace("T"," "))+'</span><span>'+halfEsc(m.country)+'</span></div><div class="mam-half-teams">'+halfEsc(m.home)+' – '+halfEsc(m.away)+'</div><div class="mam-half-rates"><div class="mam-half-rate"><b>%'+m.first+'</b><small>İlk yarı gol</small></div><div class="mam-half-rate"><b>%'+m.second+'</b><small>İkinci yarı gol</small></div><div class="mam-half-rate"><b>%'+m.both+'</b><small>İki yarı gol</small></div></div><div class="mam-half-meta">Geçmiş örneklem: '+m.samplesA+' / '+m.samplesB+' maç. Bu değerler tahmin değil, geçmiş maç frekansıdır.</div></article>').join("")||'<div class="mam-half-empty">Bu koşulları sağlayan gelecek maç bulunamadı. Daha fazla doğrulanmış geçmiş veri geldikçe liste genişler.</div>';
+  }
+ }
+ async function loadMamHalfArchive(force=false){
+  const box=$("mamHalfResults"),meta=$("mamHalfMeta");if(!box)return;
+  if(force){try{localStorage.removeItem("mam_api_cache_v2_archive/half-goals");}catch(_){}mamHalfData=null;}
+  if(mamHalfData&&!force){halfRender();return;}
+  box.innerHTML='<div class="mam-half-empty">Arşiv verisi yükleniyor…</div>';meta.textContent="Mevcut D1 arşivi ve önbellek kullanılıyor; yeni sağlayıcı isteği yapılmıyor.";
+  try{
+   const data=await api("archive/half-goals");
+   if(!data?.ok)throw new Error(data?.error||"Arşiv yanıtı geçersiz");
+   mamHalfData=data;halfRender();
+  }catch(error){box.innerHTML='<div class="mam-half-empty">Arşiv verisi alınamadı: '+halfEsc(error.message||error)+'</div>';meta.textContent="Bağlantı veya D1 yanıtı bekleniyor.";}
+ }
+ document.querySelectorAll("[data-half-view]").forEach(b=>b.addEventListener("click",()=>{mamHalfView=b.dataset.halfView;halfRender();}));
+ $("mamHalfFilter")?.addEventListener("change",halfRender);
+ $("mamHalf80")?.addEventListener("change",halfRender);
+ $("mamHalfRefresh")?.addEventListener("click",()=>loadMamHalfArchive(true));
+
  $("mamHalfGoalBack")?.addEventListener("click",()=>{setMamScreen("special");window.scrollTo({top:0,behavior:"smooth"});});
 
  document.querySelectorAll("[data-mam-league]").forEach(button=>button.addEventListener("click",async()=>{
