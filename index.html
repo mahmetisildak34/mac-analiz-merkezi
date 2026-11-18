@@ -3199,8 +3199,8 @@ async function loadLiveMatchesNow(){
  $("status").textContent="Canlı maç akışı kontrol ediliyor...";
  // Eski ekran/cihaz/D1 kayıtlarını canlı veri olarak yeniden göstermiyoruz.
  // Canlı listede yalnızca bu yenilemede sağlayıcıdan gelen doğrulanmış maçlar gösterilir.
- const previousMatches=[];
- const savedLiveCache=null;
+ const savedLiveCache=mamReadLiveMatchCache();
+ const previousMatches=savedLiveCache?.matches||[];
  const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"]);
  const isLive=match=>liveStatuses.has(String(match?.fixture?.status?.short||"").toUpperCase());
  // Eski canlı statüsünde kalmış maçları gerçek canlı akış gibi göstermeyelim.
