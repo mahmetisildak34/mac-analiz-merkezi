@@ -7426,10 +7426,11 @@ const openStandingTeamHistory=async row=>{
     rows=rows.filter(m=>{
      const a=halfTeamMetrics(teams.get(String(m.leagueId||"")+"|"+halfTeamKey(m.home)));
      const b=halfTeamMetrics(teams.get(String(m.leagueId||"")+"|"+halfTeamKey(m.away)));
-     return halfMatchQualification(a,b,eligibleThreshold,favoriteThreshold).eligible;
+     const requiredThreshold=only50?favoriteThreshold:eligibleThreshold;
+     return halfMatchQualification(a,b,requiredThreshold,requiredThreshold).eligible;
     });
    }
-   meta.textContent="Devre skoru doğrulanmış "+(mamHalfData.historyWithHalfTime||0)+" geçmiş maç · Gösterilen: "+rows.length+" · İki takımın iki yarı gol atma oranı: %60+";
+   meta.textContent="Devre skoru doğrulanmış "+(mamHalfData.historyWithHalfTime||0)+" geçmiş maç · Gösterilen: "+rows.length+" · İki takımın iki yarı gol atma oranı: %"+(only50?favoriteThreshold:eligibleThreshold)+"+";
    box.innerHTML=rows.slice(0,250).map(m=>'<article class="mam-half-card"><div class="mam-half-card-top"><span>'+halfEsc(m.leagueName)+' · '+halfEsc(m.kickoff?.slice(0,10))+'</span><span>'+halfEsc(m.source)+'</span></div><div class="mam-half-teams">'+halfEsc(m.home)+' – '+halfEsc(m.away)+'</div><div class="mam-half-score">Devre '+m.halftimeHome+'–'+m.halftimeAway+' · Maç sonu '+m.homeGoals+'–'+m.awayGoals+'</div></article>').join("")||'<div class="mam-half-empty">Bu filtrede doğrulanmış maç bulunamadı. Eksik devre skorları tahmin edilmedi.</div>';
   }else{
    const stats=halfTeamStats(mamHalfData.history||[]);
@@ -7437,7 +7438,7 @@ const openStandingTeamHistory=async row=>{
     const a=halfTeamMetrics(stats.get(String(m.leagueId||"")+"|"+halfTeamKey(m.home))),b=halfTeamMetrics(stats.get(String(m.leagueId||"")+"|"+halfTeamKey(m.away)));
     if(!a||!b||a.samples<10||b.samples<10)return null;
     const qualification=halfMatchQualification(a,b,eligibleThreshold,favoriteThreshold);
-    if(!qualification.eligible)return null;
+    if(!qualification.eligible||(only50&&!qualification.favorite))return null;
     const fields=filter==="first"?["firstScored"]:filter==="second"?["secondScored"]:filter==="both"?["bothScored"]:["firstScored","secondScored"];
     const attackScore=m=>{
      const season=fields.map(k=>m[k]).filter(Number.isFinite),recent=fields.map(k=>m.recent5?.[k]).filter(Number.isFinite);
@@ -7452,14 +7453,15 @@ const openStandingTeamHistory=async row=>{
    const leagueRanks=new Map();
    for(const [key,team] of stats){
     const leagueId=key.split("|",1)[0],metrics=halfTeamMetrics(team);
-    if(metrics.samples<10||!Number.isFinite(metrics.firstScored)||!Number.isFinite(metrics.secondScored)||metrics.firstScored<eligibleThreshold||metrics.secondScored<eligibleThreshold)continue;
+    const teamThreshold=only50?favoriteThreshold:eligibleThreshold;
+    if(metrics.samples<10||!Number.isFinite(metrics.firstScored)||!Number.isFinite(metrics.secondScored)||metrics.firstScored<teamThreshold||metrics.secondScored<teamThreshold)continue;
     const info=(mamHalfData.leagues||[]).find(x=>String(x.id)===leagueId);
     if(!leagueRanks.has(leagueId))leagueRanks.set(leagueId,{id:leagueId,name:info?.name||("Lig "+leagueId),teams:[]});
     leagueRanks.get(leagueId).teams.push({name:team.name,samples:metrics.samples,first:metrics.firstScored,second:metrics.secondScored,favorite:metrics.firstScored>=favoriteThreshold&&metrics.secondScored>=favoriteThreshold});
    }
-   const leaguePanel='<section class="mam-half-card"><div class="mam-half-card-top"><b>%60+ UYGUN TAKIMLAR · %70+ FAVORİ</b><span>En az 10 maç</span></div>'+([...leagueRanks.values()].sort((a,b)=>b.teams.length-a.teams.length).map(l=>'<div class="mam-half-team-panel"><div class="mam-half-team-title">'+halfEsc(l.name)+' <small>'+l.teams.length+' uygun takım</small></div>'+l.teams.sort((a,b)=>Number(b.favorite)-Number(a.favorite)||Math.min(b.first,b.second)-Math.min(a.first,a.second)).map(t=>{const opponents=(mamHalfData.upcoming||[]).filter(f=>String(f.leagueId)===String(l.id)&&(halfTeamKey(f.home)===halfTeamKey(t.name)||halfTeamKey(f.away)===halfTeamKey(t.name))).slice(0,3).map(f=>{const opponent=halfTeamKey(f.home)===halfTeamKey(t.name)?f.away:f.home;return halfEsc(opponent)+" · "+halfEsc(halfKickoffDisplay(f.kickoff));}).join(' / ')||'Yaklaşan fikstürde eşleşme yok';return '<div class="mam-half-meta"><b>'+halfEsc(t.name)+'</b> · '+t.samples+' maç · İY gol atma %'+t.first+' / 2Y gol atma %'+t.second+' · '+(t.favorite?'<b>FAVORİ</b>':'Uygun')+'<br><span>Gelecek rakip: '+opponents+'</span></div>';}).join('')+'</div>').join('')||'<div class="mam-half-empty">Her iki yarıda da %60 oranını geçen takım bulunamadı.</div>')+'</section>';
-   meta.textContent="Gelecek 30 gün · "+(mamHalfData.upcomingCount||0)+" fikstür · İki takımda da en az 10 doğrulanmış maç · Her iki takımın İY ve 2Y gol atma oranı %60+ · Dört oran da %70+ ise favori";
-   box.innerHTML=leaguePanel+rows.slice(0,200).map(m=>'<article class="mam-half-card"><div class="mam-half-card-top"><span>'+halfEsc(m.leagueName)+' · '+halfEsc(halfKickoffDisplay(m.kickoff))+'</span><span>'+(m.qualification.favorite?'<b>⭐ FAVORİ</b>':'%60+ UYGUN')+' · '+halfEsc(m.country)+'</span></div><div class="mam-half-teams">'+halfEsc(m.home)+' – '+halfEsc(m.away)+'</div>'+halfTeamCard({name:m.home},m.teamA)+halfTeamCard({name:m.away},m.teamB)+'<div class="mam-half-meta">Dört sezon oranı: Ev sahibi İY %'+m.qualification.rates.homeFirst+' / 2Y %'+m.qualification.rates.homeSecond+' · Deplasman İY %'+m.qualification.rates.awayFirst+' / 2Y %'+m.qualification.rates.awaySecond+'</div><div class="mam-half-meta">Oranlar doğrulanmış devre skorlarından hesaplanır; garanti veya kesin olasılık değildir.</div></article>').join("")||'<div class="mam-half-empty">İki takımın da en az 10 doğrulanmış maçı olmalı ve her iki takımın ilk ve ikinci yarı gol atma oranları en az %60 olmalı.</div>';
+   const leaguePanel='<section class="mam-half-card"><div class="mam-half-card-top"><b>%'+teamThreshold+'+ TAKIMLAR · %70+ FAVORİ</b><span>En az 10 maç</span></div>'+([...leagueRanks.values()].sort((a,b)=>b.teams.length-a.teams.length).map(l=>'<div class="mam-half-team-panel"><div class="mam-half-team-title">'+halfEsc(l.name)+' <small>'+l.teams.length+' uygun takım</small></div>'+l.teams.sort((a,b)=>Number(b.favorite)-Number(a.favorite)||Math.min(b.first,b.second)-Math.min(a.first,a.second)).map(t=>{const opponents=(mamHalfData.upcoming||[]).filter(f=>String(f.leagueId)===String(l.id)&&(halfTeamKey(f.home)===halfTeamKey(t.name)||halfTeamKey(f.away)===halfTeamKey(t.name))).slice(0,3).map(f=>{const opponent=halfTeamKey(f.home)===halfTeamKey(t.name)?f.away:f.home;return halfEsc(opponent)+" · "+halfEsc(halfKickoffDisplay(f.kickoff));}).join(' / ')||'Yaklaşan fikstürde eşleşme yok';return '<div class="mam-half-meta"><b>'+halfEsc(t.name)+'</b> · '+t.samples+' maç · İY gol atma %'+t.first+' / 2Y gol atma %'+t.second+' · '+(t.favorite?'<b>FAVORİ</b>':'Uygun')+'<br><span>Gelecek rakip: '+opponents+'</span></div>';}).join('')+'</div>').join('')||'<div class="mam-half-empty">Her iki yarıda da %60 oranını geçen takım bulunamadı.</div>')+'</section>';
+   meta.textContent="Gelecek 30 gün · "+(mamHalfData.upcomingCount||0)+" fikstür · İki takımda da en az 10 doğrulanmış maç · Her iki takımın İY ve 2Y gol atma oranı %"+(only50?favoriteThreshold:eligibleThreshold)+"+ · Dört oran da %70+ ise favori";
+   box.innerHTML=leaguePanel+rows.slice(0,200).map(m=>'<article class="mam-half-card"><div class="mam-half-card-top"><span>'+halfEsc(m.leagueName)+' · '+halfEsc(halfKickoffDisplay(m.kickoff))+'</span><span>'+(m.qualification.favorite?'<b>⭐ FAVORİ</b>':'%'+(only50?favoriteThreshold:eligibleThreshold)+'+ UYGUN')+' · '+halfEsc(m.country)+'</span></div><div class="mam-half-teams">'+halfEsc(m.home)+' – '+halfEsc(m.away)+'</div>'+halfTeamCard({name:m.home},m.teamA)+halfTeamCard({name:m.away},m.teamB)+'<div class="mam-half-meta">Dört sezon oranı: Ev sahibi İY %'+m.qualification.rates.homeFirst+' / 2Y %'+m.qualification.rates.homeSecond+' · Deplasman İY %'+m.qualification.rates.awayFirst+' / 2Y %'+m.qualification.rates.awaySecond+'</div><div class="mam-half-meta">Oranlar doğrulanmış devre skorlarından hesaplanır; garanti veya kesin olasılık değildir.</div></article>').join("")||'<div class="mam-half-empty">İki takımın da en az 10 doğrulanmış maçı olmalı ve her iki takımın ilk ve ikinci yarı gol atma oranları en az %60 olmalı.</div>';
   }
  }
  async function loadMamHalfArchive(force=false){

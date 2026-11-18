@@ -74,3 +74,14 @@ test("upcoming opponent summary resolves league and team identity consistently",
  assert.match(html,/String\(f\.leagueId\)===String\(l\.id\)/);
  assert.match(html,/halfTeamKey\(f\.home\)===halfTeamKey\(t\.name\)\|\|halfTeamKey\(f\.away\)===halfTeamKey\(t\.name\)/);
 });
+
+test("70% toggle enforces all four team scoring rates on history and upcoming fixtures",()=>{
+ const fs=require("node:fs");
+ const html=fs.readFileSync(require("node:path").join(__dirname,"..","index.html"),"utf8");
+ assert.match(html,/const requiredThreshold=only50\?favoriteThreshold:eligibleThreshold;/);
+ assert.match(html,/halfMatchQualification\(a,b,requiredThreshold,requiredThreshold\)\.eligible/);
+ assert.match(html,/if\(!qualification\.eligible\|\|\(only50&&!qualification\.favorite\)\)return null;/);
+ assert.match(html,/const teamThreshold=only50\?favoriteThreshold:eligibleThreshold;/);
+ assert.match(html,/metrics\.firstScored<teamThreshold\|\|metrics\.secondScored<teamThreshold/);
+ assert.match(html,/\(only50\?favoriteThreshold:eligibleThreshold\)/);
+});
