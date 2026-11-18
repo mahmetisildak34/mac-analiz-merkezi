@@ -3256,8 +3256,9 @@ async function loadLiveMatchesNow(){
      }
     }
    }
-   // ESPN canlı taraması yalnızca ekranda gösterilmez; bulunan tüm maçlar merkezi D1 arşivine de yazılır.
-   if(fallback.length)await mamSaveMatchesToD1(fallback);
+   // D1 arşiv yazımı canlı ekranı bekletmemeli; sağlayıcıdan gelen maçları
+   // gösterme akışıyla paralel yürüt ve arşiv hatasını yalnızca günlüğe yaz.
+   if(fallback.length)mamSaveMatchesToD1(fallback).catch(error=>console.warn("ESPN canlı maçları D1 arşivine yazılamadı:",error));
    const fallbackLive=fallback.filter(isLive);
    espnLiveCount=fallbackLive.length;
    // Cross-check the primary live score and elapsed minute against the ESPN events already fetched.
