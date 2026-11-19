@@ -5240,6 +5240,10 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         const enriched=await mamEnrichHistoricalStats(saved.matches,leagueId);
         if(enriched.changed){
           try{localStorage.setItem(key,JSON.stringify({time:saved.time,matches:saved.matches}));}catch(_){}
+          // Persist successful historical-stat enrichment to the central D1 archive too.
+          // The archive endpoint performs the existing idempotent match save; do not
+          // rewrite anything when no new statistics were obtained.
+          await mamSaveMatchesToD1(saved.matches,leagueId);
         }
         return saved.matches;
       }
