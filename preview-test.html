@@ -15,23 +15,35 @@
 <label for="password">Uygulama giriş şifresi</label>
 <input id="password" type="password" autocomplete="current-password" placeholder="Şifreni gir">
 <button id="login">Oturumu doğrula</button>
-<button id="run" disabled>2024 Preview testini başlat</button>
+<button id="diagnose" disabled>Önce 2024 Preview D1 kayıtlarını kontrol et</button>
+<button id="run" disabled>2024 Preview eşleştirme testini başlat</button>
 <pre id="result" aria-live="polite">Henüz test başlatılmadı.</pre>
 <small>İşlem başlamadan önce test düğmesine basman gerekir. Bu sayfa otomatik test çalıştırmaz.</small>
 </main>
 <script>
 (()=> {
- const base="https://fix-date-aligned-cross-source-v10-odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+ const base="https://fix-preview-2024-d1-diagnostic-v1-odd-sunset-6c83.m-ahmetisildak34.workers.dev";
  let token="";
- const out=document.getElementById("result"), login=document.getElementById("login"), run=document.getElementById("run"), pass=document.getElementById("password");
+ const out=document.getElementById("result"), login=document.getElementById("login"), diagnose=document.getElementById("diagnose"), run=document.getElementById("run"), pass=document.getElementById("password");
  login.addEventListener("click",async()=>{
    login.disabled=true;out.textContent="Oturum doğrulanıyor…";
    try{
      const r=await fetch(base+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pass.value})});
      const d=await r.json(); if(!r.ok||!d.token) throw new Error(d.error||"Giriş doğrulanamadı");
-     token=d.token;pass.value="";run.disabled=false;out.textContent="Oturum doğrulandı. Testi başlatabilirsin.";
-   }catch(e){token="";run.disabled=true;out.textContent="Hata: "+(e.message||"Bağlantı hatası");}
+     token=d.token;pass.value="";diagnose.disabled=false;out.textContent="Oturum doğrulandı. Önce 2024 kayıt kontrolünü çalıştır.";
+   }catch(e){token="";diagnose.disabled=true;run.disabled=true;out.textContent="Hata: "+(e.message||"Bağlantı hatası");}
    finally{login.disabled=false;}
+ });
+ diagnose.addEventListener("click",async()=>{
+   if(!token)return;
+   diagnose.disabled=true;run.disabled=true;out.textContent="Preview D1 içindeki 2024 kayıtları salt okunur şekilde sayılıyor…";
+   try{
+     const r=await fetch(base+"/api/archive/cross-source-preview-diagnose",{method:"GET",headers:{"Authorization":"Bearer "+token}});
+     const d=await r.json();out.textContent=JSON.stringify(d,null,2);
+     if(!r.ok||!d.ok)throw new Error(d.error||("HTTP "+r.status));
+     run.disabled=false;out.textContent+="\n\nTeşhis tamamlandı. Sonucu inceledikten sonra eşleştirme testini ayrıca başlatabilirsin.";
+   }catch(e){out.textContent+="\n\nTeşhis isteği hatası: "+(e.message||"Bilinmeyen hata");}
+   finally{diagnose.disabled=false;}
  });
  run.addEventListener("click",async()=>{
    if(!token)return;
