@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2024 Preview Eşleştirme Testi</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#071225;color:#eef4ff;font:16px system-ui,-apple-system,sans-serif;padding:24px;max-width:720px;margin-inline:auto}main{background:#101e36;border:1px solid #526582;border-radius:18px;padding:22px}h1{font-size:22px;margin-top:0}p{line-height:1.55;color:#c5d2e7}label{display:block;margin:18px 0 8px}input{width:100%;padding:14px;border-radius:10px;border:1px solid #7185a5;background:#081329;color:white;font-size:16px}button{width:100%;padding:15px;border:0;border-radius:12px;background:#6545d8;color:white;font-weight:700;font-size:16px;margin-top:14px}button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#06101f;padding:14px;border-radius:12px;min-height:60px;color:#bfe5d0}small{color:#9eafc8}
+</style>
+</head>
+<body><main>
+<h1>2024 Preview eşleştirme testi</h1>
+<p>Bu araç yalnızca Preview Worker'ına bağlanır. Test en fazla 20 eksik 2024 maçını ve 40 kaynak kaydını tarar. Yazma/doğrulama işlemi varsa yalnızca <b>mac-analiz-preview</b> veritabanında yapılır; Production veritabanına istek gönderilmez.</p>
+<p>Şifren bu sayfada yalnızca giriş isteği için kullanılır; saklanmaz. Oturum token'ı yalnızca sayfa belleğinde tutulur.</p>
+<label for="password">Uygulama giriş şifresi</label>
+<input id="password" type="password" autocomplete="current-password" placeholder="Şifreni gir">
+<button id="login">Oturumu doğrula</button>
+<button id="run" disabled>2024 Preview testini başlat</button>
+<pre id="result" aria-live="polite">Henüz test başlatılmadı.</pre>
+<small>İşlem başlamadan önce test düğmesine basman gerekir. Bu sayfa otomatik test çalıştırmaz.</small>
+</main>
+<script>
+(()=> {
+ const base="https://fix-date-aligned-cross-source-v10-odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+ let token="";
+ const out=document.getElementById("result"), login=document.getElementById("login"), run=document.getElementById("run"), pass=document.getElementById("password");
+ login.addEventListener("click",async()=>{
+   login.disabled=true;out.textContent="Oturum doğrulanıyor…";
+   try{
+     const r=await fetch(base+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pass.value})});
+     const d=await r.json(); if(!r.ok||!d.token) throw new Error(d.error||"Giriş doğrulanamadı");
+     token=d.token;pass.value="";run.disabled=false;out.textContent="Oturum doğrulandı. Testi başlatabilirsin.";
+   }catch(e){token="";run.disabled=true;out.textContent="Hata: "+(e.message||"Bağlantı hatası");}
+   finally{login.disabled=false;}
+ });
+ run.addEventListener("click",async()=>{
+   if(!token)return;
+   if(!confirm("Sınırlı 2024 eşleştirme testi başlasın mı? Yalnızca Preview D1 kullanılacak."))return;
+   run.disabled=true;out.textContent="2024 kayıtları taranıyor…";
+   try{
+     const r=await fetch(base+"/api/archive/cross-source-preview-test",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:"{}"});
+     const d=await r.json();out.textContent=JSON.stringify(d,null,2);
+     if(!r.ok)throw new Error(d.error||("HTTP "+r.status));
+   }catch(e){out.textContent+="\n\nİstek hatası: "+(e.message||"Bilinmeyen hata");}
+   finally{run.disabled=false;}
+ });
+})();
+</script></body></html>
