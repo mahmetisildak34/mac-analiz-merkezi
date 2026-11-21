@@ -7711,6 +7711,9 @@ const openStandingTeamHistory=async row=>{
   setMamScreen("home");await loadMatches();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});
  }));
  async function loadDashboardStats(){
+  const ids=['mamKpiTotal','mamKpiStats','mamKpiMissing','mamKpiCoverage','mamKpiQueue','mamKpiQueueNote'];
+  if(!ids.some(id=>$(id)))return;
+  const setKpi=(id,value)=>{const el=$(id);if(el)el.textContent=value;};
   try{
    const [d1,queue]=await Promise.all([
     fetch("https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/archive/d1-status").then(r=>r.ok?r.json():null),
@@ -7718,16 +7721,16 @@ const openStandingTeamHistory=async row=>{
    ]);
    if(d1?.ok){
     const st=d1.statistics||{};
-    $("mamKpiTotal").textContent=Number(d1.total||0).toLocaleString("tr-TR");
-    $("mamKpiStats").textContent=Number(st.withStatistics||0).toLocaleString("tr-TR");
-    $("mamKpiMissing").textContent=Number(st.missingStatistics||0).toLocaleString("tr-TR");
-    $("mamKpiCoverage").textContent="%"+Number(st.coveragePercent||0).toLocaleString("tr-TR")+" istatistik kapsamı";
+    setKpi("mamKpiTotal",Number(d1.total||0).toLocaleString("tr-TR"));
+    setKpi("mamKpiStats",Number(st.withStatistics||0).toLocaleString("tr-TR"));
+    setKpi("mamKpiMissing",Number(st.missingStatistics||0).toLocaleString("tr-TR"));
+    setKpi("mamKpiCoverage","%"+Number(st.coveragePercent||0).toLocaleString("tr-TR")+" istatistik kapsamı");
    }
    if(queue?.ok){
-    $("mamKpiQueue").textContent=Number(queue.statisticsQueuePending??0).toLocaleString("tr-TR");
-    $("mamKpiQueueNote").textContent=queue.complete?"Arşiv kontrolü tamamlandı":"İşlem devam ediyor";
+    setKpi("mamKpiQueue",Number(queue.statisticsQueuePending??0).toLocaleString("tr-TR"));
+    setKpi("mamKpiQueueNote",queue.complete?"Arşiv kontrolü tamamlandı":"İşlem devam ediyor");
    }
-  }catch(error){$("mamKpiQueueNote").textContent="Veri durumu şu an alınamadı";}
+  }catch(error){setKpi("mamKpiQueueNote","Veri durumu şu an alınamadı");}
  }
  loadDashboardStats();
 })();
