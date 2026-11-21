@@ -80,6 +80,14 @@ jobs:
                   checks.dialogClosed=await page.locator('#mamFavoritesDialog').evaluate(e=>!e.open);
                   await page.reload({waitUntil:'domcontentloaded'});
                   checks.preferenceRestored=await page.locator('#mamFavNotify').isChecked();
+                  Object.assign(checks,await page.evaluate(()=>{
+                    const team={formation:'4-4-2',startXI:[1,4,4,2].flatMap((n,i)=>Array.from({length:n},(_,j)=>({player:{grid:(i+1)+':'+(j+1),name:'Test oyuncusu'}}))),substitutes:[{player:{name:'Test yedek'}}]};
+                    const rows=mamVerifiedLineupRows(team);
+                    const missing={...team,formation:''};
+                    const duplicate={...team,startXI:team.startXI.map((x,i)=>i===1?team.startXI[0]:x)};
+                    return {lineupGrid:rows?.map(x=>x.length).join(',')==='1,4,4,2',lineupMissing:mamVerifiedLineupRows(missing)===null,lineupIncomplete:mamVerifiedLineupRows({...team,startXI:team.startXI.slice(1)})===null,lineupDuplicate:mamVerifiedLineupRows(duplicate)===null,lineupFallback:lineupTeamHTML(missing,new Map(),0).includes('mam-lineup-list'),lineupBench:lineupTeamHTML(missing,new Map(),0).includes('Test yedek')};
+                  }));
+
                   Object.assign(checks,await page.evaluate(()=>({
                     statMissing:mamStatNumber(null)===null&&mamStatNumber('')===null,
                     statZero:mamStatNumber('0')===0,
@@ -122,7 +130,7 @@ jobs:
                   }));
 
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===30&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===36&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
