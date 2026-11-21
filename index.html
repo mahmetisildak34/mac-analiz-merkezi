@@ -7727,7 +7727,8 @@ const openStandingTeamHistory=async row=>{
 .mam-screen-live .mam-today-header,.mam-screen-upcoming .mam-today-header,.mam-screen-standings .mam-today-header{display:none!important}
 .mam-screen-live #mamLiveNav:not([hidden]){display:flex!important;visibility:visible!important;pointer-events:auto!important}
 .mam-screen-live #mamLiveNav .mam-live-nav-item{display:flex!important}
-.mam-bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+/* Keep all six navigation destinations in the same row on mobile. */
+.mam-bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))!important}
 @media(max-width:390px){
  .mam-bottom-nav button{font-size:9px!important}
  .mam-bottom-nav button span{font-size:17px!important}
