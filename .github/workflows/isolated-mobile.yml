@@ -28,17 +28,25 @@ jobs:
               for(const width of [320,360,375,390,414,430]){
                 const context=await browser.newContext({viewport:{width,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block',offline:true});
                 const page=await context.newPage();
-                await context.route('**/*',r=>r.abort());
+                await context.route('**/*',async route=>{
+                  const url=new URL(route.request().url());
+                  const local={'/index.html':['index.html','text/html; charset=utf-8'],'/half-goal-algorithm.js':['half-goal-algorithm.js','application/javascript; charset=utf-8']};
+                  const asset=local[url.pathname];
+                  if(url.origin==='https://mam-test.invalid'&&route.request().method()==='GET'&&!url.search&&asset){
+                    return route.fulfill({status:200,contentType:asset[1],body:fs.readFileSync(asset[0],'utf8')});
+                  }
+                  return route.abort();
+                });
                 const errors=[];
                 page.on('pageerror',e=>errors.push(e.message));
-                await page.setContent(fs.readFileSync('index.html','utf8'),{waitUntil:'domcontentloaded'});
+                await page.goto('https://mam-test.invalid/index.html',{waitUntil:'domcontentloaded'});
                 await page.waitForTimeout(500);
                 const metrics=await page.evaluate(()=>({viewport:innerWidth,scroll:document.documentElement.scrollWidth,title:document.title,favorites:!!document.querySelector('#mamFavoritesOpen')}));
                 await page.screenshot({path:'mobile-results/'+width+'.png',fullPage:true});
                 results.push({width,metrics,errors,pass:metrics.scroll<=width&&errors.length===0});
                 await context.close();
               }
-            } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));console.log(JSON.stringify(results));}
+            } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
             if(results.length!==6||results.some(r=>!r.pass))process.exitCode=1;
           })().catch(e=>{console.error(e);process.exitCode=1});
           JS
