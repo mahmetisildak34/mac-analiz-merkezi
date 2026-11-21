@@ -47,8 +47,10 @@ assert.match(html, /data-mam-action="today"/, "Homepage daily matches shortcut m
 assert.match(html, /data-mam-action="upcoming"/, "Homepage upcoming matches shortcut missing");
 assert.match(html, /id="mamTodayTabs"/, "Dedicated daily match filter tabs missing");
 assert.match(html, /data-today-filter="finished"/, "Finished matches tab missing");
-assert.match(html, /mamTodayFilter==="upcoming"/, "Upcoming tab filter is not wired");
-assert.match(html, /mamTodayFilter==="finished"/, "Finished tab filter is not wired");
+assert.match(html, /list=list\.filter\(m=>\["NS","TBD"\]\.includes\(mamCanonicalMatchStatus\(m\)\)\)/, "Today must show only not-started fixtures");
+assert.match(html, /main\.mam-screen-today #mamTodayTabs\{display:none!important\}/, "Redundant daily subfilter must be hidden");
+assert.match(html, /if\(mamScreenMode==="live"\)list=list\.filter/, "Live match screen filtering missing");
+assert.match(html, /if\(mamScreenMode==="finished"\)list=list\.filter/, "Finished match screen filtering missing");
 assert.match(html, /const groupedMatches=\[\.\.\.list\.reduce\(/, "Fixtures must be grouped by league");
 assert.match(html, /class="mam-league-heading"/, "League heading must be shown for each fixture group");
 assert.match(html, /<nav id="mamLiveNav"[^>]*>[\s\S]*?data-live-action="live"/, "Dedicated live-screen navigation is missing");
