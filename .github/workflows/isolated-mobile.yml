@@ -81,6 +81,20 @@ jobs:
                   await page.reload({waitUntil:'domcontentloaded'});
                   checks.preferenceRestored=await page.locator('#mamFavNotify').isChecked();
                   Object.assign(checks,await page.evaluate(()=>{
+                    const article=document.createElement('article');
+                    article.innerHTML='<div class="match-versus"></div><div class="match-actions"><button class="lineupBtn">Kadro</button></div><div class="lineup-panel">Test kadrosu</div><button class="liveStatsBtn">İstatistik</button>';
+                    document.body.append(article);
+                    try {
+                      makeMamDetailTab(article);
+                      const tabs=article.querySelectorAll('[role="tab"]');
+                      const lineup=article.querySelector('.match-detail-pane[data-pane="lineup"]');
+                      const stats=article.querySelector('.match-detail-pane[data-pane="stats"]');
+                      article.querySelector('.match-detail-tab[data-pane="overview"]').click();
+                      return {detailTabs:tabs.length===7,detailSelected:article.querySelectorAll('[aria-selected="true"]').length===1,lineupPreserved:!!lineup.querySelector('.lineupBtn')&&!!lineup.querySelector('.lineup-panel'),statsPreserved:!!stats.querySelector('.liveStatsBtn'),detailPaneVisibility:!article.querySelector('.match-detail-pane[data-pane="overview"]').hidden&&lineup.hidden&&stats.hidden};
+                    } finally {article.remove();}
+                  }));
+
+                  Object.assign(checks,await page.evaluate(()=>{
                     const match=(status,date)=>({fixture:{status:{short:status},date}});
                     const now=Date.parse('2026-11-21T20:00:00Z');
                     const old={at:now,status:'1H',home:0,away:0};
@@ -99,7 +113,7 @@ jobs:
                   }));
 
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===19&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===24&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
