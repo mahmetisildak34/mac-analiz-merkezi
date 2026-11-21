@@ -4763,25 +4763,26 @@ function mamIsFutureUnplayed(match,now=Date.now()){
  const stamp=Date.parse(match?.fixture?.date||"");
  return ["NS","TBD"].includes(status)&&Number.isFinite(stamp)&&stamp>now;
 }
-function mamFavKey(kind,id){return id==null||String(id).trim()===""?"":kind+":"+String(id);}
+function mamFavProvider(m){const id=String(m?.fixture?.id||"");const source=String(m?.mamSource||m?.source||"").trim().toLowerCase();return id.startsWith("espn-")?"espn":id.startsWith("sportscore-")?"sportscore":source||"unknown";}
+function mamFavKey(kind,id,provider="unknown"){return id==null||String(id).trim()===""?"":kind+":"+encodeURIComponent(provider)+":"+String(id);}
 function mamFavRead(){try{const v=JSON.parse(localStorage.getItem("mam_favorites_v1")||"[]");return new Set(Array.isArray(v)?v.filter(x=>typeof x==="string"):[]);}catch(_){return new Set();}}
-function mamFavMatches(m,set){return [mamFavKey("team",m.teams?.home?.id),mamFavKey("team",m.teams?.away?.id),mamFavKey("league",m.league?.id)].some(k=>k&&set.has(k));}
+function mamFavMatches(m,set){return [mamFavKey("team",m.teams?.home?.id,mamFavProvider(m)),mamFavKey("team",m.teams?.away?.id,mamFavProvider(m)),mamFavKey("league",m.league?.id,mamFavProvider(m))].some(k=>k&&set.has(k));}
 function mamFavSearch(m,q){const norm=x=>String(x||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i");return norm([m.teams?.home?.name,m.teams?.away?.name,m.league?.name].join(" ")).includes(norm(q.trim()));}
 let mamFavOnly=false,mamFavQuery="";
-function mamFavButton(kind,obj){const k=mamFavKey(kind,obj?.id);if(!k)return "";const active=mamFavRead().has(k);return '<button type="button" class="mam-fav-star" data-mam-fav="'+esc(k)+'" aria-label="'+esc((active?"Takipten çıkar: ":"Takip et: ")+(obj.name||""))+'" aria-pressed="'+active+'">'+(active?"★":"☆")+'</button>';}
+function mamFavButton(kind,obj,match){const k=mamFavKey(kind,obj?.id,mamFavProvider(match));if(!k)return "";const active=mamFavRead().has(k);return '<button type="button" class="mam-fav-star" data-mam-fav="'+esc(k)+'" aria-label="'+esc((active?"Takipten çıkar: ":"Takip et: ")+(obj.name||""))+'" aria-pressed="'+active+'">'+(active?"★":"☆")+'</button>';}
 function mamFavFlip(set,key){const next=new Set(set);if(next.has(key))next.delete(key);else next.add(key);return next;}
 function mamFavNames(){try{const v=JSON.parse(localStorage.getItem("mam_favorite_names_v1")||"{}");return Object.assign(Object.create(null),v&&typeof v==="object"&&!Array.isArray(v)?v:{});}catch(_){return Object.create(null);}}
 function mamFavPanel(){
  const panel=document.getElementById("mamFavoritesPanel");if(!panel)return;
  const set=mamFavRead(),items=new Map();
- for(const m of allMatches){for(const [kind,obj] of [["team",m.teams?.home],["team",m.teams?.away],["league",m.league]]){const k=mamFavKey(kind,obj?.id);if(k&&obj?.name)items.set(k,(kind==="league"?"Lig: ":"Takım: ")+obj.name);}}
+ for(const m of allMatches){for(const [kind,obj] of [["team",m.teams?.home],["team",m.teams?.away],["league",m.league]]){const k=mamFavKey(kind,obj?.id,mamFavProvider(m));if(k&&obj?.name)items.set(k,(kind==="league"?"Lig: ":"Takım: ")+obj.name);}}
  const select=document.getElementById("mamFavSelect"),old=select.value;select.replaceChildren(new Option("Takım veya lig seç",""));
  for(const [k,name] of [...items].sort((a,b)=>a[1].localeCompare(b[1],"tr"))){select.add(new Option((set.has(k)?"★ ":"")+name,k));}if(items.has(old))select.value=old;
  const names=mamFavNames();for(const [k,name] of items)if(set.has(k))names[k]=name;
  try{localStorage.setItem("mam_favorite_names_v1",JSON.stringify(Object.fromEntries([...set].map(k=>[k,names[k]||k]))));}catch(_){}
  const saved=document.getElementById("mamFavSaved");saved.replaceChildren();
  if(!set.size){const p=document.createElement("p");p.textContent="Henüz takip ettiğin takım veya lig yok. Maç kartlarındaki yıldızları kullan.";saved.append(p);}
- for(const k of set){const row=document.createElement("div");row.className="mam-fav-saved-row";const name=document.createElement("span");name.textContent=names[k]||k;const b=document.createElement("button");b.type="button";b.textContent="Takipten çıkar";b.dataset.removeFav=k;row.append(name,b);saved.append(row);}
+ for(const k of set){const row=document.createElement("div");row.className="mam-fav-saved-row";const name=document.createElement("span");name.textContent=(names[k]||k)+(k.split(":").length===2?" (Eski kayıt: yeniden takip et)":"");const b=document.createElement("button");b.type="button";b.textContent="Takipten çıkar";b.dataset.removeFav=k;row.append(name,b);saved.append(row);}
  document.getElementById("mamFavCount").textContent=set.size+" takip";
 }
 function mamFavInit(){const host=document.getElementById("matches");if(!host||document.getElementById("mamFavoritesPanel"))return;
@@ -4883,7 +4884,7 @@ function renderMatches(){
  $("matches").innerHTML=groupedMatches.map(([groupKey,group])=>{
   const league=group[0]?.league||{};
   const countryFlags={"Czech-Republic":"🇨🇿","Czech Republic":"🇨🇿","Poland":"🇵🇱","Spain":"🇪🇸","Denmark":"🇩🇰","Germany":"🇩🇪","Italy":"🇮🇹","France":"🇫🇷","England":"🏴","Türkiye":"🇹🇷","Turkey":"🇹🇷","World":"🌍","Europe":"🇪🇺"};
-  return '<section class="mam-league-group"><div class="mam-league-heading"><span class="mam-league-globe">'+esc(league.icon||countryFlags[league.country]||"⚽")+'</span><strong>'+esc(league.name||"Diğer maçlar")+'</strong><small>'+esc(league.country||"")+'</small><span class="mam-league-count">'+group.length+' MAÇ</span>'+mamFavButton('league',league)+'</div>'+group.map(m=>{
+  return '<section class="mam-league-group"><div class="mam-league-heading"><span class="mam-league-globe">'+esc(league.icon||countryFlags[league.country]||"⚽")+'</span><strong>'+esc(league.name||"Diğer maçlar")+'</strong><small>'+esc(league.country||"")+'</small><span class="mam-league-count">'+group.length+' MAÇ</span>'+mamFavButton('league',league,group[0])+'</div>'+group.map(m=>{
   const f=m.fixture||{},l=m.league||{},t=m.teams||{},g=m.goals||{};
   let statusCode=mamCanonicalMatchStatus(m);
   const statusNames={"NS":"Başlamadı","TBD":"Saat bekleniyor","1H":"1. yarı","HT":"Devre arası","2H":"2. yarı","ET":"Uzatmalar","BT":"Uzatma arası","P":"Penaltılar","SUSP":"Durduruldu","INT":"Kesildi","LIVE":"Canlı","FT":"Bitti","AET":"Uzatmalarda bitti","PEN":"Penaltılarla bitti","PST":"Ertelendi","CANC":"İptal","ABD":"Yarıda kaldı","AWD":"Hükmen","WO":"Hükmen"};
@@ -4915,9 +4916,9 @@ function renderMatches(){
   return `<article class="match match-modern">
    <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span>${isLiveStatus&&time?'<small class="mam-kickoff-time" aria-label="Başlangıç saati: '+esc(time)+'">'+esc(time)+'</small>':""}</span></div>
    <div class="match-versus">
-    <div class="team-block">${teamBadge(t.home)}<strong>${esc(t.home?.name)}</strong>${mamFavButton("team",t.home)}<span class="mam-mobile-score" data-score-side="home">${(isLiveStatus||isFinishedStatus)&&g.home!=null?esc(g.home):""}</span>${isFinishedStatus?mamOutcomeBadge(g.home,g.away):""}</div>
+    <div class="team-block">${teamBadge(t.home)}<strong>${esc(t.home?.name)}</strong>${mamFavButton("team",t.home,m)}<span class="mam-mobile-score" data-score-side="home">${(isLiveStatus||isFinishedStatus)&&g.home!=null?esc(g.home):""}</span>${isFinishedStatus?mamOutcomeBadge(g.home,g.away):""}</div>
     <div class="match-center"><span class="match-clock">${g.home!=null?esc(g.home)+" – "+esc(g.away):esc(time||"VS")}</span><small>${isLiveStatus&&time?esc(statusLabel)+" · "+esc(time):(statusCode==="NS"?"Karşılaşma":esc(statusLabel))}</small></div>
-    <div class="team-block">${teamBadge(t.away)}<strong>${esc(t.away?.name)}</strong>${mamFavButton("team",t.away)}<span class="mam-mobile-score" data-score-side="away">${(isLiveStatus||isFinishedStatus)&&g.away!=null?esc(g.away):""}</span>${isFinishedStatus?mamOutcomeBadge(g.away,g.home):""}</div>
+    <div class="team-block">${teamBadge(t.away)}<strong>${esc(t.away?.name)}</strong>${mamFavButton("team",t.away,m)}<span class="mam-mobile-score" data-score-side="away">${(isLiveStatus||isFinishedStatus)&&g.away!=null?esc(g.away):""}</span>${isFinishedStatus?mamOutcomeBadge(g.away,g.home):""}</div>
    </div>
    <div class="match-actions">
     <span class="small">${isLiveStatus?"🔴 Canlı maç":isFinishedStatus?"✓ Maç tamamlandı":"Maç ön analizi"}</span>
