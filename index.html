@@ -5498,16 +5498,18 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     if(seen.has(identity)){
       // Keep one fixture row, but merge useful fields from every source.
       const index=seen.get(identity),previous=output[index];
+      const proven=x=>x.identity_verified===true&&x.score_verified===true;
+      // Never combine a provider's proof flags with another provider's fixture ID.
+      const preferred=proven(normalizedMatch)&&!proven(previous)?normalizedMatch:previous;
+      const secondary=preferred===previous?normalizedMatch:previous;
       const mergeSide=(older={},newer={})=>({...newer,...older});
       output[index]={
-        ...normalizedMatch,...previous,
-        fixture:{...(normalizedMatch.fixture||{}),...(previous.fixture||{})},
-        score:previous.score||normalizedMatch.score,
+        ...preferred,
         statistics:{
-          home:mergeSide(normalizedMatch.statistics?.home,previous.statistics?.home),
-          away:mergeSide(normalizedMatch.statistics?.away,previous.statistics?.away)
+          home:mergeSide(secondary.statistics?.home,preferred.statistics?.home),
+          away:mergeSide(secondary.statistics?.away,preferred.statistics?.away)
         },
-        mamSources:[...new Set([...(previous.mamSources||[previous.mamSource||"unknown"]),m.mamSource||"unknown"])]
+        mamSources:[...new Set([...(previous.mamSources||[previous.source||previous.mamSource||"unknown"]),m.source||m.mamSource||"unknown"])]
       };
       return;
     }
