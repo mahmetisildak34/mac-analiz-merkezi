@@ -8078,3 +8078,104 @@ input,select,.league-trigger{
 }
 .mam-hide-bottom-nav .mam-bottom-nav{display:none!important}
 </style>
+
+<!-- MAM mobile layout alignment: isolated review branch; no API/data behavior changes -->
+<style id="mam-mobile-layout-alignment-v1">
+@media (max-width: 600px) {
+  /* Six destinations: one row, clear labels and iOS safe-area clearance. */
+  .mam-bottom-nav {
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 2px !important;
+    left: 4px !important;
+    right: 4px !important;
+    width: auto !important;
+    bottom: calc(4px + env(safe-area-inset-bottom)) !important;
+    padding: 5px 3px !important;
+    border-radius: 15px !important;
+    max-height: 76px !important;
+    align-items: stretch !important;
+  }
+  .mam-bottom-nav button {
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 54px !important;
+    max-height: 58px !important;
+    padding: 4px 1px !important;
+    font-size: clamp(8px, 2.3vw, 10px) !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+  }
+  .mam-bottom-nav button span {
+    display: block !important;
+    font-size: 19px !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
+  }
+  body:not(.mam-hide-bottom-nav) main {
+    padding-bottom: calc(98px + env(safe-area-inset-bottom)) !important;
+  }
+  /* Keep identity, clock and scores in their own shrink-safe columns. */
+  #matches article.match.match-modern:not(.in-detail) .match-versus {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr) !important;
+    align-items: center !important;
+    column-gap: 5px !important;
+    height: auto !important;
+    min-height: 62px !important;
+    padding: 8px 2px !important;
+  }
+  #matches article.match.match-modern:not(.in-detail) .team-block {
+    display: flex !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    gap: 4px !important;
+    align-items: center !important;
+  }
+  #matches article.match.match-modern:not(.in-detail) .team-block strong {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  #matches article.match.match-modern:not(.in-detail) .team-logo,
+  #matches article.match.match-modern:not(.in-detail) .team-placeholder {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    flex: 0 0 22px !important;
+    object-fit: contain !important;
+  }
+  #matches article.match.match-modern:not(.in-detail) .match-center {
+    min-width: 0 !important;
+    max-width: 58px !important;
+    text-align: center !important;
+  }
+  #matches article.match.match-modern:not(.in-detail) .match-clock {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+  .mam-match-tabs button,
+  .mam-today-tabs button { min-width: 0 !important; }
+}
+@media (max-width: 350px) {
+  .mam-bottom-nav button { font-size: 8px !important; }
+  #matches article.match.match-modern:not(.in-detail) .team-block strong { font-size: 10px !important; }
+}
+</style>
