@@ -3294,41 +3294,39 @@ function mamEnrichLiveScoresWithEspn(primaryMatches,espnMatches){
  if(checked)console.info("MAM canlı çapraz kontrol:",{checked,scoreMismatches,minuteMismatches});
  return result;
 }
+function mamNotificationEnabled(){try{return localStorage.getItem("mam_fav_notifications_v1")==="on";}catch(_){return false;}}
+function mamNotificationStep(old,current){
+ if(!old||current.at-old.at>300000||current.at<old.at)return [];
+ const events=[],active=["1H","LIVE","HT","2H","ET","BT","P"],finished=["FT","AET","PEN"];
+ if(["NS","TBD"].includes(old.status)&&["1H","LIVE"].includes(current.status))events.push("Maç başladı");
+ if(old.status!==current.status&&current.status==="HT")events.push("Devre arası");
+ if(old.status==="HT"&&current.status==="2H")events.push("İkinci yarı başladı");
+ if(active.includes(old.status)&&finished.includes(current.status))events.push("Maç sona erdi");
+ if(active.includes(old.status)&&active.includes(current.status)&&old.home!==null&&old.away!==null&&current.home!==null&&current.away!==null&&(current.home>old.home||current.away>old.away))events.push("⚽ Gol");
+ return events;
+}
+let mamNotificationState=new Map();
 function mamNotifyLiveGoalChanges(matches){
- if(!Array.isArray(matches)||!matches.length)return;
- const key="mam_live_goal_score_state_v1";
- let previous={};
- try{previous=JSON.parse(localStorage.getItem(key)||"{}")||{};}catch(_){previous={};}
- const next={...previous};
- const notifications=[];
+ if(!Array.isArray(matches))return;
+ const now=Date.now(),enabled=mamNotificationEnabled(),favorites=mamFavRead();
  for(const match of matches){
-  const id=String(match?.fixture?.id??"");
-  const home=Number(match?.goals?.home),away=Number(match?.goals?.away);
-  if(!id||!Number.isFinite(home)||!Number.isFinite(away))continue;
-  const old=previous[id];
-  if(old&&Number.isFinite(Number(old.home))&&Number.isFinite(Number(old.away))){
-   if(home>Number(old.home))notifications.push({match,side:"home",score:home+" – "+away});
-   if(away>Number(old.away))notifications.push({match,side:"away",score:home+" – "+away});
+  const id=mamFavKey("match",match?.fixture?.id,mamFavProvider(match));if(!id)continue;
+  const score=v=>v!==null&&v!==undefined&&v!==""&&Number.isInteger(Number(v))&&Number(v)>=0?Number(v):null;
+  const current={at:now,status:mamCanonicalMatchStatus(match),home:score(match.goals?.home),away:score(match.goals?.away)};
+  const old=mamNotificationState.get(id);const eligible=enabled&&mamFavMatches(match,favorites);
+  const events=eligible&&old?.eligible?mamNotificationStep(old,current):[];
+  const seen=new Set(old?.seen||[]);
+  mamNotificationState.set(id,{...current,eligible,seen});
+  for(const event of events){
+   const key=event==="⚽ Gol"?event+":"+current.home+":"+current.away:event;
+   if(seen.has(key))continue;seen.add(key);
+   let host=document.getElementById("mamGoalToastHost");
+   if(!host){host=document.createElement("div");host.id="mamGoalToastHost";host.setAttribute("role","status");host.setAttribute("aria-live","polite");host.style.cssText="position:fixed;z-index:100000;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;right:12px;display:grid;gap:8px;pointer-events:none";document.body.appendChild(host);}
+   const toast=document.createElement("div");toast.textContent=event+" · "+(match.teams?.home?.name||"Ev sahibi")+" "+(current.home??"–")+" : "+(current.away??"–")+" "+(match.teams?.away?.name||"Deplasman");
+   toast.style.cssText="padding:13px 15px;border-radius:14px;background:#123b2b;color:#fff;border:1px solid #43c58a;font:800 13px/1.4 sans-serif";host.appendChild(toast);setTimeout(()=>toast.remove(),6500);
   }
-  next[id]={home,away,updatedAt:Date.now()};
  }
- try{localStorage.setItem(key,JSON.stringify(Object.fromEntries(Object.entries(next).slice(-250))));}catch(_){}
- if(!notifications.length)return;
- let host=document.getElementById("mamGoalToastHost");
- if(!host){
-  host=document.createElement("div");host.id="mamGoalToastHost";
-  host.style.cssText="position:fixed;z-index:100000;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;right:12px;display:grid;gap:8px;pointer-events:none";
-  document.body.appendChild(host);
- }
- for(const item of notifications){
-  const homeName=item.match.teams?.home?.name||"Ev sahibi";
-  const awayName=item.match.teams?.away?.name||"Deplasman";
-  const team=item.side==="home"?homeName:awayName;
-  const toast=document.createElement("div");
-  toast.textContent="⚽ GOL! "+team+" · "+homeName+" "+item.score+" "+awayName;
-  toast.style.cssText="padding:13px 15px;border-radius:14px;background:#123b2b;color:#fff;border:1px solid #43c58a;box-shadow:0 8px 28px rgba(0,0,0,.24);font:800 13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif";
-  host.appendChild(toast);setTimeout(()=>toast.remove(),6500);
- }
+ for(const [id,state] of mamNotificationState)if(now-state.at>86400000)mamNotificationState.delete(id);
 }
 let mamLiveLoadPromise=null;
 function loadLiveMatches(){
@@ -4786,19 +4784,21 @@ function mamFavPanel(){
  document.getElementById("mamFavCount").textContent=set.size+" takip";
 }
 function mamFavInit(){const host=document.getElementById("matches");if(!host||document.getElementById("mamFavoritesPanel"))return;
- const panel=document.createElement("section");panel.id="mamFavoritesPanel";panel.innerHTML='<details><summary>★ Takip ve arama</summary><label for="mamFavSearch">Yüklü maçlarda ara</label><input id="mamFavSearch" type="search" placeholder="Takım veya lig"><button type="button" id="mamFavSearchClear">Aramayı temizle</button><small id="mamFavSearchResult" aria-live="polite"></small><label for="mamFavSelect">Takip edilecek takım veya lig</label><select id="mamFavSelect"></select><button type="button" id="mamFavToggle">Takibi değiştir ★</button><button type="button" id="mamFavClear">Takipleri temizle</button><label><input id="mamFavOnly" type="checkbox"> Sadece takip ettiklerim</label><small id="mamFavCount" aria-live="polite"></small><h3>Takip ettiklerim</h3><div id="mamFavSaved"></div></details>';host.before(panel);
+ const panel=document.createElement("section");panel.id="mamFavoritesPanel";panel.innerHTML='<details><summary>★ Takip ve arama</summary><label for="mamFavSearch">Yüklü maçlarda ara</label><input id="mamFavSearch" type="search" placeholder="Takım veya lig"><button type="button" id="mamFavSearchClear">Aramayı temizle</button><small id="mamFavSearchResult" aria-live="polite"></small><label for="mamFavSelect">Takip edilecek takım veya lig</label><select id="mamFavSelect"></select><button type="button" id="mamFavToggle">Takibi değiştir ★</button><button type="button" id="mamFavClear">Takipleri temizle</button><label><input id="mamFavOnly" type="checkbox"> Sadece takip ettiklerim</label><small id="mamFavCount" aria-live="polite"></small><label><input type="checkbox" id="mamFavNotify"> Takip ettiklerim için uygulama içi bildirimler</label><small>Yalnızca uygulama açıkken, veri akışı güncellendiğinde çalışır.</small><h3>Takip ettiklerim</h3><div id="mamFavSaved"></div></details>';host.before(panel);
  host.addEventListener("click",e=>{const b=e.target.closest("button[data-mam-fav]");if(!b)return;e.preventDefault();e.stopPropagation();const set=mamFavFlip(mamFavRead(),b.dataset.mamFav);if(persist(set))renderMatches();});
  const persist=set=>{try{localStorage.setItem("mam_favorites_v1",JSON.stringify([...set]));return true;}catch(_){document.getElementById("mamFavCount").textContent="Tercih kaydedilemedi";return false;}};
  document.getElementById("mamSearchToggle")?.addEventListener("click",()=>{panel.querySelector("details").open=true;panel.scrollIntoView({block:"center"});panel.querySelector("#mamFavSearch").focus();});
  panel.querySelector("#mamFavSearch").addEventListener("input",e=>{mamFavQuery=e.target.value;renderMatches();});
  panel.querySelector("#mamFavSearchClear").addEventListener("click",()=>{mamFavQuery="";panel.querySelector("#mamFavSearch").value="";renderMatches();panel.querySelector("#mamFavSearch").focus();});
+ panel.querySelector("#mamFavNotify").checked=mamNotificationEnabled();
+ panel.querySelector("#mamFavNotify").addEventListener("change",e=>{try{localStorage.setItem("mam_fav_notifications_v1",e.target.checked?"on":"off");mamNotificationState.clear();}catch(_){e.target.checked=mamNotificationEnabled();}});
  panel.querySelector("#mamFavOnly").addEventListener("change",e=>{mamFavOnly=e.target.checked;renderMatches();});
  panel.querySelector("#mamFavToggle").addEventListener("click",()=>{const k=panel.querySelector("#mamFavSelect").value;if(!k)return;const set=mamFavRead();if(set.has(k))set.delete(k);else set.add(k);if(persist(set))renderMatches();});
  panel.querySelector("#mamFavSaved").addEventListener("click",e=>{const b=e.target.closest("button[data-remove-fav]");if(!b)return;const set=mamFavRead();set.delete(b.dataset.removeFav);if(persist(set))renderMatches();});
  panel.querySelector("#mamFavClear").addEventListener("click",()=>{if(persist(new Set()))renderMatches();});
 }
 function renderMatches(){
- mamFavInit();mamFavPanel();
+ mamFavInit();mamFavPanel();mamNotifyLiveGoalChanges(allMatches);
  const league=$("league").value;
  // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
  let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
