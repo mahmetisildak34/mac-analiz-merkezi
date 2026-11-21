@@ -58,6 +58,19 @@ jobs:
                   checks.dialogOpen=await page.locator('#mamFavoritesDialog').evaluate(e=>e.open);
                   await page.locator('#mamFavSearch').fill('Fenerbahçe');
                   checks.searchInput=await page.locator('#mamFavSearch').inputValue()==='Fenerbahçe';
+                  await page.evaluate(()=>{
+                    const make=(id,home,away)=>({fixture:{id:'espn-test-'+id,date:new Date(Date.now()+3600000).toISOString(),status:{short:'NS'}},league:{id:203,name:'Süper Lig',country:'Türkiye'},teams:{home:{id:id*10,name:home},away:{id:id*10+1,name:away}},goals:{home:null,away:null},mamSource:'espn'});
+                    allMatches=[make(1,'Fenerbahçe','Beşiktaş'),make(2,'Galatasaray','Trabzonspor')];
+                    mamScreenMode='home';document.getElementById('league').value='all';renderMatches();
+                  });
+                  checks.searchResults=await page.locator('#mamFavSearchList').innerText().then(t=>t.includes('Fenerbahçe')&&!t.includes('Galatasaray'));
+                  await page.locator('#mamFavSearch').fill('besiktas');
+                  checks.turkishSearch=await page.locator('#mamFavSearchList').innerText().then(t=>t.includes('Beşiktaş'));
+                  await page.locator('#mamFavSelect').selectOption({label:'Takım: Fenerbahçe'});
+                  await page.locator('#mamFavToggle').click();
+                  checks.favoriteAdded=await page.locator('#mamFavSaved').innerText().then(t=>t.includes('Fenerbahçe'));
+                  await page.locator('#mamFavSaved button[data-remove-fav]').click();
+                  checks.favoriteRemoved=await page.locator('#mamFavSaved button[data-remove-fav]').count()===0;
                   await page.locator('#mamFavSearchClear').click();
                   checks.searchClear=await page.locator('#mamFavSearch').inputValue()==='';
                   await page.locator('#mamFavNotify').check();
@@ -68,7 +81,7 @@ jobs:
                   await page.reload({waitUntil:'domcontentloaded'});
                   checks.preferenceRestored=await page.locator('#mamFavNotify').isChecked();
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===6&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===10&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
