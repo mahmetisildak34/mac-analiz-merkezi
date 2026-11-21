@@ -80,6 +80,13 @@ jobs:
                   checks.dialogClosed=await page.locator('#mamFavoritesDialog').evaluate(e=>!e.open);
                   await page.reload({waitUntil:'domcontentloaded'});
                   checks.preferenceRestored=await page.locator('#mamFavNotify').isChecked();
+                  Object.assign(checks,await page.evaluate(()=>{
+                    const m=(a,b,status="FT",home="A",away="B")=>({fixture:{date:"2025-01-01T12:00:00Z",status:{short:status}},league:{id:1},teams:{home:{name:home},away:{name:away}},goals:{home:a,away:b}});
+                    const match=n=>n==="A", rows=x=>window.mamTeamHistoryRows(x,match);
+                    const good=rows([m(0,0)]);
+                    return {historyZero:good.length===1,historyMissing:rows([m(null,0)]).length===0,historyLive:rows([m(1,0,"2H")]).length===0,historyConflict:rows([m(1,0),m(2,0)]).length===0,historyUnrelated:rows([m(1,0,"FT","C","B")]).length===0,historyAway:window.mamTeamHistorySummary(rows([m(1,2,"FT","B","A")]),"away").w===1};
+                  }));
+
                   Object.assign(checks,await page.evaluate(()=>({
                     standingMissing:mamStandingCell(null)==='—'&&mamStandingCell('')==='—',
                     standingZero:mamStandingCell(0)===0,
@@ -148,7 +155,7 @@ jobs:
                   }));
 
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===48&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===54&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
