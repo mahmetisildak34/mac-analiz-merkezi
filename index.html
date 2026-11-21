@@ -1581,7 +1581,7 @@ button{transition:filter .15s ease,transform .15s ease}
 }
 </style>
 <style id="mam-fav-stars-v2">#matches .mam-fav-star{min-width:44px!important;min-height:44px!important;width:44px!important;padding:0!important;flex:none!important;font-size:22px!important;background:transparent!important;color:inherit!important;border:1px solid currentColor!important;border-radius:10px!important}#matches .mam-fav-star[aria-pressed=true]{color:#ba8500!important}#matches .mam-league-heading{flex-wrap:wrap}#matches .team-block .mam-fav-star{grid-column:1/-1;justify-self:start}</style>
-</head>
+<style id="mam-fav-saved-v3">#mamFavSaved .mam-fav-saved-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #65758a}#mamFavSaved .mam-fav-saved-row span{min-width:0;overflow-wrap:anywhere}#mamFavSaved .mam-fav-saved-row button{width:auto;flex-shrink:0;font-size:12px}#mamFavSaved p{font-size:14px;line-height:1.5}</style></head>
 <body>
 
 
@@ -4770,22 +4770,29 @@ function mamFavSearch(m,q){const norm=x=>String(x||"").toLocaleLowerCase("tr-TR"
 let mamFavOnly=false,mamFavQuery="";
 function mamFavButton(kind,obj){const k=mamFavKey(kind,obj?.id);if(!k)return "";const active=mamFavRead().has(k);return '<button type="button" class="mam-fav-star" data-mam-fav="'+esc(k)+'" aria-label="'+esc((active?"Takipten çıkar: ":"Takip et: ")+(obj.name||""))+'" aria-pressed="'+active+'">'+(active?"★":"☆")+'</button>';}
 function mamFavFlip(set,key){const next=new Set(set);if(next.has(key))next.delete(key);else next.add(key);return next;}
+function mamFavNames(){try{const v=JSON.parse(localStorage.getItem("mam_favorite_names_v1")||"{}");return Object.assign(Object.create(null),v&&typeof v==="object"&&!Array.isArray(v)?v:{});}catch(_){return Object.create(null);}}
 function mamFavPanel(){
  const panel=document.getElementById("mamFavoritesPanel");if(!panel)return;
  const set=mamFavRead(),items=new Map();
  for(const m of allMatches){for(const [kind,obj] of [["team",m.teams?.home],["team",m.teams?.away],["league",m.league]]){const k=mamFavKey(kind,obj?.id);if(k&&obj?.name)items.set(k,(kind==="league"?"Lig: ":"Takım: ")+obj.name);}}
  const select=document.getElementById("mamFavSelect"),old=select.value;select.replaceChildren(new Option("Takım veya lig seç",""));
  for(const [k,name] of [...items].sort((a,b)=>a[1].localeCompare(b[1],"tr"))){select.add(new Option((set.has(k)?"★ ":"")+name,k));}if(items.has(old))select.value=old;
+ const names=mamFavNames();for(const [k,name] of items)if(set.has(k))names[k]=name;
+ try{localStorage.setItem("mam_favorite_names_v1",JSON.stringify(Object.fromEntries([...set].map(k=>[k,names[k]||k]))));}catch(_){}
+ const saved=document.getElementById("mamFavSaved");saved.replaceChildren();
+ if(!set.size){const p=document.createElement("p");p.textContent="Henüz takip ettiğin takım veya lig yok. Maç kartlarındaki yıldızları kullan.";saved.append(p);}
+ for(const k of set){const row=document.createElement("div");row.className="mam-fav-saved-row";const name=document.createElement("span");name.textContent=names[k]||k;const b=document.createElement("button");b.type="button";b.textContent="Takipten çıkar";b.dataset.removeFav=k;row.append(name,b);saved.append(row);}
  document.getElementById("mamFavCount").textContent=set.size+" takip";
 }
 function mamFavInit(){const host=document.getElementById("matches");if(!host||document.getElementById("mamFavoritesPanel"))return;
- const panel=document.createElement("section");panel.id="mamFavoritesPanel";panel.innerHTML='<details><summary>★ Takip ve arama</summary><label for="mamFavSearch">Yüklü maçlarda ara</label><input id="mamFavSearch" type="search" placeholder="Takım veya lig"><label for="mamFavSelect">Takip edilecek takım veya lig</label><select id="mamFavSelect"></select><button type="button" id="mamFavToggle">Takibi değiştir ★</button><button type="button" id="mamFavClear">Takipleri temizle</button><label><input id="mamFavOnly" type="checkbox"> Sadece takip ettiklerim</label><small id="mamFavCount" aria-live="polite"></small></details>';host.before(panel);
+ const panel=document.createElement("section");panel.id="mamFavoritesPanel";panel.innerHTML='<details><summary>★ Takip ve arama</summary><label for="mamFavSearch">Yüklü maçlarda ara</label><input id="mamFavSearch" type="search" placeholder="Takım veya lig"><label for="mamFavSelect">Takip edilecek takım veya lig</label><select id="mamFavSelect"></select><button type="button" id="mamFavToggle">Takibi değiştir ★</button><button type="button" id="mamFavClear">Takipleri temizle</button><label><input id="mamFavOnly" type="checkbox"> Sadece takip ettiklerim</label><small id="mamFavCount" aria-live="polite"></small><h3>Takip ettiklerim</h3><div id="mamFavSaved"></div></details>';host.before(panel);
  host.addEventListener("click",e=>{const b=e.target.closest("button[data-mam-fav]");if(!b)return;e.preventDefault();e.stopPropagation();const set=mamFavFlip(mamFavRead(),b.dataset.mamFav);if(persist(set))renderMatches();});
  const persist=set=>{try{localStorage.setItem("mam_favorites_v1",JSON.stringify([...set]));return true;}catch(_){document.getElementById("mamFavCount").textContent="Tercih kaydedilemedi";return false;}};
  document.getElementById("mamSearchToggle")?.addEventListener("click",()=>{panel.querySelector("details").open=true;panel.scrollIntoView({block:"center"});panel.querySelector("#mamFavSearch").focus();});
  panel.querySelector("#mamFavSearch").addEventListener("input",e=>{mamFavQuery=e.target.value;renderMatches();});
  panel.querySelector("#mamFavOnly").addEventListener("change",e=>{mamFavOnly=e.target.checked;renderMatches();});
  panel.querySelector("#mamFavToggle").addEventListener("click",()=>{const k=panel.querySelector("#mamFavSelect").value;if(!k)return;const set=mamFavRead();if(set.has(k))set.delete(k);else set.add(k);if(persist(set))renderMatches();});
+ panel.querySelector("#mamFavSaved").addEventListener("click",e=>{const b=e.target.closest("button[data-remove-fav]");if(!b)return;const set=mamFavRead();set.delete(b.dataset.removeFav);if(persist(set))renderMatches();});
  panel.querySelector("#mamFavClear").addEventListener("click",()=>{if(persist(new Set()))renderMatches();});
 }
 function renderMatches(){
