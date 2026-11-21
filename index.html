@@ -4509,7 +4509,7 @@ function makeMamDetailTab(article){
  const absencesPanel=article.querySelector(".absences-panel");
  const prediction=article.querySelector(".pred:not(.liveStats)");
  const preview=article.querySelector(".analysis-preview");
- const tabs=document.createElement("div");tabs.className="match-detail-tabs";
+ const tabs=document.createElement("div");tabs.className="match-detail-tabs";tabs.setAttribute("role","tablist");tabs.setAttribute("aria-label","Maç detay bölümleri");
  const panes=document.createElement("div");
  const definitions=[
   {id:"overview",label:"Detay",icon:"⚽"},
@@ -4522,11 +4522,11 @@ function makeMamDetailTab(article){
  ];
  const sections={};
  definitions.forEach((def,index)=>{
-  const tab=document.createElement("button");tab.type="button";tab.className="match-detail-tab"+(index===0?" active":"");tab.textContent=def.icon+" "+def.label;tab.dataset.pane=def.id;
+  const tab=document.createElement("button");tab.type="button";tab.className="match-detail-tab"+(index===0?" active":"");tab.textContent=def.icon+" "+def.label;tab.dataset.pane=def.id;tab.setAttribute("role","tab");tab.setAttribute("aria-selected",String(index===0));
   tabs.appendChild(tab);
-  const pane=document.createElement("section");pane.className="match-detail-pane";pane.dataset.pane=def.id;pane.hidden=index!==0;panes.appendChild(pane);sections[def.id]=pane;
+  const pane=document.createElement("section");pane.className="match-detail-pane";pane.dataset.pane=def.id;pane.setAttribute("role","tabpanel");pane.setAttribute("aria-label",def.label);pane.hidden=index!==0;panes.appendChild(pane);sections[def.id]=pane;
   tab.addEventListener("click",()=>{
-   tabs.querySelectorAll(".match-detail-tab").forEach(x=>x.classList.toggle("active",x===tab));
+   tabs.querySelectorAll(".match-detail-tab").forEach(x=>{x.classList.toggle("active",x===tab);x.setAttribute("aria-selected",String(x===tab));});
    panes.querySelectorAll(".match-detail-pane").forEach(x=>x.hidden=x!==pane);
    const liveButton=article.querySelector(".liveStatsBtn");
    if(liveButton){try{const saved=JSON.parse(localStorage.getItem("mam_open_live_detail")||"{}");saved.tab=def.id;localStorage.setItem("mam_open_live_detail",JSON.stringify({...saved,id:liveButton.dataset.liveId||"",source:liveButton.dataset.liveSource||"",league:liveButton.dataset.liveLeagueId||""}));}catch(_){}}
@@ -4564,10 +4564,10 @@ function makeMamDetailTab(article){
  if(lineupPanel)sections.lineup.appendChild(lineupPanel);
  if(absencesButton)sections.absences.appendChild(absencesButton);
  if(absencesPanel)sections.absences.appendChild(absencesPanel);
- else sections.lineup.innerHTML='<div class="match-detail-note">Bu maç için kadro verisi henüz mevcut değil.</div>';
+ if(!lineupButton&&!lineupPanel)sections.lineup.innerHTML='<div class="match-detail-note">Bu maç için kadro verisi henüz mevcut değil.</div>';
  if(liveButton)sections.stats.appendChild(liveButton);
  if(livePanel)sections.stats.appendChild(livePanel);
- else sections.stats.innerHTML='<div class="match-detail-note">Canlı istatistikler yalnızca maç başladıktan sonra ve veri sağlayıcısı paylaşırsa gösterilir.</div>';
+ if(!liveButton&&!livePanel)sections.stats.innerHTML='<div class="match-detail-note">Canlı istatistikler yalnızca maç başladıktan sonra ve veri sağlayıcısı paylaşırsa gösterilir.</div>';
  if(analysisButton)sections.analysis.appendChild(analysisButton);
  if(prediction)sections.analysis.appendChild(prediction);
  else if(!analysisButton)sections.analysis.innerHTML='<div class="match-detail-note">Maç tamamlandığı için maç önü tahmini üretilmez.</div>';
