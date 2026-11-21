@@ -6507,15 +6507,26 @@ async function analyze(button){
   const parsedAsOf=Date.parse(date);
   if(!Number.isFinite(parsedAsOf))throw new Error("Maç tarihi geçersiz; tahmin üretilmedi.");
   const asOf=new Date(parsedAsOf).toISOString();
+  const archiveCache=JSON.parse(localStorage.getItem("mam_d1_archive_v2_"+String(button.dataset.league)+"_"+String(date))||"null");
+  if(!Array.isArray(archiveCache?.matches))throw new Error("Doğrulanmış lig arşivi alınamadı; Poisson tahmini üretilmedi.");
+  const validLeague=archiveCache.matches.filter(m=>m.identity_verified===true&&m.score_verified===true&&m.conflicting!==true&&m.fixture?.id!=null&&(m.source||m.mamSource)&&["FT","AET","PEN","FINISHED"].includes(String(m.fixture?.status?.short||"").toUpperCase())&&Number.isFinite(Date.parse(m.fixture?.date||""))&&Date.parse(m.fixture.date)<Date.parse(asOf)&&Number.isSafeInteger(Number(m.goals?.home))&&Number.isSafeInteger(Number(m.goals?.away))&&Number(m.goals.home)>=0&&Number(m.goals.away)>=0&&Number(m.goals.home)<=30&&Number(m.goals.away)<=30);
+  const baselineGroups=new Map();
+  for(const m of validLeague){const source=String(m.source||m.mamSource),id=String(m.fixture.id),key=/^espn-/.test(id)?"espn-shared|"+id:source+"|"+id;if(!baselineGroups.has(key))baselineGroups.set(key,[]);baselineGroups.get(key).push(m);}
+  const baselineRows=[];
+  for(const group of baselineGroups.values()){const preferred=group.find(m=>String(m.source||m.mamSource).toLowerCase()==="espn")||group[0];const same=m=>Date.parse(m.fixture.date)===Date.parse(preferred.fixture.date)&&String(m.teams?.home?.name)===String(preferred.teams?.home?.name)&&String(m.teams?.away?.name)===String(preferred.teams?.away?.name)&&Number(m.goals.home)===Number(preferred.goals.home)&&Number(m.goals.away)===Number(preferred.goals.away);if(group.every(same))baselineRows.push(preferred);}
+  if(baselineRows.length<30)throw new Error("Poisson v1.2 için lig baz çizgisi yetersiz: "+baselineRows.length+"/30 doğrulanmış maç.");
+  const leagueAverageHome=baselineRows.reduce((sum,m)=>sum+Number(m.goals.home),0)/baselineRows.length;
+  const leagueAverageAway=baselineRows.reduce((sum,m)=>sum+Number(m.goals.away),0)/baselineRows.length;
   const mapped=history.map(m=>({
    source:m.source||m.mamSource||"",fixture_id:m.fixture?.id??null,
    kickoff:m.fixture?.date??"",home_team:m.teams?.home?.name??"",
    away_team:m.teams?.away?.name??"",home_goals:m.goals?.home,away_goals:m.goals?.away,
    identity_verified:m.identity_verified===true,score_verified:m.score_verified===true,
+   completed:["FT","AET","PEN","FINISHED"].includes(String(m.fixture?.status?.short||"").toUpperCase()),
    conflicting:m.conflicting===true,status:m.fixture?.status?.short??""
-  })).filter(m=>["FT","AET","PEN","FINISHED"].includes(String(m.status).toUpperCase()));
-  const trusted=predictTrustedGoals(mapped,{home_team:button.dataset.homeName,away_team:button.dataset.awayName,as_of:asOf,min_matches:3,max_goals:12});
-  if(!trusted.available)throw new Error("Poisson v1.2 güvenilir tahmin üretemedi: "+trusted.reason+". Ev sahibi iç saha: "+(trusted.home_samples??0)+"/3, deplasman: "+(trusted.away_samples??0)+"/3 doğrulanmış maç. Kullanılan "+trusted.used+", dışlanan "+trusted.excluded+".");
+  }));
+  const trusted=predictTrustedGoals(mapped,{home_team:button.dataset.homeName,away_team:button.dataset.awayName,as_of:asOf,league_average_home_goals:leagueAverageHome,league_average_away_goals:leagueAverageAway,min_matches:5,max_matches:10,max_goals:10});
+  if(!trusted.available)throw new Error("Poisson v1.2 güvenilir tahmin üretemedi: "+trusted.reason+". Ev sahibi iç saha: "+(trusted.home_samples??0)+"/5, deplasman: "+(trusted.away_samples??0)+"/5 doğrulanmış maç. Lig baz çizgisi: "+baselineRows.length+"/30. Kullanılan "+trusted.used+", dışlanan "+trusted.excluded+".");
   const eligible=history.filter(m=>m.identity_verified===true&&m.score_verified===true&&m.conflicting!==true&&m.fixture?.id!=null&&(m.source||m.mamSource)&&["FT","AET","PEN","FINISHED"].includes(String(m.fixture?.status?.short||"").toUpperCase())&&Number.isFinite(Date.parse(m.fixture?.date||""))&&Date.parse(m.fixture.date)<Date.parse(asOf)&&m.goals?.home!=null&&m.goals?.away!=null&&Number.isSafeInteger(Number(m.goals.home))&&Number.isSafeInteger(Number(m.goals.away))&&Number(m.goals.home)>=0&&Number(m.goals.away)>=0);
   const normalizeTeam=s=>String(s||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
   const trustedFixtureKey=m=>String(m.source||m.mamSource)+"|"+String(m.fixture?.id);
@@ -6528,7 +6539,7 @@ async function analyze(button){
   const homeVenue=teamStats(homeMatches,homeId,"home");
   const awayVenue=teamStats(awayMatches,awayId,"away");
   const homeVenueFallback=false,awayVenueFallback=false;
-  const hs=homeVenue,as=awayVenue,lowSample=trusted.home_samples<5||trusted.away_samples<5;
+  const hs=homeVenue,as=awayVenue,lowSample=trusted.home_samples<8||trusted.away_samples<8;
   const lh=trusted.lambda_home,la=trusted.lambda_away,total=lh+la;
   const win=trusted.probabilities.home_win,draw=trusted.probabilities.draw,lose=trusted.probabilities.away_win;
 
@@ -6594,6 +6605,7 @@ async function analyze(button){
     <div class="stat"><span>Model olasılığı</span><b>${pct(outcome.chance)}</b></div>
    </div>
    <p class="note">1-X-2 olasılıkları içindeki en yüksek sonuçtur; kesinlik veya garanti değildir.</p>
+   <p class="note">Poisson v1.2 · Lig baz çizgisi: ${baselineRows.length} doğrulanmış maç · İç saha/deplasman örneklemi: ${trusted.home_samples} / ${trusted.away_samples}. Güven: ${trusted.data_quality?.reliability||"unknown"}.</p>
    <div class="section-title">Modelin tahmini gol ortalaması</div>
    <div class="statgrid">
     <div class="stat"><span>${esc(homeName)}</span><b>${lh.toFixed(2)}</b></div>
