@@ -73,7 +73,7 @@ assert.match(html, /identity_verified:m\.identity_verified===true/, "Poisson inp
 assert.match(html, /score_verified:m\.score_verified===true/, "Poisson input must require explicit score verification");
 assert.match(html, /predictTrustedGoals\(mapped/, "Archive matches are not passed through trusted Poisson");
 assert.match(html, /trusted\.lambda_home/, "Trusted home goal rate is not used by the UI");
-assert.match(html, /const uniqueEligible=\[\.\.\.new Map\(eligible\.map/, "Verified team history must be deduplicated before display statistics");
+assert.match(html, /const uniqueTeamHistory=rows=>\[\.\.\.new Map\(rows\.filter/, "Verified team history must be deduplicated per selected team");
 assert.match(html, /trusted\.probabilities\.home_win/, "Trusted 1X2 output is not used by the UI");
 assert.match(html, /Model: Poisson v1\.2/, "Poisson v1.2 model version is not displayed");
 
