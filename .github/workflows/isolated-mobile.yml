@@ -80,6 +80,15 @@ jobs:
                   checks.dialogClosed=await page.locator('#mamFavoritesDialog').evaluate(e=>!e.open);
                   await page.reload({waitUntil:'domcontentloaded'});
                   checks.preferenceRestored=await page.locator('#mamFavNotify').isChecked();
+                  Object.assign(checks,await page.evaluate(()=>({
+                    statMissing:mamStatNumber(null)===null&&mamStatNumber('')===null,
+                    statZero:mamStatNumber('0')===0,
+                    statDecimal:mamStatNumber('54,5%')===54.5,
+                    statMissingTrack:!mamLiveStatRows([['Şut',null,3]]).includes('width:'),
+                    statZeroTrack:!mamLiveStatRows([['Şut',0,0]]).includes('width:'),
+                    statRatio:mamLiveStatRows([['Şut',3,1]]).includes('width:75%')
+                  })));
+
                   Object.assign(checks,await page.evaluate(()=>{
                     const article=document.createElement('article');
                     article.innerHTML='<div class="match-versus"></div><div class="match-actions"><button class="lineupBtn">Kadro</button></div><div class="lineup-panel">Test kadrosu</div><button class="liveStatsBtn">İstatistik</button>';
@@ -113,7 +122,7 @@ jobs:
                   }));
 
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===24&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===30&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
