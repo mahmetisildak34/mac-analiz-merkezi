@@ -3302,7 +3302,7 @@ function mamNotificationStep(old,current){
  if(old.status!==current.status&&current.status==="HT")events.push("Devre arası");
  if(old.status==="HT"&&current.status==="2H")events.push("İkinci yarı başladı");
  if(active.includes(old.status)&&finished.includes(current.status))events.push("Maç sona erdi");
- if(active.includes(old.status)&&active.includes(current.status)&&old.home!==null&&old.away!==null&&current.home!==null&&current.away!==null&&(current.home>old.home||current.away>old.away))events.push("⚽ Gol");
+ if(active.includes(old.status)&&active.includes(current.status)&&old.home!==null&&old.away!==null&&current.home!==null&&current.away!==null&&(current.home>=old.home&&current.away>=old.away&&(current.home>old.home||current.away>old.away)))events.push("⚽ Gol");
  return events;
 }
 let mamNotificationState=new Map();
@@ -4805,7 +4805,7 @@ function mamFavInit(){const host=document.getElementById("matches");if(!host||do
 }
 document.addEventListener("DOMContentLoaded",()=>{mamFavInit();if(document.getElementById("mamFavoritesPanel"))mamFavPanel();},{once:true});
 function renderMatches(){
- mamFavInit();mamFavPanel();mamNotifyLiveGoalChanges(allMatches);
+ mamFavInit();mamFavPanel();
  const league=$("league").value;
  // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
  let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
@@ -4840,8 +4840,9 @@ function renderMatches(){
   return 1;
  };
  const mamLiveMinute=m=>{
-  const elapsed=Number(m.fixture?.status?.elapsed);
-  if(Number.isFinite(elapsed)&&elapsed>=0)return elapsed;
+  const rawElapsed=m.fixture?.status?.elapsed;
+  const elapsed=Number(rawElapsed);
+  if(rawElapsed!=null&&rawElapsed!==""&&Number.isFinite(elapsed)&&elapsed>=0)return elapsed;
   const kickoff=Date.parse(m.fixture?.date||"");
   const estimate=Number.isFinite(kickoff)?Math.max(0,Math.min(130,Math.floor((Date.now()-kickoff)/60000))):0;
   return estimate;
