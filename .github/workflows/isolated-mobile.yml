@@ -80,8 +80,26 @@ jobs:
                   checks.dialogClosed=await page.locator('#mamFavoritesDialog').evaluate(e=>!e.open);
                   await page.reload({waitUntil:'domcontentloaded'});
                   checks.preferenceRestored=await page.locator('#mamFavNotify').isChecked();
+                  Object.assign(checks,await page.evaluate(()=>{
+                    const match=(status,date)=>({fixture:{status:{short:status},date}});
+                    const now=Date.parse('2026-11-21T20:00:00Z');
+                    const old={at:now,status:'1H',home:0,away:0};
+                    const events=(status,home,away,at=now+1000)=>mamNotificationStep(old,{status,home,away,at});
+                    return {
+                      istanbulMidnight:mamIstanbulDateString(new Date('2026-11-21T21:00:00Z'))==='2026-11-22',
+                      activeStatuses:['1H','HT','2H','ET','BT','P','LIVE'].every(s=>mamIsActiveMatch(match(s))),
+                      inactiveStatuses:['NS','FT','PST','CANC','SUSP','INT'].every(s=>!mamIsActiveMatch(match(s))),
+                      futureFilter:mamIsFutureUnplayed(match('NS','2026-11-21T21:00:00Z'),now)&&!mamIsFutureUnplayed(match('NS','2026-11-21T19:00:00Z'),now),
+                      goalEvent:events('1H',1,0).includes('⚽ Gol'),
+                      noRepeatGoal:events('1H',0,0).length===0,
+                      halfTimeEvent:events('HT',0,0).includes('Devre arası'),
+                      finalEvent:events('FT',0,0).includes('Maç sona erdi'),
+                      staleEvent:events('1H',1,0,now+400000).length===0
+                    };
+                  }));
+
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===10&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===19&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
