@@ -68,6 +68,12 @@ assert.match(html, /summary\.avgAgainst=summary\.n\?summary\.ga\/summary\.n:null
 assert.match(html, /s\.cleanSheets\+\+/, "Team profile clean-sheet count missing");
 assert.match(html, /s\.points\+=result==="w"\?3:result==="d"\?1:0/, "Team profile points calculation missing");
 assert.match(html, /mam-profile-form-strip/, "Recent team form strip missing");
+assert.match(html, /await import\("\.\/trusted-goal-poisson\.js"\)/, "Trusted Poisson v1.2 module is not integrated");
+assert.match(html, /identity_verified:m\.identity_verified===true/, "Poisson input must require explicit identity verification");
+assert.match(html, /score_verified:m\.score_verified===true/, "Poisson input must require explicit score verification");
+assert.match(html, /predictTrustedGoals\(mapped/, "Archive matches are not passed through trusted Poisson");
+assert.match(html, /trusted\.lambda_home/, "Trusted home goal rate is not used by the UI");
+assert.match(html, /trusted\.probabilities\.home_win/, "Trusted 1X2 output is not used by the UI");
 
 let checkedScripts = 0;
 for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
