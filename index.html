@@ -6232,10 +6232,18 @@ async function analyze(button){
    kickoff:m.fixture?.date??"",home_team:m.teams?.home?.name??"",
    away_team:m.teams?.away?.name??"",home_goals:m.goals?.home,away_goals:m.goals?.away,
    identity_verified:m.identity_verified===true,score_verified:m.score_verified===true,
+   status:m.fixture?.status?.short??"",completed:["FT","AET","PEN","FINISHED"].includes(String(m.fixture?.status?.short||"").toUpperCase()),
    conflicting:m.conflicting===true
   }));
-  const trusted=predictTrustedGoals(mapped,{home_team:button.dataset.homeName,away_team:button.dataset.awayName,as_of:asOf,min_matches:3});
-  if(!trusted.available)throw new Error("Güvenilir tahmin üretilemedi: "+trusted.reason+" · Kullanılan "+trusted.used+" / dışlanan "+trusted.excluded+" maç.");
+  const trusted=predictTrustedGoals(mapped,{home_team:button.dataset.homeName,away_team:button.dataset.awayName,as_of:asOf,min_matches:5,max_matches:10});
+  if(!trusted.available){
+   const reason=trusted.reason==="missing_league_averages"
+    ?"Lig iç saha/deplasman gol ortalamaları doğrulanmış kaynaktan alınamadı; güvenilir Poisson tahmini için gerekli lig baz çizgisi olmadan tahmin üretilmedi."
+    :trusted.reason==="insufficient_verified_venue_sample"
+     ?"İç saha veya deplasman tarafında en az 5 tamamlanmış ve doğrulanmış maç bulunamadı."
+     :"Güvenilir tahmin üretilemedi: "+trusted.reason;
+   throw new Error(reason+" · Kullanılan "+trusted.used+" / dışlanan "+trusted.excluded+" maç.");
+  }
   const eligible=history.filter(m=>m.identity_verified===true&&m.score_verified===true&&m.conflicting!==true&&m.fixture?.id!=null&&(m.mamSource||m.source)&&Date.parse(m.fixture?.date)<Date.parse(asOf)&&m.goals?.home!=null&&m.goals?.away!=null&&Number.isSafeInteger(Number(m.goals.home))&&Number.isSafeInteger(Number(m.goals.away))&&Number(m.goals.home)>=0&&Number(m.goals.away)>=0);
   const homeMatches=eligible.filter(m=>m.teams?.home?.name===button.dataset.homeName).slice(0,10);
   const awayMatches=eligible.filter(m=>m.teams?.away?.name===button.dataset.awayName).slice(0,10);
