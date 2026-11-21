@@ -47,7 +47,10 @@ assert.match(html, /data-mam-action="today"/, "Homepage daily matches shortcut m
 assert.match(html, /data-mam-action="upcoming"/, "Homepage upcoming matches shortcut missing");
 assert.match(html, /id="mamTodayTabs"/, "Dedicated daily match filter tabs missing");
 assert.match(html, /data-today-filter="finished"/, "Finished matches tab missing");
-assert.match(html, /list=list\.filter\(m=>\["NS","TBD"\]\.includes\(mamCanonicalMatchStatus\(m\)\)\)/, "Today must show only not-started fixtures");
+assert.match(html, /function mamIsFutureUnplayed\(match,now=Date\.now\(\)\)/, "Future kickoff status guard missing");
+assert.match(html, /stamp>now/, "Past kickoff must not remain upcoming");
+assert.match(html, /mamIstanbulDay\(m\.fixture\?\.date\)===selectedDay/, "Today must use Istanbul calendar day");
+assert.match(html, /mamIstanbulDay\(m\.fixture\?\.date\)>mamTodayKey/, "Upcoming must exclude today");
 assert.match(html, /main\.mam-screen-today #mamTodayTabs\{display:none!important\}/, "Redundant daily subfilter must be hidden");
 assert.match(html, /if\(mamScreenMode==="live"\)list=list\.filter/, "Live match screen filtering missing");
 assert.match(html, /if\(mamScreenMode==="finished"\)list=list\.filter/, "Finished match screen filtering missing");
