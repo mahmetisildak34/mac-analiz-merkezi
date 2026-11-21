@@ -34,7 +34,7 @@ jobs:
                 const page=await context.newPage();
                 await context.route('**/*',async route=>{
                   const url=new URL(route.request().url());
-                  const local={'/index.html':['index.html','text/html; charset=utf-8'],'/half-goal-algorithm.js':['half-goal-algorithm.js','application/javascript; charset=utf-8']};
+                  const local={'/index.html':['index.html','text/html; charset=utf-8'],'/half-goal-algorithm.js':['half-goal-algorithm.js','application/javascript; charset=utf-8'],'/trusted-goal-poisson.js':['trusted-goal-poisson.js','application/javascript; charset=utf-8']};
                   const asset=local[url.pathname];
                   if(url.origin==='https://mam-test.invalid'&&route.request().method()==='GET'&&!url.search&&asset){
                     return route.fulfill({status:200,contentType:asset[1],body:fs.readFileSync(asset[0],'utf8')});

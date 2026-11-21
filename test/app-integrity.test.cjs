@@ -74,6 +74,7 @@ assert.match(html, /score_verified:m\.score_verified===true/, "Poisson input mus
 assert.match(html, /predictTrustedGoals\(mapped/, "Archive matches are not passed through trusted Poisson");
 assert.match(html, /trusted\.lambda_home/, "Trusted home goal rate is not used by the UI");
 assert.match(html, /trusted\.probabilities\.home_win/, "Trusted 1X2 output is not used by the UI");
+assert.match(html, /Model: Poisson v1\\.2/, "Poisson v1.2 model version is not displayed");
 
 let checkedScripts = 0;
 for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {

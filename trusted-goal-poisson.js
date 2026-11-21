@@ -10,6 +10,7 @@ export function predictTrustedGoals(matches,{home_team,away_team,as_of,min_match
  if(!home||!away||home===away)return {available:false,reason:"invalid_teams",...counts};
  for(const m of matches){
   if(!m||m.identity_verified!==true||m.score_verified!==true||!m.source||m.fixture_id==null){exclude("unverified_identity_or_score");continue}
+  if(!["FT","AET","PEN","FINISHED"].includes(String(m.status??"").toUpperCase())){exclude("not_completed");continue}
   const date=Date.parse(m.kickoff);if(!Number.isFinite(date)||date>=Date.parse(as_of)){exclude("invalid_or_future_date");continue}
   const mh=norm(m.home_team),ma=norm(m.away_team);
   if(!mh||!ma||mh===ma||m.conflicting===true){exclude("conflicting_teams");continue}
@@ -23,5 +24,5 @@ export function predictTrustedGoals(matches,{home_team,away_team,as_of,min_match
  const lambdaHome=h.reduce((x,y)=>x+y,0)/h.length,lambdaAway=a.reduce((x,y)=>x+y,0)/a.length;
  let homeWin=0,draw=0,awayWin=0,total=0;
  for(let i=0;i<=max_goals;i++)for(let j=0;j<=max_goals;j++){const p=prob(lambdaHome,i)*prob(lambdaAway,j);total+=p;if(i>j)homeWin+=p;else if(i===j)draw+=p;else awayWin+=p}
- return {available:true,model:"goal_only_poisson",home_samples:h.length,away_samples:a.length,lambda_home:lambdaHome,lambda_away:lambdaAway,probabilities:{home_win:homeWin/total,draw:draw/total,away_win:awayWin/total},data_quality:{score_and_identity_verified:true,seven_statistics_required:false},...counts};
+ return {available:true,model:"poisson_v1.2",home_samples:h.length,away_samples:a.length,lambda_home:lambdaHome,lambda_away:lambdaAway,probabilities:{home_win:homeWin/total,draw:draw/total,away_win:awayWin/total},data_quality:{score_and_identity_verified:true,seven_statistics_required:false},...counts};
 }

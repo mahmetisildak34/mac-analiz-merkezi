@@ -6504,10 +6504,11 @@ async function analyze(button){
   ]);
   const {predictTrustedGoals}=await import("./trusted-goal-poisson.js");
   const history=[...homeHistory,...awayHistory];
-  const asOf=new Date(date).toISOString();
-  if(!Number.isFinite(Date.parse(asOf)))throw new Error("Maç tarihi geçersiz; tahmin üretilmedi.");
+  const parsedAsOf=Date.parse(date);
+  if(!Number.isFinite(parsedAsOf))throw new Error("Maç tarihi geçersiz; tahmin üretilmedi.");
+  const asOf=new Date(parsedAsOf).toISOString();
   const mapped=history.map(m=>({
-   source:m.source??m.mamSource??"",fixture_id:m.fixture?.id??null,
+   source:m.source||m.mamSource||"",fixture_id:m.fixture?.id??null,
    kickoff:m.fixture?.date??"",home_team:m.teams?.home?.name??"",
    away_team:m.teams?.away?.name??"",home_goals:m.goals?.home,away_goals:m.goals?.away,
    identity_verified:m.identity_verified===true,score_verified:m.score_verified===true,
@@ -6583,6 +6584,7 @@ async function analyze(button){
     venueCard(awayName,awayVenue,awayMatches,awayId,"away")+'</div>'+
     '<p class="note">Şut, korner ve kart ortalamaları yalnızca ilgili doğrulanmış maç verisi yeterliyse gösterilir. Maç sonucu tahmini ayrı gol modelidir.</p>'+venueFallbackNote;
   let html=`<b>📊 KENDİ İSTATİSTİKSEL ANALİZİMİZ</b>
+   <p class="note">Model: Poisson v1.2 · Yalnızca kimliği ve skoru doğrulanmış, tamamlanmış arşiv maçları kullanılır. Kullanılan: ${trusted.used} · Dışlanan: ${trusted.excluded}.</p>
    <div class="section-title">🏆 Modelin maç sonucu tahmini</div>
    <div class="statgrid">
     <div class="stat"><span>En olası sonuç</span><b>${esc(outcome.label)}</b></div>

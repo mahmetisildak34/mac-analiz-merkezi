@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {predictTrustedGoals} from "../trusted-goal-poisson.js";
-const row=(id,home,away,h,a,extra={})=>({source:"fixture",fixture_id:id,home_team:home,away_team:away,home_goals:h,away_goals:a,kickoff:"2026-10-01T12:00:00Z",identity_verified:true,score_verified:true,...extra});
+const row=(id,home,away,h,a,extra={})=>({source:"fixture",fixture_id:id,home_team:home,away_team:away,home_goals:h,away_goals:a,kickoff:"2026-10-01T12:00:00Z",status:"FT",identity_verified:true,score_verified:true,...extra});
 const data=[row("1","Home","A",2,1),row("2","Home","B",1,0),row("3","Home","C",3,1),row("4","D","Away",0,1),row("5","E","Away",1,2),row("6","F","Away",1,1)];
 const opts={home_team:"Home",away_team:"Away",as_of:"2026-11-21T00:00:00Z"};
 const test=(name,fn)=>{fn();console.log("PASS "+name)};
@@ -14,3 +14,5 @@ test("insufficient sample blocks prediction",()=>assert.equal(predictTrustedGoal
 test("used excluded counts",()=>{const r=predictTrustedGoals([...data,row("7","Home","G",null,1)],opts);assert.equal(r.used,6);assert.equal(r.excluded,1)});
 test("unverified fixture excluded",()=>{const r=predictTrustedGoals([...data,row("7","Home","G",2,1,{identity_verified:false})],opts);assert.equal(r.reasons.unverified_identity_or_score,1)});
 test("duplicate source fixture excluded",()=>{const r=predictTrustedGoals([...data,data[0]],opts);assert.equal(r.reasons.duplicate_fixture,1)});
+test("non-finished fixture excluded",()=>{const r=predictTrustedGoals([...data,row("7","Home","G",2,1,{status:"LIVE"})],opts);assert.equal(r.reasons.not_completed,1)});
+test("model version is explicit",()=>assert.equal(predictTrustedGoals(data,opts).model,"poisson_v1.2"));
