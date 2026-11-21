@@ -2,9 +2,11 @@ name: Validate app JavaScript
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/trusted-poisson-integration]
     paths:
       - "index.html"
+      - "trusted-goal-poisson.js"
+      - "tests/trusted-goal-poisson.test.mjs"
       - ".github/workflows/validate-app.yml"
       - "half-goal-algorithm.js"
       - "tests/half-goal-algorithm.test.js"
@@ -54,5 +56,7 @@ jobs:
           for file in /tmp/app-inline-*.js; do
             node --check "$file"
           done
+      - name: Run trusted Poisson tests
+        run: node tests/trusted-goal-poisson.test.mjs
       - name: Run half-goal algorithm regression tests
         run: node --test tests/*.test.js
