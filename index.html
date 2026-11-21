@@ -2700,30 +2700,45 @@ async function getApiFootballMatchStats(fixtureId){
 
 // Dedicated Süper Lig recovery for partial multi-league ESPN failures.
 async function espnSuperLigScoreboard(date){
- const league=ESPN_LEAGUES["203"];
+ const leagueId="203",league=ESPN_LEAGUES[leagueId];
  const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:String(date).replace(/-/g,""),limit:500}));
  if(!Array.isArray(payload?.events))throw new Error("ESPN Süper Lig scoreboard events dizisi bulunamadı");
- return payload.events.map(event=>{
-  const competition=event.competitions?.[0]||{};
-  const competitors=competition.competitors||[];
-  const home=competitors.find(team=>team.homeAway==="home")||{};
-  const away=competitors.find(team=>team.homeAway==="away")||{};
-  const type=event.status?.type||competition.status?.type||{};
-  const state=String(type.state||"").toLowerCase();
-  const detail=String(type.detail||type.name||"");
-  const completed=type.completed===true||state==="post";
-  const halftime=/half[ -]?time|halftime|interval/i.test(detail);
-  const live=!completed&&(state==="in"||state==="live"||state==="inprogress"||/in progress|halftime|live|first half|second half|extra time|penalty/i.test(detail));
-  const clock=mamEspnClock(event);
-  const goals=value=>value===null||value===undefined||value===""?null:(Number.isFinite(Number(value))?Number(value):null);
-  const teamId=value=>Number.isFinite(Number(value))&&Number(value)!==0?Number(value):-1;
-  return {
-   fixture:{id:"espn-tur.1-"+event.id,date:event.date||date+"T12:00:00Z",status:{short:completed?"FT":halftime?"HT":live?"LIVE":"NS",elapsed:clock.elapsed,displayClock:clock.displayClock||detail}},
-   league:{id:"203",name:league.name,country:league.country},
-   teams:{home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||""},away:{id:teamId(away.team?.id),name:away.team?.displayName||away.team?.name||"",logo:away.team?.logo||away.team?.logos?.[0]?.href||""}},
-   goals:{home:goals(home.score),away:goals(away.score)}
-  };
- }).filter(match=>match.teams.home.name&&match.teams.away.name);
+ return payload.events.filter(event=>event?.id!=null&&String(event.id).trim()!=="").map(event=>{
+     const competition=(event.competitions||[])[0]||{};
+     const competitors=competition.competitors||[];
+     const home=competitors.find(team=>team.homeAway==="home")||{};
+     const away=competitors.find(team=>team.homeAway==="away")||{};
+     const eventType=event.status?.type||{},competitionType=competition.status?.type||{};
+     const state=String(eventType.state||competitionType.state||"").toLowerCase();
+     const detail=String(eventType.detail||competitionType.detail||eventType.name||competitionType.name||"");
+     const completed=eventType.completed===true||competitionType.completed===true||state==="post";
+     const halftime=/half[ -]?time|halftime|end of (the )?first half|interval/i.test(detail);
+     const live=!completed&&(state==="in"||state==="live"||state==="inprogress"||/in progress|halftime|live|first half|second half|extra time|penalty/i.test(detail));
+     const statusShort=completed?"FT":halftime?"HT":live?"LIVE":"NS";
+     const clock=mamEspnClock(event);
+     const toGoals=value=>{
+      if(value===null||value===undefined||value==="")return null;
+      const parsed=Number(value);return Number.isFinite(parsed)?parsed:null;
+     };
+     const teamId=value=>{const n=Number(value);return Number.isFinite(n)&&n!==0?n:-1;};
+     return {
+      fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||date+"T12:00:00Z",status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock||detail}},
+      league:{id:leagueId,name:league.name,country:league.country},
+      teams:{
+       home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||home.team?.logos?.[0]?.url||""},
+       away:{id:teamId(away.team?.id),name:away.team?.displayName||away.team?.name||"",logo:away.team?.logo||away.team?.logos?.[0]?.href||away.team?.logos?.[0]?.url||""}
+      },
+      goals:{home:toGoals(home.score),away:toGoals(away.score)}
+     };
+    }).filter(match=>match.teams.home.name&&match.teams.away.name);
+}
+function mamMergeSuperLigScoreboard(matches,fresh){
+ const merged=new Map(matches.map(match=>[String(match.fixture.id),match]));
+ for(const match of fresh){
+  const id=String(match?.fixture?.id||"");
+  if(String(match?.league?.id)==="203"&&/^espn-tur\.1-.+/.test(id))merged.set(id,match);
+ }
+ return [...merged.values()];
 }
 
 async function espnFixtures(date,includeAllLeagues=false){
@@ -3363,22 +3378,11 @@ async function loadLiveMatchesNow(){
   const date=mamIstanbulDateString();
   try{
    let fallback=await espnFixtures(date,true);
-   // Independently recheck the Turkish Süper Lig when the broad multi-league
-   // scan did not return it. A partial ESPN scan must not silently hide tur.1.
-   // This is a read-only scoreboard request; no API-Football quota is consumed.
-   let superLigCheck="included";
-   if(!fallback.some(match=>String(match?.league?.id)==="203")){
-    try{
-     const superLigMatches=await espnSuperLigScoreboard(date);
-     superLigCheck=superLigMatches.length?"recovered":"empty";
-     if(superLigMatches.length){
-      const existing=new Set(fallback.map(match=>String(match?.fixture?.id)));
-      fallback.push(...superLigMatches.filter(match=>!existing.has(String(match?.fixture?.id))));
-     }
-    }catch(superLigError){
-     superLigCheck="error";
-     console.warn("Süper Lig canlı skor kontrolü başarısız:",superLigError);
-    }
+   // Recheck even when the broad scan returned some Süper Lig matches.
+   try{
+    fallback=mamMergeSuperLigScoreboard(fallback,await espnSuperLigScoreboard(date));
+   }catch(superLigError){
+    console.warn("Süper Lig canlı skor kontrolü başarısız:",superLigError);
    }
    espnCount=fallback.length;
    fallbackSchedule=fallback.slice();
