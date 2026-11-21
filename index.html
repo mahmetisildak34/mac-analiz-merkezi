@@ -8441,39 +8441,39 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
 <style id="mam-mobile-stacked-scoreboard">
 .mam-mobile-score{display:none}
 @media(max-width:600px){
- main #matches article.match.match-modern:not(.in-detail){
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail){
   display:block!important;position:relative!important;box-sizing:border-box!important;
   height:auto!important;min-height:76px!important;padding:8px 42px 8px 72px!important;
  }
- main #matches article.match.match-modern:not(.in-detail) .match-head{
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .match-head{
   left:5px!important;top:50%!important;transform:translateY(-50%)!important;width:60px!important;
  }
- main #matches article.match.match-modern:not(.in-detail) .match-head .match-time{
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .match-head .match-time{
   font-size:12px!important;line-height:1.2!important;white-space:normal!important;overflow-wrap:anywhere!important;font-variant-numeric:tabular-nums;
  }
- main #matches article.match.match-modern:not(.in-detail) .mam-kickoff-time{font-size:11px!important}
- main #matches article.match.match-modern:not(.in-detail) .match-versus{
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .mam-kickoff-time{font-size:11px!important}
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .match-versus{
   display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:repeat(2,minmax(26px,auto))!important;
   gap:4px!important;height:auto!important;min-height:56px!important;align-items:center!important;
  }
- main #matches article.match.match-modern:not(.in-detail) .match-center{display:none!important}
- main #matches article.match.match-modern:not(.in-detail) .team-block{
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .match-center{display:none!important}
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .team-block{
   display:grid!important;grid-template-columns:22px minmax(0,1fr) 28px!important;gap:6px!important;
   width:100%!important;max-width:none!important;min-width:0!important;align-items:center!important;
   justify-content:start!important;text-align:left!important;
  }
- main #matches article.match.match-modern:not(.in-detail) .team-block:first-child{grid-row:1!important}
- main #matches article.match.match-modern:not(.in-detail) .team-block:last-child{grid-row:2!important}
- main #matches article.match.match-modern:not(.in-detail) .team-block strong{
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .team-block:first-child{grid-row:1!important}
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .team-block:last-child{grid-row:2!important}
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .team-block strong{
   font-size:13px!important;line-height:1.25!important;width:100%!important;max-width:none!important;
-  min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:left!important;
+  min-width:0!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere!important;text-align:left!important;
  }
- main #matches article.match.match-modern:not(.in-detail) .team-logo,
- main #matches article.match.match-modern:not(.in-detail) .team-placeholder{width:22px!important;height:22px!important;min-width:22px!important;max-width:22px!important}
- main #matches article.match.match-modern:not(.in-detail) .mam-mobile-score{
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .team-logo,
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .team-placeholder{width:22px!important;height:22px!important;min-width:22px!important;max-width:22px!important}
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .mam-mobile-score{
   display:block!important;text-align:right!important;font-size:14px!important;font-weight:800!important;font-variant-numeric:tabular-nums;line-height:1.25!important;
  }
- main #matches article.match.match-modern:not(.in-detail) .team-block > :not(.team-logo):not(.team-placeholder):not(strong):not(.mam-mobile-score){display:none!important}
- main #matches article.match.match-modern:not(.in-detail) .mam-match-open{width:32px!important;height:44px!important;min-height:44px!important;right:4px!important}
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .team-block > :not(.team-logo):not(.team-placeholder):not(strong):not(.mam-mobile-score){display:none!important}
+ main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .mam-match-open{width:32px!important;height:44px!important;min-height:44px!important;right:4px!important}
 }
 </style>
