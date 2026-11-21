@@ -8,3 +8,5 @@ test("pre-match UI reports used and excluded fixtures",()=>{assert.match(section
 test("pre-match UI requires explicit identity and score verification",()=>{assert.match(section,/identity_verified===true/);assert.match(section,/score_verified===true/)});
 
 test("archive source takes precedence and absent proof is never promoted",()=>{assert.match(section,/source:m\.source\?\?m\.mamSource/);assert.match(section,/identity_verified:m\.identity_verified===true/);assert.match(section,/score_verified:m\.score_verified===true/)});
+
+test("cross-provider history merge keeps verified source and fixture atomically",()=>{assert.match(html,/const preferred=proven\(normalizedMatch\)&&!proven\(previous\)\?normalizedMatch:previous/);assert.match(html,/\.\.\.preferred,/);assert.doesNotMatch(html,/fixture:\{\.\.\.\(normalizedMatch\.fixture\|\|\{\}\),\.\.\.\(previous\.fixture\|\|\{\}\)\}/)});
