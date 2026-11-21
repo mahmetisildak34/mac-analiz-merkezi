@@ -4699,19 +4699,34 @@ function mamCanonicalMatchStatus(match){
  const aliases={FINISHED:"FT",COMPLETED:"FT",IN_PLAY:"LIVE",INPLAY:"LIVE",PAUSED:"HT",HALFTIME:"HT",FIRST_HALF:"1H",SECOND_HALF:"2H",EXTRA_TIME:"ET",PENALTY_SHOOTOUT:"P",SCHEDULED:"NS",TIMED:"NS",POSTPONED:"PST",SUSPENDED:"SUSP",CANCELLED:"CANC",CANCELED:"CANC",AWARDED:"AWD",ABANDONED:"ABD"};
  return aliases[raw]||raw;
 }
+function mamIstanbulDay(value){
+ const stamp=Date.parse(value||"");
+ if(!Number.isFinite(stamp))return "";
+ const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(stamp));
+ const get=type=>parts.find(part=>part.type===type)?.value||"";
+ return get("year")+"-"+get("month")+"-"+get("day");
+}
+function mamIsFutureUnplayed(match,now=Date.now()){
+ const status=mamCanonicalMatchStatus(match);
+ const stamp=Date.parse(match?.fixture?.date||"");
+ return ["NS","TBD"].includes(status)&&Number.isFinite(stamp)&&stamp>now;
+}
 function renderMatches(){
  const league=$("league").value;
  // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
  let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
  const liveCodes=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
  if(mamScreenMode==="live")list=list.filter(m=>liveCodes.has(mamCanonicalMatchStatus(m)));
- if(mamScreenMode==="upcoming")list=list.filter(m=>["NS","TBD","PST"].includes(mamCanonicalMatchStatus(m)));
+ const mamNow=Date.now();
+ const mamTodayKey=mamIstanbulDay(new Date(mamNow).toISOString());
+ if(mamScreenMode==="upcoming")list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)>mamTodayKey);
  if(mamScreenMode==="finished")list=list.filter(m=>["FT","AET","PEN","AWD","WO"].includes(mamCanonicalMatchStatus(m)));
  if(mamScreenMode==="today"){
-  // Today is the unplayed fixtures list; live and completed have their own screens.
-  list=list.filter(m=>["NS","TBD"].includes(mamCanonicalMatchStatus(m)));
+  // A stale provider NS/TBD status does not mean a match is still upcoming.
+  const selectedDay=$("date")?.value||mamTodayKey;
+  list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)===selectedDay);
   const status=m=>mamCanonicalMatchStatus(m);
-  const counts={all:allMatches.length,live:allMatches.filter(m=>liveCodes.has(status(m))).length,upcoming:allMatches.filter(m=>["NS","TBD","PST"].includes(status(m))).length,finished:allMatches.filter(m=>["FT","AET","PEN","AWD","WO"].includes(status(m))).length};
+  const counts={all:allMatches.length,live:allMatches.filter(m=>liveCodes.has(status(m))).length,upcoming:allMatches.filter(m=>mamIsFutureUnplayed(m,mamNow)).length,finished:allMatches.filter(m=>["FT","AET","PEN","AWD","WO"].includes(status(m))).length};
   $("mamTodayAllCount").textContent=counts.all;$("mamTodayLiveCount").textContent=counts.live;$("mamTodayUpcomingCount").textContent=counts.upcoming;$("mamTodayFinishedCount").textContent=counts.finished;
   $("mamTodayTabs")?.querySelectorAll("[data-today-filter]").forEach(tab=>{const active=tab.dataset.todayFilter===mamTodayFilter;tab.classList.toggle("active",active);tab.setAttribute("aria-selected",String(active));});
  }
@@ -4744,7 +4759,7 @@ function renderMatches(){
  if($("mamTodayTitle"))$("mamTodayTitle").textContent=selectedDate===todayKey?"BUGÜN OYNANACAK MAÇLAR":new Date(selectedDate+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"})+" MAÇLARI";
  if($("mamTodayCount"))$("mamTodayCount").textContent=list.length+" MAÇ";
  if(mamScreenMode==="upcoming"){
-  list=list.filter(m=>["NS","TBD","PST"].includes(mamCanonicalMatchStatus(m)));
+  list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)>mamTodayKey);
   list.sort((a,b)=>Date.parse(a.fixture?.date||0)-Date.parse(b.fixture?.date||0));
   if($("mamSectionCount"))$("mamSectionCount").textContent=list.length+" MAÇ";
   if(!list.length){
@@ -4770,7 +4785,7 @@ function renderMatches(){
   return;
  }
  if(!list.length){
-  $("matches").innerHTML='<div class="empty">Bu filtrede maç bulunamadı.</div>';
+  $("matches").innerHTML=mamScreenMode==="today"?'<div class="empty">Türkiye saatine göre bugün henüz başlamamış maç bulunamadı. Başlangıç saati geçmiş fakat sağlayıcı durumu güncellenmemiş maçlar doğrulanmadan Canlı veya Biten olarak gösterilmez.</div>':'<div class="empty">Bu filtrede maç bulunamadı.</div>';
   return;
  }
  const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{};const key=String(league.id??league.name??"other");if(!map.has(key))map.set(key,[]);map.get(key).push(match);return map;},new Map()).entries()];
