@@ -1583,6 +1583,7 @@ button{transition:filter .15s ease,transform .15s ease}
 <style id="mam-fav-stars-v2">#matches .mam-fav-star{min-width:44px!important;min-height:44px!important;width:44px!important;padding:0!important;flex:none!important;font-size:22px!important;background:transparent!important;color:inherit!important;border:1px solid currentColor!important;border-radius:10px!important}#matches .mam-fav-star[aria-pressed=true]{color:#ba8500!important}#matches .mam-league-heading{flex-wrap:wrap}#matches .team-block .mam-fav-star{grid-column:1/-1;justify-self:start}</style>
 <style id="mam-fav-saved-v3">#mamFavSaved .mam-fav-saved-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #65758a}#mamFavSaved .mam-fav-saved-row span{min-width:0;overflow-wrap:anywhere}#mamFavSaved .mam-fav-saved-row button{width:auto;flex-shrink:0;font-size:12px}#mamFavSaved p{font-size:14px;line-height:1.5}</style><style id="mam-favorites-dialog-v1">#mamFavoritesDialog{position:fixed;inset:0;margin:0;width:100%;max-width:none;height:100%;max-height:none;border:0;background:var(--bg,#0b1220);color:var(--text,#f4f7fb);padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px));overflow:auto}#mamFavoritesDialog header{display:flex;justify-content:space-between;align-items:center;gap:12px}#mamFavoritesDialog header button{width:44px;height:44px;padding:0}#mamFavoritesDialog #mamFavoritesPanel{display:block!important;max-width:760px;margin:16px auto}#mamFavoritesOpen{min-height:44px;margin:8px 0}#mamFavoritesDialog::backdrop{background:#0008}</style><style>.mam-stat-unavailable{font-size:11px;text-align:center;opacity:.75;padding:4px;}.mam-live-stat-values{min-width:0}.mam-live-stat-label{overflow-wrap:anywhere}</style>
 <style>.mam-lineup-list{display:grid;gap:6px}.mam-lineup-list>div{padding:9px;border:1px solid currentColor;border-radius:8px;overflow-wrap:anywhere}.lineup-row{min-width:0}.lineup-team{min-width:0}</style>
+<style>.mam-standings-table-wrap{max-width:100%;overflow-x:auto}.mam-standing-form{white-space:nowrap}.mam-standing-form span{display:inline-block;padding:3px 5px;margin:1px;border-radius:4px;color:white}.mam-form-W{background:#187b49}.mam-form-D{background:#596579}.mam-form-L{background:#ad343c}.mam-standings-table th,.mam-standings-table td{white-space:nowrap}</style>
 </head>
 <body>
 
@@ -2078,6 +2079,13 @@ $("date").addEventListener("change",()=>{
 
 let selectedStandingsLeague="";
 let standingCompetitionNames={};
+function mamStandingNumber(v){
+ if(v==null||typeof v==="boolean"||String(v).trim()==="")return null;
+ const n=Number(v);return Number.isFinite(n)&&Number.isInteger(n)?n:null;
+}
+function mamStandingCell(v){return mamStandingNumber(v)??"—";}
+function mamStandingDifference(g,a){const x=mamStandingNumber(g),y=mamStandingNumber(a);return x===null||y===null?"—":x-y;}
+function mamStandingForm(v){return typeof v==="string"?v.toUpperCase().replace(/[^WDL]/g,"").slice(-5):"";}
 async function loadStandings(){
  const leagueId=selectedStandingsLeague;
  const box=$("mamStandingsTable");
@@ -2093,7 +2101,7 @@ async function loadStandings(){
   try{
    const data=await api("standings?"+qs({league:leagueId,season}));
    const group=data.response?.[0]?.league?.standings?.[0]||[];
-   rows=group.map(x=>({rank:x.rank,teamId:x.team?.id,name:x.team?.name,logo:x.team?.logo,played:x.all?.played,win:x.all?.win,draw:x.all?.draw,lose:x.all?.lose,goals:x.all?.goals?.for,against:x.all?.goals?.against,points:x.points}));
+   rows=group.map(x=>({rank:x.rank,teamId:x.team?.id,name:x.team?.name,logo:x.team?.logo,played:x.all?.played,win:x.all?.win,draw:x.all?.draw,lose:x.all?.lose,goals:x.all?.goals?.for,against:x.all?.goals?.against,points:x.points,form:x.form}));
    leagueName=data.response?.[0]?.league?.name||"Lig puan durumu";
    if(!rows.length)throw new Error("API-Football puan tablosu takım döndürmedi.");
    teamSource="api-football";
@@ -2139,17 +2147,17 @@ async function loadStandings(){
       collect(data);
       const stat=(entry,names)=>{
        const found=entry.stats.find(x=>names.includes(String(x.name||x.abbreviation||"").toLowerCase()));
-       return found?.value??found?.displayValue??0;
+       return found?.value??found?.displayValue??null;
       };
       rows=entries.map((entry,index)=>({
-       rank:stat(entry,["rank","playoffseed"])||index+1,teamId:entry.team?.id,
+       rank:stat(entry,["rank"]),teamId:entry.team?.id,
        name:entry.team?.displayName||entry.team?.name||entry.team?.shortDisplayName||"Takım",logo:entry.team?.logos?.[0]?.href||entry.team?.logo,
        played:stat(entry,["gamesplayed","played","gp"]),win:stat(entry,["wins","win","w"]),
        draw:stat(entry,["ties","draws","draw","d"]),lose:stat(entry,["losses","loss","l"]),
        goals:stat(entry,["pointsfor","goalsfor","gf"]),against:stat(entry,["pointsagainst","goalsagainst","ga"]),
        points:stat(entry,["points","pts"])
       }));
-      rows.sort((a,b)=>Number(a.rank)-Number(b.rank));
+      rows.sort((a,b)=>(mamStandingNumber(a.rank)??Infinity)-(mamStandingNumber(b.rank)??Infinity));
       leagueName=data.name||data.leagues?.[0]?.name||standingCompetitionNames[leagueId]||"Lig";
       if(!rows.length)throw new Error("ESPN puan tablosu takım döndürmedi.");
       teamSource="espn";
@@ -2175,7 +2183,7 @@ async function loadStandings(){
         (team.displayName||team.name||team.shortDisplayName))
         .map(team=>[String(team.id),team])).values()];
        rows=unique.map((team,index)=>({
-        rank:index+1,teamId:team.id,
+        rank:null,teamId:team.id,
         name:team.displayName||team.name||team.shortDisplayName,
         logo:team.logos?.[0]?.href||team.logo,
         played:null,win:null,draw:null,lose:null,goals:null,against:null,points:null
@@ -2192,7 +2200,7 @@ async function loadStandings(){
       const directory=await api("teams?"+qs({league:leagueId,season}));
       const teams=Array.isArray(directory.response)?directory.response:[];
       rows=teams.filter(item=>item.team?.id&&item.team?.name).map((item,index)=>({
-       rank:index+1,teamId:item.team.id,name:item.team.name,
+       rank:null,teamId:item.team.id,name:item.team.name,
        logo:item.team.logo||item.team.crest,
        played:null,win:null,draw:null,lose:null,goals:null,against:null,points:null
       }));
@@ -2217,15 +2225,15 @@ async function loadStandings(){
   $("mamStandingsBannerName").textContent=leagueName;
   $("mamStandingsBannerMeta").textContent=leagueMeta[1]+" · "+season+"/"+(season+1);
   $("mamStandingsCard").dataset.theme=String(themeIndex);
-  const orderedRows=[...rows].sort((a,b)=>Number(a.rank)-Number(b.rank));
+  const orderedRows=[...rows].sort((a,b)=>(mamStandingNumber(a.rank)??Infinity)-(mamStandingNumber(b.rank)??Infinity));
   const lastRank=Math.max(...orderedRows.map(x=>Number(x.rank)||0));
   const rowMarkup=orderedRows.map(x=>{
    const rank=Number(x.rank)||0;
-   const zone=rank<=4?"zone-top":rank<=6?"zone-europe":rank>=Math.max(7,lastRank-2)?"zone-bottom":"zone-mid";
+   const zone="zone-mid";
    const crest=x.logo?'<img class="mam-standing-crest" src="'+esc(x.logo)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<span class="mam-standing-crest-fallback">⚽</span>';
-   return '<tr class="mam-standing-team-row '+zone+'" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" data-team-source="'+esc(x.source||teamSource)+'" role="button" tabindex="0" onclick="window.mamOpenStandingTeamHistory(this)" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını göster"><td class="mam-rank-cell"><span>'+esc(x.rank)+'</span></td><td class="mam-crest-cell">'+crest+'</td><td class="mam-team-name-cell">'+esc(x.name)+' <span class="mam-standing-row-hint">›</span></td><td>'+esc(x.played)+'</td><td>'+esc(x.win)+'</td><td>'+esc(x.draw)+'</td><td>'+esc(x.lose)+'</td><td>'+esc(Number(x.goals||0)-Number(x.against||0))+'</td><td class="mam-points-cell"><b>'+esc(x.points)+'</b></td></tr>';
+   return '<tr class="mam-standing-team-row '+zone+'" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" data-team-source="'+esc(x.source||teamSource)+'" role="button" tabindex="0" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();this.click();}" onclick="window.mamOpenStandingTeamHistory(this)" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını göster"><td class="mam-rank-cell"><span>'+esc(mamStandingCell(x.rank))+'</span></td><td class="mam-crest-cell">'+crest+'</td><td class="mam-team-name-cell">'+esc(x.name)+' <span class="mam-standing-row-hint">›</span></td><td>'+esc(mamStandingCell(x.played))+'</td><td>'+esc(mamStandingCell(x.win))+'</td><td>'+esc(mamStandingCell(x.draw))+'</td><td>'+esc(mamStandingCell(x.lose))+'</td><td>'+esc(mamStandingDifference(x.goals,x.against))+'</td><td class="mam-points-cell"><b>'+esc(mamStandingCell(x.points))+'</b></td><td class="mam-standing-form">'+([...mamStandingForm(x.form)].map(v=>'<span class="mam-form-'+v+'" aria-label="'+({W:'Galibiyet',D:'Beraberlik',L:'Mağlubiyet'})[v]+'">'+({W:'G',D:'B',L:'M'})[v]+'</span>').join('')||'—')+'</td></tr>';
   }).join("");
-  box.innerHTML='<div class="mam-standings-table-wrap"><table class="mam-standings-table"><thead><tr><th>#</th><th></th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rowMarkup+'</tbody></table></div><div class="mam-standings-legend"><span><i class="zone-top"></i>İlk 4</span><span><i class="zone-europe"></i>5–6</span><span><i class="zone-mid"></i>Diğer sıralar</span><span><i class="zone-bottom"></i>Son 3</span></div><p class="mam-standings-note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan. Sıralama satırına dokunarak takım geçmişini açabilirsin.</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
+  box.innerHTML='<div class="mam-standings-table-wrap"><table class="mam-standings-table"><thead><tr><th>#</th><th></th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th><th>Form</th></tr></thead><tbody>'+rowMarkup+'</tbody></table></div><p class="mam-standings-note">Kaynak: '+esc(teamSource)+' · —: Veri paylaşılmadı. Form yalnızca kaynakta varsa gösterilir. O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan. Sıralama satırına dokunarak takım geçmişini açabilirsin.</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
   if(String(leagueId)==="78"){
    const bulk=document.createElement("button");
    bulk.type="button";bulk.className="secondary";bulk.style.cssText="width:100%;margin-top:12px;";
