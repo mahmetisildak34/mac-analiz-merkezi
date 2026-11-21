@@ -1596,6 +1596,12 @@ button{transition:filter .15s ease,transform .15s ease}
 #mamTeamHistoryContent .mam-draw{background:#374151;color:#f3f4f6}
 #mamTeamHistoryContent .mam-loss{background:#642d40;color:#fecdd3}
 #mamTeamHistoryContent .mam-profile-goals{font-size:12px;color:#d6e1f5}
+#mamTeamHistoryContent .mam-profile-form-strip{display:flex;gap:5px;min-height:28px;align-items:center}
+#mamTeamHistoryContent .mam-profile-form-strip span{display:grid;place-items:center;width:27px;height:27px;border-radius:8px;font-size:12px;font-weight:900}
+#mamTeamHistoryContent .mam-profile-form-strip .mam-form-w{background:#174b3c;color:#a7f3d0}
+#mamTeamHistoryContent .mam-profile-form-strip .mam-form-d{background:#374151;color:#f3f4f6}
+#mamTeamHistoryContent .mam-profile-form-strip .mam-form-l{background:#642d40;color:#fecdd3}
+#mamTeamHistoryContent .mam-profile-record{font-size:12px;color:#d6e1f5;display:flex;flex-wrap:wrap;gap:4px 10px}
 </style>
 </head>
 <body>
@@ -7297,7 +7303,9 @@ function mamTeamHistoryRows(matches, matchesTeam, now=Date.now()){
 window.mamTeamHistoryRows=mamTeamHistoryRows;
 function mamTeamHistorySummary(rows,venue="all"){
  const list=rows.filter(m=>venue==="all"||m.mamSelectedTeamHome===(venue==="home"));
- return list.reduce((s,m)=>{const a=Number(m.goals.home),b=Number(m.goals.away),gf=m.mamSelectedTeamHome?a:b,ga=m.mamSelectedTeamHome?b:a;s.n++;s.gf+=gf;s.ga+=ga;s[gf>ga?"w":gf<ga?"l":"d"]++;return s;},{n:0,w:0,d:0,l:0,gf:0,ga:0});
+ const summary=list.reduce((s,m)=>{const a=Number(m.goals.home),b=Number(m.goals.away),gf=m.mamSelectedTeamHome?a:b,ga=m.mamSelectedTeamHome?b:a,result=gf>ga?"w":gf<ga?"l":"d";s.n++;s.gf+=gf;s.ga+=ga;s[result]++;s.points+=result==="w"?3:result==="d"?1:0;if(ga===0)s.cleanSheets++;if(gf===0)s.failedToScore++;s.form.push(result);return s;},{n:0,w:0,d:0,l:0,gf:0,ga:0,points:0,cleanSheets:0,failedToScore:0,form:[]});
+ summary.avgFor=summary.n?summary.gf/summary.n:null;summary.avgAgainst=summary.n?summary.ga/summary.n:null;summary.unbeaten=summary.w+summary.d;summary.form=summary.form.slice(0,5);summary.streak=0;for(const result of summary.form){if(result!==summary.form[0])break;summary.streak++;}
+ return summary;
 }
 window.mamTeamHistorySummary=mamTeamHistorySummary;
 const openStandingTeamHistory=async row=>{
@@ -7545,7 +7553,7 @@ const openStandingTeamHistory=async row=>{
       '<div class="pred" id="pred-'+esc(fixtureId)+'">Analiz henüz yapılmadı.</div></article>';
    }).join("")+'</div></div></section>':'<section style="margin-top:22px;"><div style="font-size:12px;font-weight:900;color:#65dcb1;margin:0 2px 10px;">GELECEK MAÇLAR</div><p style="font-size:12px;color:#a9c0c4;">'+(upcomingError?"Gelecek fikstürü alınamadı: "+esc(upcomingError):"Şu an listelenecek gelecek maç bulunamadı.")+'</p></section>';
    const switchBar='<div class="mam-team-history-banner"><div class="mam-team-history-banner-mark">⚽</div><div><strong>'+esc(teamName)+'</strong><small>'+esc(standingCompetitionNames[String(selectedStandingsLeague)]||ESPN_LEAGUES[String(selectedStandingsLeague)]?.name||"Lig") +' · TAKIM MAÇLARI</small></div></div><div style="display:flex;gap:8px;margin:0 0 14px;padding:4px;border:1px solid rgba(255,65,91,.45);border-radius:15px;background:#100b15;"><button type="button" data-history-view="past" aria-selected="true" style="flex:1;min-height:42px;padding:8px 10px;border-radius:11px;background:linear-gradient(135deg,#ffbd18,#e58a00);color:#160d06;font-size:12px;font-weight:950;">Geçmiş maçlar</button><button type="button" data-history-view="upcoming" aria-selected="false" style="flex:1;min-height:42px;padding:8px 10px;border-radius:11px;background:linear-gradient(145deg,#1b111c,#100c16);color:#f7edf1;font-size:12px;font-weight:900;">Gelecek maçlar</button></div>';
-   const profileSummary='<section class="mam-profile-summary" aria-label="Takım performansı"><h3>Takım performansı</h3>'+[["all","Son maçlar"],["home","İç saha"],["away","Deplasman"]].map(([v,label])=>{const s=mamTeamHistorySummary(recent,v);return '<div class="mam-profile-stat"><div><b>'+label+'</b><small>'+s.n+' maç</small></div>'+ (s.n?'<div class="mam-profile-form" aria-label="'+s.w+' galibiyet, '+s.d+' beraberlik, '+s.l+' mağlubiyet"><span class="mam-win">'+s.w+' G</span><span class="mam-draw">'+s.d+' B</span><span class="mam-loss">'+s.l+' M</span></div><div class="mam-profile-goals">Atılan gol <b>'+s.gf+'</b> · Yenilen gol <b>'+s.ga+'</b></div>':'<small>Yeterli kayıt yok</small>')+'</div>';}).join("")+'<small>Yalnızca listelenen tamamlanmış maçlar; sezon geneli değildir.</small></section>';
+   const profileSummary='<section class="mam-profile-summary" aria-label="Takım performansı"><h3>Takım performansı</h3>'+[["all","Son maçlar"],["home","İç saha"],["away","Deplasman"]].map(([v,label])=>{const s=mamTeamHistorySummary(recent,v);const form=s.form.map(x=>'<span class="mam-form-'+x+'" aria-label="'+(x==="w"?"Galibiyet":x==="d"?"Beraberlik":"Mağlubiyet")+'">'+(x==="w"?"G":x==="d"?"B":"M")+'</span>').join("");return '<div class="mam-profile-stat"><div><b>'+label+'</b><small>'+s.n+' maç</small></div>'+ (s.n?'<div class="mam-profile-form" aria-label="'+s.w+' galibiyet, '+s.d+' beraberlik, '+s.l+' mağlubiyet"><span class="mam-win">'+s.w+' G</span><span class="mam-draw">'+s.d+' B</span><span class="mam-loss">'+s.l+' M</span></div><div class="mam-profile-form-strip" aria-label="Son '+s.form.length+' maç formu">'+form+'</div><div class="mam-profile-goals">Maç başı gol <b>'+s.avgFor.toFixed(2)+'</b> · Yenilen <b>'+s.avgAgainst.toFixed(2)+'</b></div><div class="mam-profile-record">Puan <b>'+s.points+'</b> · Gol farkı <b>'+((s.gf-s.ga)>0?"+":"")+(s.gf-s.ga)+'</b> · Gol yemedi <b>'+s.cleanSheets+'</b></div>':'<small>Yeterli kayıt yok</small>')+'</div>';}).join("")+'<small>Yalnızca listelenen tamamlanmış maçlar; sezon geneli değildir.</small></section>';
    content.innerHTML=switchBar+profileSummary+'<div id="mamHistoryPastView">'+pastHtml+'</div><div id="mamHistoryUpcomingView" hidden>'+futureHtml+'</div>';
    const pastView=content.querySelector("#mamHistoryPastView"),upcomingView=content.querySelector("#mamHistoryUpcomingView");
    content.querySelectorAll("[data-history-view]").forEach(tab=>tab.addEventListener("click",()=>{

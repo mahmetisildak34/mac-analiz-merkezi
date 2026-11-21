@@ -13,6 +13,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: App integrity and inline JavaScript checks
+        run: node test/app-integrity.test.cjs
       - run: npm install --no-save --ignore-scripts playwright@1.51.1
       - run: npx playwright install --with-deps chromium
       - name: Offline browser checks
@@ -81,10 +83,10 @@ jobs:
                   await page.reload({waitUntil:'domcontentloaded'});
                   checks.preferenceRestored=await page.locator('#mamFavNotify').isChecked();
                   Object.assign(checks,await page.evaluate(()=>{
-                    const m=(a,b,status="FT",home="A",away="B")=>({fixture:{date:"2025-01-01T12:00:00Z",status:{short:status}},league:{id:1},teams:{home:{name:home},away:{name:away}},goals:{home:a,away:b}});
+                    const m=(a,b,status="FT",home="A",away="B",date="2025-01-01T12:00:00Z")=>({fixture:{date,status:{short:status}},league:{id:1},teams:{home:{name:home},away:{name:away}},goals:{home:a,away:b}});
                     const match=n=>n==="A", rows=x=>window.mamTeamHistoryRows(x,match);
                     const good=rows([m(0,0)]);
-                    return {historyZero:good.length===1,historyMissing:rows([m(null,0)]).length===0,historyLive:rows([m(1,0,"2H")]).length===0,historyConflict:rows([m(1,0),m(2,0)]).length===0,historyUnrelated:rows([m(1,0,"FT","C","B")]).length===0,historyAway:window.mamTeamHistorySummary(rows([m(1,2,"FT","B","A")]),"away").w===1};
+                    const profileRows=rows([m(2,0,"FT","A","B","2025-01-05T12:00:00Z"),m(1,1,"FT","A","B","2025-01-04T12:00:00Z"),m(0,1,"FT","A","B","2025-01-03T12:00:00Z"),m(0,0,"FT","B","A","2025-01-02T12:00:00Z"),m(3,1,"FT","A","B","2025-01-01T12:00:00Z")]);const profile=window.mamTeamHistorySummary(profileRows);const home=window.mamTeamHistorySummary(profileRows,"home"),away=window.mamTeamHistorySummary(profileRows,"away");return {historyZero:good.length===1,historyMissing:rows([m(null,0)]).length===0,historyLive:rows([m(1,0,"2H")]).length===0,historyConflict:rows([m(1,0),m(2,0)]).length===0,historyUnrelated:rows([m(1,0,"FT","C","B")]).length===0,historyAway:window.mamTeamHistorySummary(rows([m(1,2,"FT","B","A")]),"away").w===1,profileSamples:profile.n===5&&profile.w===2&&profile.d===2&&profile.l===1,profileAverages:profile.avgFor===1.4&&profile.avgAgainst===0.6,profilePoints:profile.points===8&&profile.cleanSheets===2&&profile.failedToScore===2,profileForm:profile.form.join("")==="wdldw"&&profile.streak===1,profileVenueSplit:home.n===4&&home.points===7&&away.n===1&&away.d===1};
                   }));
 
                   Object.assign(checks,await page.evaluate(()=>({
@@ -155,7 +157,7 @@ jobs:
                   }));
 
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===54&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===59&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
