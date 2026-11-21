@@ -66,7 +66,7 @@ assert.match(html, /FINISHED:"FT".*IN_PLAY:"LIVE".*PAUSED:"HT".*SCHEDULED:"NS"/,
 assert.match(html, /summary\.avgFor=summary\.n\?summary\.gf\/summary\.n:null/, "Team profile goals-for average missing");
 assert.match(html, /summary\.avgAgainst=summary\.n\?summary\.ga\/summary\.n:null/, "Team profile goals-against average missing");
 assert.match(html, /s\.cleanSheets\+\+/, "Team profile clean-sheet count missing");
-assert.match(html, /summary\.points\+=result==="w"\?3:result==="d"\?1:0/, "Team profile points calculation missing");
+assert.match(html, /s\.points\+=result==="w"\?3:result==="d"\?1:0/, "Team profile points calculation missing");
 assert.match(html, /mam-profile-form-strip/, "Recent team form strip missing");
 
 let checkedScripts = 0;
