@@ -1666,9 +1666,9 @@ button{transition:filter .15s ease,transform .15s ease}
  </div>
  <div class="mam-standings-card" id="mamStandingsCard" hidden><div class="mam-standings-banner" id="mamStandingsBanner"><div class="mam-standings-flag" id="mamStandingsFlag">🏆</div><div class="mam-standings-banner-copy"><strong id="mamStandingsBannerName">Lig</strong><span id="mamStandingsBannerMeta">Sezon</span></div><div class="mam-standings-banner-mark">⚽</div></div><div class="mam-standings-card-head"><button type="button" id="mamStandingsBack" class="secondary">← Liglere dön</button><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Lig puan durumu</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosu yükleniyor...</div></div></div>
  </section>
-<section class="panel">
-<div class="row">
-<div>
+<section class="panel mam-fixture-controls">
+<div class="row mam-primary-filters">
+<div class="mam-date-filter">
 <label for="date">Maç tarihi</label>
 <input id="date" type="date">
 </div>
@@ -8178,5 +8178,72 @@ input,select,.league-trigger{
  }
 }
 .mam-hide-bottom-nav .mam-bottom-nav{display:none!important}
+
+/* MAM: scoped filter layout and de-duplicated home navigation. */
+@media (max-width: 600px) {
+  .mam-fixture-controls .mam-primary-filters {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: start !important;
+    gap: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .mam-fixture-controls .mam-primary-filters > .mam-date-filter,
+  .mam-fixture-controls .mam-primary-filters > .league-picker {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    align-self: start !important;
+  }
+  .mam-fixture-controls .mam-primary-filters label {
+    display: block !important;
+    position: static !important;
+    float: none !important;
+    transform: none !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.35 !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+  .mam-fixture-controls #date,
+  .mam-fixture-controls #leagueTrigger {
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 46px !important;
+    height: 46px !important;
+    margin: 0 !important;
+    padding: 8px !important;
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+  }
+  .mam-fixture-controls #date { display: block !important; }
+  .mam-fixture-controls #leagueCurrent {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  main.mam-screen-home #mamMatchTabs {
+    display: none !important;
+  }
+}
+@media (max-width: 350px) {
+  .mam-fixture-controls .mam-primary-filters { gap: 8px !important; }
+  .mam-fixture-controls #date,
+  .mam-fixture-controls #leagueTrigger { font-size: 11px !important; padding: 6px !important; }
+}
 </style>
 
