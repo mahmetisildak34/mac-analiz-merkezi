@@ -81,6 +81,15 @@ jobs:
                   await page.reload({waitUntil:'domcontentloaded'});
                   checks.preferenceRestored=await page.locator('#mamFavNotify').isChecked();
                   Object.assign(checks,await page.evaluate(()=>({
+                    standingMissing:mamStandingCell(null)==='—'&&mamStandingCell('')==='—',
+                    standingZero:mamStandingCell(0)===0,
+                    standingDifferenceMissing:mamStandingDifference(null,2)==='—',
+                    standingDifferenceNegative:mamStandingDifference(2,4)===-2,
+                    standingForm:mamStandingForm('WWDLW')==='WWDLW',
+                    standingFormMissing:mamStandingForm(null)===''
+                  })));
+
+                  Object.assign(checks,await page.evaluate(()=>({
                     eventGoal:mamEventType('Goal','Normal Goal')==='Gol',
                     eventYellow:mamEventType('Card','Yellow Card')==='Sarı kart',
                     eventRed:mamEventType('Card','Red Card')==='Kırmızı kart',
@@ -139,7 +148,7 @@ jobs:
                   }));
 
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===42&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===48&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
