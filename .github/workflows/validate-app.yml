@@ -8,6 +8,7 @@ on:
       - "trusted-goal-poisson.js"
       - "tests/trusted-goal-poisson.test.mjs"
       - "tests/live-source-status.test.js"
+      - "tests/trusted-poisson-ui.test.js"
       - ".github/workflows/validate-app.yml"
       - "half-goal-algorithm.js"
       - "tests/half-goal-algorithm.test.js"
