@@ -37,6 +37,13 @@ jobs:
                   }
                   return route.abort();
                 });
+                // Synthetic authentication only inside this offline browser context.
+                await context.addInitScript(()=>{if(location.origin==='https://mam-test.invalid')localStorage.setItem('mam_session_token','offline-test-token');});
+                await context.route('https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/auth/check',route=>{
+                  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'https://mam-test.invalid','access-control-allow-headers':'authorization','access-control-allow-methods':'GET, OPTIONS'}});
+                  if(route.request().method()==='GET'&&route.request().headers().authorization==='Bearer offline-test-token')return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'https://mam-test.invalid'},body:JSON.stringify({ok:true})});
+                  return route.abort();
+                });
                 const errors=[];
                 page.on('pageerror',e=>errors.push(e.stack || e.message));
                 await page.goto('https://mam-test.invalid/index.html',{waitUntil:'domcontentloaded'});
@@ -46,7 +53,8 @@ jobs:
                 results.push({width,metrics,errors,pass:metrics.scroll<=width&&metrics.favorites&&errors.length===0});
                 const checks={};
                 try {
-                  await page.locator('#mamFavoritesOpen').click({timeout:3000});
+                  await page.locator('#mamAuthGate').waitFor({state:'detached',timeout:5000});
+                  await page.locator('#mamFavoritesOpen').click({timeout:5000});
                   checks.dialogOpen=await page.locator('#mamFavoritesDialog').evaluate(e=>e.open);
                   await page.locator('#mamFavSearch').fill('Fenerbahçe');
                   checks.searchInput=await page.locator('#mamFavSearch').inputValue()==='Fenerbahçe';
