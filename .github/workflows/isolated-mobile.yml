@@ -80,6 +80,15 @@ jobs:
                   checks.dialogClosed=await page.locator('#mamFavoritesDialog').evaluate(e=>!e.open);
                   await page.reload({waitUntil:'domcontentloaded'});
                   checks.preferenceRestored=await page.locator('#mamFavNotify').isChecked();
+                  Object.assign(checks,await page.evaluate(()=>({
+                    eventGoal:mamEventType('Goal','Normal Goal')==='Gol',
+                    eventYellow:mamEventType('Card','Yellow Card')==='Sarı kart',
+                    eventRed:mamEventType('Card','Red Card')==='Kırmızı kart',
+                    eventSubstitution:mamEventType('subst')==='Oyuncu değişikliği',
+                    eventMissed:mamEventType('Goal','Missed Penalty')===null,
+                    eventOrder:mamEventOrder("45+1'")<mamEventOrder("45+3'")&&mamEventOrder("45+3'")<mamEventOrder("46'")&&mamEventOrder("")===Infinity
+                  })));
+
                   Object.assign(checks,await page.evaluate(()=>{
                     const team={formation:'4-4-2',startXI:[1,4,4,2].flatMap((n,i)=>Array.from({length:n},(_,j)=>({player:{grid:(i+1)+':'+(j+1),name:'Test oyuncusu'}}))),substitutes:[{player:{name:'Test yedek'}}]};
                     const rows=mamVerifiedLineupRows(team);
@@ -130,7 +139,7 @@ jobs:
                   }));
 
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===36&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===42&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
