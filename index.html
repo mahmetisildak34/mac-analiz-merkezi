@@ -6222,38 +6222,31 @@ async function analyze(button){
    getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id),
    getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id)
   ]);
-  const homeMatches=homeHistory.slice(0,10);
-  const awayMatches=awayHistory.slice(0,10);
+  const {predictTrustedGoals}=await import("./trusted-goal-poisson.js");
+  const history=[...homeHistory,...awayHistory];
+  const asOf=new Date(date).toISOString();
+  const mapped=history.map(m=>({
+   source:m.mamSource??m.source??"",fixture_id:m.fixture?.id??null,
+   kickoff:m.fixture?.date??"",home_team:m.teams?.home?.name??"",
+   away_team:m.teams?.away?.name??"",home_goals:m.goals?.home,away_goals:m.goals?.away,
+   identity_verified:m.identity_verified===true,score_verified:m.score_verified===true,
+   conflicting:m.conflicting===true
+  }));
+  const trusted=predictTrustedGoals(mapped,{home_team:button.dataset.homeName,away_team:button.dataset.awayName,as_of:asOf,min_matches:3});
+  if(!trusted.available)throw new Error("Güvenilir tahmin üretilemedi: "+trusted.reason+" · Kullanılan "+trusted.used+" / dışlanan "+trusted.excluded+" maç.");
+  const eligible=history.filter(m=>m.identity_verified===true&&m.score_verified===true&&m.conflicting!==true&&m.fixture?.id!=null&&(m.mamSource||m.source)&&Date.parse(m.fixture?.date)<Date.parse(asOf)&&m.goals?.home!=null&&m.goals?.away!=null&&Number.isSafeInteger(Number(m.goals.home))&&Number.isSafeInteger(Number(m.goals.away))&&Number(m.goals.home)>=0&&Number(m.goals.away)>=0);
+  const homeMatches=eligible.filter(m=>m.teams?.home?.name===button.dataset.homeName).slice(0,10);
+  const awayMatches=eligible.filter(m=>m.teams?.away?.name===button.dataset.awayName).slice(0,10);
 
   const homeOverall=teamStats(homeMatches,homeId,"all");
   const awayOverall=teamStats(awayMatches,awayId,"all");
   const homeVenue=teamStats(homeMatches,homeId,"home");
   const awayVenue=teamStats(awayMatches,awayId,"away");
-  // Ana gol modeli için her takımda 10 doğrulanmış geçmiş maç zorunludur.
-  // İç saha/deplasman örneklemi 3'ün altındaysa takımın tüm saha maçları kullanılır
-  // ve bu düşük örneklem kullanıcıya açıkça belirtilir. Diğer metriklerin veri kapıları ayrıdır.
-  if(homeOverall.count<10||awayOverall.count<10){
-   throw new Error("Güvenilir analiz için geçmiş veri yetersiz. "+
-    button.dataset.homeName+": "+homeOverall.count+" toplam maç; "+
-    button.dataset.awayName+": "+awayOverall.count+" toplam maç. "+
-    "Gerekli: her takımda 10 doğrulanmış geçmiş maç. Veri tamamlanmadan tahmin gösterilmiyor.");
-  }
-  const homeVenueFallback=homeVenue.count<3;
-  const awayVenueFallback=awayVenue.count<3;
-  const hs=homeVenueFallback?homeOverall:homeVenue;
-  const as=awayVenueFallback?awayOverall:awayVenue;
-  const lowSample=hs.count<5||as.count<5;
-
-  const lh=Math.max(.15,Math.min(4,(hs.gf+as.ga)/2));
-  const la=Math.max(.15,Math.min(4,(as.gf+hs.ga)/2));
-  const total=lh+la;
-  let win=0,draw=0,lose=0;
-
-  for(let h=0;h<=10;h++)for(let a=0;a<=10;a++){
-   const p=poisson(lh,h)*poisson(la,a);
-   if(h>a)win+=p;else if(h===a)draw+=p;else lose+=p;
-  }
-
+  if(homeVenue.count<3||awayVenue.count<3)throw new Error("İç saha/deplasman için doğrulanmış örneklem yetersiz.");
+  const homeVenueFallback=false,awayVenueFallback=false;
+  const hs=homeVenue,as=awayVenue,lowSample=hs.count<5||as.count<5;
+  const lh=trusted.lambda_home,la=trusted.lambda_away,total=lh+la;
+  const win=trusted.probabilities.home_win,draw=trusted.probabilities.draw,lose=trusted.probabilities.away_win;
   const over15=overProb(total,2);
   const over25=overProb(total,3);
   const over35=overProb(total,4);
@@ -6315,6 +6308,7 @@ async function analyze(button){
     <div class="stat"><span>Model olasılığı</span><b>${pct(outcome.chance)}</b></div>
    </div>
    <p class="note">1-X-2 olasılıkları içindeki en yüksek sonuçtur; kesinlik veya garanti değildir.</p>
+   <p class="note">Veri kalitesi: doğrulanmış maç ve skor · Kullanılan ${trusted.used} · Dışlanan ${trusted.excluded} · Ev iç saha ${trusted.home_samples} / deplasman ${trusted.away_samples}.</p>
    <div class="section-title">Modelin tahmini gol ortalaması</div>
    <div class="statgrid">
     <div class="stat"><span>${esc(homeName)}</span><b>${lh.toFixed(2)}</b></div>
