@@ -4785,11 +4785,12 @@ function mamFavPanel(){
  document.getElementById("mamFavCount").textContent=set.size+" takip";
 }
 function mamFavInit(){const host=document.getElementById("matches");if(!host||document.getElementById("mamFavoritesPanel"))return;
- const panel=document.createElement("section");panel.id="mamFavoritesPanel";panel.innerHTML='<details><summary>★ Takip ve arama</summary><label for="mamFavSearch">Yüklü maçlarda ara</label><input id="mamFavSearch" type="search" placeholder="Takım veya lig"><label for="mamFavSelect">Takip edilecek takım veya lig</label><select id="mamFavSelect"></select><button type="button" id="mamFavToggle">Takibi değiştir ★</button><button type="button" id="mamFavClear">Takipleri temizle</button><label><input id="mamFavOnly" type="checkbox"> Sadece takip ettiklerim</label><small id="mamFavCount" aria-live="polite"></small><h3>Takip ettiklerim</h3><div id="mamFavSaved"></div></details>';host.before(panel);
+ const panel=document.createElement("section");panel.id="mamFavoritesPanel";panel.innerHTML='<details><summary>★ Takip ve arama</summary><label for="mamFavSearch">Yüklü maçlarda ara</label><input id="mamFavSearch" type="search" placeholder="Takım veya lig"><button type="button" id="mamFavSearchClear">Aramayı temizle</button><small id="mamFavSearchResult" aria-live="polite"></small><label for="mamFavSelect">Takip edilecek takım veya lig</label><select id="mamFavSelect"></select><button type="button" id="mamFavToggle">Takibi değiştir ★</button><button type="button" id="mamFavClear">Takipleri temizle</button><label><input id="mamFavOnly" type="checkbox"> Sadece takip ettiklerim</label><small id="mamFavCount" aria-live="polite"></small><h3>Takip ettiklerim</h3><div id="mamFavSaved"></div></details>';host.before(panel);
  host.addEventListener("click",e=>{const b=e.target.closest("button[data-mam-fav]");if(!b)return;e.preventDefault();e.stopPropagation();const set=mamFavFlip(mamFavRead(),b.dataset.mamFav);if(persist(set))renderMatches();});
  const persist=set=>{try{localStorage.setItem("mam_favorites_v1",JSON.stringify([...set]));return true;}catch(_){document.getElementById("mamFavCount").textContent="Tercih kaydedilemedi";return false;}};
  document.getElementById("mamSearchToggle")?.addEventListener("click",()=>{panel.querySelector("details").open=true;panel.scrollIntoView({block:"center"});panel.querySelector("#mamFavSearch").focus();});
  panel.querySelector("#mamFavSearch").addEventListener("input",e=>{mamFavQuery=e.target.value;renderMatches();});
+ panel.querySelector("#mamFavSearchClear").addEventListener("click",()=>{mamFavQuery="";panel.querySelector("#mamFavSearch").value="";renderMatches();panel.querySelector("#mamFavSearch").focus();});
  panel.querySelector("#mamFavOnly").addEventListener("change",e=>{mamFavOnly=e.target.checked;renderMatches();});
  panel.querySelector("#mamFavToggle").addEventListener("click",()=>{const k=panel.querySelector("#mamFavSelect").value;if(!k)return;const set=mamFavRead();if(set.has(k))set.delete(k);else set.add(k);if(persist(set))renderMatches();});
  panel.querySelector("#mamFavSaved").addEventListener("click",e=>{const b=e.target.closest("button[data-remove-fav]");if(!b)return;const set=mamFavRead();set.delete(b.dataset.removeFav);if(persist(set))renderMatches();});
@@ -4818,6 +4819,7 @@ function renderMatches(){
  }
  if(mamFavOnly){const set=mamFavRead();list=list.filter(m=>mamFavMatches(m,set));}
  if(mamFavQuery.trim())list=list.filter(m=>mamFavSearch(m,mamFavQuery));
+ const searchResult=document.getElementById("mamFavSearchResult");if(searchResult)searchResult.textContent=mamFavQuery.trim()?list.length+" maç bulundu (mevcut ekran ve yüklü veriler).":"";
  // Today's scoreboard order: active matches first (90' before newly started),
  // then scheduled fixtures, and completed results at the bottom.
  const mamStatusRank=m=>{
@@ -4873,6 +4875,7 @@ function renderMatches(){
   return;
  }
  if(!list.length){
+  if(mamFavQuery.trim()||mamFavOnly){$("matches").innerHTML='<div class="empty">Arama veya takip filtresine uygun maç bulunamadı.</div>';return;}
   $("matches").innerHTML=mamScreenMode==="today"?'<div class="empty">Türkiye saatine göre bugün henüz başlamamış maç bulunamadı. Başlangıç saati geçmiş fakat sağlayıcı durumu güncellenmemiş maçlar doğrulanmadan Canlı veya Biten olarak gösterilmez.</div>':'<div class="empty">Bu filtrede maç bulunamadı.</div>';
   return;
  }
@@ -6662,7 +6665,7 @@ async function analyze(button){
  const shut=()=>{drawer.classList.remove("open");drawer.setAttribute("aria-hidden","true");toggle.setAttribute("aria-expanded","false");document.body.style.overflow="";backdrop.hidden=true;};
  toggle.addEventListener("click",open);close.addEventListener("click",shut);backdrop.addEventListener("click",shut);
  drawer.querySelectorAll("[data-mam-nav]").forEach(item=>item.classList.remove("active"));
- $("mamSearchToggle")?.addEventListener("click",()=>{$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});});
+
  $("mamLiveNav")?.querySelectorAll("[data-live-action]").forEach(button=>button.addEventListener("click",async()=>{
   const action=button.dataset.liveAction;
   $("mamLiveNav").querySelectorAll(".mam-live-nav-item").forEach(item=>item.classList.toggle("active",item===button));
