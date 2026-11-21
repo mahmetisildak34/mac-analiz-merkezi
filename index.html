@@ -4803,6 +4803,7 @@ function mamFavInit(){const host=document.getElementById("matches");if(!host||do
  panel.querySelector("#mamFavSaved").addEventListener("click",e=>{const b=e.target.closest("button[data-remove-fav]");if(!b)return;const set=mamFavRead();set.delete(b.dataset.removeFav);if(persist(set))renderMatches();});
  panel.querySelector("#mamFavClear").addEventListener("click",()=>{if(persist(new Set()))renderMatches();});
 }
+document.addEventListener("DOMContentLoaded",()=>{mamFavInit();if(document.getElementById("mamFavoritesPanel"))mamFavPanel();},{once:true});
 function renderMatches(){
  mamFavInit();mamFavPanel();mamNotifyLiveGoalChanges(allMatches);
  const league=$("league").value;
