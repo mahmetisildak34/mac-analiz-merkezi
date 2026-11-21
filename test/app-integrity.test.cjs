@@ -3,6 +3,7 @@ const vm = require("node:vm");
 const assert = require("node:assert/strict");
 
 const html = fs.readFileSync("index.html", "utf8");
+const archiveClient = fs.readFileSync("archive-poisson-client.js", "utf8");
 
 function blockAfter(source, marker, endMarker) {
   const start = source.indexOf(marker);
@@ -69,11 +70,12 @@ assert.match(html, /s\.cleanSheets\+\+/, "Team profile clean-sheet count missing
 assert.match(html, /s\.points\+=result==="w"\?3:result==="d"\?1:0/, "Team profile points calculation missing");
 assert.match(html, /mam-profile-form-strip/, "Recent team form strip missing");
 assert.match(html, /await import\("\.\/archive-poisson-client\.js"\)/, "Verified archive Poisson client is not integrated");
-assert.match(html, /identity_verified:m\.identity_verified===true/, "Poisson input must require explicit identity verification");
-assert.match(html, /score_verified:m\.score_verified===true/, "Poisson input must require explicit score verification");
+assert.match(archiveClient, /identity_verified!==true/, "Poisson archive rows must require explicit identity verification");
+assert.match(archiveClient, /score_verified!==true/, "Poisson archive rows must require explicit score verification");
 assert.match(html, /min_league_matches:30/, "Poisson must require a verified league baseline");
 assert.match(html, /league_id:String\(button\.dataset\.league\)/, "Poisson archive must be scoped to the selected league");
-assert.match(html, /predictTrustedGoals\(mapped/, "Archive matches are not passed through trusted Poisson");
+assert.match(archiveClient, /predictTrustedGoals\(rows/, "Verified archive rows are not passed through trusted Poisson");
+assert.match(archiveClient, /analyzeArchiveFetchResponse/, "HTTP and JSON archive failures are not handled safely");
 assert.match(html, /trusted\.lambda_home/, "Trusted home goal rate is not used by the UI");
 assert.match(html, /const uniqueTeamHistory=rows=>\[\.\.\.new Map\(rows\.filter/, "Verified team history must be deduplicated per selected team");
 assert.match(html, /trusted\.probabilities\.home_win/, "Trusted 1X2 output is not used by the UI");

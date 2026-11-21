@@ -16,7 +16,7 @@ jobs:
       - name: App integrity and inline JavaScript checks
         run: node test/app-integrity.test.cjs
       - name: Trusted Poisson v1.2 acceptance tests
-        run: node --test tests/trusted-goal-poisson.test.mjs
+        run: node --test tests/trusted-goal-poisson.test.mjs tests/archive-poisson-client.test.mjs
       - run: npm install --no-save --ignore-scripts playwright@1.51.1
       - run: npx playwright install --with-deps chromium
       - name: Offline browser checks
