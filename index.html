@@ -1751,7 +1751,7 @@ button{transition:filter .15s ease,transform .15s ease}
 </div>
 
 <div class="mam-home-shortcuts" id="mamHomeShortcuts">
-<button type="button" class="mam-home-shortcut today" data-mam-action="today"><span>▦</span><b>Bugün</b><small>Günün tüm maçları</small></button>
+<button type="button" class="mam-home-shortcut today" data-mam-action="today"><span>▦</span><b>Bugün</b><small>Henüz başlamayanlar</small></button>
 <button type="button" class="mam-home-shortcut live" data-mam-action="live"><span>🔴</span><b>Canlı</b><small>Devam edenler</small></button>
 <button type="button" class="mam-home-shortcut upcoming" data-mam-action="upcoming"><span>▶</span><b>Gelecek</b><small>Önümüzdeki 30 gün</small></button>
 <button type="button" class="mam-home-shortcut finished" data-mam-action="finished"><span>✓</span><b>Biten</b><small>Tamamlanan maçlar</small></button>
@@ -1759,7 +1759,7 @@ button{transition:filter .15s ease,transform .15s ease}
 <nav id="mamMatchTabs" class="mam-match-tabs" aria-label="Maç kategorileri">
 <button type="button" data-match-mode="today">▦ Bugün</button><button type="button" data-match-mode="live">🔴 Canlı</button><button type="button" data-match-mode="upcoming">▶ Gelecek</button><button type="button" data-match-mode="finished">✓ Biten</button>
 </nav>
-<div id="mamTodayHeader" class="mam-today-header"><div><small>MAÇ PROGRAMI</small><strong id="mamTodayTitle">BUGÜNÜN MAÇLARI</strong></div><span id="mamTodayCount">GÜNCEL FİKSTÜR</span></div>
+<div id="mamTodayHeader" class="mam-today-header"><div><small>MAÇ PROGRAMI</small><strong id="mamTodayTitle">BUGÜN OYNANACAK MAÇLAR</strong></div><span id="mamTodayCount">GÜNCEL FİKSTÜR</span></div>
 <div class="mam-today-tabs" id="mamTodayTabs" role="tablist" aria-label="Bugünün maç filtreleri" hidden>
 <button type="button" class="active" data-today-filter="all" role="tab" aria-selected="true">Tümü <b id="mamTodayAllCount">0</b></button>
 <button type="button" data-today-filter="live" role="tab" aria-selected="false"><i class="mam-tab-live-dot"></i> Canlı <b id="mamTodayLiveCount">0</b></button>
@@ -4683,7 +4683,7 @@ function setMamScreen(mode){
  const todayHeader=$("mamTodayHeader");if(todayHeader)todayHeader.hidden=mode!=="today";
  const shortcuts=$("mamHomeShortcuts");if(shortcuts)shortcuts.hidden=mode!=="home";
  const header=$("mamSectionHeader");
- if(header){header.hidden=mode==="home";const back=$("mamSectionBack");if(back){back.hidden=false;back.style.display="";back.textContent="← Geri";}$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="finished"?"MAÇ SONUÇLARI":mode==="standings"?"LİG MERKEZİ":mode==="today"?"GÜNLÜK SKOR PANOSU":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="finished"?"Biten Maçlar":mode==="standings"?"Puan Durumu":mode==="today"?"Bugünün Maçları":"Oynanacak Maçlar";}
+ if(header){header.hidden=mode==="home";const back=$("mamSectionBack");if(back){back.hidden=false;back.style.display="";back.textContent="← Geri";}$("mamSectionEyebrow").textContent=mode==="live"?"CANLI TAKİP":mode==="finished"?"MAÇ SONUÇLARI":mode==="standings"?"LİG MERKEZİ":mode==="today"?"GÜNLÜK SKOR PANOSU":"FİKSTÜR TAKİBİ";$("mamSectionTitle").textContent=mode==="live"?"Canlı Maçlar":mode==="finished"?"Biten Maçlar":mode==="standings"?"Puan Durumu":mode==="today"?"Bugün Oynanacak Maçlar":"Oynanacak Maçlar";}
  const intro=document.querySelector(".mam-home-intro");if(intro)intro.hidden=mode!=="home";
  const superLigButton=$("loadSuperLigFixtures");if(superLigButton){superLigButton.hidden=mode!=="home";superLigButton.style.display=mode==="home"?"":"none";}
  const sourcePanel=document.querySelector(".mam-home-intro + section.panel");if(sourcePanel)sourcePanel.hidden=mode!=="home";
@@ -4708,10 +4708,9 @@ function renderMatches(){
  if(mamScreenMode==="upcoming")list=list.filter(m=>["NS","TBD","PST"].includes(mamCanonicalMatchStatus(m)));
  if(mamScreenMode==="finished")list=list.filter(m=>["FT","AET","PEN","AWD","WO"].includes(mamCanonicalMatchStatus(m)));
  if(mamScreenMode==="today"){
+  // Today is the unplayed fixtures list; live and completed have their own screens.
+  list=list.filter(m=>["NS","TBD"].includes(mamCanonicalMatchStatus(m)));
   const status=m=>mamCanonicalMatchStatus(m);
-  if(mamTodayFilter==="live")list=list.filter(m=>liveCodes.has(status(m)));
-  else if(mamTodayFilter==="upcoming")list=list.filter(m=>["NS","TBD","PST"].includes(status(m)));
-  else if(mamTodayFilter==="finished")list=list.filter(m=>["FT","AET","PEN","AWD","WO"].includes(status(m)));
   const counts={all:allMatches.length,live:allMatches.filter(m=>liveCodes.has(status(m))).length,upcoming:allMatches.filter(m=>["NS","TBD","PST"].includes(status(m))).length,finished:allMatches.filter(m=>["FT","AET","PEN","AWD","WO"].includes(status(m))).length};
   $("mamTodayAllCount").textContent=counts.all;$("mamTodayLiveCount").textContent=counts.live;$("mamTodayUpcomingCount").textContent=counts.upcoming;$("mamTodayFinishedCount").textContent=counts.finished;
   $("mamTodayTabs")?.querySelectorAll("[data-today-filter]").forEach(tab=>{const active=tab.dataset.todayFilter===mamTodayFilter;tab.classList.toggle("active",active);tab.setAttribute("aria-selected",String(active));});
@@ -4742,7 +4741,7 @@ function renderMatches(){
  if($("mamSectionCount")&&mamScreenMode!=="home")$("mamSectionCount").textContent=list.length+" MAÇ";
  const todayKey=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
  const selectedDate=$("date")?.value||todayKey;
- if($("mamTodayTitle"))$("mamTodayTitle").textContent=selectedDate===todayKey?"BUGÜNÜN MAÇLARI":new Date(selectedDate+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"})+" MAÇLARI";
+ if($("mamTodayTitle"))$("mamTodayTitle").textContent=selectedDate===todayKey?"BUGÜN OYNANACAK MAÇLAR":new Date(selectedDate+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"})+" MAÇLARI";
  if($("mamTodayCount"))$("mamTodayCount").textContent=list.length+" MAÇ";
  if(mamScreenMode==="upcoming"){
   list=list.filter(m=>["NS","TBD","PST"].includes(mamCanonicalMatchStatus(m)));
@@ -8324,5 +8323,8 @@ input,select,.league-trigger{
  #matches article.match.match-modern:not(.in-detail) .match-head{width:55px!important}
  #matches article.match.match-modern:not(.in-detail) .match-versus{grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr)!important;gap:2px!important}
 }
+
+/* Today is upcoming-only: avoid showing a second filter row offering live/finished inside Today. */
+main.mam-screen-today #mamTodayTabs{display:none!important}
 </style>
 
