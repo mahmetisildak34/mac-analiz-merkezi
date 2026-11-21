@@ -13,7 +13,7 @@ test("live screen accepts supported provider live states",()=>{
 });
 
 test("ESPN scoreboard maps in-progress and halftime events to live states",()=>{
- assert.match(html,/const live=!completed&&\(state==="in"\|\|state==="live"\|\|state==="inprogress"\|\|\/[\s\S]*?halftime[\s\S]*?first half[\s\S]*?second half/);
+ assert.match(html,/const live=!completed&&\(state==="in"\|\|state==="live"\|\|state==="inprogress"\|\|\/in progress\|halftime\|live\|first half\|second half/);
  assert.match(html,/const statusShort=completed\?"FT":halftime\?"HT":live\?"LIVE":"NS"/);
 });
 
