@@ -68,16 +68,16 @@ assert.match(html, /summary\.avgAgainst=summary\.n\?summary\.ga\/summary\.n:null
 assert.match(html, /s\.cleanSheets\+\+/, "Team profile clean-sheet count missing");
 assert.match(html, /s\.points\+=result==="w"\?3:result==="d"\?1:0/, "Team profile points calculation missing");
 assert.match(html, /mam-profile-form-strip/, "Recent team form strip missing");
-assert.match(html, /await import\("\.\/trusted-goal-poisson\.js"\)/, "Trusted Poisson v1.2 module is not integrated");
+assert.match(html, /await import\("\.\/archive-poisson-client\.js"\)/, "Verified archive Poisson client is not integrated");
 assert.match(html, /identity_verified:m\.identity_verified===true/, "Poisson input must require explicit identity verification");
 assert.match(html, /score_verified:m\.score_verified===true/, "Poisson input must require explicit score verification");
-assert.match(html, /league_average_home_goals:leagueAverageHome/, "Poisson model must receive evidence-based home league baseline");
-assert.match(html, /baselineRows\.length<30/, "Poisson model must reject insufficient league baseline");
-assert.match(html, /m\.goals\?\.home!=null&&m\.goals\?\.away!=null/, "League baseline must exclude missing scores");
+assert.match(html, /min_league_matches:30/, "Poisson must require a verified league baseline");
+assert.match(html, /league_id:String\(button\.dataset\.league\)/, "Poisson archive must be scoped to the selected league");
 assert.match(html, /predictTrustedGoals\(mapped/, "Archive matches are not passed through trusted Poisson");
 assert.match(html, /trusted\.lambda_home/, "Trusted home goal rate is not used by the UI");
 assert.match(html, /const uniqueTeamHistory=rows=>\[\.\.\.new Map\(rows\.filter/, "Verified team history must be deduplicated per selected team");
 assert.match(html, /trusted\.probabilities\.home_win/, "Trusted 1X2 output is not used by the UI");
+assert.match(html, /trustedHalf\.probabilities\.home_win/, "Independent first-half 1X2 output is not used by the UI");
 assert.match(html, /Model: Poisson v1\.2/, "Poisson v1.2 model version is not displayed");
 
 let checkedScripts = 0;
