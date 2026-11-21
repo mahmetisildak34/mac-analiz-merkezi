@@ -44,6 +44,23 @@ jobs:
                 const metrics=await page.evaluate(()=>({viewport:innerWidth,scroll:document.documentElement.scrollWidth,title:document.title,favorites:!!document.querySelector('#mamFavoritesOpen')}));
                 await page.screenshot({path:'mobile-results/'+width+'.png',fullPage:true});
                 results.push({width,metrics,errors,pass:metrics.scroll<=width&&metrics.favorites&&errors.length===0});
+                const checks={};
+                try {
+                  await page.locator('#mamFavoritesOpen').click({timeout:3000});
+                  checks.dialogOpen=await page.locator('#mamFavoritesDialog').evaluate(e=>e.open);
+                  await page.locator('#mamFavSearch').fill('Fenerbahçe');
+                  checks.searchInput=await page.locator('#mamFavSearch').inputValue()==='Fenerbahçe';
+                  await page.locator('#mamFavSearchClear').click();
+                  checks.searchClear=await page.locator('#mamFavSearch').inputValue()==='';
+                  await page.locator('#mamFavNotify').check();
+                  checks.preferenceSaved=await page.evaluate(()=>localStorage.getItem('mam_fav_notifications_v1')==='on');
+                  await page.screenshot({path:'mobile-results/'+width+'-favorites.png'});
+                  await page.locator('#mamFavoritesClose').click();
+                  checks.dialogClosed=await page.locator('#mamFavoritesDialog').evaluate(e=>!e.open);
+                  await page.reload({waitUntil:'domcontentloaded'});
+                  checks.preferenceRestored=await page.locator('#mamFavNotify').isChecked();
+                } catch(e){errors.push(e.stack||e.message);}
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===6&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
