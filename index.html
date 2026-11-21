@@ -4762,7 +4762,29 @@ function mamIsFutureUnplayed(match,now=Date.now()){
  const stamp=Date.parse(match?.fixture?.date||"");
  return ["NS","TBD"].includes(status)&&Number.isFinite(stamp)&&stamp>now;
 }
+function mamFavKey(kind,id){return id==null||String(id).trim()===""?"":kind+":"+String(id);}
+function mamFavRead(){try{const v=JSON.parse(localStorage.getItem("mam_favorites_v1")||"[]");return new Set(Array.isArray(v)?v.filter(x=>typeof x==="string"):[]);}catch(_){return new Set();}}
+function mamFavMatches(m,set){return [mamFavKey("team",m.teams?.home?.id),mamFavKey("team",m.teams?.away?.id),mamFavKey("league",m.league?.id)].some(k=>k&&set.has(k));}
+function mamFavSearch(m,q){const norm=x=>String(x||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i");return norm([m.teams?.home?.name,m.teams?.away?.name,m.league?.name].join(" ")).includes(norm(q.trim()));}
+let mamFavOnly=false,mamFavQuery="";
+function mamFavPanel(){
+ const panel=document.getElementById("mamFavoritesPanel");if(!panel)return;
+ const set=mamFavRead(),items=new Map();
+ for(const m of allMatches){for(const [kind,obj] of [["team",m.teams?.home],["team",m.teams?.away],["league",m.league]]){const k=mamFavKey(kind,obj?.id);if(k&&obj?.name)items.set(k,(kind==="league"?"Lig: ":"Takım: ")+obj.name);}}
+ const select=document.getElementById("mamFavSelect"),old=select.value;select.replaceChildren(new Option("Takım veya lig seç",""));
+ for(const [k,name] of [...items].sort((a,b)=>a[1].localeCompare(b[1],"tr"))){select.add(new Option((set.has(k)?"★ ":"")+name,k));}if(items.has(old))select.value=old;
+ document.getElementById("mamFavCount").textContent=set.size+" takip";
+}
+function mamFavInit(){const host=document.getElementById("matches");if(!host||document.getElementById("mamFavoritesPanel"))return;
+ const panel=document.createElement("section");panel.id="mamFavoritesPanel";panel.innerHTML='<details><summary>★ Takip ve arama</summary><label for="mamFavSearch">Yüklü maçlarda ara</label><input id="mamFavSearch" type="search" placeholder="Takım veya lig"><label for="mamFavSelect">Takip edilecek takım veya lig</label><select id="mamFavSelect"></select><button type="button" id="mamFavToggle">Takibi değiştir ★</button><button type="button" id="mamFavClear">Takipleri temizle</button><label><input id="mamFavOnly" type="checkbox"> Sadece takip ettiklerim</label><small id="mamFavCount" aria-live="polite"></small></details>';host.before(panel);
+ const persist=set=>{try{localStorage.setItem("mam_favorites_v1",JSON.stringify([...set]));return true;}catch(_){document.getElementById("mamFavCount").textContent="Tercih kaydedilemedi";return false;}};
+ panel.querySelector("#mamFavSearch").addEventListener("input",e=>{mamFavQuery=e.target.value;renderMatches();});
+ panel.querySelector("#mamFavOnly").addEventListener("change",e=>{mamFavOnly=e.target.checked;renderMatches();});
+ panel.querySelector("#mamFavToggle").addEventListener("click",()=>{const k=panel.querySelector("#mamFavSelect").value;if(!k)return;const set=mamFavRead();if(set.has(k))set.delete(k);else set.add(k);if(persist(set))renderMatches();});
+ panel.querySelector("#mamFavClear").addEventListener("click",()=>{if(persist(new Set()))renderMatches();});
+}
 function renderMatches(){
+ mamFavInit();mamFavPanel();
  const league=$("league").value;
  // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
  let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
@@ -4782,6 +4804,8 @@ function renderMatches(){
   $("mamTodayAllCount").textContent=counts.all;$("mamTodayLiveCount").textContent=counts.live;$("mamTodayUpcomingCount").textContent=counts.upcoming;$("mamTodayFinishedCount").textContent=counts.finished;
   $("mamTodayTabs")?.querySelectorAll("[data-today-filter]").forEach(tab=>{const active=tab.dataset.todayFilter===mamTodayFilter;tab.classList.toggle("active",active);tab.setAttribute("aria-selected",String(active));});
  }
+ if(mamFavOnly){const set=mamFavRead();list=list.filter(m=>mamFavMatches(m,set));}
+ if(mamFavQuery.trim())list=list.filter(m=>mamFavSearch(m,mamFavQuery));
  // Today's scoreboard order: active matches first (90' before newly started),
  // then scheduled fixtures, and completed results at the bottom.
  const mamStatusRank=m=>{
@@ -8477,3 +8501,5 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
  main:is(.mam-screen-live,main) #matches article.match.match-modern:not(.in-detail) .mam-match-open{width:32px!important;height:44px!important;min-height:44px!important;right:4px!important}
 }
 </style>
+
+<style id="mam-local-favorites">#mamFavoritesPanel{margin:8px 0;max-width:100%;min-width:0}#mamFavoritesPanel details{padding:10px;border:1px solid #65758a;border-radius:12px}#mamFavoritesPanel summary{cursor:pointer;font-weight:700;padding:8px}#mamFavoritesPanel details[open]>label,#mamFavoritesPanel details[open]>small{display:block;margin:8px 0}#mamFavoritesPanel input[type=search],#mamFavoritesPanel select,#mamFavoritesPanel button{max-width:100%;width:100%;min-height:44px;box-sizing:border-box;margin:4px 0}#mamFavoritesPanel input[type=checkbox]{width:auto;min-height:0}</style>
