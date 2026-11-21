@@ -4808,7 +4808,7 @@ function renderMatches(){
   }
   const displayedTime=isLiveStatus?(liveMinute||"Canlı"):time;
   return `<article class="match match-modern">
-   <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span>${isLiveStatus&&time?'<small style="font-size:10px;font-weight:650;color:#9fb3c8;white-space:nowrap">Başlangıç '+esc(time)+'</small>':""}</span></div>
+   <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span>${isLiveStatus&&time?'<small class="mam-kickoff-time" aria-label="Başlangıç saati: '+esc(time)+'">'+esc(time)+'</small>':""}</span></div>
    <div class="match-versus">
     <div class="team-block">${teamBadge(t.home)}<strong>${esc(t.home?.name)}</strong>${isFinishedStatus?mamOutcomeBadge(g.home,g.away):""}</div>
     <div class="match-center"><span class="match-clock">${g.home!=null?esc(g.home)+" – "+esc(g.away):esc(time||"VS")}</span><small>${isLiveStatus&&time?esc(statusLabel)+" · "+esc(time):(statusCode==="NS"?"Karşılaşma":esc(statusLabel))}</small></div>
@@ -8244,6 +8244,85 @@ input,select,.league-trigger{
   .mam-fixture-controls .mam-primary-filters { gap: 8px !important; }
   .mam-fixture-controls #date,
   .mam-fixture-controls #leagueTrigger { font-size: 11px !important; padding: 6px !important; }
+}
+
+/* Match kickoff / minute layout: dedicated time rail, no overlap with team badges. */
+@media (max-width:600px) {
+ #matches article.match.match-modern:not(.in-detail) {
+   box-sizing:border-box!important;
+   position:relative!important;
+   padding:5px 34px 5px 72px!important;
+   min-height:52px!important;
+   height:52px!important;
+   overflow:hidden!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-head,
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-head {
+   position:absolute!important;
+   top:50%!important;
+   left:5px!important;
+   transform:translateY(-50%)!important;
+   display:block!important;
+   width:62px!important;
+   height:auto!important;
+   min-height:0!important;
+   margin:0!important;
+   padding:0!important;
+   border:0!important;
+   text-align:center!important;
+   overflow:hidden!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-head > span {
+   display:flex!important;
+   flex-direction:column!important;
+   flex-wrap:nowrap!important;
+   justify-content:center!important;
+   align-items:center!important;
+   gap:3px!important;
+   width:100%!important;
+   min-width:0!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-time,
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-time {
+   display:block!important;
+   width:100%!important;
+   font-size:10px!important;
+   line-height:1.1!important;
+   text-align:center!important;
+   white-space:nowrap!important;
+   overflow:hidden!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .mam-kickoff-time {
+   display:block!important;
+   width:100%!important;
+   color:#b7c8d9!important;
+   font-size:9px!important;
+   line-height:1.15!important;
+   font-weight:650!important;
+   white-space:nowrap!important;
+   text-align:center!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-versus,
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus {
+   display:grid!important;
+   grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr)!important;
+   gap:4px!important;
+   align-items:center!important;
+   min-height:40px!important;
+   height:40px!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .team-block {min-width:0!important}
+ #matches article.match.match-modern:not(.in-detail) .team-block strong {
+   min-width:0!important;
+   overflow:hidden!important;
+   text-overflow:ellipsis!important;
+   white-space:nowrap!important;
+ }
+}
+@media(max-width:360px) {
+ #matches article.match.match-modern:not(.in-detail){padding-left:65px!important}
+ #matches article.match.match-modern:not(.in-detail) .match-head{width:55px!important}
+ #matches article.match.match-modern:not(.in-detail) .match-versus{grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr)!important;gap:2px!important}
 }
 </style>
 
