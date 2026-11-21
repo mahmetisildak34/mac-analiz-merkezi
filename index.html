@@ -6226,7 +6226,7 @@ async function analyze(button){
   const history=[...homeHistory,...awayHistory];
   const asOf=new Date(date).toISOString();
   const mapped=history.map(m=>({
-   source:m.mamSource??m.source??"",fixture_id:m.fixture?.id??null,
+   source:m.source??m.mamSource??"",fixture_id:m.fixture?.id??null,
    kickoff:m.fixture?.date??"",home_team:m.teams?.home?.name??"",
    away_team:m.teams?.away?.name??"",home_goals:m.goals?.home,away_goals:m.goals?.away,
    identity_verified:m.identity_verified===true,score_verified:m.score_verified===true,
