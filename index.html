@@ -1866,6 +1866,7 @@ function mamIstanbulDateString(value=new Date()){
 
 let apiQueue=Promise.resolve();
 let lastApiCall=0;
+const mamEspnScoreboardInFlight=new Map();
 
 async function api(path){
   const cleanPath=String(path).replace(/^\/+/, "");
@@ -2013,6 +2014,26 @@ async function api(path){
     return data;
   };
 
+  if(isEspnScoreboard){
+    // Same-tab scoreboard refreshes share one provider request per league/date.
+    // No D1 writes or primary API-Football budget are involved.
+    const existing=mamEspnScoreboardInFlight.get(cleanPath);
+    if(existing)return existing;
+    const run=(async()=>{
+      try{return await request();}
+      catch(error){
+        // At most one bounded retry for a transient gateway/network failure.
+        // Never retry rate limits, authorization, invalid JSON or fixture errors.
+        const detail=String(error?.message||error);
+        if(!/API hatası \(50[0234]\)|API hatası \(52[0-49]\)|bağlantı hatası|zaman aşımı/.test(detail))throw error;
+        await new Promise(resolve=>setTimeout(resolve,350));
+        return request();
+      }
+    })();
+    mamEspnScoreboardInFlight.set(cleanPath,run);
+    try{return await run;}
+    finally{if(mamEspnScoreboardInFlight.get(cleanPath)===run)mamEspnScoreboardInFlight.delete(cleanPath);}
+  }
   if(!isPrimaryApi)return request();
 
   const run=apiQueue.then(request);
