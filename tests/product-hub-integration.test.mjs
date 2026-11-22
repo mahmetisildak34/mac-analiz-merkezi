@@ -126,7 +126,7 @@ test('ESPN published standings parser keeps group, season, ranks and missing sta
 test('published ESPN standings import is local and remains separate from computed standings',()=>{
  assert.match(html,/id="standingsFile"/);
  assert.match(html,/parseEspnStandings\(JSON\.parse\(await file\.text\(\)\)\)/);
- assert.match(html,/ESPN verisinden aktarılan sıralama/);
+ assert.match(html,/Yüklenen ESPN biçimli JSON \(kaynak bağımsız doğrulanmadı\)/);
  assert.match(html,/Resmî lig puan durumu değildir/);
 });
 
@@ -134,4 +134,9 @@ test('ESPN standings array variant preserves official published points',async()=
  const {parseEspnStandings}=await import('../mobile/product-features.mjs');
  const groups=parseEspnStandings({standings:[{name:'League',entries:[{team:{id:'11',displayName:'Home'},stats:[{name:'points',value:9}]}]}]});
  assert.equal(groups.length,1);assert.equal(groups[0].rows[0].points,9);
+});
+
+test('ESPN event clocks render without an invented minute suffix',()=>{
+ assert.match(html,/x\.clock\?\.displayValue/);
+ assert.match(html,/typeof x\.clock==='string'/);
 });
