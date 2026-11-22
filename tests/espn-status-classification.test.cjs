@@ -24,7 +24,7 @@ const cases = [
   ['live first half', { state: 'in', detail: 'First Half' }, 'LIVE'],
   ['halftime', { state: 'in', detail: 'Halftime' }, 'HT'],
   ['full time', { state: 'post', detail: 'Full Time', completed: true }, 'FT'],
-  ['post-match live text', { state: 'post', detail: 'Live coverage ended' }, 'NS'],
+  ['post-match live text', { state: 'post', detail: 'Live coverage ended' }, 'FT'],
   ['postponed', { state: 'pre', detail: 'Postponed' }, 'PST'],
   ['cancelled', { state: 'pre', detail: 'Cancelled' }, 'CANC'],
   ['abandoned', { state: 'post', detail: 'Abandoned' }, 'ABD'],
