@@ -5785,7 +5785,31 @@ function renderMatches(){
   $("matches").innerHTML=mamScreenMode==="today"?'<div class="empty">Türkiye saatine göre bugün henüz başlamamış maç bulunamadı. Başlangıç saati geçmiş fakat sağlayıcı durumu güncellenmemiş maçlar doğrulanmadan Canlı veya Biten olarak gösterilmez.</div>':'<div class="empty">Bu filtrede maç bulunamadı.</div>';
   return;
  }
- const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{};const key=String(league.id??league.name??"other");if(!map.has(key))map.set(key,[]);map.get(key).push(match);return map;},new Map()).entries()];
+ // Live screen only: show major competitions before regional leagues.
+// Sorting operates on the already filtered groups, without changing fixture data,
+// scores, favorites, provider requests or the ordering of other screens.
+const mamLiveLeagueRank=league=>{
+ const raw=String(league?.name||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+ const country=String(league?.country||"").toLocaleLowerCase("tr-TR");
+ const is=(pattern)=>pattern.test(raw);
+ if(is(/super lig|superliga turk|turkish super/)&&/tur|tür/.test(country+" "+raw))return 0;
+ if(is(/champions league|sampiyonlar ligi|uefa sampiyonlar/))return 1;
+ if(is(/premier league/) && /eng|ing|united kingdom|uk|premier/.test(country+" "+raw))return 2;
+ if(is(/la liga|laliga|primera division/) && /spa|isp|esp|liga/.test(country+" "+raw))return 3;
+ if(is(/serie a/) && /ita|ital/.test(country+" "+raw))return 4;
+ if(is(/bundesliga/) && /ger|alm|deu/.test(country+" "+raw))return 5;
+ if(is(/ligue 1/) && /fra|fran/.test(country+" "+raw))return 6;
+ if(is(/europa league|avrupa ligi/))return 7;
+ if(is(/conference league|konferans ligi/))return 8;
+ if(is(/eredivisie/))return 9;
+ if(is(/primeira liga|liga portugal|portuguese primeira/))return 10;
+ if(is(/brasileir[aã]o|serie a brazil|brasileirao/))return 11;
+ if(is(/liga profesional|argentine primera|primera division argentina/))return 12;
+ if(is(/major league soccer|^mls$/))return 13;
+ return 100;
+};
+const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{};const key=String(league.id??league.name??"other");if(!map.has(key))map.set(key,[]);map.get(key).push(match);return map;},new Map()).entries()];
+ if(mamScreenMode==="live")groupedMatches.sort((a,b)=>mamLiveLeagueRank(a[1][0]?.league)-mamLiveLeagueRank(b[1][0]?.league));
  $("matches").innerHTML=groupedMatches.map(([groupKey,group])=>{
   const league=group[0]?.league||{};
   const countryFlags={"Czech-Republic":"🇨🇿","Czech Republic":"🇨🇿","Poland":"🇵🇱","Spain":"🇪🇸","Denmark":"🇩🇰","Germany":"🇩🇪","Italy":"🇮🇹","France":"🇫🇷","England":"🏴","Türkiye":"🇹🇷","Turkey":"🇹🇷","World":"🌍","Europe":"🇪🇺"};
