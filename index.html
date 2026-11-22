@@ -2739,6 +2739,8 @@ async function espnFixtures(date,includeAllLeagues=false){
   seenSlugs.add(league.slug);
   return true;
  });
+ // Prioritize the Turkish top flight so a slow scan of other leagues cannot delay it.
+ targets.sort((a,b)=>Number(b[0]==="203")-Number(a[0]==="203"));
  if(!targets.length)return [];
  const espnDate=String(date).replace(/-/g,"");
  const results=new Array(targets.length);
@@ -2789,6 +2791,7 @@ async function espnFixtures(date,includeAllLeagues=false){
  await Promise.all(Array.from({length:Math.min(5,targets.length)},worker));
  const matches=results.flatMap(result=>result?.status==="fulfilled"?result.value:[]);
  const failures=results.filter(result=>result?.status==="rejected");
+ if(failures.length)console.warn("ESPN kısmi lig hatası:",targets.filter((_,i)=>results[i]?.status==="rejected").map(([,league])=>league.slug));
  if(!matches.length&&failures.length){
   throw new Error("ESPN sonuçları ("+failures.length+"/"+targets.length+" lig isteği başarısız): "+failures.slice(0,4).map((x,index)=>String(x.reason?.message||x.reason)).join(" | "));
  }
