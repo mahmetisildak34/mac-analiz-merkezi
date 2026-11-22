@@ -18,4 +18,13 @@ jobs:
       - name: Check product module syntax
         run: node --check mobile/product-features.mjs
       - name: Run independent product regression
-        run: node --test tests/product-hub-integration.test.mjs
+        run: |
+          set -o pipefail
+          node --test tests/product-hub-integration.test.mjs 2>&1 | tee product-regression.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            echo "::group::FAILED TESTS — exact names and assertion locations"
+            grep -n -E '^not ok |^  (error:|stack:|operator:|expected:|actual:)|^    at ' product-regression.log || true
+            echo "::endgroup::"
+          fi
+          exit "$result"
