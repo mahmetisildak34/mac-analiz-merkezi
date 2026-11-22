@@ -44,3 +44,12 @@ test('live and Today remain separate screen filters',()=>{
 test('Super Lig ESPN mapping retains canonical league 203 and tur.1',()=>{
  assert.match(html,/"203":\{slug:"tur\.1",name:"Süper Lig",country:"Türkiye"\}/);
 });
+
+test('Istanbul calendar handles dates around local midnight and rejects invalid values',()=>{
+ assert.equal(sandbox.mamIstanbulDay('2026-11-22T20:59:59Z'),'2026-11-22');
+ assert.equal(sandbox.mamIstanbulDay('2026-11-22T21:00:00Z'),'2026-11-23');
+ assert.equal(sandbox.mamIstanbulDay('not-a-date'),'');
+});
+test('Today heading uses same canonical Istanbul day as fixture filtering',()=>{
+ assert.match(html,/const todayKey=mamIstanbulDay\(new Date\(\)\.toISOString\(\)\)/);
+});
