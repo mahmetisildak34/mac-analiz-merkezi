@@ -114,3 +114,12 @@ test("an exact ESPN event lookup cannot use another fixture with the same teams"
  assert.equal(await lookup({...options,eventId:"required"}),null);
  assert.equal(await lookup(options),different);
 });
+
+test("absence records must contain the exact fixture identity",()=>{
+ const start=html.indexOf("function mamRowsForFixture(");
+ const end=html.indexOf("function mamNormalizeAbsenceRows(",start);
+ const select=vm.runInNewContext(html.slice(start,end)+";mamRowsForFixture");
+ const correct={fixture:{id:71},team:"Galatasaray"};
+ assert.deepEqual(Array.from(select([correct,{fixture_id:72,team:"Galatasaray"},{team:"Galatasaray"}],"71")),[correct]);
+ assert.equal(select([correct],"").length,0);
+});

@@ -4054,10 +4054,13 @@ async function loadMamGoalEvents(article,panel,forceRefresh=false){
   }
   // API-Football kotası doluysa veya gol olayı dönmediyse ESPN maç özetini dene.
   if(!events.length&&leagueSlug){
-   const event=await mamFindEspnLiveEvent({slug:leagueSlug,date:matchDate,eventId:source==="espn"?fixtureId:"",homeName,awayName});
-   if(event){
-    const eventId=String(event.id);
+   const knownId=source==="espn"&&/^\d+$/.test(fixtureId)?fixtureId:"";
+   const event=knownId?null:await mamFindEspnLiveEvent({slug:leagueSlug,date:matchDate,eventId:"",homeName,awayName});
+   const eventId=knownId||String(event?.id||"");
+   if(eventId){
     const payload=await api("espn/"+leagueSlug+"/summary?"+qs({event:eventId}));
+    const competition=payload.header?.competitions?.[0];
+    if(String(competition?.id)!==eventId)throw new Error("ESPN maç olaylarının kimliği eşleşmedi.");
     const raw=[];
     const addArray=value=>{if(Array.isArray(value))raw.push(...value);};
     addArray(payload.scoringPlays);
@@ -4070,7 +4073,7 @@ async function loadMamGoalEvents(article,panel,forceRefresh=false){
      Object.values(value).forEach(child=>walk(child,depth+1));
     };
     walk(payload.plays);
-    const competitors=(event.competitions||[])[0]?.competitors||[];
+    const competitors=competition.competitors||[];
     const seen=new Set();
     events=raw.map(item=>{
      const athlete=item.athlete||item.athletes?.[0]?.athlete||item.athletes?.[0]||item.participants?.find?.(p=>p.athlete||p.type?.text==="Scorer")?.athlete||item.participants?.[0]?.athlete||item.participants?.[0]||item.player||{};
@@ -4153,21 +4156,10 @@ function mamAbsenceCacheKey(date){return "mam_absences_date_v1_"+String(date||""
 function mamReadAbsenceCache(date){
  try{const item=JSON.parse(localStorage.getItem(mamAbsenceCacheKey(date))||"null");return item&&Date.now()-Number(item.time||0)<4*60*60*1000&&Array.isArray(item.rows)?item.rows:null;}catch(_){return null;}
 }
-function mamAbsenceTeamKey(value){
- return String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g," ").replace(/\\b(fc|cf|sc|afc|club|football|kulubu|kulübü)\\b/g," ").replace(/\\s+/g," ").trim();
-}
-function mamRowsForFixture(rows,fixtureId,homeName="",awayName="",date=""){
+function mamRowsForFixture(rows,fixtureId){
  const id=String(fixtureId||"");
- const home=mamAbsenceTeamKey(homeName),away=mamAbsenceTeamKey(awayName);
- return (Array.isArray(rows)?rows:[]).filter(x=>{
-  const rowId=String(x.fixtureId||x.fixture?.id||x.fixture_id||"");
-  if(rowId===id)return true;
-  if(!home||!away)return false;
-  const rowDate=String(x.fixtureDate||x.fixture?.date||x.date||"").slice(0,10);
-  if(date&&rowDate&&rowDate!==date)return false;
-  const team=mamAbsenceTeamKey(x.team);
-  return !!team&&(team===home||team===away||home.includes(team)||away.includes(team)||team.includes(home)||team.includes(away));
- });
+ if(!id||!Array.isArray(rows))return [];
+ return rows.filter(row=>String(row?.fixtureId??row?.fixture?.id??row?.fixture_id??"")===id);
 }
 function mamNormalizeAbsenceRows(rows){
  return (Array.isArray(rows)?rows:[]).map(x=>{
@@ -4195,7 +4187,7 @@ async function autoScanMatchAbsences(){
    }
    const normalized=mamNormalizeAbsenceRows(rows);
    buttons.filter(b=>b.dataset.date===date).forEach(button=>{
-    const fixtureRows=mamRowsForFixture(normalized,button.dataset.id,button.dataset.homeName,button.dataset.awayName,date);
+    const fixtureRows=mamRowsForFixture(normalized,button.dataset.id);
     const summary=document.getElementById("absences-summary-"+button.dataset.id);
     if(summary){
      summary.textContent=fixtureRows.length?("🚑 "+fixtureRows.length+" doğrulanmış eksik oyuncu"):"Eksik oyuncu kaydı bulunamadı";
@@ -4224,7 +4216,7 @@ async function loadMatchAbsences(button){
   const date=String(button.dataset.date||"");
   const cached=mamReadAbsenceCache(date);
   if(cached){
-   rows=mamRowsForFixture(mamNormalizeAbsenceRows(cached),fixtureId,button.dataset.homeName,button.dataset.awayName,date);
+   rows=mamRowsForFixture(mamNormalizeAbsenceRows(cached),fixtureId);
   }else if(/^\\d+$/.test(fixtureId)){
    const payload=await api("injuries?"+qs({fixture:fixtureId}));
    rows=Array.isArray(payload.response)?payload.response:[];
@@ -4297,12 +4289,16 @@ async function loadLineups(button){
    let cachedEspn=null;
    try{const saved=JSON.parse(localStorage.getItem(espnCacheKey)||"null");if(saved?.time&&Date.now()-saved.time<30*60*1000)cachedEspn=saved.data;}catch(e){}
    const summary=cachedEspn||await api("espn/"+leagueSlug+"/summary?"+qs({event:eventId}));
+   const competition=summary.header?.competitions?.[0];
+   if(String(competition?.id)!==eventId)throw new Error("ESPN kadrosunun maç kimliği eşleşmedi.");
+   const expectedTeamIds=new Set((competition.competitors||[]).map(row=>String(row.team?.id??"")));
+
    if(!cachedEspn&&Array.isArray(summary.rosters)&&summary.rosters.some(r=>Array.isArray(r.roster)&&r.roster.length)){try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),data:summary}));}catch(e){}}
    const rosters=Array.isArray(summary.rosters)?summary.rosters:[];
    const forms=Array.isArray(summary.boxscore?.form)?summary.boxscore.form:[];
    const competitors=summary.header?.competitions?.[0]?.competitors||[];
-   teams=rosters.map((roster,index)=>{
-    const teamInfo=roster.team||forms.find(x=>String(x.team?.id||"")===String(roster.team?.id||""))?.team||competitors.find(x=>String(x.team?.id||"")===String(roster.team?.id||""))?.team||forms[index]?.team||competitors[index]?.team||{};
+   teams=rosters.filter(roster=>roster.team?.id!=null&&expectedTeamIds.has(String(roster.team.id))).map(roster=>{
+    const teamInfo=roster.team||forms.find(x=>String(x.team?.id||"")===String(roster.team?.id||""))?.team||competitors.find(x=>String(x.team?.id||"")===String(roster.team?.id||""))?.team||{};
     const entries=Array.isArray(roster.roster)?roster.roster:[];
     const normalizePlayer=entry=>{
      const athlete=entry.athlete||{};
@@ -4317,7 +4313,7 @@ async function loadLineups(button){
     };
     const starters=entries.filter(x=>x.starter===true).map(normalizePlayer);
     const substitutes=entries.filter(x=>x.starter!==true).map(normalizePlayer);
-    const formation=String(roster.formation||forms.find(x=>String(x.team?.id||"")===String(roster.team?.id||""))?.formation||forms[index]?.formation||"");
+    const formation=String(roster.formation||forms.find(x=>String(x.team?.id||"")===String(roster.team?.id||""))?.formation||"");
     const formationRows=formation.split("-").map(Number);
     if(formationRows.length&&formationRows.every(n=>Number.isInteger(n)&&n>0)&&formationRows.reduce((a,b)=>a+b,0)===10&&starters.length===11){
      const keeper=starters.find(p=>/^(GK|G|GOALKEEPER|GOAL KEEPER)$/.test(String(p.player.position||"")));
@@ -4648,7 +4644,7 @@ function makeMamDetailTab(article){
  if(livePanel)sections.stats.appendChild(livePanel);
  if(!statsButton&&!livePanel)sections.stats.innerHTML='<div class="match-detail-note">Canlı istatistikler yalnızca maç başladıktan sonra ve veri sağlayıcısı paylaşırsa gösterilir.</div>';
  if(analysisButton)sections.analysis.appendChild(analysisButton);
- if(prediction)sections.analysis.appendChild(prediction);
+ if(article.dataset.fixtureCompleted!=="true"&&prediction)sections.analysis.appendChild(prediction);
  else if(!analysisButton)sections.analysis.innerHTML='<div class="match-detail-note">Maç tamamlandığı için maç önü tahmini üretilmez.</div>';
  article.querySelector(".match-versus")?.after(tabs,panes);
  const open=document.createElement("button");open.type="button";open.className="mam-match-open";

@@ -224,10 +224,26 @@ jobs:
                   const stats=await detail.locator('.liveStats').innerText();
                   checks.finishedProviderStats=stats.includes('21')&&stats.includes('Kaynak: ESPN')&&!stats.includes('Model xG');
                   await page.screenshot({path:'mobile-results/'+width+'-match-statistics.png'});
+                  const visiblePane=async pane=>{
+                    await detail.locator('[data-pane="'+pane+'"][role="tab"]').click({timeout:5000});
+                    const panel=detail.locator('[data-pane="'+pane+'"][role="tabpanel"]');
+                    await panel.waitFor({state:'visible',timeout:5000});
+                    return panel;
+                  };
+                  const goals=await visiblePane('goals');
+                  await goals.locator('.mam-goal-row').first().waitFor({state:'visible',timeout:7000});
+                  checks.finishedEvents=(await goals.innerText()).includes("5'");
+                  await page.screenshot({path:'mobile-results/'+width+'-match-events.png'});
+                  const lineup=await visiblePane('lineup');
+                  await lineup.getByText('Galatasaray',{exact:true}).first().waitFor({state:'visible',timeout:7000});
+                  checks.finishedLineup=(await lineup.innerText()).includes('ilk 11');
+                  await page.screenshot({path:'mobile-results/'+width+'-match-lineup.png'});
+                  checks.finishedOtherTabs=await (await visiblePane('form')).isVisible()&&
+                    await (await visiblePane('absences')).isVisible()&&await (await visiblePane('analysis')).isVisible();
                   await detail.locator('.match-detail-close').click({timeout:5000});
                   checks.matchDetailBack=await detail.isHidden()&&await page.locator('#matches .mam-match-open').isVisible();
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===72&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===75&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();server.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}

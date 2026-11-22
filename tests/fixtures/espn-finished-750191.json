@@ -90,5 +90,719 @@
         ]
       }
     ]
-  }
+  },
+  "rosters": [
+    {
+      "team": {
+        "id": "432",
+        "displayName": "Galatasaray"
+      },
+      "formation": "4-2-3-1",
+      "roster": [
+        {
+          "athlete": {
+            "id": "222922",
+            "displayName": "Ugurcan Çakir"
+          },
+          "starter": true,
+          "position": {
+            "name": "Goalkeeper",
+            "displayName": "Goalkeeper",
+            "abbreviation": "G"
+          },
+          "formationPlace": "1",
+          "jersey": "1"
+        },
+        {
+          "athlete": {
+            "id": "193149",
+            "displayName": "Abdülkerim Bardakçi"
+          },
+          "starter": true,
+          "position": {
+            "name": "Center Left Defender",
+            "displayName": "Center Left Defender",
+            "abbreviation": "CD-L"
+          },
+          "formationPlace": "6",
+          "jersey": "42"
+        },
+        {
+          "athlete": {
+            "id": "197105",
+            "displayName": "Davinson Sánchez"
+          },
+          "starter": true,
+          "position": {
+            "name": "Center Right Defender",
+            "displayName": "Center Right Defender",
+            "abbreviation": "CD-R"
+          },
+          "formationPlace": "5",
+          "jersey": "6"
+        },
+        {
+          "athlete": {
+            "id": "268796",
+            "displayName": "Ismail Jakobs"
+          },
+          "starter": true,
+          "position": {
+            "name": "Left Back",
+            "displayName": "Left Back",
+            "abbreviation": "LB"
+          },
+          "formationPlace": "3",
+          "jersey": "4"
+        },
+        {
+          "athlete": {
+            "id": "219444",
+            "displayName": "Roland Sallai"
+          },
+          "starter": true,
+          "position": {
+            "name": "Right Back",
+            "displayName": "Right Back",
+            "abbreviation": "RB"
+          },
+          "formationPlace": "2",
+          "jersey": "7"
+        },
+        {
+          "athlete": {
+            "id": "266575",
+            "displayName": "Yunus Akgün"
+          },
+          "starter": true,
+          "position": {
+            "name": "Attacking Midfielder",
+            "displayName": "Attacking Midfielder",
+            "abbreviation": "AM"
+          },
+          "formationPlace": "10",
+          "jersey": "11"
+        },
+        {
+          "athlete": {
+            "id": "181729",
+            "displayName": "Mario Lemina"
+          },
+          "starter": true,
+          "position": {
+            "name": "Left Midfielder",
+            "displayName": "Left Midfielder",
+            "abbreviation": "LM"
+          },
+          "formationPlace": "4",
+          "jersey": "99"
+        },
+        {
+          "athlete": {
+            "id": "212973",
+            "displayName": "Lucas Torreira"
+          },
+          "starter": true,
+          "position": {
+            "name": "Right Midfielder",
+            "displayName": "Right Midfielder",
+            "abbreviation": "RM"
+          },
+          "formationPlace": "8",
+          "jersey": "34"
+        },
+        {
+          "athlete": {
+            "id": "228296",
+            "displayName": "Victor Osimhen"
+          },
+          "starter": true,
+          "position": {
+            "name": "Forward",
+            "displayName": "Forward",
+            "abbreviation": "F"
+          },
+          "formationPlace": "9",
+          "jersey": "45"
+        },
+        {
+          "athlete": {
+            "id": "322538",
+            "displayName": "Baris Alper Yilmaz"
+          },
+          "starter": true,
+          "position": {
+            "name": "Attacking Midfielder Left",
+            "displayName": "Attacking Midfielder Left",
+            "abbreviation": "AM-L"
+          },
+          "formationPlace": "11",
+          "jersey": "53"
+        },
+        {
+          "athlete": {
+            "id": "202641",
+            "displayName": "Leroy Sané"
+          },
+          "starter": true,
+          "position": {
+            "name": "Attacking Midfielder Right",
+            "displayName": "Attacking Midfielder Right",
+            "abbreviation": "AM-R"
+          },
+          "formationPlace": "7",
+          "jersey": "10"
+        },
+        {
+          "athlete": {
+            "id": "287225",
+            "displayName": "Sacha Boey"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "93"
+        },
+        {
+          "athlete": {
+            "id": "217267",
+            "displayName": "Günay Güvenc"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "19"
+        },
+        {
+          "athlete": {
+            "id": "255344",
+            "displayName": "Noa Lang"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "77"
+        },
+        {
+          "athlete": {
+            "id": "286569",
+            "displayName": "Wilfried Singo"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "90"
+        },
+        {
+          "athlete": {
+            "id": "287678",
+            "displayName": "Eren Elmali"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "17"
+        },
+        {
+          "athlete": {
+            "id": "268478",
+            "displayName": "Gabriel Sara"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "8"
+        },
+        {
+          "athlete": {
+            "id": "402986",
+            "displayName": "Renato Nhaga"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "74"
+        },
+        {
+          "athlete": {
+            "id": "159146",
+            "displayName": "Kaan Ayhan"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "23"
+        },
+        {
+          "athlete": {
+            "id": "167411",
+            "displayName": "Mauro Icardi"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "9"
+        },
+        {
+          "athlete": {
+            "id": "131424",
+            "displayName": "Ilkay Gündogan"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "20"
+        }
+      ]
+    },
+    {
+      "team": {
+        "id": "436",
+        "displayName": "Fenerbahce"
+      },
+      "formation": "4-2-3-1",
+      "roster": [
+        {
+          "athlete": {
+            "id": "176948",
+            "displayName": "Ederson"
+          },
+          "starter": true,
+          "position": {
+            "name": "Goalkeeper",
+            "displayName": "Goalkeeper",
+            "abbreviation": "G"
+          },
+          "formationPlace": "1",
+          "jersey": "31"
+        },
+        {
+          "athlete": {
+            "id": "304866",
+            "displayName": "Jayden Oosterwolde"
+          },
+          "starter": true,
+          "position": {
+            "name": "Center Left Defender",
+            "displayName": "Center Left Defender",
+            "abbreviation": "CD-L"
+          },
+          "formationPlace": "6",
+          "jersey": "24"
+        },
+        {
+          "athlete": {
+            "id": "175195",
+            "displayName": "Milan Skriniar"
+          },
+          "starter": true,
+          "position": {
+            "name": "Center Right Defender",
+            "displayName": "Center Right Defender",
+            "abbreviation": "CD-R"
+          },
+          "formationPlace": "5",
+          "jersey": "37"
+        },
+        {
+          "athlete": {
+            "id": "320982",
+            "displayName": "Archie Brown"
+          },
+          "starter": true,
+          "position": {
+            "name": "Left Back",
+            "displayName": "Left Back",
+            "abbreviation": "LB"
+          },
+          "formationPlace": "3",
+          "jersey": "3"
+        },
+        {
+          "athlete": {
+            "id": "222670",
+            "displayName": "Nélson Semedo"
+          },
+          "starter": true,
+          "position": {
+            "name": "Right Back",
+            "displayName": "Right Back",
+            "abbreviation": "RB"
+          },
+          "formationPlace": "2",
+          "jersey": "27"
+        },
+        {
+          "athlete": {
+            "id": "201625",
+            "displayName": "Talisca"
+          },
+          "starter": true,
+          "position": {
+            "name": "Attacking Midfielder",
+            "displayName": "Attacking Midfielder",
+            "abbreviation": "AM"
+          },
+          "formationPlace": "10",
+          "jersey": "94"
+        },
+        {
+          "athlete": {
+            "id": "248676",
+            "displayName": "Matteo Guendouzi"
+          },
+          "starter": true,
+          "position": {
+            "name": "Left Midfielder",
+            "displayName": "Left Midfielder",
+            "abbreviation": "LM"
+          },
+          "formationPlace": "4",
+          "jersey": "6"
+        },
+        {
+          "athlete": {
+            "id": "173556",
+            "displayName": "N'Golo Kanté"
+          },
+          "starter": true,
+          "position": {
+            "name": "Right Midfielder",
+            "displayName": "Right Midfielder",
+            "abbreviation": "RM"
+          },
+          "formationPlace": "8",
+          "jersey": "17"
+        },
+        {
+          "athlete": {
+            "id": "366817",
+            "displayName": "Sidiki Cherif"
+          },
+          "starter": true,
+          "position": {
+            "name": "Forward",
+            "displayName": "Forward",
+            "abbreviation": "F"
+          },
+          "formationPlace": "9",
+          "jersey": "26"
+        },
+        {
+          "athlete": {
+            "id": "306789",
+            "displayName": "Kerem Aktürkoglu"
+          },
+          "starter": true,
+          "position": {
+            "name": "Attacking Midfielder Left",
+            "displayName": "Attacking Midfielder Left",
+            "abbreviation": "AM-L"
+          },
+          "formationPlace": "11",
+          "jersey": "9"
+        },
+        {
+          "athlete": {
+            "id": "329486",
+            "displayName": "Nene Dorgeles"
+          },
+          "starter": true,
+          "position": {
+            "name": "Attacking Midfielder Right",
+            "displayName": "Attacking Midfielder Right",
+            "abbreviation": "AM-R"
+          },
+          "formationPlace": "7",
+          "jersey": "45"
+        },
+        {
+          "athlete": {
+            "id": "230757",
+            "displayName": "Çaglar Söyüncü"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "4"
+        },
+        {
+          "athlete": {
+            "id": "195821",
+            "displayName": "Marco Asensio"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "21"
+        },
+        {
+          "athlete": {
+            "id": "340186",
+            "displayName": "Yigit Demir"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "14"
+        },
+        {
+          "athlete": {
+            "id": "305629",
+            "displayName": "Ismail Yüksek"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "5"
+        },
+        {
+          "athlete": {
+            "id": "161559",
+            "displayName": "Fred"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "7"
+        },
+        {
+          "athlete": {
+            "id": "290511",
+            "displayName": "Munir Mercan"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "22"
+        },
+        {
+          "athlete": {
+            "id": "322813",
+            "displayName": "Oguz Aydin"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "70"
+        },
+        {
+          "athlete": {
+            "id": "266002",
+            "displayName": "Mert Müldür"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "18"
+        },
+        {
+          "athlete": {
+            "id": "124880",
+            "displayName": "Mert Günok"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "34"
+        },
+        {
+          "athlete": {
+            "id": "286947",
+            "displayName": "Anthony Musaba"
+          },
+          "starter": false,
+          "position": {
+            "name": "Substitute",
+            "displayName": "Substitute",
+            "abbreviation": "SUB"
+          },
+          "formationPlace": "0",
+          "jersey": "20"
+        }
+      ]
+    }
+  ],
+  "keyEvents": [
+    {
+      "id": "47565722",
+      "type": {
+        "id": "94",
+        "text": "Yellow Card",
+        "type": "yellow-card"
+      },
+      "text": "Jayden Oosterwolde (Fenerbahce) Yellow Card at 5'",
+      "clock": {
+        "value": 300.0,
+        "displayValue": "5'"
+      },
+      "team": {
+        "id": "436",
+        "displayName": "Fenerbahce"
+      },
+      "participants": [
+        {
+          "athlete": {
+            "id": "304866",
+            "displayName": "Jayden Oosterwolde"
+          }
+        }
+      ],
+      "scoringPlay": false
+    },
+    {
+      "id": "47565702",
+      "type": {
+        "id": "94",
+        "text": "Yellow Card",
+        "type": "yellow-card"
+      },
+      "text": "Ugurcan Çakir (Galatasaray) Yellow Card at 6'",
+      "clock": {
+        "value": 360.0,
+        "displayValue": "6'"
+      },
+      "team": {
+        "id": "432",
+        "displayName": "Galatasaray"
+      },
+      "participants": [
+        {
+          "athlete": {
+            "id": "222922",
+            "displayName": "Ugurcan Çakir"
+          }
+        }
+      ],
+      "scoringPlay": false
+    },
+    {
+      "id": "47565831",
+      "type": {
+        "id": "113",
+        "text": "Penalty - Missed",
+        "type": "penalty---missed"
+      },
+      "text": "Talisca (Fenerbahce) Penalty - Missed at 13'",
+      "clock": {
+        "value": 780.0,
+        "displayValue": "13'"
+      },
+      "team": {
+        "id": "436",
+        "displayName": "Fenerbahce"
+      },
+      "participants": [
+        {
+          "athlete": {
+            "id": "201625",
+            "displayName": "Talisca"
+          }
+        }
+      ],
+      "scoringPlay": false
+    },
+    {
+      "id": "47565931",
+      "type": {
+        "id": "94",
+        "text": "Yellow Card",
+        "type": "yellow-card"
+      },
+      "text": "Archie Brown (Fenerbahce) Yellow Card at 23'",
+      "clock": {
+        "value": 1380.0,
+        "displayValue": "23'"
+      },
+      "team": {
+        "id": "436",
+        "displayName": "Fenerbahce"
+      },
+      "participants": [
+        {
+          "athlete": {
+            "id": "320982",
+            "displayName": "Archie Brown"
+          }
+        }
+      ],
+      "scoringPlay": false
+    }
+  ]
 }
