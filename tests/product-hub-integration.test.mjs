@@ -147,3 +147,12 @@ test('top-level ESPN summary plays survive normalization and are sorted',async()
  assert.deepEqual(result.events.map(e=>e.text),['First','Second']);
  assert.match(html,/plays:m\.plays/);
 });
+
+test('ESPN rosters and boxscore player groups remain available without inventing lineups',async()=>{
+ const {matchDetails}=await import('../mobile/product-features.mjs');
+ assert.equal(matchDetails({id:'1',rosters:[{team:{name:'Club'},roster:[{athlete:{displayName:'Player'}}]}]}).lineups.length,1);
+ assert.equal(matchDetails({id:'2',boxscore:{players:[{team:{name:'Club'},athletes:[{athlete:{displayName:'Player'}}]}]}}).lineups.length,1);
+ assert.match(html,/rosters:m\.rosters/);
+ assert.match(html,/lineup\.athletes/);
+ assert.match(html,/entry\.athlete\?\.displayName/);
+});
