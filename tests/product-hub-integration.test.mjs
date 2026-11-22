@@ -178,7 +178,7 @@ test('ESPN live states and Istanbul today split do not misclassify kickoff or po
  assert.equal(isIstanbulToday({kickoff:'2026-11-22T20:30:00Z'},now),false);
  assert.match(html,/id="today" data-view/);
  assert.match(html,/data-tab="today"/);
- assert.match(html,/isIstanbulToday\(m\)&&!isLiveMatch\(m\)/);
+ assert.match(html,/isIstanbulToday\(m,day\)&&!isLiveMatch\(m\)/);
 });
 
 test('ESPN structured match status survives hub normalization for live filtering',()=>{
@@ -206,7 +206,7 @@ test('published ESPN standings preserve team name when displayName is absent',as
 
 test('mobile hub preserves ESPN date when kickoff is absent',()=>{
  assert.match(html,/kickoff:m\.kickoff\?\?m\.date\?\?fixture\.date/);
- assert.match(html,/isIstanbulToday\(m\)/);
+ assert.match(html,/isIstanbulToday\(m,day\)/);
 });
 
 

@@ -52,20 +52,42 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    assert.match(await page.locator('#detailsContent').innerText(),/Örnek Oyuncu/);
    assert.match(await page.locator('#detailsContent').innerText(),/55%/);
    await page.locator('#detailsBack').click();
-   assert.equal(await page.locator('#home').isVisible(),true);
+   assert.equal(await page.locator('#search').isVisible(),true);
+   assert.equal(await page.locator('#results [data-match="101"]').evaluate(button=>document.activeElement===button),true);
+   await page.locator('[data-tab="home"]').click();
+   await page.locator('#matchFilter').selectOption('finished');
+   await page.locator('#homeList [data-match="101"]').waitFor();
+   await page.locator('#matchFilter').selectOption('upcoming');
+   assert.match(await page.locator('#homeList').innerText(),/maç bulunamadı/);
+   await page.locator('[data-tab="today"]').click();
+   await page.locator('#matchDate').fill('2026-11-22');
+   await page.locator('#todayList [data-match="101"]').waitFor();
+   await page.locator('[data-tab="live"]').click();
+   assert.match(await page.locator('#liveList').innerText(),/canlı maç bulunamadı/);
    // One published row from ESPN tur.1, captured 2026-11-22.
    const standings={season:{displayName:'2026-27 Turkish Super Lig'},children:[{name:'Turkish Super Lig',standings:{entries:[{
     team:{id:'432',displayName:'Galatasaray'},
     stats:Object.entries({gamesPlayed:12,losses:1,pointDifferential:13,points:31,ties:1,wins:10,rank:1}).map(([name,value])=>({name,value}))
    }]}}]};
-   let requests=0;
-   await page.route('https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/espn/*/standings',route=>{
-    requests++;
-    const url=route.request().url();
-    if(url.includes('/tur.1/'))return route.fulfill({json:standings,headers:{'access-control-allow-origin':'*'}});
-    if(url.includes('/tur.2/'))return route.fulfill({json:{children:[]},headers:{'access-control-allow-origin':'*'}});
-    return route.fulfill({body:'{',headers:{'access-control-allow-origin':'*'}});
-   });
+   // Stub only the public ESPN endpoint at fetch, outside Playwright routing.
+   // WebKit can send requests from a controlled page outside page.route().
+   await page.evaluate(standings=>{
+    const fetchNetwork=window.fetch.bind(window);
+    window.standingsRequests=[];
+    window.fetch=async (input,options)=>{
+     const url=String(input);
+     const prefix='https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/espn/';
+     if(!url.startsWith(prefix)||!url.endsWith('/standings'))return fetchNetwork(input,options);
+     window.standingsRequests.push(url);
+     if(url.includes('/tur.1/'))return new Response(JSON.stringify(standings));
+     if(url.includes('/tur.2/'))return new Response('{"children":[]}');
+     if(url.includes('/esp.1/')){
+      await new Promise(resolve=>setTimeout(resolve,300));
+      window.slowStandingsFinished=true;
+     }
+     return new Response('{');
+    };
+   },standings);
    await page.locator('[data-tab="leagues"]').click();
    const table=page.locator('#espnTable');
    await table.getByText(/Galatasaray.*31 puan.*12 maç.*10 G.*1 B.*1 M.*13 averaj/).waitFor();
@@ -76,7 +98,13 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    await table.getByText(/puan tablosuna ulaşılamadı/).waitFor();
    await page.locator('#espnLeague').selectOption('tur.1');
    await table.getByText(/Galatasaray/).waitFor();
-   assert.equal(requests,3);
+   assert.equal(await page.evaluate(()=>window.standingsRequests.length),3);
+   await page.locator('#espnLeague').selectOption('esp.1');
+   await table.getByText(/yükleniyor/).waitFor();
+   await page.locator('#espnLeague').selectOption('tur.1');
+   await page.waitForFunction(()=>window.slowStandingsFinished===true);
+   await table.getByText(/Galatasaray/).waitFor();
+   assert.equal(await page.evaluate(()=>window.standingsRequests.length),4);
    const metrics=await page.evaluate(async()=>{
     const navigation=performance.getEntriesByType('navigation')[0];
     const start=performance.now();
@@ -98,7 +126,7 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    assert.match(await page.locator('#favTeams').innerText(),/Fenerbahçe/);
    await page.locator('[data-tab="leagues"]').click();
    await table.getByText(/Galatasaray/).waitFor();
-   assert.equal(requests,3);
+   assert.ok(await page.evaluate(()=>navigator.serviceWorker.controller!==null));
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
   }finally{await browser.close();}
  });
