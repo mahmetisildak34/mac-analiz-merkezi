@@ -29,3 +29,15 @@ test('main app shares already loaded matches and hub automatically consumes them
  assert.match(html,/loadSharedFixtures\(\);show\('home'\)/);
  assert.match(html,/24\*60\*60\*1000/);
 });
+
+test('search links teams to profile and team profile lists actual fixture cards',()=>{
+ assert.match(html,/found\.teams\.map\(teamCard\)/);
+ assert.match(html,/p\.past\.slice\(0,5\)\.map\(matchCard\)/);
+ assert.match(html,/p\.future\.slice\(0,5\)\.map\(matchCard\)/);
+});
+test('in-app reminders are opt-in, deduplicated and do not request push permission',()=>{
+ assert.match(html,/id="notifyCheck"/);
+ assert.match(html,/SEEN_KEY/);
+ assert.match(html,/seenAlerts\.includes\(x\.id\+'\\|'\+x\.kickoff\)/);
+ assert.doesNotMatch(html,/Notification\.requestPermission/);
+});
