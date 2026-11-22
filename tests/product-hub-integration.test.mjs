@@ -67,3 +67,10 @@ test('event detail supports API-Football nested elapsed minute, team and player'
  assert.match(html,/x\.team\?\.name/);
  assert.match(html,/x\.player\?\.name/);
 });
+
+test('bounded fixture snapshot retains matches across league groups',()=>{
+ assert.match(app,/const groups=new Map\(\)/);
+ assert.match(app,/match\?\.league\?\.id/);
+ assert.match(app,/for\(const group of groups\.values\(\)\)/);
+ assert.match(app,/selected\.length<1000/);
+});
