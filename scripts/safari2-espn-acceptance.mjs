@@ -7,9 +7,15 @@ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
 const index=html.indexOf("const ESPN_LEAGUES=");
 const end=html.indexOf("};",index);
 if(index<0||end<=index)throw Error("ESPN registry missing");
-const entries=Array.from(html.slice(index,end).matchAll(/"(\d+)":\{slug:"([^"]+)",name:"([^"]+)",country:"([^"]+)"\}/g),
+const registered=Array.from(html.slice(index,end).matchAll(/"([^"]+)":\{slug:"([^"]+)",name:"([^"]+)",country:"([^"]+)"\}/g),
  ([,id,slug,name,country])=>({id,slug,name,country}));
-if(!entries.length||new Set(entries.map(x=>x.slug)).size!==entries.length)throw Error("Duplicate or empty ESPN registry");
+const unique=new Map();
+for(const entry of registered){
+ if(!unique.has(entry.slug))unique.set(entry.slug,entry); // Alias keys share the same ESPN URL.
+}
+const entries=[...unique.values()];
+if(entries.length<49)throw Error("ESPN registry missing supported slugs: "+entries.length+" unique, expected at least 49");
+console.log("ESPN REGISTRY",registered.length,"registered keys,",entries.length,"unique slugs (includes textual aliases)");
 const currentDay=()=>{
  const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
  const get=k=>parts.find(x=>x.type===k)?.value||"";
