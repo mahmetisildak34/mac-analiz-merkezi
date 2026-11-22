@@ -16,7 +16,7 @@ export function teamProfile(team,fixtures,{now=Date.now()}={}){
  const id=String(team.id),games=fixtures.filter(m=>String(m.homeTeamId)===id||String(m.awayTeamId)===id);
  const past=games.filter(m=>['FT','AET','PEN'].includes(m.status)).sort((a,b)=>Date.parse(b.kickoff)-Date.parse(a.kickoff));
  const future=games.filter(m=>Number.isFinite(Date.parse(m.kickoff))&&Date.parse(m.kickoff)>now&&!['FT','AET','PEN'].includes(m.status)).sort((a,b)=>Date.parse(a.kickoff)-Date.parse(b.kickoff));
- const form=past.slice(0,5).map(m=>{const home=String(m.homeTeamId)===id;const a=Number(m.homeGoals),b=Number(m.awayGoals);if(!Number.isFinite(a)||!Number.isFinite(b))return '?';return a===b?'D':(home?a>b:b>a)?'W':'L';});
+ const form=past.slice(0,5).map(m=>{const home=String(m.homeTeamId)===id;const a=m.homeGoals,b=m.awayGoals;if(!Number.isSafeInteger(a)||!Number.isSafeInteger(b))return '?';return a===b?'D':(home?a>b:b>a)?'W':'L';});
  return {team,form,past,future};
 }
 export function matchDetails(match){
@@ -39,7 +39,7 @@ export function leagueStandings(fixtures,teams){
 export function searchFootball({teams=[],leagues=[],matches=[]},query){
  if(typeof query!=='string')throw new TypeError('Invalid search');
  const q=query.trim().toLocaleLowerCase('tr');if(!q)return {teams:[],leagues:[],matches:[]};
- const matchesQuery=x=>String(x.name??x.title??x.homeTeamName+' '+x.awayTeamName).toLocaleLowerCase('tr').includes(q);
+ const matchesQuery=x=>String(x.name??x.title??((x.homeTeamName??'')+' '+(x.awayTeamName??''))).toLocaleLowerCase('tr').includes(q);
  return {teams:teams.filter(matchesQuery),leagues:leagues.filter(matchesQuery),matches:matches.filter(matchesQuery)};
 }
 export function notificationCandidates(fixtures,favoriteIds,{now=Date.now(),windowMs=600000}={}){
