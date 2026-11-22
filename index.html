@@ -2722,7 +2722,11 @@ async function espnFixtures(date,includeAllLeagues=false){
    try{
     const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:espnDate,limit:500}));
     const events=Array.isArray(payload.events)?payload.events:[];
-    results[index]={status:"fulfilled",value:events.map(event=>{
+    results[index]={status:"fulfilled",value:events.filter(event=>{
+     const id=event?.id;
+     return (typeof id==="string"&&/^[a-z0-9._-]+$/i.test(id.trim())&&!/^(?:null|undefined|nan)$/i.test(id.trim()))||
+      (typeof id==="number"&&Number.isFinite(id)&&id>0);
+    }).map(event=>{
      const competition=(event.competitions||[])[0]||{};
      const competitors=competition.competitors||[];
      const home=competitors.find(team=>team.homeAway==="home")||{};
@@ -2741,7 +2745,7 @@ async function espnFixtures(date,includeAllLeagues=false){
      };
      const teamId=value=>{const n=Number(value);return Number.isFinite(n)&&n!==0?n:-1;};
      return {
-      fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||null,status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock||detail}},
+      fixture:{id:"espn-"+league.slug+"-"+String(event.id).trim(),date:event.date||null,status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock||detail}},
       league:{id:leagueId,name:league.name,country:league.country},
       teams:{
        home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||home.team?.logos?.[0]?.url||""},
@@ -4693,6 +4697,41 @@ function mamCanonicalMatchStatus(match){
  const aliases={FINISHED:"FT",COMPLETED:"FT",IN_PLAY:"LIVE",INPLAY:"LIVE",PAUSED:"HT",HALFTIME:"HT",FIRST_HALF:"1H",SECOND_HALF:"2H",EXTRA_TIME:"ET",PENALTY_SHOOTOUT:"P",SCHEDULED:"NS",TIMED:"NS",POSTPONED:"PST",SUSPENDED:"SUSP",CANCELLED:"CANC",CANCELED:"CANC",AWARDED:"AWD",ABANDONED:"ABD"};
  return aliases[raw]||raw;
 }
+// One physical fixture can have independent ESPN, API-Football and archive IDs.
+// Match only exact league/team identities at nearly identical kickoff times.
+function mamDeduplicateFixtures(matches){
+ if(!Array.isArray(matches))return [];
+ const normalizeTeam=value=>String(value??"").toLocaleLowerCase("tr-TR").normalize("NFD")
+  .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
+  .replace(/\b(?:fc|afc|fk|sk|sc|spor|kulubu|kulübü|club)\b/g,"")
+  .replace(/[^a-z0-9]/g,"");
+ const statusRank=match=>{
+  const status=mamCanonicalMatchStatus(match);
+  if(["FT","AET","PEN","CANC","PST","ABD","AWD","WO"].includes(status))return 3;
+  if(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(status))return 2;
+  return 1;
+ };
+ const sameFixture=(a,b)=>{
+  const leagueA=String(a?.league?.id??""),leagueB=String(b?.league?.id??"");
+  if(leagueA&&leagueB&&leagueA!==leagueB)return false;
+  const idA=String(a?.fixture?.id??"").trim(),idB=String(b?.fixture?.id??"").trim();
+  if(idA&&idB&&idA===idB)return true;
+  if(!leagueA||!leagueB)return false;
+  const homeA=normalizeTeam(a?.teams?.home?.name),awayA=normalizeTeam(a?.teams?.away?.name);
+  const homeB=normalizeTeam(b?.teams?.home?.name),awayB=normalizeTeam(b?.teams?.away?.name);
+  if(!homeA||!awayA||homeA!==homeB||awayA!==awayB)return false;
+  const first=Date.parse(a?.fixture?.date||""),second=Date.parse(b?.fixture?.date||"");
+  return Number.isFinite(first)&&Number.isFinite(second)&&Math.abs(first-second)<=10*60*1000;
+ };
+ const unique=[];
+ for(const match of matches){
+  if(!match||typeof match!=="object")continue;
+  const index=unique.findIndex(existing=>sameFixture(existing,match));
+  if(index<0)unique.push(match);
+  else if(statusRank(match)>statusRank(unique[index]))unique[index]=match;
+ }
+ return unique;
+}
 function mamIstanbulDay(value){
  const stamp=Date.parse(value||"");
  if(!Number.isFinite(stamp))return "";
@@ -4710,7 +4749,7 @@ function mamIsCrediblyLive(match,now=Date.now()){
  const elapsed=Number(match?.fixture?.status?.elapsed);
  const hasProgress=match?.fixture?.status?.elapsed!=null&&Number.isFinite(elapsed)&&elapsed>=0;
  // A recent provider update can substantiate an extended match beyond the normal kickoff window.
- if(!Number.isFinite(kickoff)||age< -20*60*1000)return false;
+ if(!Number.isFinite(kickoff)||age<0)return false;
  if(age<=4*60*60*1000)return true;
  // Explicit provider update timestamps can substantiate an older live fixture.
  const updated=Date.parse(match?.fixture?.status?.updated||match?.fixture?.updated||match?.updatedAt||"");
@@ -4722,6 +4761,8 @@ function mamIsFutureUnplayed(match,now=Date.now()){
  return ["NS","TBD"].includes(status)&&Number.isFinite(stamp)&&stamp>now;
 }
 function renderMatches(){
+ // Normalize every provider and cached snapshot before counting or rendering cards.
+ allMatches=mamDeduplicateFixtures(allMatches);
  const league=$("league").value;
  // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
  let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
