@@ -6,6 +6,7 @@ const SHELL = [
   new URL("index.html", BASE).href,
   new URL("manifest.webmanifest", BASE).href,
   new URL("icons/app-icon.svg", BASE).href,
+  new URL("icons/apple-touch-icon.png", BASE).href,
   new URL("half-goal-algorithm.js", BASE).href,
   new URL("safari2-favorites-search.js", BASE).href
 ];
