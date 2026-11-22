@@ -134,5 +134,5 @@ test("PWA install metadata and static shell assets are served",async({page})=>{
  const sw=await page.request.get("/service-worker.js");
  expect(sw.ok()).toBeTruthy();
  expect(await sw.text()).toContain('request.mode === "navigate"');
- await expect(page.locator("title")).toHaveText("Maç Analiz Merkezi");
+ await expect(page).toHaveTitle("Maç Analiz Merkezi");
 });
