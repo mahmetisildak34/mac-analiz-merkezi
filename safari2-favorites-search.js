@@ -34,7 +34,7 @@
  }:null;
  function matchKey(m){return key("match",m.league?.id,m.fixture?.id)}
  function teamKey(m,side){return key("team",m.league?.id,m.teams?.[side]?.id)}
- function itemFromMatch(m){return {kind:"match",league:clean(m.league?.id),id:clean(m.fixture?.id),name:clean(m.teams?.home?.name)+" – "+clean(m.teams?.away?.name),homeName:clean(m.teams?.home?.name),awayName:clean(m.teams?.away?.name),leagueName:clean(m.league?.name),date:clean(m.fixture?.date),snapshot:{status:fixtureStatus(m),home:m.goals?.home??null,away:m.goals?.away??null,savedAt:Date.now()}}}
+ function itemFromMatch(m){return {kind:"match",league:clean(m.league?.id),id:clean(m.fixture?.id),name:clean(m.teams?.home?.name)+" – "+clean(m.teams?.away?.name),homeName:clean(m.teams?.home?.name),awayName:clean(m.teams?.away?.name),leagueName:clean(m.league?.name),date:clean(m.fixture?.date),snapshot:{status:fixtureStatus(m),home:m.goals?.home??null,away:m.goals?.away??null,savedAt:(Number.isFinite(Number(m._mamLastVerifiedAt))&&Number(m._mamLastVerifiedAt)>0?Number(m._mamLastVerifiedAt):0)}}}
  function itemFromTeam(m,side){const t=m.teams?.[side]||{};return {kind:"team",league:clean(m.league?.id),id:clean(t.id),name:clean(t.name),leagueName:clean(m.league?.name),logo:clean(t.logo)}}
  function toggle(item){
   if(!valid(item))return false;
