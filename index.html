@@ -3913,10 +3913,15 @@ function mamNormalizeLiveTeamName(value){
 }
 function mamEspnClock(event){
  const type=event?.status?.type||event?.competitions?.[0]?.status?.type||{};
- const raw=event?.status?.displayClock||type.displayClock||type.detail||type.shortDetail||"";
- const match=String(raw).match(/(?:^|\D)(\d{1,3})(?::\d{2})?\s*'?/);
+ const state=String(type.state||"").toLowerCase();
+ const raw=event?.status?.displayClock||type.displayClock||type.shortDetail||type.detail||"";
+ // Only a leading football match minute is a clock: scheduled date text must
+ // never be parsed as elapsed minutes (e.g. "Sun, November 22nd at 11:00").
+ const match=String(raw).trim().match(/^(\d{1,3})(?:\:\d{2})?\s*(?:'|\+\d{1,2}'?)?$/);
  const minute=match?Number(match[1]):NaN;
- return {displayClock:String(raw),elapsed:Number.isFinite(minute)&&minute>=0&&minute<=130?minute:null};
+ const running=["in","live","inprogress"].includes(state);
+ const finished=state==="post"||type.completed===true;
+ return {displayClock:String(raw),elapsed:(running||finished)&&Number.isFinite(minute)&&minute>=0&&minute<=130?minute:null};
 }
 async function mamFindEspnLiveEvent({slug,date,eventId,homeName,awayName}){
  if(!slug)throw new Error("ESPN lig bilgisi bulunamadı.");
@@ -5071,9 +5076,12 @@ async function refreshActiveMatchScore(){
      const clock=mamEspnClock(event);
      const type=event.status?.type||competition.status?.type||{};
      const state=String(type.state||"").toLowerCase();
+     const detail=String(type.detail||type.shortDetail||type.name||"");
      const completed=type.completed===true||state==="post";
-     const halfTime=/half.?time/i.test(String(type.detail||type.shortDetail||""));
-     const statusShort=completed||state==="post"?"FT":halfTime?"HT":state==="pre"?"NS":state==="in"||state==="live"||state==="inprogress"?"LIVE":"LIVE";
+     const halfTime=/half[ -]?time|halftime|end of (the )?first half|interval/i.test(detail);
+     // Match the scoreboard classifier: a missing/unknown state is not evidence of live play.
+     const live=!completed&&(state==="in"||state==="live"||state==="inprogress"||(!state&&/^(?:in progress|halftime|half.time|first half|second half|extra time|penalty shootout|live)(?:\b|$)/i.test(detail)));
+     const statusShort=/cancelled|canceled/i.test(detail)?"CANC":/postponed/i.test(detail)?"PST":/abandoned/i.test(detail)?"ABD":/suspended/i.test(detail)?"SUSP":completed?"FT":live&&halfTime?"HT":live?"LIVE":"NS";
      const existing=fresh||allMatches.find(match=>
       (source==="api"?String(match.fixture?.id||"")===rawId:String(match.league?.id||"")===leagueId&&String(match.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId)
      );
