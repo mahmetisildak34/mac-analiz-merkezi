@@ -32,3 +32,11 @@ test('rejects completed and scheduled fixtures',()=>{
  assert.equal(ctx.mamIsCrediblyLive(fixture('FT','2026-11-22T13:00:00Z'),now),false);
  assert.equal(ctx.mamIsCrediblyLive(fixture('NS','2026-11-22T16:00:00Z'),now),false);
 });
+
+test('fresh fetch alone does not revive a stale LIVE match',()=>{
+ assert.equal(ctx.mamIsCrediblyLive(fixture('LIVE','2026-11-20T12:00:00Z'),now,true),false);
+});
+test('Today live count excludes stale labels using production predicate',()=>{
+ const matches=[fixture('LIVE','2026-11-20T12:00:00Z'),fixture('2H','2026-11-22T13:00:00Z'),fixture('FT','2026-11-22T12:00:00Z')];
+ assert.equal(matches.filter(m=>ctx.mamIsCrediblyLive(m,now)).length,1);
+});
