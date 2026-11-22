@@ -8818,11 +8818,11 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
 #mamTeamSearch .mam-team-result button,#mamTeamSearchClose{min-height:44px;min-width:44px;border-radius:9px}
 #mamTeamSearch .mam-team-result button[aria-pressed="true"]{color:#ffd769}
 </style>
-<section id="mamTeamSearch" role="dialog" aria-modal="true" aria-label="Takım arama ve favoriler" hidden>
+<section id="mamTeamSearch" role="dialog" aria-modal="true" aria-label="Takım ve lig arama" hidden>
  <div class="mam-search-sheet">
-  <div class="mam-search-head"><strong>Takım ara</strong><button type="button" id="mamTeamSearchClose" aria-label="Aramayı kapat">✕</button></div>
-  <input id="mamTeamSearchInput" type="search" placeholder="Takım adı yaz (ör. Fenerbahçe)" autocomplete="off" aria-label="Takım adı">
-  <p id="mamTeamSearchHelp">Takım adı yaz; bulunan takımları görüntüle.</p>
+  <div class="mam-search-head"><strong>Takım veya lig ara</strong><button type="button" id="mamTeamSearchClose" aria-label="Aramayı kapat">✕</button></div>
+  <input id="mamTeamSearchInput" type="search" placeholder="Takım veya lig yaz (ör. Beşiktaş, Süper Lig)" autocomplete="off" aria-label="Takım adı">
+  <p id="mamTeamSearchHelp">Takım veya lig adı yaz; sonuçları görüntüle.</p>
   <div id="mamTeamSearchResults" aria-live="polite"></div>
  </div>
 </section>
@@ -8830,9 +8830,9 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
 (function(){
  const trigger=document.getElementById('mamSearchToggle'),panel=document.getElementById('mamTeamSearch'),input=document.getElementById('mamTeamSearchInput'),results=document.getElementById('mamTeamSearchResults'),close=document.getElementById('mamTeamSearchClose');
  if(!trigger||!panel||!input||!results)return;
- const KEY='mam-product-hub-v1',LABELS='mam_favorite_labels_v1';
+ const LEAGUE_NAMES={'tur.1':'Süper Lig','eng.1':'Premier League','esp.1':'La Liga','ita.1':'Serie A','ger.1':'Bundesliga','fra.1':'Ligue 1','ned.1':'Eredivisie','por.1':'Primeira Liga','usa.1':'Major League Soccer','bra.1':'Brasileirão','arg.1':'Liga Profesional','uefa.champions':'UEFA Champions League','uefa.europa':'UEFA Europa League','uefa.europa.conf':'UEFA Conference League'};
  const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const normalize=value=>String(value??'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ const normalize=value=>String(value??'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i');
  const read=key=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{return {};}};
  let previousFocus=null;
  // Public ESPN team directories supplement fixture-only results. No API-Football calls.
@@ -8850,7 +8850,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
     if(!response.ok)return;
     const data=await response.json();
     const rows=Array.isArray(data?.sports?.[0]?.leagues?.[0]?.teams)?data.sports[0].leagues[0].teams:[];
-    for(const row of rows){const team=row?.team||row;if(team?.id!=null&&team?.displayName){const id='espn:'+league+':'+team.id;directory.set(id,{id,name:String(team.displayName),league,country:''});}}
+    for(const row of rows){const team=row?.team||row;if(team?.id!=null&&team?.displayName){const id='espn:'+league+':'+team.id;directory.set(id,{id,name:String(team.displayName),league:LEAGUE_NAMES[league]||league,country:''});}}
    }catch{}
   });
   await Promise.all(requests);
@@ -8872,10 +8872,13 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
  }
  function draw(){
   const q=normalize(input.value.trim());
-  const all=teams(),fav=read(KEY).favoriteTeams||[];
-  const filtered=(q?all.filter(t=>normalize(t.name).includes(q)):all.slice(0,60)).slice(0,60);
-  document.getElementById('mamTeamSearchHelp').textContent=directoryLoading?'Takım rehberi yükleniyor…':q?'Takım sonuçları (ESPN rehberi ve maç verileri).':'Takım adı yaz. Takımı favoriye eklemek için yıldızına basabilirsin.';
-  results.innerHTML=filtered.map(t=>'<div class="mam-team-result"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span><button type="button" data-search-team="'+escapeHtml(t.id)+'" aria-pressed="'+fav.includes(t.id)+'" aria-label="'+escapeHtml(t.name)+' favori">'+(fav.includes(t.id)?'★':'☆')+'</button></div>').join('')||'<p>'+(q?'Bu takım mevcut rehberde bulunamadı.':'Takım aramak için adını yaz.')+'</p>';
+  const all=teams();
+  const filtered=(q?all.filter(t=>normalize(t.name).includes(q)||normalize(t.league).includes(q)):all.slice(0,60)).slice(0,60);
+  const leagues=Object.entries(LEAGUE_NAMES).filter(([code,name])=>!q||normalize(name).includes(q)||normalize(code).includes(q)).slice(0,q?20:14);
+  document.getElementById('mamTeamSearchHelp').textContent=directoryLoading?'Takım ve lig rehberi yükleniyor…':q?'Takım ve lig arama sonuçları':'Takım veya lig adı yaz.';
+  const leagueHtml=leagues.map(([code,name])=>'<div class="mam-team-result"><span class="mam-team-name"><strong>'+escapeHtml(name)+'</strong><small style="display:block;color:#afc0dc">Lig · '+escapeHtml(code)+'</small></span></div>').join('');
+  const teamHtml=filtered.map(t=>'<div class="mam-team-result"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span></div>').join('');
+  results.innerHTML=leagueHtml+teamHtml||'<p>'+(directoryLoading?'Takımlar yükleniyor…':'Bu isimde takım veya lig mevcut rehberde bulunamadı.')+'</p>';
  }
  function hide(){panel.hidden=true;trigger.setAttribute('aria-expanded','false');document.body.style.overflow='';previousFocus?.focus();}
  trigger.addEventListener('click',()=>{previousFocus=document.activeElement;panel.hidden=false;trigger.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';input.value='';draw();loadDirectory();input.focus();});
@@ -8883,18 +8886,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
  panel.addEventListener('click',e=>{if(e.target===panel)hide();});
  document.addEventListener('keydown',e=>{if(!panel.hidden&&e.key==='Escape')hide();});
  input.addEventListener('input',draw);
- results.addEventListener('click',e=>{
-  const button=e.target.closest('[data-search-team]');if(!button)return;
-  const id=button.dataset.searchTeam,team=teams().find(t=>t.id===id);if(!team)return;
-  const state=read(KEY),favorites=Array.isArray(state.favoriteTeams)?state.favoriteTeams:[];
-  state.favoriteTeams=favorites.includes(id)?favorites.filter(x=>x!==id):[...favorites,id];
-  try{
-   localStorage.setItem(KEY,JSON.stringify(state));
-   const labels=read(LABELS);labels.teams={...(labels.teams||{}),[id]:team.name};localStorage.setItem(LABELS,JSON.stringify(labels));
-   window.dispatchEvent(new Event('mam-favorites-updated'));
-  }catch{document.getElementById('mamTeamSearchHelp').textContent='Favori kaydedilemedi: cihaz depolaması kullanılamıyor.';}
-  draw();
- });
+
 })();
 </script>
 <script type="module" src="./mobile/main-favorites.mjs"></script>
