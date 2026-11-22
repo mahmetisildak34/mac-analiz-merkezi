@@ -9,7 +9,7 @@ const extract=(start,end)=>{
  assert.ok(a>=0&&b>a,'source block missing: '+start);
  return html.slice(a,b);
 };
-const registry=extract('const ESPN_LEAGUES=','function mamEspnClock(');
+const registry=extract('const ESPN_LEAGUES=','};')+'};';
 const clock=extract('function mamEspnClock(','async function mamFindEspnLiveEvent(');
 const converter=extract('async function espnFixtures(','async function loadMatches(');
 const context={Date,Intl,Number,Math,Set,Map,Array,Object,JSON,String,Promise,console,localStorage:{getItem:()=>null,setItem:()=>{}},qs:args=>new URLSearchParams(args).toString(),$:()=>({value:'all'}),api:async()=>({events:[]})};
@@ -33,7 +33,7 @@ test('every configured ESPN slug produces an isolated fixture with correct leagu
   assert.equal(match.fixture.status.short,'FT');
   assert.equal(match.goals.home,2);
   assert.equal(match.goals.away,1);
-  assert.equal(new Date(match.fixture.date).toLocaleDateString('en-CA',{timeZone:'Europe/Istanbul'}),'11/23/2026');
+  assert.equal(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(match.fixture.date)),'23/11/2026');
  }
 });
 test('invalid or missing kickoff never becomes a fabricated scheduled match',async()=>{
