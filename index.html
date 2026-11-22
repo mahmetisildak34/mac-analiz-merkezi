@@ -8671,3 +8671,59 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
 }
 </style>
 
+
+<style id="mamDenseMatchCards">
+/* Compact mobile score rows: team stars above the respective team, match star above score. */
+@media (max-width:600px) {
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) {
+  position:relative!important;min-height:76px!important;
+  padding:20px 46px 3px 52px!important;margin:3px 0!important;
+  border-radius:8px!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-head {
+  top:22px!important;left:2px!important;width:46px!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-versus {
+  min-height:43px!important;height:auto!important;padding:0!important;
+  grid-template-columns:minmax(0,1fr) 43px minmax(0,1fr)!important;
+  gap:3px!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-block {
+  gap:2px!important;min-width:0!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-logo {
+  width:19px!important;height:19px!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-block strong {
+  font-size:11px!important;line-height:1.12!important;
+  display:-webkit-box!important;-webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;overflow:hidden!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites {
+  position:absolute!important;top:0!important;left:52px!important;right:46px!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr) 43px minmax(0,1fr)!important;
+  gap:3px!important;margin:0!important;align-items:start!important;
+  pointer-events:none!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites button {
+  pointer-events:auto!important;justify-self:center!important;
+  display:flex!important;align-items:flex-start!important;justify-content:center!important;
+  width:44px!important;height:44px!important;min-width:44px!important;
+  min-height:44px!important;padding:2px 0 0!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-mam-star="1"] {grid-column:1!important;grid-row:1!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-mam-star="0"] {grid-column:2!important;grid-row:1!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-mam-star="2"] {grid-column:3!important;grid-row:1!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-star-glyph {
+  font-size:16px!important;line-height:19px!important;color:#a7bdd5!important;
+  text-shadow:0 1px 2px #0b1427;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) [aria-pressed="true"] .mam-star-glyph {color:#ffd36d!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-match-open {
+  top:20px!important;right:1px!important;min-height:44px!important;
+ }
+ #matches .mam-league-group {margin:5px 0!important;padding:4px!important}
+ #matches .mam-league-heading {margin:2px 0 4px!important;padding:4px!important}
+}
+</style>
