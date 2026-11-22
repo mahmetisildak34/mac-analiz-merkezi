@@ -1586,6 +1586,8 @@ button{transition:filter .15s ease,transform .15s ease}
 <style>.mam-standings-table-wrap{max-width:100%;overflow-x:auto}.mam-standing-form{white-space:nowrap}.mam-standing-form span{display:inline-block;padding:3px 5px;margin:1px;border-radius:4px;color:white}.mam-form-W{background:#187b49}.mam-form-D{background:#596579}.mam-form-L{background:#ad343c}.mam-standings-table th,.mam-standings-table td{white-space:nowrap}</style>
 <style>
 #mamTeamHistoryContent .mam-profile-summary{display:grid;gap:8px;margin-bottom:16px}
+#mamTeamHistoryContent .mam-profile-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+#mamTeamHistoryContent .mam-profile-heading select{width:auto;min-height:44px}
 #mamTeamHistoryContent .mam-profile-summary h3{font-size:15px;margin:0 0 3px}
 #mamTeamHistoryContent .mam-profile-stat{display:grid;gap:9px;padding:12px;border:1px solid #52617a;border-radius:14px;background:#102241;min-width:0;overflow-wrap:anywhere}
 #mamTeamHistoryContent .mam-profile-stat>div:first-child{display:flex;justify-content:space-between;gap:8px;align-items:center}
@@ -1596,7 +1598,7 @@ button{transition:filter .15s ease,transform .15s ease}
 #mamTeamHistoryContent .mam-draw{background:#374151;color:#f3f4f6}
 #mamTeamHistoryContent .mam-loss{background:#642d40;color:#fecdd3}
 #mamTeamHistoryContent .mam-profile-goals{font-size:12px;color:#d6e1f5}
-#mamTeamHistoryContent .mam-profile-form-strip{display:flex;gap:5px;min-height:28px;align-items:center}
+#mamTeamHistoryContent .mam-profile-form-strip{display:flex;flex-wrap:wrap;gap:5px;min-height:28px;align-items:center}
 #mamTeamHistoryContent .mam-profile-form-strip span{display:grid;place-items:center;width:27px;height:27px;border-radius:8px;font-size:12px;font-weight:900}
 #mamTeamHistoryContent .mam-profile-form-strip .mam-form-w{background:#174b3c;color:#a7f3d0}
 #mamTeamHistoryContent .mam-profile-form-strip .mam-form-d{background:#374151;color:#f3f4f6}
@@ -7301,6 +7303,7 @@ async function mamSportScoreStandings(competitionName){
 function mamTeamHistoryRows(matches, matchesTeam, now=Date.now()){
  const map=new Map(), conflicts=new Set();
  for(const m of matches){
+  if(m?.conflicting===true||m?.identity_verified===false||m?.score_verified===false)continue;
   const home=matchesTeam(m.teams?.home?.name),away=matchesTeam(m.teams?.away?.name);
   const a=m.goals?.home,b=m.goals?.away;
   const valid=v=>v!==null&&v!==undefined&&typeof v!=="boolean"&&String(v).trim()!==""&&Number.isInteger(Number(v))&&Number(v)>=0;
@@ -7314,10 +7317,10 @@ function mamTeamHistoryRows(matches, matchesTeam, now=Date.now()){
  return [...map].filter(([k])=>!conflicts.has(k)).map(([,m])=>m).sort((a,b)=>Date.parse(b.fixture.date)-Date.parse(a.fixture.date)).slice(0,10);
 }
 window.mamTeamHistoryRows=mamTeamHistoryRows;
-function mamTeamHistorySummary(rows,venue="all"){
+function mamTeamHistorySummary(rows,venue="all",formLimit=5){
  const list=rows.filter(m=>venue==="all"||m.mamSelectedTeamHome===(venue==="home"));
  const summary=list.reduce((s,m)=>{const a=Number(m.goals.home),b=Number(m.goals.away),gf=m.mamSelectedTeamHome?a:b,ga=m.mamSelectedTeamHome?b:a,result=gf>ga?"w":gf<ga?"l":"d";s.n++;s.gf+=gf;s.ga+=ga;s[result]++;s.points+=result==="w"?3:result==="d"?1:0;if(ga===0)s.cleanSheets++;if(gf===0)s.failedToScore++;s.form.push(result);return s;},{n:0,w:0,d:0,l:0,gf:0,ga:0,points:0,cleanSheets:0,failedToScore:0,form:[]});
- summary.avgFor=summary.n?summary.gf/summary.n:null;summary.avgAgainst=summary.n?summary.ga/summary.n:null;summary.unbeaten=summary.w+summary.d;summary.form=summary.form.slice(0,5);summary.streak=0;for(const result of summary.form){if(result!==summary.form[0])break;summary.streak++;}
+ summary.avgFor=summary.n?summary.gf/summary.n:null;summary.avgAgainst=summary.n?summary.ga/summary.n:null;summary.unbeaten=summary.w+summary.d;summary.form=summary.form.slice(0,formLimit);summary.streak=0;for(const result of summary.form){if(result!==summary.form[0])break;summary.streak++;}
  return summary;
 }
 window.mamTeamHistorySummary=mamTeamHistorySummary;
@@ -7566,8 +7569,29 @@ const openStandingTeamHistory=async row=>{
       '<div class="pred" id="pred-'+esc(fixtureId)+'">Analiz henüz yapılmadı.</div></article>';
    }).join("")+'</div></div></section>':'<section style="margin-top:22px;"><div style="font-size:12px;font-weight:900;color:#65dcb1;margin:0 2px 10px;">GELECEK MAÇLAR</div><p style="font-size:12px;color:#a9c0c4;">'+(upcomingError?"Gelecek fikstürü alınamadı: "+esc(upcomingError):"Şu an listelenecek gelecek maç bulunamadı.")+'</p></section>';
    const switchBar='<div class="mam-team-history-banner"><div class="mam-team-history-banner-mark">⚽</div><div><strong>'+esc(teamName)+'</strong><small>'+esc(standingCompetitionNames[String(selectedStandingsLeague)]||ESPN_LEAGUES[String(selectedStandingsLeague)]?.name||"Lig") +' · TAKIM MAÇLARI</small></div></div><div style="display:flex;gap:8px;margin:0 0 14px;padding:4px;border:1px solid rgba(255,65,91,.45);border-radius:15px;background:#100b15;"><button type="button" data-history-view="past" aria-selected="true" style="flex:1;min-height:42px;padding:8px 10px;border-radius:11px;background:linear-gradient(135deg,#ffbd18,#e58a00);color:#160d06;font-size:12px;font-weight:950;">Geçmiş maçlar</button><button type="button" data-history-view="upcoming" aria-selected="false" style="flex:1;min-height:42px;padding:8px 10px;border-radius:11px;background:linear-gradient(145deg,#1b111c,#100c16);color:#f7edf1;font-size:12px;font-weight:900;">Gelecek maçlar</button></div>';
-   const profileSummary='<section class="mam-profile-summary" aria-label="Takım performansı"><h3>Takım performansı</h3>'+[["all","Son maçlar"],["home","İç saha"],["away","Deplasman"]].map(([v,label])=>{const s=mamTeamHistorySummary(recent,v);const form=s.form.map(x=>'<span class="mam-form-'+x+'" aria-label="'+(x==="w"?"Galibiyet":x==="d"?"Beraberlik":"Mağlubiyet")+'">'+(x==="w"?"G":x==="d"?"B":"M")+'</span>').join("");return '<div class="mam-profile-stat"><div><b>'+label+'</b><small>'+s.n+' maç</small></div>'+ (s.n?'<div class="mam-profile-form" aria-label="'+s.w+' galibiyet, '+s.d+' beraberlik, '+s.l+' mağlubiyet"><span class="mam-win">'+s.w+' G</span><span class="mam-draw">'+s.d+' B</span><span class="mam-loss">'+s.l+' M</span></div><div class="mam-profile-form-strip" aria-label="Son '+s.form.length+' maç formu">'+form+'</div><div class="mam-profile-goals">Maç başı gol <b>'+s.avgFor.toFixed(2)+'</b> · Yenilen <b>'+s.avgAgainst.toFixed(2)+'</b></div><div class="mam-profile-record">Puan <b>'+s.points+'</b> · Gol farkı <b>'+((s.gf-s.ga)>0?"+":"")+(s.gf-s.ga)+'</b> · Gol yemedi <b>'+s.cleanSheets+'</b></div>':'<small>Yeterli kayıt yok</small>')+'</div>';}).join("")+'<small>Yalnızca listelenen tamamlanmış maçlar; sezon geneli değildir.</small></section>';
-   content.innerHTML=switchBar+profileSummary+'<div id="mamHistoryPastView">'+pastHtml+'</div><div id="mamHistoryUpcomingView" hidden>'+futureHtml+'</div>';
+   const profileCards=limit=>{
+    const rows=recent.slice(0,limit);
+    const labels={w:"Galibiyet",d:"Beraberlik",l:"Mağlubiyet"};
+    const initials={w:"G",d:"B",l:"M"};
+    return [["all","Son maçlar"],["home","İç saha"],["away","Deplasman"]].map(([venue,label])=>{
+     const record=mamTeamHistorySummary(rows,venue,limit);
+     const heading='<div><b>'+label+'</b><small>'+record.n+' maç</small></div>';
+     if(!record.n)return '<div class="mam-profile-stat">'+heading+'<small>Yeterli kayıt yok</small></div>';
+     const form=record.form.map(result=>'<span class="mam-form-'+result+'" aria-label="'+labels[result]+'">'+initials[result]+'</span>').join("");
+     const goalDifference=record.gf-record.ga;
+     return '<div class="mam-profile-stat">'+heading+
+      '<div class="mam-profile-form" aria-label="'+record.w+' galibiyet, '+record.d+' beraberlik, '+record.l+' mağlubiyet"><span class="mam-win">'+record.w+' G</span><span class="mam-draw">'+record.d+' B</span><span class="mam-loss">'+record.l+' M</span></div>'+
+      '<div class="mam-profile-form-strip" aria-label="Son '+record.form.length+' maç formu">'+form+'</div>'+
+      '<div class="mam-profile-goals">Maç başı gol <b>'+record.avgFor.toFixed(2)+'</b> · Yenilen <b>'+record.avgAgainst.toFixed(2)+'</b></div>'+
+      '<div class="mam-profile-record">Puan <b>'+record.points+'</b> · Gol farkı <b>'+(goalDifference>0?"+":"")+goalDifference+'</b> · Gol yemedi <b>'+record.cleanSheets+'</b></div></div>';
+    }).join("");
+   };
+   const profileWindow=recent.length>5?'<label><select id="mamProfileWindow" aria-label="Form aralığı"><option value="10">Son 10 maç</option><option value="5">Son 5 maç</option></select></label>':"";
+   const profileSummary='<section class="mam-profile-summary" aria-label="Takım performansı"><div class="mam-profile-heading"><h3>Takım performansı</h3>'+profileWindow+'</div><div class="mam-profile-summary" id="mamProfileCards" aria-live="polite">'+profileCards(10)+'</div><small>Yalnızca seçilen tamamlanmış maçlar; sezon geneli değildir.</small></section>';
+   content.innerHTML=switchBar+'<div id="mamHistoryPastView">'+profileSummary+pastHtml+'</div><div id="mamHistoryUpcomingView" hidden>'+futureHtml+'</div>';
+   content.querySelector("#mamProfileWindow")?.addEventListener("change",event=>{
+    content.querySelector("#mamProfileCards").innerHTML=profileCards(Number(event.currentTarget.value));
+   });
    const pastView=content.querySelector("#mamHistoryPastView"),upcomingView=content.querySelector("#mamHistoryUpcomingView");
    content.querySelectorAll("[data-history-view]").forEach(tab=>tab.addEventListener("click",()=>{
     const showUpcoming=tab.dataset.historyView==="upcoming";
