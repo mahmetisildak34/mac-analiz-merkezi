@@ -1,4 +1,34 @@
 const {test,expect} = require("@playwright/test");
+const {createServer,get} = require("node:http");
+const {once} = require("node:events");
+
+const pwaTest = test.extend({
+ pwaOrigin: async ({baseURL},use)=>{
+  // Keep the shared static server available to the other browser tests.
+  const {hostname,port}=new URL(baseURL);
+  const server=createServer((request,response)=>{
+   get({hostname,port,path:request.url},upstream=>{
+    response.writeHead(upstream.statusCode,{...upstream.headers,"cache-control":"no-store"});
+    upstream.pipe(response);
+   }).on("error",()=>response.destroy());
+  });
+  server.listen(0,"127.0.0.1");
+  await once(server,"listening");
+  const url="http://127.0.0.1:"+server.address().port;
+  const disconnect=async()=>{
+   if(!server.listening)return;
+   const closed=once(server,"close");
+   server.close();
+   server.closeAllConnections();
+   await closed;
+  };
+  try{
+   await use({url,disconnect});
+  }finally{
+   await disconnect();
+  }
+ }
+});
 // Static same-origin app assets are served locally. Every external request, including
 // production Worker / API-Football, is aborted before it leaves the browser.
 test.beforeEach(async ({page})=>{
@@ -118,27 +148,27 @@ test("cached real-result history contributes to favorite team form without provi
  await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("İç saha");
 });
 
-test("PWA installs with project-scoped manifest and precaches the complete app shell",async({page,browserName})=>{
+pwaTest("PWA installs with project-scoped manifest and precaches the complete app shell",async({page,pwaOrigin})=>{
  await page.unroute("**/*");
  await page.setViewportSize({width:390,height:844});
- await page.goto("/",{waitUntil:"domcontentloaded"});
+ await page.goto(pwaOrigin.url,{waitUntil:"load"});
  expect(await page.locator('link[rel="manifest"]').getAttribute("href")).toBe("./manifest.webmanifest");
- const manifest=await page.request.get("/manifest.webmanifest");
+ const manifest=await page.request.get(pwaOrigin.url+"/manifest.webmanifest");
  expect(manifest.ok()).toBeTruthy();
  const data=await manifest.json();
  expect(data.display).toBe("standalone");
  expect(data.scope).toBe("./");
  expect(data.lang).toBe("tr-TR");
- const icon=await page.request.get("/icons/app-icon.svg");
+ const icon=await page.request.get(pwaOrigin.url+"/icons/app-icon.svg");
  expect(icon.ok()).toBeTruthy();
  expect(await icon.text()).toContain("<svg");
- const appleIcon=await page.request.get("/icons/apple-touch-icon.png");
+ const appleIcon=await page.request.get(pwaOrigin.url+"/icons/apple-touch-icon.png");
  expect(appleIcon.ok()).toBeTruthy();
  expect(appleIcon.headers()["content-type"]).toContain("image/png");
  await page.waitForFunction(async()=>{
   if(!("serviceWorker" in navigator))return false;
   const registration=await navigator.serviceWorker.getRegistration();
-  return Boolean(registration?.active);
+  return registration?.active?.state==="activated" && Boolean(navigator.serviceWorker.controller);
  },null,{timeout:10000});
  const cachedPaths=await page.evaluate(async()=>{
   const cache=await caches.open("mam-shell-v1");
@@ -148,4 +178,10 @@ test("PWA installs with project-scoped manifest and precaches the complete app s
  expect(cachedPaths.some(path=>path.endsWith("/half-goal-algorithm.js"))).toBeTruthy();
  expect(cachedPaths.some(path=>path.endsWith("/safari2-favorites-search.js"))).toBeTruthy();
  await expect(page.locator("#mamAuthGate")).toBeVisible();
+ // Disconnect the origin for real, including requests made by the service worker.
+ await pwaOrigin.disconnect();
+ const offlineNavigation=await page.goto(pwaOrigin.url+"/?offline",{waitUntil:"load"});
+ expect(offlineNavigation?.status()).toBe(200);
+ await expect(page.locator("#mamAuthGate")).toBeVisible();
+ await expect(page.locator("nav.mam-bottom-nav")).toBeVisible();
 });
