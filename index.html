@@ -2750,8 +2750,8 @@ function mamEspnScoreboardMatches(events,leagueId,league){
      const statusShort=unavailable[providerStatus]||(completed?"FT":halftime?"HT":live?"LIVE":"NS");
      const clock=mamEspnClock(event);
      const toGoals=value=>{
-      if(value===null||value===undefined||value==="")return null;
-      const parsed=Number(value);return Number.isFinite(parsed)?parsed:null;
+      if(typeof value!=="number"&&(typeof value!=="string"||!/^\d+$/.test(value.trim())))return null;
+      const parsed=Number(value);return Number.isSafeInteger(parsed)&&parsed>=0?parsed:null;
      };
      const teamId=value=>{const n=Number(value);return Number.isFinite(n)&&n!==0?n:-1;};
      return {
@@ -2780,6 +2780,18 @@ function mamMergeSuperLigScoreboard(matches,fresh){
   if(String(match?.league?.id)==="203"&&/^espn-tur\.1-.+/.test(id))merged.set(id,match);
  }
  return [...merged.values()];
+}
+
+function mamConfirmedInactiveEspnMatches(matches){
+ const terminal=new Set(["FT","AET","PEN","AWD","WO","PST","CANC","ABD","SUSP","INT","DELAYED"]);
+ const confirmed=matches.filter(match=>terminal.has(mamCanonicalMatchStatus(match)));
+ const ids=new Set(confirmed.map(match=>String(match.fixture.id)));
+ const key=match=>JSON.stringify([
+  String(match.league?.id??""),mamIstanbulDay(match.fixture?.date),
+  mamNormalizeLiveTeamName(match.teams?.home?.name),mamNormalizeLiveTeamName(match.teams?.away?.name)
+ ]);
+ const pairs=new Set(confirmed.map(key));
+ return match=>ids.has(String(match.fixture?.id))||pairs.has(key(match));
 }
 
 async function mamEspnLiveScoreboard(date){
@@ -3389,6 +3401,7 @@ async function loadLiveMatchesNow(){
   renderMatches();
   $("status").textContent="Son kayıtlı canlı maçlar yükleniyor; güncel skorlar kontrol ediliyor...";
  }
+ let isConfirmedInactive=()=>false;
  let primaryErrorText="",primaryCount=0,espnErrorText="",primaryLiveMatches=[];
   let fallbackSchedule=[],espnCount=0,espnLiveCount=0,footballDataCount=0,sportScoreCount=0;
  try{
@@ -3424,6 +3437,7 @@ async function loadLiveMatchesNow(){
    // D1 arşiv yazımı canlı ekranı bekletmemeli; sağlayıcıdan gelen maçları
    // gösterme akışıyla paralel yürüt ve arşiv hatasını yalnızca günlüğe yaz.
    if(fallback.length)mamSaveMatchesToD1(fallback).catch(error=>console.warn("ESPN canlı maçları D1 arşivine yazılamadı:",error));
+   isConfirmedInactive=mamConfirmedInactiveEspnMatches(fallback);
    const fallbackLive=fallback.filter(isLive);
    espnLiveCount=fallbackLive.length;
    // Cross-check the primary live score and elapsed minute against the ESPN events already fetched.
@@ -3432,7 +3446,7 @@ async function loadLiveMatchesNow(){
     // API-Football kota hatasında ESPN daha az lig döndürebilir.
     // Son 10 dakikada başarıyla alınan ana canlı listeyi silme; ESPN sonuçlarıyla birleştir.
     const recentCachedLive=savedLiveCache&&Date.now()-Number(savedLiveCache.savedAt||0)<=3*60*1000
-     ?savedLiveCache.matches.filter(isLive):[];
+     ?savedLiveCache.matches.filter(match=>isLive(match)&&!isConfirmedInactive(match)):[];
     const cleanTeamName=value=>String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
     const matchPair=match=>cleanTeamName(match.teams?.home?.name)+"|"+cleanTeamName(match.teams?.away?.name);
     // Taze ESPN skoru, aynı takımlar için cihazdaki eski API önbelleğinin daima önüne geçer.
@@ -3469,7 +3483,7 @@ async function loadLiveMatchesNow(){
    try{
     const data=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
     primaryCount=Array.isArray(data.response)?data.response.length:0;
-    primaryLiveMatches=(data.response||[]).filter(isLive);
+    primaryLiveMatches=(data.response||[]).filter(match=>isLive(match)&&!isConfirmedInactive(match));
     if(data.errors&&Object.keys(data.errors).length)primaryErrorText=JSON.stringify(data.errors);
     else primaryErrorText=primaryCount
      ? "API-Football "+primaryCount+" kayıt döndürdü ancak canlı durum kodu eşleşmedi."
@@ -3489,7 +3503,7 @@ async function loadLiveMatchesNow(){
   // İkinci yedek: football-data.org tek istekte desteklenen müsabakalardaki canlı maçları döndürür.
   let footballDataErrorText="";
   try{
-   const backupLive=(await footballDataLiveFixtures()).filter(isLive);
+   const backupLive=(await footballDataLiveFixtures()).filter(match=>isLive(match)&&!isConfirmedInactive(match));
    footballDataCount=backupLive.length;
    if(backupLive.length){
     mamNotifyLiveGoalChanges(backupLive);
@@ -3506,7 +3520,7 @@ async function loadLiveMatchesNow(){
   // Üçüncü yedek: SportScore canlı + yakın maç akışından yalnızca aktif durumları al.
   let sportScoreErrorText="";
   try{
-   const sportScoreLive=(await mamSportScoreLiveFixtures()).filter(isLive);
+   const sportScoreLive=(await mamSportScoreLiveFixtures()).filter(match=>isLive(match)&&!isConfirmedInactive(match));
    sportScoreCount=sportScoreLive.length;
    if(sportScoreLive.length){
     mamNotifyLiveGoalChanges(sportScoreLive);
@@ -3534,12 +3548,7 @@ async function loadLiveMatchesNow(){
     ?"API-Football canlı yedek kaynağı ücretsiz plan koruması nedeniyle 5 dakikalık beklemede; ESPN ve diğer yedek kaynaklar bağımsız tarandı."
     :"API-Football durumu: "+primaryErrorText;
    const upcomingToday=fallbackSchedule
-    .filter(match=>{
-     const kickoff=Date.parse(match?.fixture?.date||"");
-     const status=String(match?.fixture?.status?.short||"").toUpperCase();
-     return Number.isFinite(kickoff)&&kickoff>Date.now()&&kickoff<Date.now()+24*60*60*1000&&
-      !["FT","AET","PEN","CANC","ABD","AWD","WO"].includes(status);
-    })
+    .filter(match=>mamIsFutureUnplayed(match)&&mamIstanbulDay(match.fixture.date)===date)
     .sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date))
     .slice(0,3);
    const upcomingText=upcomingToday.length
@@ -3552,9 +3561,9 @@ async function loadLiveMatchesNow(){
    return;
   }
   const cacheNote=savedLiveCache&&cachedMatches.length
-   ?' Son başarılı canlı liste cihazda kayıtlı ('+new Date(savedLiveCache.savedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+'); maç durumları yenilenemediği için eski olabilir.'
-   :cachedMatches.length?' Ekrandaki son canlı maç listesi korundu.':' Henüz bu cihazda kaydedilmiş canlı maç listesi yok.';
-  $("status").innerHTML='<span class="error">Canlı veri kaynağı şu an yanıt vermiyor; '+(cachedMatches.length?'son kayıtlı maçlar gösteriliyor.':'şu an gösterilecek kayıtlı canlı maç yok.')+' API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+' | SportScore: '+esc(sportScoreErrorText)+esc(cacheNote)+'</span>';
+   ?' Son başarılı liste cihazda kayıtlı. Güncel durum doğrulanamadı.'
+   :'';
+  $("status").innerHTML='<span class="error">Canlı veri kaynağı şu an yanıt vermiyor; güncel canlı maç doğrulanamadı. API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+' | SportScore: '+esc(sportScoreErrorText)+esc(cacheNote)+'</span>';
  }catch(unexpectedError){
   allMatches=[];
   renderMatches();
@@ -3981,7 +3990,7 @@ async function mamFindEspnLiveEvent({slug,date,eventId,homeName,awayName}){
    const payload=await api("espn/"+slug+"/scoreboard?"+qs({dates:day,limit:500}));
    const events=Array.isArray(payload.events)?payload.events:[];
    let found=events.find(event=>eventId&&String(event.id)===String(eventId));
-   if(!found&&wantedHome&&wantedAway){
+   if(!found&&!eventId&&wantedHome&&wantedAway){
     found=events.find(event=>{
      const competitors=(event.competitions||[])[0]?.competitors||[];
      const home=competitors.find(team=>team.homeAway==="home"),away=competitors.find(team=>team.homeAway==="away");
@@ -5131,26 +5140,19 @@ async function refreshActiveMatchScore(){
    try{
     const event=await mamFindEspnLiveEvent({slug,date:button.dataset.liveDate||"",eventId:source==="espn"?rawId:"",homeName,awayName});
     if(event){
-     const competition=(event.competitions||[])[0]||{};
-     const competitors=competition.competitors||[];
-     const home=competitors.find(team=>team.homeAway==="home"),away=competitors.find(team=>team.homeAway==="away");
-     const clock=mamEspnClock(event);
-     const type=event.status?.type||competition.status?.type||{};
-     const state=String(type.state||"").toLowerCase();
-     const completed=type.completed===true||state==="post";
-     const halfTime=/half.?time/i.test(String(type.detail||type.shortDetail||""));
-     const statusShort=completed||state==="post"?"FT":halfTime?"HT":state==="pre"?"NS":state==="in"||state==="live"||state==="inprogress"?"LIVE":"LIVE";
+     const [parsed]=mamEspnScoreboardMatches([event],leagueId,{...ESPN_LEAGUES[leagueId],slug});
      const existing=fresh||allMatches.find(match=>
       (source==="api"?String(match.fixture?.id||"")===rawId:String(match.league?.id||"")===leagueId&&String(match.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId)
      );
      // API-Football'dan bu turda taze maç verisi geldiyse ESPN scoreboard'un
      // gecikmeli kopyasıyla skoru/dakikayı ezme. ESPN yalnızca ana veri yoksa
      // yedek olsun; ESPN kaynaklı maçlarda ise kendi skorunu kullan.
-     if((source==="espn"||!fresh)&&existing&&home?.score!=null&&away?.score!=null){
-      const existingStatus=existing.fixture?.status||{};
-      const safeElapsed=clock.elapsed!=null?clock.elapsed:
-       (existingStatus.elapsed!=null?existingStatus.elapsed:null);
-      fresh={...existing,goals:{home:Number(home.score),away:Number(away.score)},fixture:{...existing.fixture,status:{...existingStatus,short:statusShort,elapsed:safeElapsed,displayClock:clock.displayClock||existingStatus.displayClock||""}}};
+     if(parsed&&(source==="espn"||!fresh)&&existing){
+      const completeScore=parsed.goals.home!=null&&parsed.goals.away!=null;
+      if(completeScore||!mamIsActiveMatch(parsed)){
+       fresh={...existing,goals:completeScore?parsed.goals:existing.goals,
+        fixture:{...existing.fixture,status:parsed.fixture.status}};
+      }
      }
     }
    }catch(espnError){console.warn("ESPN açık maç skoru doğrulanamadı; son geçerli skor korunuyor.",espnError);}
@@ -5174,15 +5176,16 @@ async function refreshActiveMatchScore(){
   const providerMinute=Number.isFinite(elapsed)&&elapsed>=0?elapsed:
    Number(String(status.displayClock||"").match(/^\d{1,3}/)?.[0]);
   // Aynı devre içinde sağlayıcı gecikmeli/eski dakika döndürürse ekrandaki saati geriye alma.
-  const isStopped=["HT","FT","AET","PEN","POST"].includes(statusShort);
+  const isStopped=statusShort==="HT"||!mamIsActiveMatch(fresh);
   const clockBase=!isStopped&&Number.isFinite(providerMinute)&&Number.isFinite(previousMinute)
    ?Math.max(providerMinute,previousMinute)
    :providerMinute;
   const shownMinute=Number.isFinite(clockBase)?Math.floor(clockBase):NaN;
-  const minute=Number.isFinite(shownMinute)?shownMinute+"'":statusShort==="HT"?"Devre arası":status.displayClock||"Canlı";
-  const stoppedLabel=statusShort==="HT"?"Devre arası":["FT","AET","PEN","POST"].includes(statusShort)?"Maç bitti":statusShort==="SUSP"?"Durduruldu":statusShort==="INT"?"Oyun durdu":"Canlı";
+  const stoppedLabels={NS:"Başlamadı",TBD:"Saat bekleniyor",HT:"Devre arası",FT:"Maç bitti",AET:"Maç bitti",PEN:"Maç bitti",POST:"Maç bitti",PST:"Ertelendi",CANC:"İptal edildi",ABD:"Yarıda kaldı",SUSP:"Durduruldu",INT:"Oyun durdu",DELAYED:"Gecikmeli"};
+  const stoppedLabel=isStopped?(stoppedLabels[statusShort]||"Durum güncellendi"):"Canlı";
+  const minute=Number.isFinite(shownMinute)?shownMinute+"'":stoppedLabel;
   const headClock=article.querySelector(".match-head .match-time");
-  if(headClock)headClock.textContent=(isStopped?"⚪ ":"🔴 ")+minute+" · "+stoppedLabel;
+  if(headClock)headClock.textContent=isStopped?"⚪ "+stoppedLabel:"🔴 "+minute;
   const centerSub=article.querySelector(".match-center small");
   if(centerSub)centerSub.textContent=stoppedLabel==="Canlı"?"Canlı maç · sağlayıcı saati":stoppedLabel;
   if(Number.isFinite(clockBase)){

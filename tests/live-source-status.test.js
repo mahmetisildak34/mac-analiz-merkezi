@@ -82,3 +82,35 @@ test("opening a completed match does not redirect to pre-match analysis",()=>{
  }
  assert.equal(opened,2);
 });
+
+test("fresh ESPN closures suppress old copies across sources without affecting another league or date",()=>{
+ const start=html.indexOf("function mamConfirmedInactiveEspnMatches(");
+ const end=html.indexOf("async function mamEspnLiveScoreboard(",start);
+ const create=vm.runInNewContext(html.slice(start,end)+";mamConfirmedInactiveEspnMatches",{
+  mamCanonicalMatchStatus:match=>match.fixture.status.short,
+  mamIstanbulDay:date=>new Date(Date.parse(date)+10800000).toISOString().slice(0,10),
+  mamNormalizeLiveTeamName:name=>name.toLowerCase()
+ });
+ const ended={fixture:{id:"espn-tur.1-1",date:"2026-11-23T21:30:00Z",status:{short:"FT"}},league:{id:203},teams:{home:{name:"A"},away:{name:"B"}}};
+ const ongoing={...ended,fixture:{...ended.fixture,id:"espn-tur.1-2",status:{short:"HT"}},teams:{home:{name:"C"},away:{name:"D"}}};
+ const inactive=create([ended,ongoing]);
+ assert.equal(inactive(ended),true);
+ const cached={...ended,fixture:{id:"31",date:"2026-11-24T00:30:00+03:00",status:{short:"LIVE"}}};
+ assert.equal(inactive(cached),true);
+ assert.equal(inactive({...cached,league:{id:39}}),false);
+ assert.equal(inactive({...cached,fixture:{...cached.fixture,date:"2026-11-25T00:30:00+03:00"}}),false);
+ assert.equal(inactive(ongoing),false);
+});
+
+test("an exact ESPN event lookup cannot use another fixture with the same teams",async()=>{
+ const start=html.indexOf("async function mamFindEspnLiveEvent(");
+ const end=html.indexOf("function mamEventType(",start);
+ const teams=[{homeAway:"home",team:{displayName:"A"}},{homeAway:"away",team:{displayName:"B"}}];
+ const different={id:"other",competitions:[{competitors:teams}]};
+ const lookup=vm.runInNewContext(html.slice(start,end)+";mamFindEspnLiveEvent",{
+  api:async()=>({events:[different]}),qs:()=>"",mamNormalizeLiveTeamName:name=>name
+ });
+ const options={slug:"tur.1",date:"2026-11-22",homeName:"A",awayName:"B"};
+ assert.equal(await lookup({...options,eventId:"required"}),null);
+ assert.equal(await lookup(options),different);
+});
