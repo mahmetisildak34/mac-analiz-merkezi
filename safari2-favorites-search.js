@@ -53,16 +53,28 @@
   const btn=Array.from(document.querySelectorAll("#matches .predBtn")).find(b=>b.dataset.id===clean(m.fixture?.id));
   if(btn){btn.scrollIntoView({behavior:"smooth",block:"center"});btn.focus()}else{$("matches").scrollIntoView({behavior:"smooth"})}
  }
+ function verifiedResult(row){
+  const code=clean(row.fixture?.status?.short).toUpperCase();
+  const h=row.goals?.home,a=row.goals?.away;
+  const date=Date.parse(row.fixture?.date||"");
+  return ["FT","AET","PEN"].includes(code)&&Number.isFinite(date)&&Number.isInteger(h)&&Number.isInteger(a)&&h>=0&&a>=0;
+ }
+ function teamSummary(item,limit){
+  const matches=matchRows().filter(row=>clean(row.league?.id)===item.league&&[row.teams?.home,row.teams?.away].some(t=>clean(t?.id)===item.id)&&verifiedResult(row)).sort((a,b)=>Date.parse(b.fixture.date)-Date.parse(a.fixture.date)).slice(0,limit);
+  let wins=0,draws=0,losses=0,scored=0,conceded=0,home=0,away=0;
+  for(const row of matches){const isHome=clean(row.teams.home?.id)===item.id;const gf=isHome?row.goals.home:row.goals.away,ga=isHome?row.goals.away:row.goals.home;scored+=gf;conceded+=ga;if(gf>ga)wins++;else if(gf===ga)draws++;else losses++;if(isHome)home++;else away++}
+  return {matches,wins,draws,losses,scored,conceded,home,away};
+ }
+ const fmt=row=>{const d=Date.parse(row.fixture?.date||"");return (Number.isFinite(d)?new Date(d).toLocaleString("tr-TR",{timeZone:"Europe/Istanbul",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"Saat bilinmiyor")+" · "+clean(row.teams?.home?.name)+" – "+clean(row.teams?.away?.name)+(row.goals?.home!=null&&row.goals?.away!=null?" ("+row.goals.home+"-"+row.goals.away+")":"")};
  function showTeam(item){
-  const m=findMatch(item);
-  if(!m){$("mamSafariPanel").textContent="Bu takım için yüklü maç bulunamadı. Lig verisini yenileyin.";return}
-  const side=clean(m.teams?.home?.id)===item.id?"home":"away";
+  const m=findMatch(item),panel=$("mamSafariPanel");panel.hidden=false;
+  if(!m){panel.textContent="Bu takım için yüklü maç bulunamadı. Lig verisini yenileyin.";return}
   const games=matchRows().filter(row=>clean(row.league?.id)===item.league&&[row.teams?.home,row.teams?.away].some(t=>clean(t?.id)===item.id));
-  const upcoming=games.filter(row=>["NS","TBD"].includes(clean(row.fixture?.status?.short).toUpperCase())&&Date.parse(row.fixture?.date||"")>Date.now());
-  const played=games.filter(row=>["FT","AET","PEN"].includes(clean(row.fixture?.status?.short).toUpperCase())&&row.goals?.home!=null&&row.goals?.away!=null);
-  const fmt=row=>{const d=Date.parse(row.fixture?.date||"");return (Number.isFinite(d)?new Date(d).toLocaleString("tr-TR",{timeZone:"Europe/Istanbul",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"Saat bilinmiyor")+" · "+clean(row.teams?.home?.name)+" – "+clean(row.teams?.away?.name)+(row.goals?.home!=null&&row.goals?.away!=null?" ("+row.goals.home+"-"+row.goals.away+")":"")};
-  const panel=$("mamSafariPanel");panel.hidden=false;
-  panel.innerHTML='<h3>'+esc(item.name)+'</h3><p>'+esc(item.leagueName||m.league?.name||"Lig bilinmiyor")+' · Yalnızca yüklenen maç verileri</p><h4>Son maçlar</h4>'+(played.length?played.slice().sort((a,b)=>Date.parse(b.fixture.date)-Date.parse(a.fixture.date)).slice(0,10).map(row=>'<div class="mam-safari-row"><strong>'+esc(fmt(row))+'</strong></div>').join(""):'<p>Doğrulanmış geçmiş maç verisi bulunamadı.</p>')+'<h4>Yaklaşan maçlar</h4>'+(upcoming.length?upcoming.slice(0,5).map(row=>'<div class="mam-safari-row"><strong>'+esc(fmt(row))+'</strong></div>').join(""):'<p>Yüklü veride yaklaşan maç bulunamadı.</p>');
+  const upcoming=games.filter(row=>["NS","TBD"].includes(clean(row.fixture?.status?.short).toUpperCase())&&Date.parse(row.fixture?.date||"")>Date.now()).sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
+  const five=teamSummary(item,5),ten=teamSummary(item,10);
+  const logo=clean(item.logo);const safeLogo=/^https:\/\//i.test(logo)?'<img src="'+esc(logo)+'" alt="" loading="lazy" style="width:42px;height:42px;object-fit:contain" onerror="this.remove()">':"";
+  const summary=(label,data)=>'<p><strong>'+label+' ('+data.matches.length+' doğrulanmış maç)</strong> · '+data.wins+'G '+data.draws+'B '+data.losses+'M · Goller '+data.scored+'-'+data.conceded+' · İç saha '+data.home+' / Deplasman '+data.away+'</p>';
+  panel.innerHTML='<button type="button" data-safari-back="1">← Geri</button><h3>'+safeLogo+esc(item.name)+'</h3><p>'+esc(item.leagueName||m.league?.name||"Lig bilinmiyor")+' · Yalnızca yüklenmiş ve skoru doğrulanabilir maçlar</p>'+summary("Son 5",five)+summary("Son 10",ten)+'<h4>Son maçlar</h4>'+(ten.matches.length?ten.matches.map(row=>'<div class="mam-safari-row"><strong>'+esc(fmt(row))+'</strong></div>').join(""):'<p>Doğrulanmış geçmiş maç verisi bulunamadı.</p>')+'<h4>Yaklaşan maçlar</h4>'+(upcoming.length?upcoming.slice(0,5).map(row=>'<div class="mam-safari-row"><strong>'+esc(fmt(row))+'</strong></div>').join(""):'<p>Yüklü veride yaklaşan maç bulunamadı.</p>');
  }
  function render(){
   const panel=$("mamSafariPanel");if(!panel||panel.hidden)return;
@@ -95,7 +107,7 @@
  $("mamSafariFavorites").addEventListener("click",()=>{mode="favorites";const panel=$("mamSafariPanel");panel.hidden=!panel.hidden;$("mamSafariFavorites").setAttribute("aria-expanded",String(!panel.hidden));render()});
  $("mamSafariSearch").addEventListener("click",()=>{mode="search";$("mamSafariPanel").hidden=false;render()});
  $("mamSafariQuery").addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(()=>{mode="search";$("mamSafariPanel").hidden=false;render()},180)});
- $("mamSafariPanel").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const panel=$("mamSafariPanel");if(b.dataset.safariRemove!=null){favorites.splice(Number(b.dataset.safariRemove),1);save();render();document.querySelectorAll(".mam-safari-save").forEach(el=>{if(el.__item)el.setAttribute("aria-pressed",String(favorites.some(x=>key(x.kind,x.league,x.id)===key(el.__item.kind,el.__item.league,el.__item.id))))})}else if(b.dataset.safariOpen!=null){const item=favorites[Number(b.dataset.safariOpen)];if(item)(item.kind==="team"?showTeam:showMatch)(item)}else if(b.dataset.safariTeam!=null){const item=panel.__teams?.[Number(b.dataset.safariTeam)];if(item)showTeam(item)}else if(b.dataset.safariLeague!=null){const select=$("league");if(select){select.value=b.dataset.safariLeague;select.dispatchEvent(new Event("change"));if(typeof setMamScreen==="function")setMamScreen("home");if(typeof renderMatches==="function")renderMatches();$("matches").scrollIntoView({behavior:"smooth"})}}});
+ $("mamSafariPanel").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const panel=$("mamSafariPanel");if(b.dataset.safariBack!=null){render()}else if(b.dataset.safariRemove!=null){favorites.splice(Number(b.dataset.safariRemove),1);save();render();document.querySelectorAll(".mam-safari-save").forEach(el=>{if(el.__item)el.setAttribute("aria-pressed",String(favorites.some(x=>key(x.kind,x.league,x.id)===key(el.__item.kind,el.__item.league,el.__item.id))))})}else if(b.dataset.safariOpen!=null){const item=favorites[Number(b.dataset.safariOpen)];if(item)(item.kind==="team"?showTeam:showMatch)(item)}else if(b.dataset.safariTeam!=null){const item=panel.__teams?.[Number(b.dataset.safariTeam)];if(item)showTeam(item)}else if(b.dataset.safariLeague!=null){const select=$("league");if(select){select.value=b.dataset.safariLeague;select.dispatchEvent(new Event("change"));if(typeof setMamScreen==="function")setMamScreen("home");if(typeof renderMatches==="function")renderMatches();$("matches").scrollIntoView({behavior:"smooth"})}}});
  const observer=new MutationObserver(()=>{if(!document.hidden)decorate()});observer.observe(target,{childList:true,subtree:false});decorate();
  window.mamSafari2Favorites={read:()=>favorites.slice(),toggle,search:query=>{const q=norm(query);return matchRows().filter(m=>norm(m.teams?.home?.name).includes(q)||norm(m.teams?.away?.name).includes(q)||norm(m.league?.name).includes(q))}};
 })();
