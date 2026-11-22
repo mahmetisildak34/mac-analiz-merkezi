@@ -10,7 +10,7 @@ test('match details sort events and do not claim unverified stats',()=>{const d=
 test('standings compute 3 points and goal difference',()=>{const t=leagueStandings([match],teams);assert.equal(t[0].team.name,'Fenerbahçe');assert.equal(t[0].points,3);assert.equal(t[1].points,0);});
 test('standings ignore invalid results',()=>{const t=leagueStandings([{...match,homeGoals:null}],teams);assert.equal(t[0].played,0);});
 test('Turkish search matches team names',()=>{assert.equal(searchFootball({teams,leagues:[],matches:[match]},'FENERBAHÇE').teams.length,1);assert.equal(searchFootball({teams},'').teams.length,0);});
-test('notifications are candidate events only, never sent',()=>{const m={...match,kickoff:'2026-11-22T18:05:00Z'};const n=notificationCandidates([m],['m1'],{now:Date.parse('2026-11-22T18:00:00Z')});assert.equal(n.length,1);assert.equal(n[0].type,'kickoff_soon');});
+test('notifications are candidate events only, never sent',()=>{const m={...match,status:'NS',kickoff:'2026-11-22T18:05:00Z'};const n=notificationCandidates([m],['m1'],{now:Date.parse('2026-11-22T18:00:00Z')});assert.equal(n.length,1);assert.equal(n[0].type,'kickoff_soon');});
 test('mobile navigation has exactly one current tab',()=>{const tabs=mobileNavigation('favorites');assert.equal(tabs.length,8);assert.equal(tabs.filter(x=>x.ariaCurrent==='page').length,1);});
 
 test('match events sort nested elapsed minutes while preserving unknown-minute events',()=>{
