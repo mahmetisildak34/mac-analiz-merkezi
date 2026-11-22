@@ -8593,8 +8593,9 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
  body > main #mamMenuToggle, body > main #mamSearchToggle {display:flex!important;min-width:44px!important;min-height:44px!important;justify-content:center;align-items:center}
  body #mamDrawer.open, body #mamDrawerBackdrop:not([hidden]) {display:block!important;visibility:visible!important;pointer-events:auto!important}
  body #mamDrawer .mam-nav-item {min-height:44px!important;font-size:13px!important;text-decoration:none}
- .mam-independent-favorites [data-mam-star="1"]::after {content:"E";margin-left:2px;font-size:9px}
- .mam-independent-favorites [data-mam-star="2"]::after {content:"D";margin-left:2px;font-size:9px}
+ /* Star buttons retain accessible names; no unexplained E/D visual suffixes. */
+ .mam-independent-favorites [data-mam-star="1"]::after,
+ .mam-independent-favorites [data-mam-star="2"]::after {content:none!important}
  body > main .mam-brand {flex:1;min-width:0;gap:5px!important}
  body > main .mam-brand span {font-size:12px!important;letter-spacing:.02em!important;white-space:normal!important}
  body .mam-bottom-nav {grid-template-columns:repeat(5,minmax(44px,1fr))!important;gap:3px!important;padding:3px!important;border-radius:12px!important}
@@ -8642,6 +8643,14 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
  .match.in-detail .stat {padding:8px!important;border-width:1px!important;box-shadow:none!important}
  .match.in-detail .stat b {font-size:16px!important}
  #mamTeamHistoryScreen header strong {white-space:normal!important;overflow-wrap:anywhere}
+ /* Reduce duplicated quick links while retaining navigation in the drawer. */
+ main .mam-favorite-shortcuts, main .mam-quick-links {display:none!important}
+ /* Avoid horizontal scrolling from seven fixed navigation slots. */
+ body .mam-bottom-nav {overflow-x:hidden!important;min-width:0!important}
+ body .mam-bottom-nav button {min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.15!important}
+ /* Long names wrap naturally instead of becoming a single truncated word. */
+ #matches .team-block {min-width:0!important}
+ #matches .team-block strong {overflow-wrap:break-word!important;word-break:normal!important}
 }
 </style>
 
