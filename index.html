@@ -3356,7 +3356,7 @@ async function loadLiveMatchesNow(){
  const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"]);
  const isLive=match=>liveStatuses.has(String(match?.fixture?.status?.short||"").toUpperCase());
  // Eski canlı statüsünde kalmış maçları gerçek canlı akış gibi göstermeyelim.
- const isRecentLive=match=>mamIsCrediblyLive(match,Date.now());
+ const isRecentLive=match=>isLive(match)&&mamIsCrediblyLive(match,Date.now());
  // Önceki ekran ve cihaz önbelleği yalnızca yakın zamanda başlamış maçlardan oluşturulur.
  const liveById=new Map();
  previousMatches.filter(isRecentLive).forEach(match=>liveById.set(String(match.fixture?.id??match.id),match));
@@ -3394,7 +3394,7 @@ async function loadLiveMatchesNow(){
      const previousDate=previousDateObj.toISOString().slice(0,10);
      try{
       const previousDay=await espnFixtures(previousDate,true);
-      const previousLive=previousDay.filter(isLive);
+      const previousLive=previousDay.filter(isRecentLive);
       if(previousLive.length)fallback=[...fallback,...previousLive];
       fallbackSchedule=fallback.slice();
      }catch(previousDayError){
@@ -3403,7 +3403,7 @@ async function loadLiveMatchesNow(){
     }
    }
    // Live scoreboard refresh is read-only: never write provider snapshots to D1.
-   const fallbackLive=fallback.filter(isLive);
+   const fallbackLive=fallback.filter(isRecentLive);
    espnLiveCount=fallbackLive.length;
    // Cross-check the primary live score and elapsed minute against the ESPN events already fetched.
    primaryLiveMatches=mamEnrichLiveScoresWithEspn(primaryLiveMatches,fallbackLive);
@@ -3445,7 +3445,7 @@ async function loadLiveMatchesNow(){
    try{
     const data=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
     primaryCount=Array.isArray(data.response)?data.response.length:0;
-    primaryLiveMatches=(data.response||[]).filter(isLive);
+    primaryLiveMatches=(data.response||[]).filter(isRecentLive);
     if(data.errors&&Object.keys(data.errors).length)primaryErrorText=JSON.stringify(data.errors);
     else primaryErrorText=primaryCount
      ? "API-Football "+primaryCount+" kayıt döndürdü ancak canlı durum kodu eşleşmedi."
@@ -3465,7 +3465,7 @@ async function loadLiveMatchesNow(){
   // İkinci yedek: football-data.org tek istekte desteklenen müsabakalardaki canlı maçları döndürür.
   let footballDataErrorText="";
   try{
-   const backupLive=(await footballDataLiveFixtures()).filter(isLive);
+   const backupLive=(await footballDataLiveFixtures()).filter(isRecentLive);
    footballDataCount=backupLive.length;
    if(backupLive.length){
     mamNotifyLiveGoalChanges(backupLive);
@@ -3482,7 +3482,7 @@ async function loadLiveMatchesNow(){
   // Üçüncü yedek: SportScore canlı + yakın maç akışından yalnızca aktif durumları al.
   let sportScoreErrorText="";
   try{
-   const sportScoreLive=(await mamSportScoreLiveFixtures()).filter(isLive);
+   const sportScoreLive=(await mamSportScoreLiveFixtures()).filter(isRecentLive);
    sportScoreCount=sportScoreLive.length;
    if(sportScoreLive.length){
     mamNotifyLiveGoalChanges(sportScoreLive);

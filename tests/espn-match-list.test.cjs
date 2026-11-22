@@ -107,3 +107,36 @@ test('midnight ESPN scan does not depend on absence of other live matches', () =
  assert.equal(part.includes('if(!fallback.some(isLive))'),false);
  assert.ok(part.includes('localHour<6'));
 });
+
+test('captured ESPN Süper Lig response drives Live, Today and Finished classification', async () => {
+  const payload = require('./fixtures/espn-tur1-20261122.json');
+  const start = html.indexOf('async function espnFixtures');
+  const end = html.indexOf('\nasync function loadMatches', start);
+  assert.ok(start >= 0 && end > start);
+  const load = vm.runInNewContext(html.slice(start, end) + ';espnFixtures', {
+    $: () => ({ value: '203' }),
+    localStorage: { getItem: () => null, setItem() {} },
+    ESPN_LEAGUES: { 203: { slug: 'tur.1', name: 'Süper Lig', country: 'Türkiye' } },
+    qs: query => new URLSearchParams(query).toString(),
+    mamEspnClock: () => ({ elapsed: null }),
+    api: async endpoint => {
+      assert.equal(endpoint, 'espn/tur.1/scoreboard?dates=20261122&limit=500');
+      return payload;
+    },
+  });
+  const matches = await load('2026-11-22');
+  const capturedAt = Date.parse('2026-11-22T13:30:00Z');
+  const ids = rows => Array.from(rows, row => row.fixture.id).sort();
+  assert.equal(matches.length, 4);
+  assert.ok(matches.every(match => match.league.id === '203'));
+  assert.deepEqual(ids(matches.filter(match => helpers.mamIsCrediblyLive(match, capturedAt))),
+    ['espn-tur.1-401888246', 'espn-tur.1-401888248']);
+  assert.deepEqual(ids(matches.filter(match => helpers.mamIsFutureUnplayed(match, capturedAt))),
+    ['espn-tur.1-401888249']);
+  assert.deepEqual(ids(matches.filter(match => helpers.mamCanonicalMatchStatus(match) === 'FT')),
+    ['espn-tur.1-401888243']);
+  const scheduled = matches.find(match => match.fixture.id.endsWith('401888249'));
+  assert.equal(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit',
+  }).format(new Date(scheduled.fixture.date)), '19:00');
+});

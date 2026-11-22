@@ -1,0 +1,163 @@
+{
+  "events": [
+    {
+      "id": "401888243",
+      "date": "2026-11-22T10:30Z",
+      "status": {
+        "clock": 5400.0,
+        "displayClock": "90'+4'",
+        "period": 2,
+        "type": {
+          "id": "28",
+          "name": "STATUS_FULL_TIME",
+          "state": "post",
+          "completed": true,
+          "description": "Full Time",
+          "detail": "FT",
+          "shortDetail": "FT"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "0",
+              "team": {
+                "id": "19267",
+                "displayName": "Erzurum BB"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": "1",
+              "team": {
+                "id": "789",
+                "displayName": "Goztepe"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401888248",
+      "date": "2026-11-22T13:00Z",
+      "status": {
+        "clock": 1920.0,
+        "displayClock": "32'",
+        "period": 1,
+        "type": {
+          "id": "25",
+          "name": "STATUS_FIRST_HALF",
+          "state": "in",
+          "completed": false,
+          "description": "First Half",
+          "detail": "32'",
+          "shortDetail": "32'"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "1",
+              "team": {
+                "id": "6870",
+                "displayName": "Kasimpasa"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": "0",
+              "team": {
+                "id": "9078",
+                "displayName": "Alanyaspor"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401888246",
+      "date": "2026-11-22T13:00Z",
+      "status": {
+        "clock": 1860.0,
+        "displayClock": "31'",
+        "period": 1,
+        "type": {
+          "id": "25",
+          "name": "STATUS_FIRST_HALF",
+          "state": "in",
+          "completed": false,
+          "description": "First Half",
+          "detail": "31'",
+          "shortDetail": "31'"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "0",
+              "team": {
+                "id": "7648",
+                "displayName": "Konyaspor"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": "1",
+              "team": {
+                "id": "1895",
+                "displayName": "Besiktas"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401888249",
+      "date": "2026-11-22T16:00Z",
+      "status": {
+        "clock": 0.0,
+        "displayClock": "0'",
+        "type": {
+          "id": "1",
+          "name": "STATUS_SCHEDULED",
+          "state": "pre",
+          "completed": false,
+          "description": "Scheduled",
+          "detail": "Sun, November 22nd at 11:00 AM EST",
+          "shortDetail": "Scheduled"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "0",
+              "team": {
+                "id": "997",
+                "displayName": "Trabzonspor"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": "0",
+              "team": {
+                "id": "20729",
+                "displayName": "Eyupspor"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
