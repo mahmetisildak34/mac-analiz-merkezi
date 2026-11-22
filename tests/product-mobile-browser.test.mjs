@@ -26,10 +26,10 @@ async function waitForServer(server){
 }
 const fixture={id:'101',homeTeamId:'1',awayTeamId:'2',homeTeamName:'Fenerbahçe',awayTeamName:'Galatasaray',homeGoals:2,awayGoals:1,status:'FT',kickoff:'2026-11-22T17:00:00Z',leagueId:'tr',leagueName:'Süper Lig',events:[{time:{elapsed:15},team:{name:'Fenerbahçe'},player:{name:'Örnek Oyuncu'},type:'Goal'}],statistics:[{type:'Topla sahip olma',home:'55%',away:'45%'}]};
 const url='http://127.0.0.1:'+port+'/mobile/product-hub.html';
+const origin=new URL(url).origin;
 async function verifyMainApp(context){
  const main=await context.newPage();
  try{
-  const origin=new URL(url).origin;
   await main.route('**/*',route=>route.request().url().startsWith(origin+'/')?route.continue():route.abort());
   await main.addInitScript(()=>{
    localStorage.setItem('mam_session_token','local-browser-acceptance');
@@ -40,6 +40,7 @@ async function verifyMainApp(context){
   });
   await main.goto(origin+'/index.html');
   await main.locator('#mamAuthGate').waitFor({state:'detached'});
+  const measurements=await main.evaluate(()=>({openingMs:Math.round(performance.getEntriesByType('navigation')[0].domContentLoadedEventEnd)}));
   const initialFavorites=await main.evaluate(()=>localStorage.getItem('mam-product-hub-v1'));
   // Real ESPN tur.1 result 401888243, captured 2026-11-22.
   const match={
@@ -61,9 +62,11 @@ async function verifyMainApp(context){
   await card.locator('[data-mam-star="0"]').click();
   await card.locator('[data-mam-star="1"]').click();
   const opener=card.locator('.mam-match-open');
+  const detailStart=performance.now();
   await opener.click();
   const dialog=main.getByRole('dialog',{name:/Erzurum BB/});
   await dialog.waitFor();
+  measurements.detailMs=Math.round(performance.now()-detailStart);
   await dialog.getByRole('button',{name:/Olaylar/}).click();
   const events=dialog.locator('.match-detail-pane[data-pane="goals"]');
   await events.getByText('Sarı kart',{exact:true}).first().waitFor();
@@ -86,8 +89,39 @@ async function verifyMainApp(context){
   await main.locator('[data-fav-matches]').getByText(/Erzurum BB.*Goztepe/).waitFor();
   await main.locator('[data-mam-remove-match="espn-tur.1-401888243"]').click();
   await main.locator('[data-fav-matches]').getByText('Favori maç yok.').waitFor();
+  const historical=JSON.parse(readFileSync(new URL('./fixtures/espn-tur1-2025-standings.json',import.meta.url),'utf8'));
+  await main.evaluate(payload=>{
+   const fetchNetwork=window.fetch.bind(window);
+   window.historicalStandingsRequests=0;
+   window.fetch=(input,options)=>{
+    if(!String(input).endsWith('/api/espn/tur.1/standings?season=2025'))return fetchNetwork(input,options);
+    window.historicalStandingsRequests++;
+    if(window.historicalStandingsRequests>1)return Promise.reject(new TypeError('Test connection unavailable'));
+    return Promise.resolve(new Response(JSON.stringify(payload)));
+   };
+  },historical);
+  await main.locator('[data-mam-bottom="standings"]').click();
+  const table=main.locator('#mamStandingsTable');
+  const standingsStart=performance.now();
+  await main.locator('#mamStandingsScreen [data-standing-league="203"]').first().click();
+  await table.locator('[data-standing-team="Galatasaray"]').waitFor();
+  measurements.cachedStandingsMs=Math.round(performance.now()-standingsStart);
+  assert.match(await main.locator('#mamStandingsSeason').innerText(),/2026-27/);
+  const season=main.locator('#mamStandingsSeasonSelect');
+  await season.selectOption('2025');
+  await table.locator('[data-standing-team="'+historical.children[0].standings.entries[0].team.displayName+'"]').waitFor();
+  assert.match(await main.locator('#mamStandingsSeason').innerText(),/2025-26/);
+  await season.selectOption('');
+  await table.locator('[data-standing-team="Galatasaray"]').waitFor();
+  await season.selectOption('2025');
+  assert.equal(await main.evaluate(()=>window.historicalStandingsRequests),1);
+  await main.locator('#mamStandingsRefresh').click();
+  await table.getByText(/Kaydedilmiş ESPN tablosu/).waitFor();
+  assert.equal(await main.evaluate(()=>window.historicalStandingsRequests),2);
+  await main.waitForFunction(()=>navigator.serviceWorker.controller?.scriptURL.endsWith('/sw.js'));
+  console.log('Main mobile timing '+JSON.stringify(measurements));
   assert.equal(await main.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
-  await main.evaluate(saved=>localStorage.setItem('mam-product-hub-v1',saved),initialFavorites);
+  await main.evaluate(saved=>{localStorage.setItem('mam-product-hub-v1',saved);localStorage.removeItem('mam_app_view_state');},initialFavorites);
  }finally{await main.close();}
 }
 
@@ -202,6 +236,18 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    // Playwright's offline override prevents WebKit from dispatching this navigation to the worker.
    await stopServer(server);
    await assert.rejects(fetch(url));
+   const offlineMain=await page.context().newPage();
+   try{
+    await offlineMain.addInitScript(()=>{
+     const fetchNetwork=window.fetch.bind(window);
+     window.fetch=(input,options)=>new URL(String(input),location.href).origin===location.origin
+      ?fetchNetwork(input,options):Promise.reject(new TypeError('Test connection unavailable'));
+    });
+    await offlineMain.goto(origin+'/');
+    await offlineMain.locator('#mamAuthGate').waitFor({state:'visible'});
+    await offlineMain.getByText(/Cihazdaki favoriler korunuyor/).waitFor();
+    assert.equal(await offlineMain.evaluate(()=>localStorage.getItem('mam_session_token')),'local-browser-acceptance');
+   }finally{await offlineMain.close();}
    await page.goto('about:blank');
    await page.goto(url);
    await page.locator('[data-tab="favorites"]').click();

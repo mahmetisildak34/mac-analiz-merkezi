@@ -10,8 +10,11 @@ test('product hub exposes nine feature areas and responsive navigation',()=>{
 });
 test('product hub limits external requests to public ESPN standings',()=>{
  assert.match(html,/type="file"/);assert.match(html,/localStorage/);
- assert.equal([...html.matchAll(/fetch\s*\(/g)].length,1);
- assert.match(html,/fetch\('https:\/\/odd-sunset-6c83\.m-ahmetisildak34\.workers\.dev\/api\/espn\/'.+\/standings/);
+ assert.doesNotMatch(html,/fetch\s*\(/);
+ const client=readFileSync(new URL('../mobile/espn-standings.mjs',import.meta.url),'utf8');
+ assert.match(html,/import \{loadEspnStandings\} from '\.\/espn-standings.mjs'/);
+ assert.match(client,/workers\.dev\/api\/espn\//);
+ assert.match(client,/credentials:'omit'/);
  assert.doesNotMatch(html,/Notification\.requestPermission/);
 });
 test('main app links to product hub without replacing existing rendering',()=>{
@@ -228,4 +231,16 @@ test('PWA manifest installs the mobile hub with bundled icons and an isolated se
   assert.equal(buf.readUInt32BE(20),Number(icon.sizes.split('x')[1]));
  }
  assert.match(html,/navigator\.serviceWorker\.register\('\.\/sw\.js'\)/);
+});
+
+test('root PWA starts at the main app and uses its own static cache namespace',()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../manifest.webmanifest',import.meta.url),'utf8'));
+ const worker=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
+ assert.equal(manifest.start_url,'./');
+ assert.equal(manifest.scope,'./');
+ assert.equal(manifest.display,'standalone');
+ assert.match(app,/rel="manifest" href="\.\/manifest\.webmanifest"/);
+ assert.match(worker,/mam-main-shell-/);
+ assert.doesNotMatch(worker,/api\//);
+ for(const icon of manifest.icons)assert.ok(readFileSync(new URL('../'+icon.src,import.meta.url)).length>0);
 });

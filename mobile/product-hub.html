@@ -16,6 +16,7 @@
 <nav class="nav" aria-label="Alt gezinme"><button data-tab="home">Maçlar</button><button data-tab="live">Canlı</button><button data-tab="today">Bugün</button><button data-tab="favorites">Favoriler</button><button data-tab="teams">Takımlar</button><button data-tab="leagues">Ligler</button><button data-tab="search">Ara</button><button data-tab="settings">Ayarlar</button></nav>
 <script type="module">
 import {espnCompetitions,toggleFavorite,teamProfile,matchDetails,leagueStandings,parseEspnStandings,isLiveMatch,isIstanbulToday,searchFootball,notificationCandidates} from './product-features.mjs';
+import {loadEspnStandings} from './espn-standings.mjs';
 const $=id=>document.getElementById(id),KEY='mam-product-hub-v1';
 let fixtureSnapshotAt=null;
 let state={matches:[],favoriteMatches:[],favoriteTeams:[],alerts:false},active='home',detailReturn={tab:'home',id:''};
@@ -99,54 +100,20 @@ $('detailsBack').addEventListener('click',()=>{show(detailReturn.tab);document.q
 const standingsSelect=$('espnLeague');
 standingsSelect.innerHTML=[...espnCompetitions].map(([slug,name])=>'<option value="'+esc(slug)+'">'+esc(name)+'</option>').join('');
 standingsSelect.value='tur.1';
-const standingsCache=new Map(),standingsRequests=new Map();
-const standingsFreshMs=10*60*1000,standingsOfflineMs=7*24*60*60*1000;
 function standingsMarkup(groups,source){
  return groups.map(g=>'<div class="card"><h3>'+esc(g.name)+'</h3><p>'+esc(g.season??'Sezon belirtilmedi')+' · '+esc(source)+'</p>'+g.rows.map(r=>'<p>'+esc(r.rank??'—')+'. '+esc(r.name)+' · '+esc(r.points??'—')+' puan · '+esc(r.played??'—')+' maç · '+esc(r.wins??'—')+' G · '+esc(r.draws??'—')+' B · '+esc(r.losses??'—')+' M · '+esc(r.goalDifference??'—')+' averaj</p>').join('')+'</div>').join('');
 }
 async function loadOfficialStandings(){
  const slug=standingsSelect.value,target=$('espnTable');
  if(!espnCompetitions.has(slug))return;
- const key='mam_espn_standings_v1_'+slug;
- let saved=standingsCache.get(slug);
- if(!saved){
-  try{
-   const entry=JSON.parse(localStorage.getItem(key)??'null');
-   if(entry&&Number.isFinite(entry.at)&&entry.at<=Date.now()&&Date.now()-entry.at<standingsOfflineMs){
-    const groups=parseEspnStandings(entry.payload);
-    if(groups.length)saved={at:entry.at,groups};
-   }
-  }catch{}
- }
- const display=result=>{
+ target.textContent='ESPN puan tablosu yükleniyor…';
+ try{
+  const result=await loadEspnStandings(slug);
   if(standingsSelect.value!==slug)return;
   if(result.groups.length)target.innerHTML=standingsMarkup(result.groups,result.stale?'ESPN · Kaydedilmiş tablo ('+new Date(result.at).toLocaleDateString('tr-TR',{timeZone:'Europe/Istanbul'})+')':'ESPN · Yayımlanan sıralama');
   else target.textContent='ESPN bu müsabaka için puan tablosu yayımlamadı.';
- };
- if(saved&&Date.now()-saved.at<standingsFreshMs){display(saved);return;}
- if(saved)display({...saved,stale:true});
- else target.textContent='ESPN puan tablosu yükleniyor…';
- if(!standingsRequests.has(slug)){
-  const request=(async()=>{
-   const response=await fetch('https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/espn/'+encodeURIComponent(slug)+'/standings',{credentials:'omit',signal:AbortSignal.timeout(8000)});
-   if(!response.ok&&response.status!==404)throw Error('ESPN HTTP '+response.status);
-   const payload=response.status===404?{}:await response.json();
-   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw Error('Geçersiz ESPN yanıtı');
-   const result={at:Date.now(),groups:parseEspnStandings(payload)};
-   standingsCache.set(slug,result);
-   try{
-    if(result.groups.length)localStorage.setItem(key,JSON.stringify({at:result.at,payload}));
-    else localStorage.removeItem(key);
-   }catch{}
-   return result;
-  })().finally(()=>standingsRequests.delete(slug));
-  standingsRequests.set(slug,request);
- }
- try{display(await standingsRequests.get(slug));}
- catch{
-  if(standingsSelect.value!==slug)return;
-  if(saved)display({...saved,stale:true});
-  else target.textContent='ESPN puan tablosuna ulaşılamadı. Bağlantınızı kontrol edin veya bir JSON dosyası yükleyin.';
+ }catch{
+  if(standingsSelect.value===slug)target.textContent='ESPN puan tablosuna ulaşılamadı. Bağlantınızı kontrol edin veya bir JSON dosyası yükleyin.';
  }
 }
 standingsSelect.addEventListener('change',loadOfficialStandings);

@@ -1580,6 +1580,8 @@ button{transition:filter .15s ease,transform .15s ease}
   #matches article.match.match-modern:not(.in-detail) .team-block strong { font-size: 10px !important; }
 }
 </style>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./mobile/icon-192.png">
 </head>
 <body>
 
@@ -1665,7 +1667,7 @@ button{transition:filter .15s ease,transform .15s ease}
  <div class="mam-standings-group"><h3>🌍 Tüm desteklenen ligler ve kupalar</h3><p class="mam-standings-footnote">Veri sağlayıcısının güncel sezon için sunduğu tüm organizasyonları getir.</p><button type="button" class="secondary" id="mamLoadAllLeagues">Tüm ligleri yükle</button><div class="mam-standings-leagues" id="mamStandingsAll" style="margin-top:10px"></div></div>
  <p class="mam-standings-footnote">Liste, veri sağlayıcılarımızın desteklediği organizasyonlara göre genişletilir. Eleme usulü kupalarda puan tablosu bulunmayabilir; grup aşaması varsa grup tablosu gösterilir.</p>
  </div>
- <div class="mam-standings-card" id="mamStandingsCard" hidden><div class="mam-standings-banner" id="mamStandingsBanner"><div class="mam-standings-flag" id="mamStandingsFlag">🏆</div><div class="mam-standings-banner-copy"><strong id="mamStandingsBannerName">Lig</strong><span id="mamStandingsBannerMeta">Sezon</span></div><div class="mam-standings-banner-mark">⚽</div></div><div class="mam-standings-card-head"><button type="button" id="mamStandingsBack" class="secondary">← Liglere dön</button><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Lig puan durumu</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosu yükleniyor...</div></div></div>
+ <div class="mam-standings-card" id="mamStandingsCard" hidden><div class="mam-standings-banner" id="mamStandingsBanner"><div class="mam-standings-flag" id="mamStandingsFlag">🏆</div><div class="mam-standings-banner-copy"><strong id="mamStandingsBannerName">Lig</strong><span id="mamStandingsBannerMeta">Sezon</span></div><div class="mam-standings-banner-mark">⚽</div></div><div class="mam-standings-card-head"><button type="button" id="mamStandingsBack" class="secondary">← Liglere dön</button><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Lig puan durumu</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><label for="mamStandingsSeasonSelect">ESPN sezonu</label><select id="mamStandingsSeasonSelect"><option value="">ESPN güncel sezonu</option></select><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosu yükleniyor...</div></div></div>
  </section>
 <section class="panel mam-fixture-controls">
 <div class="row mam-primary-filters">
@@ -2082,89 +2084,38 @@ $("date").addEventListener("change",()=>{
 
 let selectedStandingsLeague="";
 let standingCompetitionNames={};
-async function loadStandings(){
+let mamStandingsRequest=0;
+async function loadStandings({refresh=false}={}){
  const leagueId=selectedStandingsLeague;
  const box=$("mamStandingsTable");
  if(!leagueId){box.innerHTML='<div class="empty">Önce yukarıdan bir lig seç.</div>';return;}
- const button=$("mamStandingsRefresh");
+ const requestId=++mamStandingsRequest;
+ const button=$("mamStandingsRefresh"),seasonSelect=$("mamStandingsSeasonSelect");
+ const seasonValue=seasonSelect.value;
  button.disabled=true;
- box.innerHTML='<div class="empty">Puan durumu alınıyor...</div>';
- const now=new Date(),year=now.getFullYear(),season=now.getMonth()<=5?year-1:year;
- $("mamStandingsSeason").textContent=season+" / "+(season+1);
+ box.innerHTML='<div class="empty">Puan durumu alınıyor…</div>';
+ const now=new Date(),year=Number(mamIstanbulDateString(now).slice(0,4)),season=now.getMonth()<=5?year-1:year;
+ const espnLeague=ESPN_LEAGUES[leagueId]?.slug;
+ seasonSelect.disabled=!espnLeague;
+ $("mamStandingsSeason").textContent=espnLeague?"ESPN":season+" / "+(season+1);
  $("mamStandingsLeagueTitle").textContent=standingCompetitionNames[leagueId]||"Lig puan durumu";
  try{
-  let rows=[],leagueName="",teamSource="api-football",seasonLabel=season+" / "+(season+1);
+  let rows=[],leagueName="",teamSource="api-football",seasonLabel=season+" / "+(season+1),savedAt=null;
   let isTeamDirectory=false;
-  try{
-   const data=await api("standings?"+qs({league:leagueId,season}));
-   const group=data.response?.[0]?.league?.standings?.[0]||[];
-   rows=group.map(x=>({rank:x.rank,teamId:x.team?.id,name:x.team?.name,logo:x.team?.logo,played:x.all?.played,win:x.all?.win,draw:x.all?.draw,lose:x.all?.lose,goals:x.all?.goals?.for,against:x.all?.goals?.against,points:x.points}));
-   leagueName=data.response?.[0]?.league?.name||"Lig puan durumu";
-   if(!rows.length)throw new Error("API-Football puan tablosu takım döndürmedi.");
-   teamSource="api-football";
-  }catch(primaryError){
-   try{
-    const code=FOOTBALL_DATA_LEAGUES[leagueId];
-    if(!code)throw primaryError;
-    const data=await api("football-data/competitions/"+code+"/standings");
-    const table=data.standings?.find(x=>x.type==="TOTAL")?.table||data.standings?.[0]?.table||[];
-    rows=table.map(x=>({rank:x.position,teamId:x.team?.id,name:x.team?.name,logo:x.team?.crest,played:x.playedGames,win:x.won,draw:x.draw,lose:x.lost,goals:x.goalsFor,against:x.goalsAgainst,points:x.points}));
-    leagueName=data.competition?.name||"Lig puan durumu";
-    if(!rows.length)throw new Error("Football-data.org puan tablosu döndürmedi.");
-    teamSource="football-data";
-   }catch(secondaryError){
-    const espnLeague=({
-     "203":"tur.1","204":"tur.2",
-     "39":"eng.1","40":"eng.2","45":"eng.fa","48":"eng.league_cup",
-     "140":"esp.1","141":"esp.2","143":"esp.copa_del_rey",
-     "78":"ger.1","79":"ger.2","81":"ger.dfb_pokal",
-     "135":"ita.1","136":"ita.2","137":"ita.coppa_italia",
-     "61":"fra.1","62":"fra.2","66":"fra.coupe_de_france",
-     "88":"ned.1","94":"por.1","144":"bel.1","179":"sco.1",
-     "2":"uefa.champions","3":"uefa.europa","848":"uefa.europa.conf",
-     "1":"fifa.world","4":"uefa.euro","5":"uefa.nations",
-     "9":"conmebol.america","6":"caf.nations",
-     "15":"fifa.cwc","307":"ksa.1","253":"usa.1",
-     "71":"bra.1","128":"arg.1","98":"jpn.1","262":"mex.1","188":"aus.1","169":"chn.1"
-    })[leagueId];
-    let espnError=null;
-    if(espnLeague){
-     try{
-      const data=await api("espn/"+espnLeague+"/standings?"+qs({season}));
-      const entries=[];
-      const collect=node=>{
-       if(!node||typeof node!=="object")return;
-       if(Array.isArray(node)){node.forEach(collect);return;}
-       if(node.team&&Array.isArray(node.stats))entries.push(node);
-       if(node.standings)collect(node.standings);
-       if(node.entries)collect(node.entries);
-       if(node.children)collect(node.children);
-       if(node.groups)collect(node.groups);
-      };
-      collect(data);
-      const stat=(entry,names)=>{
-       const found=entry.stats.find(x=>names.includes(String(x.name||x.abbreviation||"").toLowerCase()));
-       return found?.value??found?.displayValue??null;
-      };
-      rows=entries.map(entry=>({
-       rank:stat(entry,["rank","playoffseed"]),teamId:entry.team?.id,
-       name:entry.team?.displayName||entry.team?.name||entry.team?.shortDisplayName||"Takım",logo:entry.team?.logos?.[0]?.href||entry.team?.logo,
-       played:stat(entry,["gamesplayed","played","gp"]),win:stat(entry,["wins","win","w"]),
-       draw:stat(entry,["ties","draws","draw","d"]),lose:stat(entry,["losses","loss","l"]),
-       goals:stat(entry,["pointsfor","goalsfor","gf"]),against:stat(entry,["pointsagainst","goalsagainst","ga"]),
-       points:stat(entry,["points","pts"]),difference:stat(entry,["pointdifferential","goaldifference","gd"])
-      }));
-      rows.sort((a,b)=>Number(a.rank)-Number(b.rank));
-      leagueName=data.name||data.leagues?.[0]?.name||standingCompetitionNames[leagueId]||"Lig";
-      if(!rows.length)throw new Error("ESPN puan tablosu takım döndürmedi.");
-      teamSource="espn";
-      seasonLabel=data.season?.displayName??data.season?.year??"Sezon bilgisi yok";
-     }catch(error){espnError=error;}
-     // A competition may publish teams even when it has no conventional standings
-     // (for example knockout cups). Use the ESPN team directory as a read-only
-     // fallback so users can still open participating clubs.
-     if(!rows.length){
-      try{
+  if(espnLeague){
+   const {loadEspnStandings}=await import("./mobile/espn-standings.mjs");
+   const result=await loadEspnStandings(espnLeague,{season:seasonValue,refresh});
+   if(requestId!==mamStandingsRequest)return;
+   leagueName=result.name||standingCompetitionNames[leagueId]||ESPN_LEAGUES[leagueId].name;
+   teamSource="espn";
+   seasonLabel=result.groups[0]?.season??(seasonValue||"Sezon bilgisi yok");
+   if(result.stale)savedAt=result.at;
+   rows=result.groups.flatMap((group,groupIndex)=>group.rows.map(row=>({
+    ...row,teamId:row.id,difference:row.goalDifference,win:row.wins,draw:row.draws,lose:row.losses,
+    groupIndex,group:result.groups.length>1?group.name:""
+   })));
+   if(!rows.length&&!seasonValue&&navigator.onLine!==false){
+    try{
        const directory=await api("espn/"+espnLeague+"/teams?"+qs({limit:500}));
        const teams=[];
        const collectTeams=value=>{
@@ -2187,11 +2138,35 @@ async function loadStandings(){
         played:null,win:null,draw:null,lose:null,goals:null,against:null,points:null
        }));
        if(rows.length){leagueName=standingCompetitionNames[leagueId]||"Takım listesi";isTeamDirectory=true;teamSource="espn";}
-      }catch(teamDirectoryError){
-       if(!espnError)espnError=teamDirectoryError;
-      }
-     }
-    }
+    }catch{}
+   }
+   if(requestId!==mamStandingsRequest)return;
+   if(!rows.length){
+    $("mamStandingsSeason").textContent=seasonLabel;
+    $("mamStandingsBannerName").textContent=leagueName;
+    $("mamStandingsBannerMeta").textContent=seasonLabel;
+    box.innerHTML='<p class="empty">ESPN bu lig ve sezon için puan tablosu yayımlamadı.</p>';
+    return;
+   }
+  }else{
+  try{
+   const data=await api("standings?"+qs({league:leagueId,season}));
+   const group=data.response?.[0]?.league?.standings?.[0]||[];
+   rows=group.map(x=>({rank:x.rank,teamId:x.team?.id,name:x.team?.name,logo:x.team?.logo,played:x.all?.played,win:x.all?.win,draw:x.all?.draw,lose:x.all?.lose,goals:x.all?.goals?.for,against:x.all?.goals?.against,points:x.points}));
+   leagueName=data.response?.[0]?.league?.name||"Lig puan durumu";
+   if(!rows.length)throw new Error("API-Football puan tablosu takım döndürmedi.");
+   teamSource="api-football";
+  }catch(primaryError){
+   try{
+    const code=FOOTBALL_DATA_LEAGUES[leagueId];
+    if(!code)throw primaryError;
+    const data=await api("football-data/competitions/"+code+"/standings");
+    const table=data.standings?.find(x=>x.type==="TOTAL")?.table||data.standings?.[0]?.table||[];
+    rows=table.map(x=>({rank:x.position,teamId:x.team?.id,name:x.team?.name,logo:x.team?.crest,played:x.playedGames,win:x.won,draw:x.draw,lose:x.lost,goals:x.goalsFor,against:x.goalsAgainst,points:x.points}));
+    leagueName=data.competition?.name||"Lig puan durumu";
+    if(!rows.length)throw new Error("Football-data.org puan tablosu döndürmedi.");
+    teamSource="football-data";
+   }catch(secondaryError){
     if(!rows.length){
      // API-Football can expose cup participants even where no league table exists.
      try{
@@ -2211,9 +2186,11 @@ async function loadStandings(){
      const ss=await mamSportScoreStandings(standingCompetitionNames[leagueId]||"Lig "+leagueId);
      rows=ss.rows;leagueName=ss.name||standingCompetitionNames[leagueId]||"Lig";teamSource="sportscore";
     }
-    if(!rows.length)throw new Error("ESPN: "+(espnError?.message||"kapsama yok")+". SportScore yedeği de takım döndürmedi.");
+    if(!rows.length)throw new Error("Puan tablosu kaynakları takım döndürmedi.");
    }
   }
+  }
+  if(requestId!==mamStandingsRequest)return;
   if(!rows.length)throw new Error("Kaynak bu lig için puan tablosu döndürmedi.");
   $("mamStandingsLeagueTitle").textContent=leagueName;
   $("mamStandingsSeason").textContent=isTeamDirectory?"Puan tablosu yok":seasonLabel;
@@ -2224,16 +2201,17 @@ async function loadStandings(){
   $("mamStandingsBannerName").textContent=leagueName;
   $("mamStandingsBannerMeta").textContent=leagueMeta[1]+" · "+(isTeamDirectory?"Takım listesi":seasonLabel);
   $("mamStandingsCard").dataset.theme=String(themeIndex);
-  const orderedRows=[...rows].sort((a,b)=>Number(a.rank??Infinity)-Number(b.rank??Infinity));
+  const orderedRows=[...rows].sort((a,b)=>(a.groupIndex??0)-(b.groupIndex??0)||Number(a.rank??Infinity)-Number(b.rank??Infinity));
   const standingValue=value=>esc(value??"—");
   const lastRank=Math.max(...orderedRows.map(x=>Number(x.rank)||0));
-  const rowMarkup=orderedRows.map(x=>{
+  const rowMarkup=orderedRows.map((x,index)=>{
+   const groupHeading=x.group&&(index===0||orderedRows[index-1].groupIndex!==x.groupIndex)?'<tr><th colspan="9" scope="rowgroup">'+esc(x.group)+'</th></tr>':"";
    const rank=Number(x.rank)||0;
    const zone=!rank?"zone-mid":rank<=4?"zone-top":rank<=6?"zone-europe":rank>=Math.max(7,lastRank-2)?"zone-bottom":"zone-mid";
    const crest=x.logo?'<img class="mam-standing-crest" src="'+esc(x.logo)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<span class="mam-standing-crest-fallback">⚽</span>';
-   return '<tr class="mam-standing-team-row '+zone+'" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" data-team-source="'+esc(x.source||teamSource)+'" role="button" tabindex="0" onclick="window.mamOpenStandingTeamHistory(this)" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını göster"><td class="mam-rank-cell"><span>'+standingValue(x.rank)+'</span></td><td class="mam-crest-cell">'+crest+'</td><td class="mam-team-name-cell">'+esc(x.name)+' <span class="mam-standing-row-hint">›</span></td><td>'+standingValue(x.played)+'</td><td>'+standingValue(x.win)+'</td><td>'+standingValue(x.draw)+'</td><td>'+standingValue(x.lose)+'</td><td>'+standingValue(x.difference??(x.goals!=null&&x.against!=null?Number(x.goals)-Number(x.against):null))+'</td><td class="mam-points-cell"><b>'+standingValue(x.points)+'</b></td></tr>';
+   return groupHeading+'<tr class="mam-standing-team-row '+zone+'" data-standing-team="'+esc(x.name)+'" data-standing-team-id="'+esc(x.teamId||"")+'" data-team-source="'+esc(x.source||teamSource)+'" role="button" tabindex="0" onclick="window.mamOpenStandingTeamHistory(this)" aria-label="'+esc(x.name)+' geçmiş ve gelecek maçlarını göster"><td class="mam-rank-cell"><span>'+standingValue(x.rank)+'</span></td><td class="mam-crest-cell">'+crest+'</td><td class="mam-team-name-cell">'+esc(x.name)+' <span class="mam-standing-row-hint">›</span></td><td>'+standingValue(x.played)+'</td><td>'+standingValue(x.win)+'</td><td>'+standingValue(x.draw)+'</td><td>'+standingValue(x.lose)+'</td><td>'+standingValue(x.difference??(x.goals!=null&&x.against!=null?Number(x.goals)-Number(x.against):null))+'</td><td class="mam-points-cell"><b>'+standingValue(x.points)+'</b></td></tr>';
   }).join("");
-  box.innerHTML=(isTeamDirectory?'<p>Kaynak bu müsabaka için puan tablosu yayımlamadı. Aşağıda takım listesi yer alıyor.</p>':'')+'<div class="mam-standings-table-wrap"><table class="mam-standings-table"><thead><tr><th>#</th><th></th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rowMarkup+'</tbody></table></div><div class="mam-standings-legend"><span><i class="zone-top"></i>İlk 4</span><span><i class="zone-europe"></i>5–6</span><span><i class="zone-mid"></i>Diğer sıralar</span><span><i class="zone-bottom"></i>Son 3</span></div><p class="mam-standings-note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan. Sıralama satırına dokunarak takım geçmişini açabilirsin.</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
+  box.innerHTML=(savedAt?'<p>Kaydedilmiş ESPN tablosu · '+esc(mamIstanbulDateString(new Date(savedAt)))+'</p>':'')+(isTeamDirectory?'<p>Kaynak bu müsabaka için puan tablosu yayımlamadı. Aşağıda takım listesi yer alıyor.</p>':'')+'<div class="mam-standings-table-wrap"><table class="mam-standings-table"><thead><tr><th>#</th><th></th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th>P</th></tr></thead><tbody>'+rowMarkup+'</tbody></table></div><div class="mam-standings-legend"><span><i class="zone-top"></i>İlk 4</span><span><i class="zone-europe"></i>5–6</span><span><i class="zone-mid"></i>Diğer sıralar</span><span><i class="zone-bottom"></i>Son 3</span></div><p class="mam-standings-note">O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan. Sıralama satırına dokunarak takım geçmişini açabilirsin.</p>'+(String(leagueId)==="203"?'<section id="mamStandingTeamHistory" class="mam-standing-team-history" hidden aria-live="polite"></section>':'');
   if(String(leagueId)==="78"){
    const bulk=document.createElement("button");
    bulk.type="button";bulk.className="secondary";bulk.style.cssText="width:100%;margin-top:12px;";
@@ -2498,8 +2476,8 @@ async function loadStandings(){
   }
 
  }catch(e){
-  box.innerHTML='<div class="error">'+esc(e.message||e)+'</div>';
- }finally{button.disabled=false}
+  if(requestId===mamStandingsRequest)box.innerHTML='<div class="error">Puan tablosu yüklenemedi. '+esc(e.message||e)+'</div>';
+ }finally{if(requestId===mamStandingsRequest)button.disabled=false}
 }
 
 const FOOTBALL_DATA_LEAGUES={
@@ -3317,6 +3295,10 @@ function loadLiveMatches(){
 }
 async function loadLiveMatchesNow(){
  try{if(localStorage.getItem("mam_open_live_detail"))setMamScreen("live");}catch(_){}
+ if(navigator.onLine===false){
+  if(mamScreenMode==="live"){allMatches=[];renderMatches();$("status").textContent="Çevrimdışısınız. Güncel canlı skorlar gösterilemiyor.";}
+  return;
+ }
  const button=$("loadLive");
  button.disabled=true;
  $("status").textContent="Canlı maç akışı kontrol ediliyor...";
@@ -4808,7 +4790,7 @@ function renderMatches(){
  // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
  let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
  const liveCodes=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
- if(mamScreenMode==="live")list=list.filter(m=>liveCodes.has(mamCanonicalMatchStatus(m)));
+ if(mamScreenMode==="live")list=list.filter(m=>navigator.onLine!==false&&liveCodes.has(mamCanonicalMatchStatus(m)));
  const mamNow=Date.now();
  const mamTodayKey=mamIstanbulDay(new Date(mamNow).toISOString());
  if(mamScreenMode==="upcoming")list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)>mamTodayKey);
@@ -6829,6 +6811,7 @@ async function analyze(button){
  $("mamStandingsScreen")?.addEventListener("click",async event=>{
   const button=event.target.closest("[data-standing-league]");if(!button)return;
   selectedStandingsLeague=button.dataset.standingLeague;
+  $("mamStandingsSeasonSelect").value="";
   try{const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"{}");localStorage.setItem("mam_app_view_state",JSON.stringify({...saved,mode:"standings",standingsLeague:selectedStandingsLeague}));}catch(_){}
   document.querySelectorAll("#mamStandingsScreen [data-standing-league]").forEach(item=>item.classList.toggle("active",item.dataset.standingLeague===selectedStandingsLeague));
   $("mamStandingsPicker").hidden=true;$("mamStandingsCard").hidden=false;
@@ -6836,7 +6819,11 @@ async function analyze(button){
   $("mamStandingsCard")?.scrollIntoView({behavior:"smooth",block:"start"});
  });
  $("mamStandingsBack")?.addEventListener("click",()=>{$("mamStandingsCard").hidden=true;$("mamStandingsPicker").hidden=false;$("mamStandingsPicker")?.scrollIntoView({behavior:"smooth",block:"start"});});
- $("mamStandingsRefresh")?.addEventListener("click",loadStandings);
+ const standingsSeason=$("mamStandingsSeasonSelect");
+ const currentYear=Number(mamIstanbulDateString().slice(0,4));
+ for(let year=currentYear;year>=currentYear-4;year--)standingsSeason.add(new Option(String(year),String(year)));
+ standingsSeason.addEventListener("change",()=>loadStandings());
+ $("mamStandingsRefresh")?.addEventListener("click",()=>loadStandings({refresh:true}));
  async function getPremierLeagueUpcoming(){
    const cacheKey="mam_epl_upcoming_2627_v4";
    try{const saved=JSON.parse(localStorage.getItem(cacheKey)||"null");if(saved?.time&&Date.now()-saved.time<10*60*1000&&Array.isArray(saved.matches))return saved.matches;}catch(e){}
@@ -7543,11 +7530,28 @@ const openStandingTeamHistory=async row=>{
  const pass=document.getElementById("mamAuthPassword"), msg=document.getElementById("mamAuthMessage"), submit=document.getElementById("mamAuthSubmit");
  const key="mam_session_token", base="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
  async function check(token){
-  try{const r=await fetch(base+"/auth/check",{headers:{Authorization:"Bearer "+token}});return r.ok&&(await r.json()).ok===true;}catch(_){return false;}
+  try{
+   const response=await fetch(base+"/auth/check",{headers:{Authorization:"Bearer "+token},signal:AbortSignal.timeout(6000)});
+   if(response.status===401||response.status===403)return false;
+   if(!response.ok)return null;
+   return (await response.json()).ok===true;
+  }catch{return null;}
  }
- let token=localStorage.getItem(key)||"";
- if(token&&await check(token)){gate.remove();return;}
- localStorage.removeItem(key);
+ const retry=document.createElement("button");
+ retry.type="button";retry.textContent="Bağlantıyı yeniden dene";retry.hidden=true;
+ form.after(retry);
+ async function restoreSession(){
+  const token=localStorage.getItem(key);
+  const available=navigator.onLine!==false;
+  const valid=available&&token?await check(token):null;
+  if(valid===true){gate.remove();return;}
+  if(valid===false)localStorage.removeItem(key);
+  retry.hidden=available&&(!token||valid===false);
+  if(!retry.hidden)msg.textContent="Bağlantı kurulamadı. Canlı veriler görüntülenemiyor. Cihazdaki favoriler korunuyor.";
+ }
+ retry.addEventListener("click",restoreSession);
+ window.addEventListener("online",()=>{if(gate.isConnected)restoreSession();});
+ await restoreSession();
  form.addEventListener("submit",async function(e){
   e.preventDefault();msg.textContent="Kontrol ediliyor…";submit.disabled=true;
   try{
@@ -7814,6 +7818,18 @@ const openStandingTeamHistory=async row=>{
 })();
 </script>
 <script type="module" src="./mobile/main-favorites.mjs"></script>
+<script>
+if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+window.addEventListener("offline",()=>{
+ if(mamScreenMode!=="live")return;
+ if(mamActiveMatch)closeMamMatchDetail();
+ allMatches=[];renderMatches();
+ $("status").textContent="Çevrimdışısınız. Güncel canlı skorlar gösterilemiyor.";
+});
+window.addEventListener("online",()=>{
+ if(mamScreenMode==="live"&&!$("mamAuthGate"))loadLiveMatches();
+});
+</script>
 </body>
 </html>
 
