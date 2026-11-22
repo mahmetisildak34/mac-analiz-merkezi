@@ -1,13 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import {once} from 'node:events';
 import {setTimeout as delay} from 'node:timers/promises';
 import {chromium,webkit} from 'playwright';
 
 const port=18761;
-const server=spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1'],{stdio:'ignore'});
-server.unref();
-async function waitForServer(){
+function startServer(){
+ return spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1'],{stdio:'ignore'});
+}
+async function stopServer(server){
+ if(server.exitCode!==null||server.signalCode!==null)return;
+ const exited=once(server,'exit');
+ server.kill();
+ await exited;
+}
+async function waitForServer(server){
  for(let attempt=0;attempt<50;attempt++){
   if(server.exitCode!==null)throw new Error('Isolated HTTP fixture server exited before browser tests');
   try{const response=await fetch('http://127.0.0.1:'+port+'/mobile/product-hub.html',{signal:AbortSignal.timeout(1000)});if(response.ok)return;}catch{}
@@ -15,11 +23,9 @@ async function waitForServer(){
  }
  throw new Error('Isolated HTTP fixture server did not become ready within 5 seconds');
 }
-const ready=waitForServer();
 const fixture={id:'101',homeTeamId:'1',awayTeamId:'2',homeTeamName:'Fenerbahçe',awayTeamName:'Galatasaray',homeGoals:2,awayGoals:1,status:'FT',kickoff:'2026-11-22T17:00:00Z',leagueId:'tr',leagueName:'Süper Lig',events:[{time:{elapsed:15},team:{name:'Fenerbahçe'},player:{name:'Örnek Oyuncu'},type:'Goal'}],statistics:[{type:'Topla sahip olma',home:'55%',away:'45%'}]};
 const url='http://127.0.0.1:'+port+'/mobile/product-hub.html';
 async function open(browserType){
- await ready;
  const browser=await browserType.launch({headless:true});
  const context=await browser.newContext({viewport:{width:375,height:812},isMobile:true,hasTouch:true});
  await context.addInitScript(({fixture})=>{
@@ -31,8 +37,13 @@ async function open(browserType){
 }
 for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
  test(name+' mobile favorites, refresh, search, details and navigation',async()=>{
-  const {browser,context,page}=await open(type);
+  const server=startServer();
+  let browser;
   try{
+   await waitForServer(server);
+   const session=await open(type);
+   browser=session.browser;
+   const {page}=session;
    await page.locator('#homeList [data-favmatch="101"]').click();
    await page.locator('[data-tab="favorites"]').click();
    assert.match(await page.locator('#favMatches').innerText(),/Fenerbahçe/);
@@ -120,15 +131,20 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    await page.locator('#query').focus();
    assert.equal(await page.locator('#query').evaluate(input=>document.activeElement===input&&getComputedStyle(input).outlineStyle!=='none'),true);
    await page.waitForFunction(()=>Boolean(navigator.serviceWorker.controller));
-   await context.setOffline(true);
-   await page.reload();
+   // Stop the origin so both engines exercise a real connection failure.
+   // Playwright's offline override prevents WebKit from dispatching this navigation to the worker.
+   await stopServer(server);
+   await assert.rejects(fetch(url));
+   await page.goto('about:blank');
+   await page.goto(url);
    await page.locator('[data-tab="favorites"]').click();
    assert.match(await page.locator('#favTeams').innerText(),/Fenerbahçe/);
    await page.locator('[data-tab="leagues"]').click();
    await table.getByText(/Galatasaray/).waitFor();
    assert.ok(await page.evaluate(()=>navigator.serviceWorker.controller!==null));
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
-  }finally{await browser.close();}
+  }finally{
+   try{await browser?.close();}finally{await stopServer(server);}
+  }
  });
 }
-process.on('exit',()=>server.kill());
