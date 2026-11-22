@@ -106,3 +106,14 @@ test("latest fixture update wins and cached live score is clearly marked as old"
  await page.locator('[data-mam-bottom="favorites"]').click();
  await expect(page.locator("#mamSafariFavoritesBody")).toContainText("FT · 2 – 0");
 });
+
+test("cached real-result history contributes to favorite team form without provider calls",async({page})=>{
+ await page.goto("/tests/fixtures/safari2-favorites-harness.html");
+ await page.getByRole("button",{name:"Göztepe favori"}).click();
+ await page.locator('[data-mam-bottom="favorites"]').click();
+ await page.locator('#mamSafariFavoritesBody [data-fav-open]').click();
+ await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("Son 5 (1 doğrulanmış maç)");
+ await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("Son 10 (1 doğrulanmış maç)");
+ await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("Bursaspor");
+ await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("İç saha");
+});
