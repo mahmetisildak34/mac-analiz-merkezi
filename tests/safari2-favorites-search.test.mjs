@@ -7,7 +7,10 @@ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 test('favorites are mounted with a dedicated seventh bottom navigation destination',()=>{
  assert.match(html,/<script src="\.\/safari2-favorites-search\.js" defer><\/script>/);
  assert.match(html,/data-safari-fixture-id="\$\{esc\(f\.id\)\}"/);
- assert.equal((html.match(/data-mam-bottom="(?:home|fixtures|analysis|standings|coupon|special|favorites)"/g)||[]).length,7);
+ const nav=html.match(/<nav class="mam-bottom-nav"[^>]*>([\\s\\S]*?)<\\/nav>/);
+ assert.ok(nav,"real bottom navigation must exist");
+ assert.equal((nav[1].match(/data-mam-bottom=/g)||[]).length,7);
+ assert.match(nav[1],/data-mam-bottom="favorites"/);
  assert.match(source,/id="mamSafariFavoritesScreen"/);
  assert.match(source,/function openFavorites\(\)/);
 });
