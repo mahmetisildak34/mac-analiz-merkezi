@@ -8885,7 +8885,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   const all=teams();
   const filtered=q?all.filter(t=>normalize(t.name).includes(q)||normalize(t.league).includes(q)).slice(0,60):[];
   document.getElementById('mamTeamSearchHelp').textContent=directoryLoading?'Takım rehberi yükleniyor…':q?'Takım arama sonuçları':'Takım adı veya lig yaz.';
-  results.innerHTML=(!q?'':filtered.map(t=>'<button type="button" class="mam-team-result" data-search-team="'+escapeHtml(t.id)+'" style="display:flex;width:100%;text-align:left;background:transparent;color:inherit;border:0;border-bottom:1px solid #41516f;padding:12px 0;cursor:pointer"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span></button>').join('')||'<p>'+(directoryLoading?'Takımlar yükleniyor…':'Bu isimde takım bulunamadı.')+'</p>';
+  results.innerHTML=!q?'':filtered.map(t=>'<button type="button" class="mam-team-result" data-search-team="'+escapeHtml(t.id)+'" style="display:flex;width:100%;text-align:left;background:transparent;color:inherit;border:0;border-bottom:1px solid #41516f;padding:12px 0;cursor:pointer"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span></button>').join('')||'<p>'+(directoryLoading?'Takımlar yükleniyor…':'Bu isimde takım bulunamadı.')+'</p>';
  }
  results.addEventListener('click',event=>{
   const button=event.target.closest('[data-search-team]');
