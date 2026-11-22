@@ -1,0 +1,23 @@
+name: Favorite snapshot Chromium and WebKit acceptance
+on:
+  push:
+    branches:
+      - fix/favorites-monotonic-verified-snapshots-20261122
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser testing tools
+        run: npm install --no-save --no-package-lock @playwright/test@1.56.1
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Verify mobile, favorites, and offline PWA
+        run: npx playwright test --config=playwright.safari2.config.cjs
