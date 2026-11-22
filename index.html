@@ -2749,7 +2749,7 @@ async function espnFixtures(date,includeAllLeagues=false){
       },
       goals:{home:toGoals(home.score),away:toGoals(away.score)}
      };
-    }).filter(match=>match.teams.home.name&&match.teams.away.name&&Number.isFinite(Date.parse(match.fixture.date||"")))};
+    }).filter(match=>match.fixture.id!=="espn-"+league.slug+"-undefined"&&match.fixture.id!=="espn-"+league.slug+"-null"&&match.fixture.id!=="espn-"+league.slug+"-"&&match.teams.home.name&&match.teams.away.name&&Number.isFinite(Date.parse(match.fixture.date||"")))};
    }catch(error){results[index]={status:"rejected",reason:error};}
   }
  };
