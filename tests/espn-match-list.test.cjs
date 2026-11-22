@@ -53,3 +53,9 @@ test('same fixture ID with matching teams remains deduplicated', () => {
   const second = fixture(701, 'LIVE', '2026-11-22T16:00:00Z');
   assert.equal(helpers.mamDeduplicateFixtures([first, second]).length, 1);
 });
+
+test('same fixture ID on a different kickoff date is not deduplicated', () => {
+  const first = fixture(801, 'NS', '2026-11-22T16:00:00Z');
+  const second = fixture(801, 'NS', '2026-11-23T16:00:00Z');
+  assert.equal(helpers.mamDeduplicateFixtures([first, second]).length, 2);
+});
