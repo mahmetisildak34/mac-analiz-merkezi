@@ -115,3 +115,10 @@ test('ESPN clock-based play sorting handles minute:second without losing legacy 
  assert.match(features,/e\?\.clock\?\.displayValue\?\?e\?\.clock/);
  assert.ok(features.includes("raw.split(':')"));
 });
+
+test('ESPN published standings parser keeps group, season, ranks and missing stats',async()=>{
+ const {parseEspnStandings}=await import('../mobile/product-features.mjs');
+ const groups=parseEspnStandings({season:{displayName:'2026-27'},children:[{name:'Group A',standings:{entries:[{team:{id:'7',displayName:'Club'},stats:[{name:'rank',value:2},{name:'points',value:14}]}]}}]});
+ assert.equal(groups[0].name,'Group A');assert.equal(groups[0].season,'2026-27');assert.equal(groups[0].rows[0].rank,2);assert.equal(groups[0].rows[0].points,14);assert.equal(groups[0].rows[0].played,null);
+ assert.deepEqual(parseEspnStandings({}),[]);
+});
