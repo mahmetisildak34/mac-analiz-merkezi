@@ -44,3 +44,16 @@ test('in-app reminders are opt-in, deduplicated and do not request push permissi
 
 test('search team selection navigates to the visible profile view',()=>{assert.match(html,/if\(b\.dataset\.team\)\{show\('teams'\)/);});
 test('partial standings include W D L and scored and conceded goals',()=>{assert.match(html,/r\.wins\+'G '/);assert.match(html,/r\.draws\+'B '/);assert.match(html,/r\.losses\+'M · '/);assert.match(html,/r\.goalsFor\+':'\+r\.goalsAgainst/);});
+
+test('match detail displays available statistics values without claiming independent verification',()=>{
+ assert.match(html,/function renderStatistics\(statistics\)/);
+ assert.match(html,/renderStatistics\(d\.statistics\)/);
+ assert.match(html,/Kaynaklar arası bağımsız doğrulama yok/);
+ assert.match(html,/function renderStatValue\(value\)/);
+});
+test('mobile detail back navigation and accessibility affordances exist',()=>{
+ assert.match(html,/id="detailsBack"/);
+ assert.match(html,/detailsBack'\)\.addEventListener\('click'/);
+ assert.match(html,/prefers-reduced-motion:reduce/);
+ assert.match(html,/select:focus-visible,a:focus-visible/);
+});
