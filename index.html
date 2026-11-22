@@ -2764,7 +2764,8 @@ async function espnFixtures(date,includeAllLeagues=false){
      const detail=String(eventType.detail||competitionType.detail||eventType.name||competitionType.name||"");
      const completed=eventType.completed===true||competitionType.completed===true||state==="post";
      const halftime=/half[ -]?time|halftime|end of (the )?first half|interval/i.test(detail);
-     const live=!completed&&(state==="in"||state==="live"||state==="inprogress"||/in progress|halftime|live|first half|second half|extra time|penalty/i.test(detail));
+     // Explicit ESPN pre/post states take precedence over descriptive text such as "Live coverage starts soon".
+     const live=!completed&&(state==="in"||state==="live"||state==="inprogress"||(!state&&/^(?:in progress|halftime|half.time|first half|second half|extra time|penalty shootout|live)(?:\b|$)/i.test(detail)));
      const statusShort=/cancelled|canceled/i.test(detail)?"CANC":/postponed/i.test(detail)?"PST":/abandoned/i.test(detail)?"ABD":/suspended/i.test(detail)?"SUSP":completed?"FT":halftime?"HT":live?"LIVE":"NS";
      const clock=mamEspnClock(event);
      const toGoals=value=>{
