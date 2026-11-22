@@ -3917,7 +3917,7 @@ function mamEspnClock(event){
  const raw=event?.status?.displayClock||type.displayClock||type.shortDetail||type.detail||"";
  // Only a leading football match minute is a clock: scheduled date text must
  // never be parsed as elapsed minutes (e.g. "Sun, November 22nd at 11:00").
- const match=String(raw).trim().match(/^(\d{1,3})(?:\:\d{2})?\s*(?:'|\+\d{1,2}'?)?$/);
+ const match=String(raw).trim().match(/^(\d{1,3})(?::\d{2})?\s*'?(?:\+\d{1,2}'?)?$/);
  const minute=match?Number(match[1]):NaN;
  const running=["in","live","inprogress"].includes(state);
  const finished=state==="post"||type.completed===true;
