@@ -48,7 +48,7 @@ function renderStatistics(statistics){
   for(const stat of stats.slice(0,40)){
    const type=stat?.type??stat?.name;
    if(!type)continue;
-   const val=stat?.value??stat?.home??null;
+   const val=stat?.value??stat?.displayValue??stat?.home??null;
    const away=stat?.away;
    items.push('<li>'+esc(team?team+' · ':'')+esc(type)+': '+renderStatValue(val)+(away!==undefined?' / '+renderStatValue(away):'')+'</li>');
    if(items.length>=100)break;
