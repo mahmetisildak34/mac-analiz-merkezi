@@ -8,11 +8,11 @@ const css=fs.readFileSync('premium-dark-red.css','utf8');
   try{
    const page=await browser.newPage({...devices['iPhone 13'],viewport:{width:390,height:844}});
    await page.route('**/*',route=>route.abort());
-   await page.setContent('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><nav class="mam-bottom-nav"><button class="active">Ana Sayfa</button></nav><article class="match match-modern"><div class="match-versus"><div class="team-block"><img class="team-logo" alt="Takım logosu"><strong>Takım</strong></div><div class="match-center"><span class="match-clock">20:00</span></div><div class="team-block"><strong>Rakip</strong></div></div></article></main><section id="mamTeamSearch" hidden></section><section id="mamFavoritePanel"></section><section id="mamStandingsScreen"></section><section id="couponPanel"></section></body></html>');
+   await page.setContent('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><nav class="mam-bottom-nav"><button class="active">Ana Sayfa</button></nav><article class="match match-modern"><div class="match-versus"><div class="team-block"><img class="team-logo" src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2214%22 fill=%22%23e63742%22/%3E%3C/svg%3E" alt="Takım logosu"><strong>Takım</strong></div><div class="match-center"><span class="match-clock">20:00</span></div><div class="team-block"><strong>Rakip</strong></div></div></article></main><section id="mamTeamSearch" hidden></section><section id="mamFavoritePanel"></section><section id="mamStandingsScreen"></section><section id="couponPanel"></section></body></html>');
    await page.addStyleTag({content:css});
-   const values=await page.evaluate(()=>({bg:getComputedStyle(document.body).backgroundColor,logo:document.querySelector('.team-logo').getBoundingClientRect().width,overflow:document.documentElement.scrollWidth>innerWidth,nav:getComputedStyle(document.querySelector('.mam-bottom-nav')).backgroundColor}));
+   const values=await page.evaluate(()=>({bg:getComputedStyle(document.body).backgroundColor,logo:document.querySelector('.team-logo').getBoundingClientRect().width,logoCss:getComputedStyle(document.querySelector('.team-logo')).width,overflow:document.documentElement.scrollWidth>innerWidth,nav:getComputedStyle(document.querySelector('.mam-bottom-nav')).backgroundColor}));
    assert.match(values.bg,/rgb\(8, 11, 17\)/);
-   assert.ok(values.logo>0&&values.logo<=40,'logo should be compact (max 40 CSS px)');
+   assert.ok(values.logo>0&&values.logo<=40,'logo should be compact (max 40 CSS px); actual='+JSON.stringify(values));
    assert.equal(values.overflow,false,'horizontal overflow');
    console.log(name,values);
   }finally{await browser.close()}
