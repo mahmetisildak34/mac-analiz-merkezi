@@ -4832,7 +4832,7 @@ function renderMatches(){
    else liveMinute="Canlı";
   }
   const displayedTime=isLiveStatus?(liveMinute||"Canlı"):time;
-  return `<article class="match match-modern">
+  return `<article class="match match-modern" data-safari-fixture-id="${esc(f.id)}">
    <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span>${isLiveStatus&&time?'<small class="mam-kickoff-time" aria-label="Başlangıç saati: '+esc(time)+'">'+esc(time)+'</small>':""}</span></div>
    <div class="match-versus">
     <div class="team-block">${teamBadge(t.home)}<strong>${esc(t.home?.name)}</strong>${isFinishedStatus?mamOutcomeBadge(g.home,g.away):""}</div>
