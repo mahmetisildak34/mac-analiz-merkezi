@@ -8,7 +8,11 @@
  const key=(kind,league,id)=>kind+":"+clean(league)+":"+clean(id);
  const valid=item=>item&&["team","match"].includes(item.kind)&&clean(item.id)&&clean(item.league)&&clean(item.name);
  function read(){
-  try{const rows=JSON.parse(localStorage.getItem(KEY)||"[]");return Array.isArray(rows)?Array.from(new Map(rows.filter(valid).map(item=>[key(item.kind,item.league,item.id),item])).values()).slice(0,300):[]}
+  try{const rows=JSON.parse(localStorage.getItem(KEY)||"[]");if(!Array.isArray(rows))return [];
+   const byId=Array.from(new Map(rows.filter(valid).map(item=>[key(item.kind,item.league,item.id),item])).values()).slice(0,300);
+   const unique=[];
+   for(const item of byId)if(!unique.some(saved=>sameFavorite(saved,item)))unique.push(item);
+   return unique;}
   catch(_){return []}
  }
  let favorites=read();
@@ -17,9 +21,9 @@
   catch(_){return false}
  }
  const matchRows=()=>typeof allMatches!=="undefined"&&Array.isArray(allMatches)?allMatches:[];
- const sameFavorite=(a,b)=>a.kind===b.kind&&a.league===b.league&&(
+ function sameFavorite(a,b){return a.kind===b.kind&&a.league===b.league&&(
   a.id===b.id||(a.kind==="match"&&norm(a.name)===norm(b.name)&&Number.isFinite(Date.parse(a.date||""))&&
-   Number.isFinite(Date.parse(b.date||""))&&Math.abs(Date.parse(a.date)-Date.parse(b.date))<=10*60*1000));
+   Number.isFinite(Date.parse(b.date||""))&&Math.abs(Date.parse(a.date)-Date.parse(b.date))<=10*60*1000));}
  const isFavorite=item=>favorites.some(saved=>sameFavorite(saved,item));
  const visibleScore=m=>m?.goals?.home!=null&&m?.goals?.away!=null?clean(m.goals.home)+" – "+clean(m.goals.away):"Skor yok";
  const fixtureStatus=m=>clean(m?.fixture?.status?.short)||"Durum bilinmiyor";
@@ -181,6 +185,19 @@
   if(button.dataset.favRemove!=null){favorites.splice(Number(button.dataset.favRemove),1);save();renderFavorites();render();refreshStars();return;}
   if(button.dataset.favOpen!=null){const item=favorites[Number(button.dataset.favOpen)];if(item)(item.kind==="team"?showTeam:showDetail)(item);}
  });
+ function syncFavoriteSnapshots(){
+  let updated=false;
+  for(const item of favorites){
+   if(item.kind!=="match")continue;
+   const match=findMatch(item);if(!match)continue;
+   const current={status:fixtureStatus(match),home:match.goals?.home??null,away:match.goals?.away??null,
+    savedAt:Number(match._mamLastVerifiedAt)||Date.now()};
+   if(JSON.stringify(item.snapshot)!==JSON.stringify(current)){item.snapshot=current;updated=true;}
+  }
+  if(updated)save();
+  renderFavorites();
+ }
+ window.addEventListener("mam:fresh-live",syncFavoriteSnapshots);
  window.addEventListener("storage",event=>{
   if(event.key===KEY){favorites=read();renderFavorites();render();refreshStars();}
  });
