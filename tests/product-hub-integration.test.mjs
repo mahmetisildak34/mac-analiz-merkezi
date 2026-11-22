@@ -122,3 +122,10 @@ test('ESPN published standings parser keeps group, season, ranks and missing sta
  assert.equal(groups[0].name,'Group A');assert.equal(groups[0].season,'2026-27');assert.equal(groups[0].rows[0].rank,2);assert.equal(groups[0].rows[0].points,14);assert.equal(groups[0].rows[0].played,null);
  assert.deepEqual(parseEspnStandings({}),[]);
 });
+
+test('published ESPN standings import is local and remains separate from computed standings',()=>{
+ assert.match(html,/id="standingsFile"/);
+ assert.match(html,/parseEspnStandings\(JSON\.parse\(await file\.text\(\)\)\)/);
+ assert.match(html,/ESPN verisinden aktarılan sıralama/);
+ assert.match(html,/Resmî lig puan durumu değildir/);
+});
