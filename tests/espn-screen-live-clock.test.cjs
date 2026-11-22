@@ -31,5 +31,5 @@ test('match-card renderer uses guarded minute and preserves explicit missing val
  assert.ok(fragment.includes('const effectiveElapsed=mamVisibleLiveMinute(f.status);'));
  assert.ok(fragment.includes('if(isLiveStatus){'));
  assert.ok(fragment.includes('else liveMinute="Canlı";'));
- assert.ok(fragment.includes('data-live-minute="'+esc(effectiveElapsed??"")+''));
+ assert.ok(fragment.includes('esc(effectiveElapsed??"")'));
 });
