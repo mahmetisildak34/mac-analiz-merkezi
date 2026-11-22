@@ -140,3 +140,10 @@ test('ESPN event clocks render without an invented minute suffix',()=>{
  assert.match(html,/x\.clock\?\.displayValue/);
  assert.match(html,/typeof x\.clock==='string'/);
 });
+
+test('top-level ESPN summary plays survive normalization and are sorted',async()=>{
+ const {matchDetails}=await import('../mobile/product-features.mjs');
+ const result=matchDetails({id:'espn-1',plays:[{clock:{displayValue:'20:00'},text:'Second'},{clock:{displayValue:'04:30'},text:'First'}]});
+ assert.deepEqual(result.events.map(e=>e.text),['First','Second']);
+ assert.match(html,/plays:m\.plays/);
+});
