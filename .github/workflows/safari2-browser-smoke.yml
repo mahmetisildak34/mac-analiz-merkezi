@@ -7,6 +7,10 @@ on:
     paths:
       - playwright.safari2.config.cjs
       - tests/browser/safari2-mobile.spec.cjs
+      - index.html
+      - safari2-favorites-search.js
+      - mobile/App.js
+      - mobile/match-rules.js
       - .github/workflows/safari2-browser-smoke.yml
 jobs:
   offline-mobile-browsers:
