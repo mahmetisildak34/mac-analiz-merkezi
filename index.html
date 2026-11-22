@@ -8837,6 +8837,8 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
  let previousFocus=null;
  // Public ESPN team directories supplement fixture-only results. No API-Football calls.
  const ESPN_LEAGUES=['tur.1','eng.1','esp.1','ita.1','ger.1','fra.1','ned.1','por.1','usa.1','bra.1','arg.1','uefa.champions','uefa.europa','uefa.europa.conf'];
+ // Keep essential Turkish clubs searchable when ESPN's directory is partial or blocked in Safari.
+ const FALLBACK_TEAMS=['Beşiktaş','Fenerbahçe','Galatasaray','Trabzonspor'];
  const directory=new Map();
  let directoryLoading=false,directoryLoaded=false;
  const catalogKey='mam_search_espn_teams_v1';
@@ -8868,7 +8870,15 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
    if(!map.has(id))map.set(id,{id,name:String(team.name),league:String(match?.league?.name||''),country:String(match?.league?.country||'')});
   }
   for(const [id,team] of directory)if(!map.has(id))map.set(id,team);
-  return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+  for(const name of FALLBACK_TEAMS){
+   if(![...map.values()].some(t=>normalize(t.name)===normalize(name)))map.set('fallback:tur.1:'+normalize(name),{id:'fallback:tur.1:'+normalize(name),name,league:'Süper Lig',country:'Türkiye'});
+  }
+  const unique=new Map();
+  for(const team of map.values()){
+   const key=normalize(team.name)+'|'+normalize(team.league);
+   if(!unique.has(key))unique.set(key,team);
+  }
+  return [...unique.values()].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
  }
  function draw(){
   const q=normalize(input.value.trim());
