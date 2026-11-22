@@ -17,7 +17,7 @@ jobs:
       - name: Run Safari 2 Node regressions
         run: |
           set -o pipefail
-          node --test --test-reporter=tap tests/safari2-mobile-card.test.mjs tests/safari2-today-filter.test.mjs tests/safari2-live-behavior.test.mjs tests/safari2-all-leagues.test.mjs tests/safari2-espn-behavior.test.mjs tests/safari2-favorites-search.test.mjs tests/safari2-team-detail.test.mjs 2>&1 | tee safari2-node22.tap
+          node --test --test-reporter=tap tests/safari2-*.test.mjs 2>&1 | tee safari2-node22.tap
       - name: Upload complete Node 22 test diagnostics
         if: always()
         uses: actions/upload-artifact@v4
