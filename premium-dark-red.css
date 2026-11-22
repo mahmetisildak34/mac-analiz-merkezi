@@ -50,3 +50,42 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
  .mam-bottom-nav button{font-size:10px!important}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* Shared premium surfaces across existing screens; no new navigation or data features */
+#mamTeamSearch:not([hidden]),#mamTeamHistoryScreen,.match-detail-overlay,#mamFavoritePanel,#mamStandingsScreen,#mamStandingTeamHistory,.mam-standing-team-history,#mamSpecialScreen,#mamHalfGoalScreen,#couponPanel,#mamAuthGate{
+ background:#0b0f17!important;color:#f3f5f9!important;
+}
+#mamTeamSearch header,#mamTeamHistoryScreen header,.match-detail-top,#mamFavoritePanel header,#mamStandingsScreen header,#mamSpecialScreen header,#mamHalfGoalScreen header{
+ background:#151b25!important;color:#f3f5f9!important;border-color:#303744!important;
+}
+#mamTeamSearch input,#mamStandingsSearch,.mam-standings-search,#mamHalfTeam,#mamHalfLeague,#mamHalfFilter,#couponStake,#mamAuthPassword{
+ background:#1b222d!important;color:#f4f6fa!important;border:1px solid #363e4b!important;
+}
+#mamTeamSearch button,#mamTeamHistoryScreen button,.match-detail-overlay button,#mamFavoritePanel button,#mamStandingsScreen button,#mamSpecialScreen button,#mamHalfGoalScreen button,#couponPanel button{
+ border-color:#343b48;color:#f3f5f9;
+}
+#mamTeamSearch :is(article,li,[role="option"]),#mamTeamHistoryScreen :is(article,.mam-history-row,.mam-history-panel),.match-detail-overlay :is(article,.stat,.panel),#mamFavoritePanel :is(article,.match,.panel),#mamStandingsScreen :is(.mam-standings-group,.mam-standings-card,.mam-standings-banner,.mam-standings-table-wrap),#mamSpecialScreen :is(.mam-special-card,.panel),#mamHalfGoalScreen :is(.mam-special-card,.mam-half-results),#couponPanel :is(.coupon-summary,.coupon-add-row,.coupon-items){
+ background:#171d27!important;color:#f4f6fa!important;border-color:#323946!important;box-shadow:none!important;
+}
+#mamTeamSearch :is(h1,h2,h3,strong),#mamTeamHistoryScreen :is(h1,h2,h3,strong),.match-detail-overlay :is(h1,h2,h3,strong),#mamFavoritePanel :is(h1,h2,h3,strong),#mamStandingsScreen :is(h1,h2,h3,strong),#mamSpecialScreen :is(h1,h2,h3,strong),#mamHalfGoalScreen :is(h1,h2,h3,strong),#couponPanel :is(h1,h2,h3,strong){color:#f5f6fa!important}
+#mamTeamSearch :is(small,p),#mamTeamHistoryScreen :is(small,.mam-history-date,.mam-history-summary),.match-detail-overlay :is(small,.note),#mamFavoritePanel small,#mamStandingsScreen :is(small,.mam-standings-note),#couponPanel small{color:#aab3c0!important}
+#mamStandingsScreen .mam-standing-team-row td,#mamStandingsScreen .mam-standings-table th,#mamStandingsScreen .mam-standings-table td{
+ background:#171d27!important;color:#e8edf4!important;border-color:#333b48!important;
+}
+#mamStandingsScreen .mam-standing-team-row.active td{background:#38202a!important}
+#mamStandingsScreen .mam-points-cell,#mamTeamHistoryScreen .mam-history-score,.match-detail-overlay .score{color:#ff5964!important}
+#mamTeamHistoryScreen .mam-history-tab.active,#mamStandingsScreen button.active,#mamHalfGoalScreen button.active{background:#b62b37!important;color:#fff!important}
+#couponPanel .coupon-title strong,#couponPanel .coupon-summary strong{color:#f3f5f9!important}
+#couponPanel .coupon-empty{background:#171d27!important;color:#aab3c0!important;border-color:#323946!important}
+#mamAuthGate :is(input,button){border-radius:12px}
+#mamAuthGate a:not([hidden]){color:#ff727b!important}
+.mam-goal-row,.mam-live-stat-row,.mam-form-row,.lineup-player-profile,.scoreline{border-color:#333b48!important}
+.mam-live-stat-track{background:#303744!important}
+.mam-live-stat-home,.mam-live-stat-away{background:#df3945!important}
+@media(max-width:560px){
+ #mamTeamSearch{padding:calc(env(safe-area-inset-top) + 10px) 10px calc(env(safe-area-inset-bottom) + 14px)!important}
+ #mamTeamHistoryScreen,.match-detail-overlay{padding-inline:10px!important}
+ #mamStandingsScreen .mam-standings-card,#mamFavoritePanel .match{border-radius:12px!important;padding:10px!important}
+ #couponPanel{max-width:100%;overflow-wrap:anywhere}
+ #mamStandingsScreen .mam-standings-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
