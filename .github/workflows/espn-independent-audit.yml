@@ -1,0 +1,50 @@
+name: Independent ESPN regression tests
+on:
+  push:
+    branches:
+      - feature/independent-espn-data-audit-20261122
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'tests/espn-*.test.cjs'
+      - 'tests/safari2-*.test.mjs'
+      - 'tests/fixtures/espn-tur1-20261122.json'
+      - 'tests/fixtures/safari2-favorites-harness.html'
+      - 'tests/browser/safari2-mobile.spec.cjs'
+      - 'playwright.safari2.config.cjs'
+      - 'service-worker.js'
+      - 'manifest.webmanifest'
+      - 'safari2-favorites-search.js'
+      - '.github/workflows/espn-independent-audit.yml'
+permissions:
+  contents: read
+jobs:
+  espn-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: ESPN status and match-list regression tests
+        run: node --test tests/espn-status-classification.test.cjs tests/espn-match-list.test.cjs tests/espn-archive-merge.test.cjs
+      - name: Mobile and PWA Node regressions
+        run: node --test tests/safari2-*.test.mjs
+
+  browser-acceptance:
+    if: github.event_name != 'pull_request' || github.head_ref == 'feature/independent-espn-data-audit-20261122'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser testing tools
+        run: npm install --no-save --no-package-lock @playwright/test@1.56.1
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Verify mobile, favorites, and offline PWA
+        run: npx playwright test --config=playwright.safari2.config.cjs

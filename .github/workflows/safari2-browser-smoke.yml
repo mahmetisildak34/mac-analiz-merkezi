@@ -1,0 +1,43 @@
+name: Safari 2 Chromium and WebKit smoke
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/safari2-mobile-ux-20261122
+    paths:
+      - playwright.safari2.config.cjs
+      - tests/browser/safari2-mobile.spec.cjs
+      - index.html
+      - manifest.webmanifest
+      - service-worker.js
+      - icons/**
+      - safari2-favorites-search.js
+      - mobile/**
+      - .github/workflows/safari2-browser-smoke.yml
+jobs:
+  offline-mobile-browsers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser test tooling
+        run: npm install --no-save --no-package-lock @playwright/test@1.56.1
+      - name: Install headless Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run offline mobile smoke tests
+        run: npx playwright test --config=playwright.safari2.config.cjs
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari2-chromium-webkit-report
+          path: |
+            playwright-report/safari2
+            test-results
+          if-no-files-found: warn
+          retention-days: 7

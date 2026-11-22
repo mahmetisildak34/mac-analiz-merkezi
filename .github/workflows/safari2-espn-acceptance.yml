@@ -1,0 +1,32 @@
+name: Safari 2 ESPN read-only acceptance
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/safari2-mobile-ux-20261122
+    paths:
+      - scripts/safari2-espn-acceptance.mjs
+      - .github/workflows/safari2-espn-acceptance.yml
+jobs:
+  check-public-scoreboards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only validation of configured ESPN addresses
+        run: node scripts/safari2-espn-acceptance.mjs
+      - name: Upload per-address evidence even if responses fail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari2-espn-acceptance
+          path: |
+            safari2-espn-acceptance.json
+            safari2-espn-acceptance-raw
+          if-no-files-found: warn
+          retention-days: 7

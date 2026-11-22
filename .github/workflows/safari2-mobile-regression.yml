@@ -1,0 +1,28 @@
+name: Safari 2 mobile regression
+on:
+  push:
+    branches:
+      - feature/safari2-mobile-ux-20261122
+  workflow_dispatch:
+jobs:
+  node-regressions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Safari 2 Node regressions
+        run: |
+          set -o pipefail
+          node --test --test-reporter=tap tests/safari2-*.test.mjs 2>&1 | tee safari2-node22.tap
+      - name: Upload complete Node 22 test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari2-node22-tap
+          path: safari2-node22.tap
+          if-no-files-found: warn
+          retention-days: 7
