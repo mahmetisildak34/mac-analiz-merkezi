@@ -19,7 +19,7 @@ function runSync(previous,fixture){
  vm.createContext(sandbox);
  vm.runInContext(source.slice(start,end),sandbox,{timeout:1000});
  sandbox.syncFavoriteSnapshots();
- return {snapshot:saved.snapshot,writes,renders};
+ return {snapshot:JSON.parse(JSON.stringify(saved.snapshot)),writes,renders};
 }
 const fixture=(at,home,away,status="LIVE")=>({
  _mamLastVerifiedAt:at,fixture:{status:{short:status}},goals:{home,away}
