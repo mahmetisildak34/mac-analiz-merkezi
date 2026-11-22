@@ -133,6 +133,19 @@ test("PWA install metadata and static shell assets are served",async({page})=>{
  expect(await icon.text()).toContain("<svg");
  const sw=await page.request.get("/service-worker.js");
  expect(sw.ok()).toBeTruthy();
- expect(await sw.text()).toContain('request.mode === "navigate"');
+ const swText=await sw.text();
+ expect(swText).toContain('request.mode === "navigate"');
+ expect(swText).toContain('half-goal-algorithm.js');
+ expect(swText).toContain('safari2-favorites-search.js');
  await expect(page).toHaveTitle("Maç Analiz Merkezi");
+ await page.waitForFunction(async()=>{
+  if(!("serviceWorker" in navigator))return false;
+  const registration=await navigator.serviceWorker.getRegistration();
+  return Boolean(registration?.active);
+ },null,{timeout:10000});
+ await page.context().setOffline(true);
+ await page.reload({waitUntil:"domcontentloaded"});
+ await expect(page).toHaveTitle("Maç Analiz Merkezi");
+ await expect(page.locator("#mamAuthGate")).toBeVisible();
+ await page.context().setOffline(false);
 });
