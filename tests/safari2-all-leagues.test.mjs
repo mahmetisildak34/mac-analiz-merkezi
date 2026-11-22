@@ -29,7 +29,7 @@ test('Super Lig mapping is present without replacing other major leagues',()=>{
  for(const id of ['39','140','78','135','61','2','3','253'])assert.ok(leagues[id]?.slug,'missing league '+id);
 });
 test('ESPN conversion never fabricates a noon UTC kickoff for missing dates',()=>{
- assert.match(html,/date:event.date\|\|null/);
+ assert.match(html,/date:event.date\|\|competition.date\|\|null/);
  assert.match(html,/Number\.isFinite\(Date\.parse\(match\.fixture\.date\|\|""\)\)/);
  assert.doesNotMatch(html,/date:event.date\|\|date\+"T12:00:00Z"/);
 });

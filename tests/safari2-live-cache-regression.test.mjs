@@ -22,7 +22,7 @@ test("live refresh never resurrects unconfirmed cached matches into ESPN provide
  assert.doesNotMatch(live,/recentCachedLive\.forEach/);
  assert.match(live,/const mergedByPair=new Map\(\)/);
  assert.match(live,/fallbackLive\.forEach\(match=>/);
- assert.match(live,/const isRecentLive=match=>mamIsCrediblyLive\(match,Date\.now\(\)\)/);
+ assert.match(live,/const isRecentLive=match=>isLive\(match\)&&mamIsCrediblyLive\(match,Date\.now\(\)\)/);
 });
 test("cached live preview is explicitly labeled old until a successful provider response",()=>{
  assert.match(live,/Önceki veri \(/);

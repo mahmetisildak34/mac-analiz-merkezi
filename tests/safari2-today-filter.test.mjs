@@ -37,7 +37,7 @@ test('Today counters use selected day only',()=>{
 });
 test('live and Today remain separate screen filters',()=>{
  assert.match(html,/if\(mamScreenMode==="live"\)list=list\.filter\(m=>mamIsCrediblyLive\(m,mamNow\)\)/);
- assert.match(html,/const isRecentLive=match=>mamIsCrediblyLive\(match,Date\.now\(\)\)/);
+ assert.match(html,/const isRecentLive=match=>isLive\(match\)&&mamIsCrediblyLive\(match,Date\.now\(\)\)/);
  assert.match(html,/list=list\.filter\(m=>mamIsFutureUnplayed\(m,mamNow\)&&mamIstanbulDay\(m\.fixture\?\.date\)===selectedDay\)/);
 });
 

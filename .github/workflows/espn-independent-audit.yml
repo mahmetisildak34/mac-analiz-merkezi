@@ -8,6 +8,8 @@ on:
     paths:
       - 'index.html'
       - 'tests/espn-*.test.cjs'
+      - 'tests/safari2-*.test.mjs'
+      - 'tests/fixtures/espn-tur1-20261122.json'
       - '.github/workflows/espn-independent-audit.yml'
 permissions:
   contents: read
@@ -22,3 +24,5 @@ jobs:
           node-version: '22'
       - name: ESPN status and match-list regression tests
         run: node --test tests/espn-status-classification.test.cjs tests/espn-match-list.test.cjs tests/espn-archive-merge.test.cjs
+      - name: Mobile and PWA Node regressions
+        run: node --test tests/safari2-*.test.mjs
