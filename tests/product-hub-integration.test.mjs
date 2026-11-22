@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {SourceTextModule} from 'node:vm';
+import {spawnSync} from 'node:child_process';
 const html=readFileSync(new URL('../mobile/product-hub.html',import.meta.url),'utf8');
 const app=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 test('product hub exposes seven feature areas and responsive navigation',()=>{
@@ -19,5 +19,5 @@ test('main app links to product hub without replacing existing rendering',()=>{
 test('product hub module script is syntactically valid',()=>{
  const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
  assert.ok(script,'module script present');
- assert.doesNotThrow(()=>new SourceTextModule(script));
+ const check=spawnSync(process.execPath,['--check','--input-type=module'],{input:script,encoding:'utf8'});assert.equal(check.status,0,check.stderr);
 });
