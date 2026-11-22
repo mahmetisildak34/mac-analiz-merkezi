@@ -77,3 +77,13 @@ test('same fixture ID with missing opponent identity remains separate', () => {
  second.teams.away.name = '';
  assert.equal(helpers.mamDeduplicateFixtures([first,second]).length,2);
 });
+
+test('Süper Lig is prioritized in the all-league ESPN live scan', () => {
+ const leaguesStart=html.indexOf('const ESPN_LEAGUES={');
+ const leaguesEnd=html.indexOf('const MAM_MATCH_STATS_TTL=',leaguesStart);
+ const fnStart=html.indexOf('async function espnFixtures(date,includeAllLeagues=false){');
+ const fnEnd=html.indexOf('async function loadMatches(){',fnStart);
+ assert.ok(leaguesStart>=0&&leaguesEnd>leaguesStart&&fnStart>=0&&fnEnd>fnStart);
+ const source=html.slice(leaguesStart,leaguesEnd)+html.slice(fnStart,fnEnd);
+ assert.ok(source.includes('targets.sort((a,b)=>Number(b[0]==="203")-Number(a[0]==="203"))'), 'Turkish league must lead the scan');
+});
