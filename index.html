@@ -2091,6 +2091,7 @@ $("league").addEventListener("change",()=>{
 });
 $("date").addEventListener("change",()=>{
  try{const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"{}");localStorage.setItem("mam_app_view_state",JSON.stringify({...saved,date:$("date").value}));}catch(_){}
+ if(document.readyState!=="loading")$("load")?.click();
 });
 
 let selectedStandingsLeague="";
@@ -7591,7 +7592,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
  const label=(offset)=>{const d=new Date(localDate(offset)+"T12:00:00");return d.toLocaleDateString("tr-TR",{weekday:"short",day:"2-digit",month:"2-digit"});};
  strip.querySelectorAll("[data-day-offset]").forEach(chip=>{
   const offset=Number(chip.dataset.dayOffset);chip.querySelector("b").textContent=label(offset);
-  chip.addEventListener("click",()=>{dateInput.value=localDate(offset);dateInput.dispatchEvent(new Event("change",{bubbles:true}));$("load")?.click();});
+  chip.addEventListener("click",()=>{dateInput.value=localDate(offset);dateInput.dispatchEvent(new Event("change",{bubbles:true}));});
  });
  const sync=()=>{strip.querySelectorAll(".mam-date-chip").forEach(chip=>{const selected=dateInput.value===localDate(Number(chip.dataset.dayOffset));chip.classList.toggle("active",selected);chip.setAttribute("aria-pressed",String(selected));});};
  dateInput.addEventListener("change",sync);sync();
@@ -8754,5 +8755,22 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
  body > main #matches {margin-top:3px!important}
  body > main #matches .mam-league-heading {padding:5px 6px!important;margin:3px 0!important}
  body > main #matches article.match.match-modern.mam-has-favorites:not(.in-detail) {margin:4px 0!important}
+}
+</style>
+
+<style id="mamUltraCompactHeader20261122">
+@media(max-width:600px){
+ body > main .mam-fixture-controls{padding:7px!important;margin:4px 0!important}
+ body > main .mam-primary-filters{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:6px!important;align-items:end!important}
+ body > main .mam-primary-filters .mam-date-filter,body > main .mam-primary-filters .league-picker{width:100%!important;min-width:0!important;height:auto!important;min-height:0!important}
+ body > main .mam-primary-filters label{font-size:10px!important;line-height:1!important;margin:0 0 3px!important;padding:0!important}
+ body > main .mam-primary-filters input#date,body > main .mam-primary-filters button#leagueTrigger{box-sizing:border-box!important;width:100%!important;max-width:100%!important;height:44px!important;min-height:44px!important;max-height:44px!important;padding:6px 8px!important;margin:0!important;border-radius:9px!important;font-size:12px!important;line-height:1.2!important}
+ body > main #leagueCurrent,body > main #leagueCurrent *{font-size:12px!important;line-height:1.2!important}
+ body > main #leagueCurrent .league-current-icon{display:none!important}
+ body > main #mamDateStrip{margin:5px 0 0!important;gap:5px!important}
+ body > main #mamDateStrip .mam-date-chip{height:44px!important;min-height:44px!important;padding:5px 2px!important;font-size:11px!important}
+ body > main #mamDateStrip .mam-date-chip b{font-size:10px!important}
+ body > main #load{display:none!important}
+ body > main #status{font-size:11px!important;margin:3px 0!important}
 }
 </style>
