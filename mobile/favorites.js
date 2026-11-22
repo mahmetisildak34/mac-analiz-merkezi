@@ -5,7 +5,7 @@ const keyOf = item => {
 const teamKeyOf = team => {
  const id = team?.id;
  if (id != null && String(id).trim()) return "id:" + String(id);
- const name = String(team?.name ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/[^a-z0-9]/g,"");
+ const name = String(team?.name ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("tr-TR").replace(/ı/g,"i").replace(/[^a-z0-9]/g,"");
  return name ? "name:" + name : null;
 };
 
