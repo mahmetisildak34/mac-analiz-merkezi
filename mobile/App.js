@@ -5,7 +5,7 @@ import {
 } from "react-native";
 
 const {statusLabel, isCrediblyLive} = require("./match-rules");
-const {fetchFixtures} = require("./api-client");
+import {fetchFixtures} from "./api-client";
 
 export default function App() {
   const [tab, setTab] = useState("live");
