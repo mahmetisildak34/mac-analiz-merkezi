@@ -1,7 +1,7 @@
 name: Isolated mobile browser
 on:
   push:
-    branches: [feature/local-favorites-20261121]
+    branches: [feature/local-favorites-20261121, audit/mobile-ci-safety-20261122]
   workflow_dispatch:
 permissions:
   contents: read
