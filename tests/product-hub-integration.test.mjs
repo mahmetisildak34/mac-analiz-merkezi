@@ -230,7 +230,7 @@ test('PWA manifest installs the mobile hub with bundled icons and an isolated se
   assert.equal(buf.readUInt32BE(16),Number(icon.sizes.split('x')[0]));
   assert.equal(buf.readUInt32BE(20),Number(icon.sizes.split('x')[1]));
  }
- assert.match(html,/navigator\.serviceWorker\.register\('\.\/sw\.js'\)/);
+ assert.match(html,/navigator\.serviceWorker\.register\('\.\/sw\.js',\{updateViaCache:'none'\}\)/);
 });
 
 test('root PWA starts at the main app and uses its own static cache namespace',()=>{

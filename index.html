@@ -4059,10 +4059,13 @@ function lineupTeamHTML(team,ratingMap,index){
  const starters=Array.isArray(team.startXI)?team.startXI:[],subs=Array.isArray(team.substitutes)?team.substitutes:[];
  const rows=new Map(); starters.forEach((entry,index)=>{const m=String(entry.player?.grid||"").match(/^(\d+):(\d+)$/);const row=m?Number(m[1]):Math.ceil((index+1)/4);if(!rows.has(row))rows.set(row,[]);rows.get(row).push(entry);});
  const rowHtml=[...rows.entries()].sort((a,b)=>a[0]-b[0]).map(([,players])=>'<div class="lineup-row" style="--lineup-count:'+players.length+'">'+players.map(p=>lineupPlayerCard(p,ratingMap)).join("")+'</div>').join("");
+ const startersHtml=!starters.length?'<p class="lineup-note">İlk 11 kaynakta bulunmuyor.</p>':
+  team.formation?'<div class="lineup-pitch"><div class="lineup-rows">'+rowHtml+'</div></div>':
+  '<p class="lineup-note">Diziliş kaynakta paylaşılmadı.</p><ul class="lineup-bench-list">'+starters.map(entry=>'<li>'+esc(entry.player?.name??"Oyuncu")+'</li>').join("")+'</ul>';
  const coach=team.coach||{},coachHtml=coach.name?'<div class="lineup-coach">Teknik direktör: <b>'+esc(coach.name)+'</b></div>':"";
  const benchId="lineup-bench-"+index;
  const benchHtml=subs.length?'<div class="lineup-bench"><button type="button" class="lineup-bench-toggle" data-bench-target="'+benchId+'" aria-expanded="false">Yedekler</button><div class="lineup-bench-content" id="'+benchId+'" hidden><div class="lineup-bench-title">Yedek oyuncular</div><div class="lineup-bench-list">'+subs.map(entry=>{const p=entry.player||entry;return '<span class="lineup-bench-item">'+esc(p.number??"")+' '+esc(p.name||"Oyuncu")+'</span>';}).join("")+'</div></div></div>':'<div class="lineup-note">Yedek listesi kaynakta bulunmuyor.</div>';
- return '<section class="lineup-team"><div class="lineup-team-title"><span>'+esc(team.team?.name||"Takım")+'</span><small>'+(team.formation?esc(team.formation)+' · ':'')+starters.length+' ilk 11</small></div>'+coachHtml+'<div class="lineup-pitch"><div class="lineup-rows">'+(rowHtml||'<div class="lineup-empty">Saha dizilişi henüz paylaşılmadı.</div>')+'</div></div>'+benchHtml+'</section>';
+ return '<section class="lineup-team"><div class="lineup-team-title"><span>'+esc(team.team?.name||"Takım")+'</span><small>'+(team.formation?esc(team.formation)+' · ':'')+starters.length+' ilk 11</small></div>'+coachHtml +startersHtml+benchHtml+'</section>';
 }
 function mamAbsenceCacheKey(date){return "mam_absences_date_v1_"+String(date||"").slice(0,10);}
 function mamReadAbsenceCache(date){
@@ -4358,7 +4361,7 @@ async function loadLineups(button){
    });
    selectedTeamPanel.querySelectorAll(".lineup-bench-toggle").forEach(benchButton=>{
     benchButton.addEventListener("click",()=>{
-     const bench=document.getElementById(benchButton.dataset.benchTarget);
+     const bench=selectedTeamPanel.querySelector("#"+benchButton.dataset.benchTarget);
      if(!bench)return;
      const opening=bench.hidden;
      bench.hidden=!opening;
@@ -7819,7 +7822,7 @@ const openStandingTeamHistory=async row=>{
 </script>
 <script type="module" src="./mobile/main-favorites.mjs"></script>
 <script>
-if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"}).catch(()=>{});
 window.addEventListener("offline",()=>{
  if(mamScreenMode!=="live")return;
  if(mamActiveMatch)closeMamMatchDetail();
@@ -8466,6 +8469,9 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
   min-height:44px!important;
  }
  #matches .mam-independent-favorites{margin:2px 0 3px!important}
+}
+@media(max-width:600px){
+ body .mam-bottom-nav{grid-template-columns:repeat(7,minmax(44px,1fr))!important;overflow-x:auto}
 }
 </style>
 

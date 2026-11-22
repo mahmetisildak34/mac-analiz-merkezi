@@ -128,7 +128,7 @@ $('standingsFile').addEventListener('change',async e=>{
  }catch(err){target.textContent='Puan tablosu yüklenemedi: '+err.message;}
 });
 $('matchFilter').addEventListener('change',render);$('matchDate').addEventListener('change',render);$('league').addEventListener('change',render);$('query').addEventListener('input',render);$('alerts').addEventListener('change',e=>{state.alerts=e.target.checked;save();render();});loadSharedFixtures();show('home');
-if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{});
 window.addEventListener('pageshow',()=>{readPreferences();loadSharedFixtures();render();});
 window.addEventListener('storage',event=>{
  if(event.key===KEY){readPreferences();render();}

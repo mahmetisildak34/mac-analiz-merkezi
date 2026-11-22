@@ -61,3 +61,27 @@ test('kickoff reminders require a confirmed scheduled status',()=>{
  const rows=statuses.map((status,i)=>({id:String(i),kickoff,status}));
  assert.deepEqual(notificationCandidates(rows,rows.map(m=>m.id),{now}).map(m=>m.id),['0']);
 });
+
+test('shared ESPN standings deduplicate season loads and retain the last table on connection failure',async t=>{
+ const {readFileSync}=await import('node:fs');
+ const {loadEspnStandings}=await import('../mobile/espn-standings.mjs');
+ const payload=JSON.parse(readFileSync(new URL('./fixtures/espn-tur1-2025-standings.json',import.meta.url),'utf8'));
+ let attempts=0;
+ t.mock.method(globalThis,'fetch',async request=>{
+  attempts++;
+  assert.match(request,/\/api\/espn\/tur\.1\/standings\?season=2025$/);
+  if(attempts>1)throw new TypeError('Test connection unavailable');
+  return Response.json(payload);
+ });
+ const [first,second]=await Promise.all([
+  loadEspnStandings('tur.1',{season:'2025'}),
+  loadEspnStandings('tur.1',{season:'2025'})
+ ]);
+ assert.equal(attempts,1);
+ assert.deepEqual(first,second);
+ assert.match(first.groups[0].season,/2025-26/);
+ const fallback=await loadEspnStandings('tur.1',{season:'2025',refresh:true});
+ assert.equal(attempts,2);
+ assert.equal(fallback.stale,true);
+ assert.deepEqual(fallback.groups,first.groups);
+});

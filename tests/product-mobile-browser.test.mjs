@@ -75,6 +75,13 @@ async function verifyMainApp(context){
   await dialog.getByRole('button',{name:/İstatistik/}).click();
   await dialog.getByRole('cell',{name:'55.2%'}).waitFor();
   await dialog.getByRole('cell',{name:'44.8%'}).waitFor();
+  await dialog.getByRole('button',{name:/Kadro/}).click();
+  await dialog.getByText(/3-5-2 · 11 ilk 11/).waitFor();
+  await dialog.getByText('Ertugrul Taskiran',{exact:true}).waitFor();
+  await dialog.getByRole('button',{name:'Yedekler',exact:true}).click();
+  assert.equal(await dialog.locator('.lineup-bench-content li,.lineup-bench-content .lineup-bench-item').count(),10);
+  await dialog.getByRole('button',{name:/Goztepe/}).click();
+  await dialog.getByText(/3-4-1-2 · 11 ilk 11/).waitFor();
   await dialog.getByRole('button',{name:'Geri',exact:true}).click();
   await dialog.waitFor({state:'hidden'});
   assert.equal(await opener.evaluate(button=>document.activeElement===button),true);
@@ -120,6 +127,8 @@ async function verifyMainApp(context){
   assert.equal(await main.evaluate(()=>window.historicalStandingsRequests),2);
   await main.waitForFunction(()=>navigator.serviceWorker.controller?.scriptURL.endsWith('/sw.js'));
   console.log('Main mobile timing '+JSON.stringify(measurements));
+  await main.setViewportSize({width:320,height:720});
+  assert.equal(await main.locator('.mam-bottom-nav button').evaluateAll(buttons=>buttons.every(button=>button.getBoundingClientRect().height>=44&&button.getBoundingClientRect().width>=44)),true);
   assert.equal(await main.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
   await main.evaluate(saved=>{localStorage.setItem('mam-product-hub-v1',saved);localStorage.removeItem('mam_app_view_state');},initialFavorites);
  }finally{await main.close();}
@@ -137,7 +146,7 @@ async function open(browserType){
 }
 for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
  test(name+' mobile favorites, refresh, search, details and navigation',async()=>{
-  const server=startServer();
+  let server=startServer();
   let browser;
   try{
    await waitForServer(server);
@@ -255,6 +264,26 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    await page.locator('[data-tab="leagues"]').click();
    await table.getByText(/Galatasaray/).waitFor();
    assert.ok(await page.evaluate(()=>navigator.serviceWorker.controller!==null));
+   await page.evaluate(async origin=>{
+    const cache=await caches.open('mam-main-shell-v1');
+    await cache.put(origin+'/index.html',new Response('<h1>Old offline shell</h1>',{headers:{'content-type':'text/html'}}));
+   },origin);
+   server=startServer();
+   await waitForServer(server);
+   const reconnected=await page.context().newPage();
+   try{
+    await reconnected.addInitScript(()=>{
+     const fetchNetwork=window.fetch.bind(window);
+     window.fetch=(input,options)=>String(input).endsWith('/auth/check')
+      ?Promise.resolve(new Response('{"ok":true}'))
+      :new URL(String(input),location.href).origin===location.origin?fetchNetwork(input,options):Promise.reject(new TypeError('External requests disabled'));
+    });
+    await reconnected.goto(origin+'/');
+    await reconnected.locator('#mamAuthGate').waitFor({state:'detached'});
+    assert.equal(await reconnected.getByText('Old offline shell').count(),0);
+    await reconnected.locator('#mamFavoriteBottom').click();
+    await reconnected.locator('[data-fav-teams]').getByText(/Fenerbahçe/).waitFor();
+   }finally{await reconnected.close();}
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
   }finally{
    try{await browser?.close();}finally{await stopServer(server);}
