@@ -26,3 +26,10 @@ test('narrow-screen fixture and navigation guards remain present', () => {
   assert.match(safari2, /@media\(max-width:350px\)/);
   assert.match(safari2, /\.mam-bottom-nav button\{min-width:0!important;overflow:hidden!important\}/);
 });
+
+test('bottom navigation lays out all six tabs in one row',()=>{
+ const nav=html.match(/<nav class="mam-bottom-nav"[^>]*>([\s\S]*?)<\/nav>/);
+ assert.ok(nav,'bottom navigation missing');
+ assert.equal((nav[1].match(/data-mam-bottom=/g)||[]).length,6);
+ assert.match(html,/\.mam-bottom-nav\{[^}]*grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+});
