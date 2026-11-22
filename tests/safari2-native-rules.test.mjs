@@ -12,7 +12,7 @@ const fixture=(id,date,status,home="Ev",away="Dep",league=203)=>({
 test("native Today requests the Istanbul calendar date rather than UTC",()=>{
  assert.equal(rules.istanbulDay("2026-11-22T21:30:00Z"),"2026-11-23");
  assert.match(apiClient,/istanbulDay\(new Date\(timestamp\)\)/);
- assert.match(app,/fetchFixtures\(\{tab:selectedTab,signal:controller\.signal\}\)/);
+ assert.match(app,/fetchFixtures\(\{\s*tab:\s*selectedTab,\s*signal:\s*controller\.signal\s*\}\)/);
  assert.doesNotMatch(app,/new Date\(\)\.toISOString\(\)\.slice\(0, 10\)/);
 });
 test("native Today only lists matches not yet played on Istanbul day",()=>{
@@ -60,6 +60,6 @@ test("native UI guards stale tab responses and narrows layout without clipping",
  assert.match(app,/activeController\.current\?\.abort\(\)/);
  assert.match(app,/setStale\(true\)/);
  assert.match(app,/setMatches\(\[\]\)/);
- assert.match(app,/team:\{flex:1,minWidth:0\}/);
+ assert.match(app,/team:\{\s*flex:\s*1,\s*minWidth:\s*0\s*\}/);
  assert.match(app,/fontVariant:\["tabular-nums"\]/);
 });
