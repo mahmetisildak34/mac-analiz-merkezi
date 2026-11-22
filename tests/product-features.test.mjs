@@ -34,3 +34,11 @@ test('Istanbul today accepts raw ESPN date and API fixture date across midnight'
  assert.equal(isIstanbulToday({date:'2026-11-22T20:15:00Z'},now),false);
  assert.equal(isIstanbulToday({date:'not-a-date'},now),false);
 });
+
+test('kickoff notifications exclude cancelled postponed and finished games',()=>{
+ const now=Date.parse('2026-11-22T12:00:00Z');
+ const fixtures=['NS','PST','POSTPONED','CANC','CANCELLED','ABD','ABANDONED','FT','AET','PEN'].map((status,i)=>({id:String(i),status,kickoff:'2026-11-22T12:05:00Z'}));
+ const ids=fixtures.map(m=>m.id);
+ assert.deepEqual(notificationCandidates(fixtures,ids,{now}).map(m=>m.id),['0']);
+ assert.deepEqual(notificationCandidates([{id:'nested',status:{type:{name:'CANCELLED'}},kickoff:'2026-11-22T12:05:00Z'}],['nested'],{now}),[]);
+});
