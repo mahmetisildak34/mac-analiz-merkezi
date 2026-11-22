@@ -73,3 +73,9 @@ test('screen filters share a single time snapshot',()=>{
  assert.equal(sandbox.mamIsFutureUnplayed(upcoming,now),true);
  assert.equal(sandbox.mamIstanbulDay(upcoming.fixture.date),'2026-11-22');
 });
+
+test('initial mobile date picker uses Istanbul day, not the device timezone',()=>{
+ assert.match(html,/\$\("date"\)\.value=mamIstanbulDay\(today\.toISOString\(\)\)/);
+ const timestamp='2026-11-22T21:15:00Z';
+ assert.equal(sandbox.mamIstanbulDay(timestamp),'2026-11-23');
+});
