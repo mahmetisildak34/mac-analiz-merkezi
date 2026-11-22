@@ -129,3 +129,9 @@ test('published ESPN standings import is local and remains separate from compute
  assert.match(html,/ESPN verisinden aktarılan sıralama/);
  assert.match(html,/Resmî lig puan durumu değildir/);
 });
+
+test('ESPN standings array variant preserves official published points',async()=>{
+ const {parseEspnStandings}=await import('../mobile/product-features.mjs');
+ const groups=parseEspnStandings({standings:[{name:'League',entries:[{team:{id:'11',displayName:'Home'},stats:[{name:'points',value:9}]}]}]});
+ assert.equal(groups.length,1);assert.equal(groups[0].rows[0].points,9);
+});
