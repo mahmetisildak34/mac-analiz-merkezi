@@ -1673,6 +1673,11 @@ button{transition:filter .15s ease,transform .15s ease}
  <div class="mam-standings-card" id="mamStandingsCard" hidden><div class="mam-standings-banner" id="mamStandingsBanner"><div class="mam-standings-flag" id="mamStandingsFlag">🏆</div><div class="mam-standings-banner-copy"><strong id="mamStandingsBannerName">Lig</strong><span id="mamStandingsBannerMeta">Sezon</span></div><div class="mam-standings-banner-mark">⚽</div></div><div class="mam-standings-card-head"><button type="button" id="mamStandingsBack" class="secondary">← Liglere dön</button><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Lig puan durumu</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><label for="mamStandingsSeasonSelect">ESPN sezonu</label><select id="mamStandingsSeasonSelect"><option value="">ESPN güncel sezonu</option></select><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosu yükleniyor...</div></div></div>
  </section>
 <section class="panel mam-fixture-controls">
+<nav id="mamReferenceDateNav" class="mam-reference-date-nav" aria-label="Maç tarihi">
+ <button type="button" id="mamRefPrev" aria-label="Önceki gün">‹ <span id="mamRefPrevLabel">Dün</span></button>
+ <label class="mam-ref-date-center" for="date"><span id="mamRefDateLabel">Bugün</span></label>
+ <button type="button" id="mamRefNext" aria-label="Sonraki gün"><span id="mamRefNextLabel">Yarın</span> ›</button>
+</nav>
 <div class="row mam-primary-filters">
 <div class="mam-date-filter">
 <label for="date">Maç tarihi</label>
@@ -8772,5 +8777,39 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
  body > main #mamDateStrip .mam-date-chip b{font-size:10px!important}
  body > main #load{display:none!important}
  body > main #status{font-size:11px!important;margin:3px 0!important}
+}
+</style>
+
+<script id="mamReferenceDateNavLogic">
+(function(){
+ const date=document.getElementById("date"),label=document.getElementById("mamRefDateLabel");
+ const prev=document.getElementById("mamRefPrev"),next=document.getElementById("mamRefNext");
+ if(!date||!label||!prev||!next)return;
+ const fmt=(iso,opts)=>new Date(iso+"T12:00:00").toLocaleDateString("tr-TR",opts);
+ const shift=(iso,n)=>{const d=new Date(iso+"T12:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+ const sync=()=>{if(!date.value)return;label.textContent=fmt(date.value,{day:"numeric",month:"long",weekday:"short"});document.getElementById("mamRefPrevLabel").textContent=fmt(shift(date.value,-1),{day:"numeric",weekday:"short"});document.getElementById("mamRefNextLabel").textContent=fmt(shift(date.value,1),{day:"numeric",weekday:"short"});};
+ for(const [button,offset] of [[prev,-1],[next,1]])button.addEventListener("click",()=>{if(!date.value)return;date.value=shift(date.value,offset);date.dispatchEvent(new Event("change",{bubbles:true}));});
+ date.addEventListener("change",sync);sync();
+ document.addEventListener("DOMContentLoaded",sync,{once:true});
+})();
+</script>
+<style id="mamReferenceHomeSkin">
+@media(max-width:600px){
+ body > main .mam-fixture-controls{padding:6px 8px!important;margin:3px 0 5px!important;border:0!important;background:transparent!important;box-shadow:none!important}
+ body > main #mamReferenceDateNav{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr)!important;gap:4px!important;align-items:center!important;height:44px!important;margin:0 0 5px!important}
+ body > main #mamReferenceDateNav button{height:44px!important;min-height:44px!important;padding:5px!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#b8c9e1!important;font-size:12px!important;white-space:nowrap!important}
+ body > main #mamReferenceDateNav .mam-ref-date-center{height:44px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;margin:0!important;color:#f5f8ff!important;font-size:14px!important;font-weight:800!important;white-space:nowrap!important}
+ body > main .mam-primary-filters{display:flex!important;justify-content:center!important;margin:0!important;gap:0!important}
+ body > main .mam-primary-filters .mam-date-filter{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important}
+ body > main .mam-primary-filters .league-picker{width:auto!important;max-width:100%!important;margin:0!important}
+ body > main .mam-primary-filters .league-picker label{display:none!important}
+ body > main .mam-primary-filters button#leagueTrigger{height:34px!important;min-height:34px!important;max-height:34px!important;width:auto!important;min-width:112px!important;padding:4px 12px!important;border-radius:17px!important;background:#223451!important;border:1px solid #465a7b!important;box-shadow:none!important;color:#f0f4ff!important}
+ body > main #leagueCurrent,body > main #leagueCurrent *{font-size:12px!important}
+ body > main #mamDateStrip{display:none!important}
+ body > main #load{display:none!important}
+ body > main #mamHomeShortcuts{display:none!important}
+ body > main #mamMatchTabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;margin:5px 0!important}
+ body > main #mamMatchTabs button{height:44px!important;min-height:44px!important;font-size:11px!important;padding:4px 1px!important}
+ body > main #status{margin:2px 0!important;padding:0!important;font-size:10px!important}
 }
 </style>
