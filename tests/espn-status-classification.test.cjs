@@ -21,6 +21,8 @@ const cases = [
   ['pre-match live coverage text', { state: 'pre', detail: 'Live coverage starts soon' }, 'NS'],
   ['pre-match preview', { state: 'pre', detail: 'Preview: Live' }, 'NS'],
   ['scheduled fixture', { state: 'pre', detail: 'Scheduled' }, 'NS'],
+  ['pre-match halftime text is not active', { state: 'pre', detail: 'Halftime preview' }, 'NS'],
+  ['pre-match second-half teaser is not active', { state: 'pre', detail: 'Second Half' }, 'NS'],
   ['live first half', { state: 'in', detail: 'First Half' }, 'LIVE'],
   ['halftime', { state: 'in', detail: 'Halftime' }, 'HT'],
   ['full time', { state: 'post', detail: 'Full Time', completed: true }, 'FT'],
