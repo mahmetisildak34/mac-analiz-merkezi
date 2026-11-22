@@ -3387,9 +3387,9 @@ async function loadLiveMatchesNow(){
     const recentCachedLive=savedLiveCache&&Date.now()-Number(savedLiveCache.savedAt||0)<=3*60*1000
      ?savedLiveCache.matches.filter(isLive):[];
     const cleanTeamName=value=>String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
-    const matchPair=match=>cleanTeamName(match.teams?.home?.name)+"|"+cleanTeamName(match.teams?.away?.name);
+    const matchPair=match=>String(match.league?.id??"")+"|"+cleanTeamName(match.teams?.home?.name)+"|"+cleanTeamName(match.teams?.away?.name);
     // Taze ESPN skoru, aynı takımlar için cihazdaki eski API önbelleğinin daima önüne geçer.
-    const freshPairs=new Set(fallbackLive.map(matchPair));
+    const freshPairs=new Set(fallback.map(matchPair));
     const mergedByPair=new Map();
     recentCachedLive.forEach(match=>{const key=matchPair(match);if(!freshPairs.has(key))mergedByPair.set(key,match);});
     const primaryChecksByPair=new Map(primaryLiveMatches.filter(match=>match._mamLiveCrossCheck).map(match=>[matchPair(match),match._mamLiveCrossCheck]));

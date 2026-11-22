@@ -66,3 +66,9 @@ test("published standings keep missing fields blank and prefer source goal diffe
  assert.match(standings,/x\.difference\?\?\(x\.goals!=null&&x\.against!=null/);
  assert.match(standings,/isTeamDirectory\?"Puan tablosu yok"/);
 });
+
+test("fresh terminal ESPN statuses suppress old live entries within the same league",()=>{
+ assert.match(html,/const matchPair=match=>String\(match\.league\?\.id\?\?""\)/);
+ assert.match(html,/const freshPairs=new Set\(fallback\.map\(matchPair\)\)/);
+ assert.match(html,/recentCachedLive\.forEach\(match=>\{const key=matchPair\(match\);if\(!freshPairs\.has\(key\)\)/);
+});
