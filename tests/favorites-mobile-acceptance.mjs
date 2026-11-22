@@ -13,16 +13,20 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     await page.locator('#mamSearchToggle').click();
     const search = page.locator('#mamTeamSearch');
     await search.waitFor({state:'visible'});
-    await page.locator('#mamTeamSearchInput').fill('Fenerbahçe');
-    await page.waitForTimeout(1200);
+    await page.locator('#mamTeamSearchInput').fill('Beşiktaş');
     const results = page.locator('#mamTeamSearchResults [data-search-team]');
-    if (await results.count()) {
-      await results.first().click();
-      assert.equal(await results.first().getAttribute('aria-pressed'),'true',name+' favorite add');
-    } else {
-      console.log(name+': ESPN directory unavailable; cannot confirm remote team favorite flow');
-    }
-    await page.locator('#mamTeamSearchClose').click();
+    await results.first().waitFor({state:'visible',timeout:10000});
+    assert.match(await results.first().innerText(),/Beşiktaş/i,name+' team search');
+    assert.equal(await page.locator('#mamTeamSearchResults [aria-pressed]').count(),0,name+' search must not favorite teams');
+    await page.locator('#mamTeamSearchInput').fill('Süper Lig');
+    await results.first().waitFor({state:'visible'});
+    assert.equal(await page.locator('#mamTeamSearchResults [data-search-league]').count(),0,name+' no league result rows');
+    assert.ok(await results.count()>0,name+' league filters teams');
+    await page.locator('#mamTeamSearchInput').fill('Beşiktaş');
+    await results.first().click();
+    await page.locator('#mamTeamHistoryScreen').waitFor({state:'visible',timeout:10000});
+    assert.equal(await search.isVisible(),false,name+' search closes on team selection');
+    await page.locator('#mamTeamHistoryScreen').evaluate(node=>node.remove());
     await page.locator('#mamFavoriteBottom').click();
     await page.locator('#mamFavoritePanel').waitFor({state:'visible'});
     assert.equal(await page.locator('#mamFavoriteBottom').getAttribute('aria-expanded'),'true');
