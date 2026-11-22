@@ -1,0 +1,20 @@
+name: Favorites navigation regression
+on:
+  pull_request:
+    paths:
+      - 'mobile/main-favorites.mjs'
+      - 'tests/favorites-bottom-nav-regression.test.mjs'
+      - '.github/workflows/favorites-nav-regression.yml'
+  workflow_dispatch:
+jobs:
+  favorites-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Favorites module syntax
+        run: node --check mobile/main-favorites.mjs
+      - name: Run Favorites regression checks
+        run: node --test tests/favorites-bottom-nav-regression.test.mjs
