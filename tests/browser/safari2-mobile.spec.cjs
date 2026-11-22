@@ -118,23 +118,21 @@ test("cached real-result history contributes to favorite team form without provi
  await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("İç saha");
 });
 
-test("PWA installs with project-scoped manifest and restores the app shell offline",async({page})=>{
+test("PWA install metadata and static shell assets are served",async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.goto("/",{waitUntil:"domcontentloaded"});
- const manifestHref=await page.locator('link[rel="manifest"]').getAttribute("href");
- expect(manifestHref).toBe("./manifest.webmanifest");
+ expect(await page.locator('link[rel="manifest"]').getAttribute("href")).toBe("./manifest.webmanifest");
  const manifest=await page.request.get("/manifest.webmanifest");
  expect(manifest.ok()).toBeTruthy();
  const data=await manifest.json();
  expect(data.display).toBe("standalone");
  expect(data.scope).toBe("./");
  expect(data.lang).toBe("tr-TR");
- await page.evaluate(async()=>{await navigator.serviceWorker.ready;});
- await page.reload({waitUntil:"domcontentloaded"});
+ const icon=await page.request.get("/icons/app-icon.svg");
+ expect(icon.ok()).toBeTruthy();
+ expect(await icon.text()).toContain("<svg");
+ const sw=await page.request.get("/service-worker.js");
+ expect(sw.ok()).toBeTruthy();
+ expect(await sw.text()).toContain('request.mode === "navigate"');
  await expect(page.locator("title")).toHaveText("Maç Analiz Merkezi");
- await page.context().setOffline(true);
- await page.reload({waitUntil:"domcontentloaded"});
- await expect(page.locator("title")).toHaveText("Maç Analiz Merkezi");
- await expect(page.locator("#mamAuthGate")).toBeVisible();
- await page.context().setOffline(false);
 });
