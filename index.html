@@ -5794,8 +5794,8 @@ const mamLiveLeagueRank=league=>{
  const is=(pattern)=>pattern.test(raw);
  if(is(/super lig|superliga turk|turkish super/)&&/tur|tür/.test(country+" "+raw))return 0;
  if(is(/champions league|sampiyonlar ligi|uefa sampiyonlar/))return 1;
- if(is(/premier league/) && /eng|ing|united kingdom|uk|premier/.test(country+" "+raw))return 2;
- if(is(/la liga|laliga|primera division/) && /spa|isp|esp|liga/.test(country+" "+raw))return 3;
+ if(is(/premier league/) && /eng|ing|united kingdom|uk/.test(country))return 2;
+ if(is(/la liga|laliga|primera division/) && /spa|isp|esp/.test(country))return 3;
  if(is(/serie a/) && /ita|ital/.test(country+" "+raw))return 4;
  if(is(/bundesliga/) && /ger|alm|deu/.test(country+" "+raw))return 5;
  if(is(/ligue 1/) && /fra|fran/.test(country+" "+raw))return 6;
