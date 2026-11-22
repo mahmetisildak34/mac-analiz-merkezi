@@ -41,3 +41,6 @@ test('in-app reminders are opt-in, deduplicated and do not request push permissi
  assert.match(html,/seenAlerts\.includes\(x\.id\+'\\|'\+x\.kickoff\)/);
  assert.doesNotMatch(html,/Notification\.requestPermission/);
 });
+
+test('search team selection navigates to the visible profile view',()=>{assert.match(html,/if\(b\.dataset\.team\)\{show\('teams'\)/);});
+test('partial standings include W D L and scored and conceded goals',()=>{assert.match(html,/r\.wins\+'G '/);assert.match(html,/r\.draws\+'B '/);assert.match(html,/r\.losses\+'M '/);assert.match(html,/r\.goalsFor\+':'\+r\.goalsAgainst/);});
