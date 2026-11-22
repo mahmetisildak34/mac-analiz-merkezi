@@ -36,6 +36,11 @@ test('Today counters use selected day only',()=>{
  assert.match(html,/upcoming:dayMatches\.filter\(m=>mamIsFutureUnplayed\(m,mamNow\)\)/);
 });
 test('live and Today remain separate screen filters',()=>{
- assert.match(html,/if\(mamScreenMode==="live"\)list=list\.filter\(m=>liveCodes\.has\(mamCanonicalMatchStatus\(m\)\)\)/);
+ assert.match(html,/if\(mamScreenMode==="live"\)list=list\.filter\(m=>\{/);
+ assert.match(html,/Date\.now\(\)-kickoff<=4\*60\*60\*1000/);
  assert.match(html,/list=list\.filter\(m=>mamIsFutureUnplayed\(m,mamNow\)&&mamIstanbulDay\(m\.fixture\?\.date\)===selectedDay\)/);
+});
+
+test('Super Lig ESPN mapping retains canonical league 203 and tur.1',()=>{
+ assert.match(html,/"203":\{slug:"tur\.1",name:"Süper Lig",country:"Türkiye"\}/);
 });
