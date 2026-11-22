@@ -1176,7 +1176,7 @@ main{max-width:1120px!important;padding:12px 12px calc(94px + env(safe-area-inse
 .panel label,.panel .hint,.panel .note,.panel .small{color:#b1bedb!important}
 input,select,.league-trigger{background:#08142b!important;border:1px solid rgba(133,153,220,.42)!important;color:#fff!important;border-radius:13px!important}
 .league-trigger{background:linear-gradient(135deg,#33206e,#1b2e63)!important;border-color:#8d68ff!important}
-#mamDateStrip{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;overflow:visible!important}
+#mamDateStrip{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;overflow:visible!important}
 #mamDateStrip .mam-date-chip{min-width:0!important;min-height:43px!important;padding:7px 4px!important;border-radius:12px!important;background:#111c38!important;border:1px solid rgba(138,151,255,.35)!important;color:#e4eaff!important;box-shadow:none!important;font-size:11px!important}
 #mamDateStrip .mam-date-chip.active{background:linear-gradient(135deg,#652fc1,#382078)!important;border-color:#ae78ff!important;color:#fff!important}
 #load,#loadSuperLigFixtures{width:100%!important;min-height:49px!important;margin-top:9px!important;border-radius:14px!important;background:linear-gradient(135deg,#7442df,#3c2b9a)!important;color:#fff!important;border:1px solid rgba(186,144,255,.6)!important}
@@ -1195,7 +1195,7 @@ input,select,.league-trigger{background:#08142b!important;border:1px solid rgba(
 .match-actions .predBtn,.predBtn{background:linear-gradient(135deg,#572ea9,#32216c)!important;border:1px solid rgba(173,128,255,.55)!important;color:#fff!important;border-radius:11px!important}
 .analysis-preview,.stat{background:#101d39!important;border:1px solid rgba(137,151,226,.28)!important;color:#dce5ff!important}
 .empty{background:#0b1730!important;border:1px dashed rgba(145,159,235,.4)!important;color:#aebbd9!important;border-radius:15px!important}
-.mam-bottom-nav{position:fixed!important;z-index:900!important;left:10px!important;right:10px!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:3px!important;padding:8px 5px!important;border:1px solid rgba(144,153,255,.4)!important;border-radius:21px!important;background:rgba(8,16,37,.96)!important;box-shadow:0 12px 35px rgba(0,0,0,.42)!important;backdrop-filter:blur(18px)!important}
+.mam-bottom-nav{position:fixed!important;z-index:900!important;left:10px!important;right:10px!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:3px!important;padding:8px 5px!important;border:1px solid rgba(144,153,255,.4)!important;border-radius:21px!important;background:rgba(8,16,37,.96)!important;box-shadow:0 12px 35px rgba(0,0,0,.42)!important;backdrop-filter:blur(18px)!important}
 .mam-bottom-nav button{display:block!important;min-width:0!important;min-height:50px!important;padding:4px 2px!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#bdc8e3!important;font-size:10px!important}
 .mam-bottom-nav button span{display:block!important;font-size:18px!important;margin-bottom:3px!important}
 .mam-bottom-nav button.active{color:#bd8cff!important}
@@ -1483,11 +1483,11 @@ button{transition:filter .15s ease,transform .15s ease}
 </style><!-- MAM mobile layout alignment: isolated review branch; no API/data behavior changes -->
 <style id="mam-mobile-layout-alignment-v1">
 @media (max-width: 600px) {
-  /* Six destinations: one row, clear labels and iOS safe-area clearance. */
+  /* Seven destinations: one row, clear labels and iOS safe-area clearance. */
   .mam-bottom-nav {
     box-sizing: border-box !important;
     display: grid !important;
-    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
     gap: 2px !important;
     left: 4px !important;
     right: 4px !important;
@@ -1716,6 +1716,7 @@ button{transition:filter .15s ease,transform .15s ease}
 </div>
 </div>
 <div class="mam-date-strip" id="mamDateStrip" aria-label="Hızlı tarih seçimi">
+ <button type="button" class="mam-date-chip" data-day-offset="-1">Dün<b></b></button>
  <button type="button" class="mam-date-chip" data-day-offset="0">Bugün<b></b></button>
  <button type="button" class="mam-date-chip" data-day-offset="1">Yarın<b></b></button>
 </div>
@@ -1803,6 +1804,7 @@ Veri kaynakları: API-Football, ESPN ve Football-data.org. Geçmiş takım veril
 <nav class="mam-bottom-nav" aria-label="Alt gezinme">
  <button type="button" class="active" data-mam-bottom="home"><span>⌂</span>Ana Sayfa</button>
  <button type="button" data-mam-bottom="fixtures"><span>⚽</span>Maçlar</button>
+ <button type="button" id="mamFavoriteBottom" aria-controls="mamFavoritePanel" aria-expanded="false"><span aria-hidden="true">★</span>Favoriler</button>
  <button type="button" data-mam-bottom="analysis"><span>▥</span>Analiz</button>
  <button type="button" data-mam-bottom="standings"><span>🏆</span>Ligler</button>
  <button type="button" data-mam-bottom="coupon"><span>🎟</span>Kupon</button>
@@ -1814,8 +1816,12 @@ Veri kaynakları: API-Football, ESPN ve Football-data.org. Geçmiş takım veril
 const $=id=>document.getElementById(id);
 const WORKER="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
 const CACHE_HOURS=12;
-const today=new Date();
-$("date").value=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+$("date").value=mamIstanbulDateString();
+
+function mamRelativeIstanbulDay(offset,now=new Date()){
+ const noon=Date.parse(mamIstanbulDateString(now)+"T12:00:00Z");
+ return mamIstanbulDateString(new Date(noon+offset*86400000));
+}
 
 function esc(value){
  return String(value??"").replace(/[&<>"']/g,c=>({
@@ -4364,6 +4370,7 @@ async function loadLineups(button){
 let mamActiveMatch=null;
 let mamActivePlaceholder=null;
 let mamDetailOverlay=null;
+let mamDetailReturn=null;
 function mamOutcomeBadge(goalsFor,goalsAgainst){
  if(goalsFor===null||goalsFor===undefined||goalsAgainst===null||goalsAgainst===undefined||goalsFor===""||goalsAgainst==="")return "";
  const a=Number(goalsFor),b=Number(goalsAgainst);
@@ -4378,7 +4385,10 @@ function ensureMamDetailOverlay(){
  mamDetailOverlay=document.createElement("div");
  mamDetailOverlay.className="match-detail-overlay";
  mamDetailOverlay.hidden=true;
- mamDetailOverlay.innerHTML='<div class="match-detail-top"><button type="button" class="match-detail-close" aria-label="Geri">‹</button><strong>Maç detayları</strong><span style="width:42px"></span></div><div class="match-detail-body"></div>';
+ mamDetailOverlay.setAttribute("role","dialog");
+ mamDetailOverlay.setAttribute("aria-modal","true");
+ mamDetailOverlay.setAttribute("aria-labelledby","mamDetailTitle");
+ mamDetailOverlay.innerHTML='<div class="match-detail-top"><button type="button" class="match-detail-close" aria-label="Geri">‹</button><strong id="mamDetailTitle">Maç detayları</strong><span style="width:42px"></span></div><div class="match-detail-body"></div>';
  document.body.appendChild(mamDetailOverlay);
  mamDetailOverlay.querySelector(".match-detail-close").addEventListener("click",closeMamMatchDetail);
  mamDetailOverlay.addEventListener("click",event=>{if(event.target===mamDetailOverlay)closeMamMatchDetail();});
@@ -4392,7 +4402,14 @@ function closeMamMatchDetail(){
  article.classList.remove("in-detail");
  mamActiveMatch=null;mamActivePlaceholder=null;
  if(mamDetailOverlay){mamDetailOverlay.hidden=true;mamDetailOverlay.querySelector(".match-detail-body").innerHTML="";}
- document.body.style.overflow="";
+ const previous=mamDetailReturn;
+ mamDetailReturn=null;
+ document.body.style.overflow=previous?.overflow??"";
+ for(const [element,wasInert] of previous?.background??[])element.inert=wasInert;
+ if(previous){
+  window.scrollTo({top:previous.scrollY,behavior:"instant"});
+  if(previous.opener?.isConnected)previous.opener.focus({preventScroll:true});
+ }
  try{localStorage.removeItem("mam_open_live_detail");}catch(_){}
  if(history.state?.mamMatchDetail)history.back();
 }
@@ -4449,6 +4466,9 @@ function openMamMatchDetail(article){
   document.body.style.overflow="hidden";
   return;
  }
+ const background=[...document.querySelectorAll("main,.mam-bottom-nav")].map(element=>[element,element.inert]);
+ mamDetailReturn={opener:article.querySelector(".mam-match-open"),scrollY:window.scrollY,overflow:document.body.style.overflow,background};
+ for(const [element] of background)element.inert=true;
  mamActivePlaceholder=document.createComment("match-card-position");
  if(article.parentNode)article.parentNode.insertBefore(mamActivePlaceholder,article);
  article.classList.add("in-detail");
@@ -4463,6 +4483,7 @@ function openMamMatchDetail(article){
  try{history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
  const first=liveButton?(article.querySelector('.match-detail-tab[data-pane="stats"]')||article.querySelector(".match-detail-tab")):(article.querySelector('.match-detail-tab[data-pane="analysis"]')||article.querySelector(".match-detail-tab"));
  if(first)first.click();
+ overlay.querySelector(".match-detail-close")?.focus({preventScroll:true});
  if(liveButton)refreshOpenLiveScore();
 }
 function makeMamDetailTab(article){
@@ -4534,7 +4555,7 @@ function makeMamDetailTab(article){
  if(lineupPanel)sections.lineup.appendChild(lineupPanel);
  if(absencesButton)sections.absences.appendChild(absencesButton);
  if(absencesPanel)sections.absences.appendChild(absencesPanel);
- else sections.lineup.innerHTML='<div class="match-detail-note">Bu maç için kadro verisi henüz mevcut değil.</div>';
+ if(!lineupButton&&!lineupPanel)sections.lineup.innerHTML='<div class="match-detail-note">Bu maç için kadro verisi henüz mevcut değil.</div>';
  if(liveButton)sections.stats.appendChild(liveButton);
  if(livePanel)sections.stats.appendChild(livePanel);
  else sections.stats.innerHTML='<div class="match-detail-note">Canlı istatistikler yalnızca maç başladıktan sonra ve veri sağlayıcısı paylaşırsa gösterilir.</div>';
@@ -4544,8 +4565,9 @@ function makeMamDetailTab(article){
  article.querySelector(".match-versus")?.after(tabs,panes);
  const open=document.createElement("button");open.type="button";open.className="mam-match-open";
  const kickoff=Date.parse(analysisButton?.dataset.kickoff||"");
- const started=(Number.isFinite(kickoff)&&kickoff>0&&Date.now()>=kickoff)||["1H","HT","2H","ET","P","LIVE","INPLAY"].includes(String(analysisButton?.dataset.status||"").toUpperCase());
- open.textContent=started?"Canlı maç detayını aç  →":"🎯 Maç önü analizini yap";
+ const status=String(analysisButton?.dataset.status||lineupButton?.dataset.status||"").toUpperCase();
+ const live=["1H","HT","2H","ET","P","LIVE","INPLAY"].includes(status);
+ open.textContent=live?"Canlı maç detayını aç →":Number.isFinite(kickoff)&&kickoff>Date.now()&&["NS","TBD"].includes(status)?"Maç önü analizini aç →":"Maç detayını aç →";
  open.addEventListener("click",()=>activateMamFixture(article));
  article.appendChild(open);
  formButton.addEventListener("click",()=>loadMamMatchForm(formButton,formButton.dataset.loaded==="1"));
@@ -4786,7 +4808,7 @@ function renderMatches(){
   return Date.parse(b.fixture?.date||0)-Date.parse(a.fixture?.date||0);
  });
  if($("mamSectionCount")&&mamScreenMode!=="home")$("mamSectionCount").textContent=list.length+" MAÇ";
- const todayKey=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+ const todayKey=mamIstanbulDateString();
  const selectedDate=$("date")?.value||todayKey;
  if($("mamTodayTitle"))$("mamTodayTitle").textContent=selectedDate===todayKey?"BUGÜN OYNANACAK MAÇLAR":new Date(selectedDate+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"})+" MAÇLARI";
  if($("mamTodayCount"))$("mamTodayCount").textContent=list.length+" MAÇ";
@@ -4836,7 +4858,7 @@ function renderMatches(){
   }):"";
   const elapsed=f.status?.elapsed;
   const displayClock=String(f.status?.displayClock||"");
-  let effectiveElapsed=Number(elapsed);
+  let effectiveElapsed=elapsed==null||elapsed===""?NaN:Number(elapsed);
   // ESPN sağlayıcı saatini kullan; başlama saatinden geçen süreyle dakika tahmin etme.
   const clockMatch=displayClock.match(/(?:^|\D)(\d{1,3})(?::\d{2})?\s*'?/);
   const clockMinute=clockMatch?Number(clockMatch[1]):NaN;
@@ -7435,13 +7457,13 @@ const openStandingTeamHistory=async row=>{
  });
  const dateInput=$("date"),strip=$("mamDateStrip");
  if(!dateInput||!strip)return;
- const localDate=(offset)=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+ const localDate=mamRelativeIstanbulDay;
  const label=(offset)=>{const d=new Date(localDate(offset)+"T12:00:00");return d.toLocaleDateString("tr-TR",{weekday:"short",day:"2-digit",month:"2-digit"});};
  strip.querySelectorAll("[data-day-offset]").forEach(chip=>{
   const offset=Number(chip.dataset.dayOffset);chip.querySelector("b").textContent=label(offset);
-  chip.addEventListener("click",()=>{dateInput.value=localDate(offset);strip.querySelectorAll(".mam-date-chip").forEach(x=>x.classList.toggle("active",x===chip));$("load")?.click();});
+  chip.addEventListener("click",()=>{dateInput.value=localDate(offset);dateInput.dispatchEvent(new Event("change",{bubbles:true}));$("load")?.click();});
  });
- const sync=()=>{strip.querySelectorAll(".mam-date-chip").forEach(chip=>chip.classList.toggle("active",dateInput.value===localDate(Number(chip.dataset.dayOffset))));};
+ const sync=()=>{strip.querySelectorAll(".mam-date-chip").forEach(chip=>{const selected=dateInput.value===localDate(Number(chip.dataset.dayOffset));chip.classList.toggle("active",selected);chip.setAttribute("aria-pressed",String(selected));});};
  dateInput.addEventListener("change",sync);sync();
  // Ekranı önce URL rotasından, yoksa kayıtlı durumdan geri yükle.
  let mamRestoreTask=null;
@@ -7683,7 +7705,7 @@ const openStandingTeamHistory=async row=>{
  .panel:has(#date)>.row{gap:7px!important}
  .panel:has(#date) label{font-size:10px!important;margin-bottom:4px!important}
  #date,.league-trigger{min-height:40px!important;height:40px!important;padding:7px 9px!important;font-size:12px!important}
- #mamDateStrip{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;margin:6px 0 2px!important}
+ #mamDateStrip{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;margin:6px 0 2px!important}
  #mamDateStrip .mam-date-chip{min-height:36px!important;padding:4px 2px!important;font-size:9px!important;border-radius:9px!important}
  #mamDateStrip .mam-date-chip b{font-size:10px!important;margin-top:1px!important}
  #load,#loadSuperLigFixtures,#loadLive{min-height:38px!important;padding:7px 8px!important;margin-top:6px!important;font-size:11px!important;border-radius:10px!important}
@@ -7771,7 +7793,7 @@ const openStandingTeamHistory=async row=>{
 .mam-screen-live #mamLiveNav:not([hidden]){display:flex!important;visibility:visible!important;pointer-events:auto!important}
 .mam-screen-live #mamLiveNav .mam-live-nav-item{display:flex!important}
 /* Keep all six navigation destinations in the same row on mobile. */
-.mam-bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+.mam-bottom-nav{grid-template-columns:repeat(7,minmax(0,1fr))!important}
 @media(max-width:390px){
  .mam-bottom-nav button{font-size:9px!important}
  .mam-bottom-nav button span{font-size:17px!important}

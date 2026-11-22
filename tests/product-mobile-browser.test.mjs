@@ -25,6 +25,53 @@ async function waitForServer(server){
 }
 const fixture={id:'101',homeTeamId:'1',awayTeamId:'2',homeTeamName:'Fenerbahçe',awayTeamName:'Galatasaray',homeGoals:2,awayGoals:1,status:'FT',kickoff:'2026-11-22T17:00:00Z',leagueId:'tr',leagueName:'Süper Lig',events:[{time:{elapsed:15},team:{name:'Fenerbahçe'},player:{name:'Örnek Oyuncu'},type:'Goal'}],statistics:[{type:'Topla sahip olma',home:'55%',away:'45%'}]};
 const url='http://127.0.0.1:'+port+'/mobile/product-hub.html';
+async function verifyMainApp(context){
+ const main=await context.newPage();
+ try{
+  const origin=new URL(url).origin;
+  await main.route('**/*',route=>route.request().url().startsWith(origin+'/')?route.continue():route.abort());
+  await main.goto(origin+'/index.html');
+  const initialFavorites=await main.evaluate(()=>localStorage.getItem('mam-product-hub-v1'));
+  // Real ESPN tur.1 result 401888243, captured 2026-11-22.
+  const match={
+   fixture:{id:'espn-tur.1-401888243',date:'2026-11-22T10:30Z',status:{short:'FT'}},
+   league:{id:'203',name:'Süper Lig',country:'Türkiye'},
+   teams:{home:{id:19267,name:'Erzurum BB'},away:{id:789,name:'Goztepe'}},
+   goals:{home:0,away:1}
+  };
+  await main.evaluate(match=>{
+   setMamScreen('finished');
+   document.getElementById('date').value='2026-11-22';
+   allMatches=[match];
+   renderMatches();
+  },match);
+  const card=main.locator('#matches article.match');
+  assert.match(await card.innerText(),/0 – 1/);
+  await card.locator('[data-mam-star="0"]').click();
+  await card.locator('[data-mam-star="1"]').click();
+  const opener=card.locator('.mam-match-open');
+  await opener.click();
+  const dialog=main.getByRole('dialog',{name:/Erzurum BB/});
+  await dialog.waitFor();
+  await dialog.getByRole('button',{name:'Geri',exact:true}).click();
+  await dialog.waitFor({state:'hidden'});
+  assert.equal(await opener.evaluate(button=>document.activeElement===button),true);
+  assert.equal(await main.locator('#date').inputValue(),'2026-11-22');
+  await main.evaluate(()=>{allMatches=[];renderMatches();localStorage.removeItem('mam_product_hub_fixtures_v1');});
+  const favorites=main.locator('#mamFavoriteBottom');
+  await favorites.click();
+  await main.locator('[data-fav-matches]').getByText(/Erzurum BB.*Goztepe/).waitFor();
+  await main.locator('[data-fav-teams]').getByText(/Erzurum BB/).waitFor();
+  await main.reload();
+  await favorites.click();
+  await main.locator('[data-fav-matches]').getByText(/Erzurum BB.*Goztepe/).waitFor();
+  await main.locator('[data-mam-remove-match="espn-tur.1-401888243"]').click();
+  await main.locator('[data-fav-matches]').getByText('Favori maç yok.').waitFor();
+  assert.equal(await main.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
+  await main.evaluate(saved=>localStorage.setItem('mam-product-hub-v1',saved),initialFavorites);
+ }finally{await main.close();}
+}
+
 async function open(browserType){
  const browser=await browserType.launch({headless:true});
  const context=await browser.newContext({viewport:{width:375,height:812},isMobile:true,hasTouch:true});
@@ -130,6 +177,7 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    assert.equal(await page.locator('.nav button').evaluateAll(buttons=>buttons.every(button=>button.getBoundingClientRect().height>=44&&button.textContent.trim())),true);
    await page.locator('#query').focus();
    assert.equal(await page.locator('#query').evaluate(input=>document.activeElement===input&&getComputedStyle(input).outlineStyle!=='none'),true);
+   await verifyMainApp(page.context());
    await page.waitForFunction(()=>Boolean(navigator.serviceWorker.controller));
    // Stop the origin so both engines exercise a real connection failure.
    // Playwright's offline override prevents WebKit from dispatching this navigation to the worker.

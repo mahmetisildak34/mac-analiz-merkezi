@@ -92,3 +92,13 @@ test("ESPN tur.1 scoreboard captured on 22 November keeps all four full-time res
   assert.equal(isIstanbulToday({date},localMidnight),false,id);
  }
 });
+
+test("main date shortcuts follow the Istanbul day across midnight and month rollover",()=>{
+ const selector=name=>html.match(new RegExp("function "+name+"\\([\\s\\S]*?\\n\\}"))?.[0];
+ const relative=require("node:vm").runInNewContext(selector("mamIstanbulDateString")+"\n"+selector("mamRelativeIstanbulDay")+"\n mamRelativeIstanbulDay");
+ const before=new Date("2026-11-30T20:59:00Z"),after=new Date("2026-11-30T21:00:00Z");
+ assert.equal(relative(0,before),"2026-11-30");
+ assert.equal(relative(0,after),"2026-12-01");
+ assert.equal(relative(-1,after),"2026-11-30");
+ assert.equal(relative(1,after),"2026-12-02");
+});
