@@ -11,7 +11,7 @@ test('standings compute 3 points and goal difference',()=>{const t=leagueStandin
 test('standings ignore invalid results',()=>{const t=leagueStandings([{...match,homeGoals:null}],teams);assert.equal(t[0].played,0);});
 test('Turkish search matches team names',()=>{assert.equal(searchFootball({teams,leagues:[],matches:[match]},'FENERBAHÇE').teams.length,1);assert.equal(searchFootball({teams},'').teams.length,0);});
 test('notifications are candidate events only, never sent',()=>{const m={...match,kickoff:'2026-11-22T18:05:00Z'};const n=notificationCandidates([m],['m1'],{now:Date.parse('2026-11-22T18:00:00Z')});assert.equal(n.length,1);assert.equal(n[0].type,'kickoff_soon');});
-test('mobile navigation has exactly one current tab',()=>{const tabs=mobileNavigation('favorites');assert.equal(tabs.length,6);assert.equal(tabs.filter(x=>x.ariaCurrent==='page').length,1);});
+test('mobile navigation has exactly one current tab',()=>{const tabs=mobileNavigation('favorites');assert.equal(tabs.length,8);assert.equal(tabs.filter(x=>x.ariaCurrent==='page').length,1);});
 
 test('match events sort nested elapsed minutes while preserving unknown-minute events',()=>{
  const source=[{time:{elapsed:77},type:'Card'},{time:{elapsed:12},type:'Goal'},{type:'Unknown'},{minute:45,type:'Substitution'}];
