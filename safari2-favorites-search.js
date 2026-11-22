@@ -237,9 +237,16 @@
    const match=findMatch(item);if(!match)continue;
    // Cached or unverified matches must not overwrite trusted favorite snapshots.
    const verifiedAt=Number(match._mamLastVerifiedAt);
-   if(!Number.isFinite(verifiedAt)||verifiedAt<=0)continue;
-   const current={status:fixtureStatus(match),home:match.goals?.home??null,away:match.goals?.away??null,
-    savedAt:verifiedAt};
+   const previousAt=Number(item.snapshot?.savedAt)||0;
+   // Late-arriving verified responses must never roll a favorite back in time.
+   if(!Number.isFinite(verifiedAt)||verifiedAt<=0||verifiedAt<=previousAt)continue;
+   const home=match.goals?.home,away=match.goals?.away;
+   const validScore=value=>value!=null&&value!==""&&Number.isInteger(Number(value))&&Number(value)>=0;
+   const hadCompleteScore=validScore(item.snapshot?.home)&&validScore(item.snapshot?.away);
+   // A newer partial feed is not proof that an earlier verified score disappeared.
+   if(hadCompleteScore&&(!validScore(home)||!validScore(away)))continue;
+   const current={status:fixtureStatus(match),home:validScore(home)?Number(home):null,
+    away:validScore(away)?Number(away):null,savedAt:verifiedAt};
    if(JSON.stringify(item.snapshot)!==JSON.stringify(current)){item.snapshot=current;updated=true;}
   }
   if(updated)save();
