@@ -1599,7 +1599,7 @@ button{transition:filter .15s ease,transform .15s ease}
 </div>
 
 <main>
-<a href="./mobile/product-hub.html" aria-label="Favoriler, takım profilleri, puan tabloları ve arama ürün merkezini aç" style="display:inline-block;margin:8px 0;padding:9px 12px;border:1px solid #35e0b5;border-radius:12px;color:#a6ffe7;text-decoration:none;font-weight:700">★ Favoriler · Takımlar · Ligler · Ara</a>
+
 <div id="mamDrawerBackdrop" class="mam-drawer-backdrop" hidden></div>
 <nav id="mamDrawer" class="mam-drawer" aria-label="Ana menü" aria-hidden="true">
  <div class="mam-drawer-head"><div class="mam-drawer-brand"><span>⚽</span><div><strong>Maç Analiz Merkezi</strong><small>FUTBOL · VERİ · TAHMİN</small></div></div><button type="button" id="mamMenuClose" class="mam-drawer-close" aria-label="Menüyü kapat">✕</button></div>
@@ -1611,6 +1611,8 @@ button{transition:filter .15s ease,transform .15s ease}
  <div class="mam-nav-caption">ANALİZ ARAÇLARI</div>
  <button type="button" class="mam-nav-item" data-mam-nav="coupon"><span>🎟</span><span>Kupon oluşturucu<small>Analizlerinden seçim oluştur</small></span></button>
  <button type="button" class="mam-nav-item" data-mam-nav="analysis"><span>▥</span><span>Maç analiz merkezi<small>İstatistik, kadro ve tahminler</small></span></button>
+ <button type="button" class="mam-nav-item" data-mam-nav="special"><span aria-hidden="true">★</span><span>Özel analizler</span></button>
+ <a class="mam-nav-item" href="./mobile/product-hub.html"><span aria-hidden="true">⌕</span><span>Takım ara</span></a>
  <div class="mam-drawer-foot">Maç verileri farklı sağlayıcılardan alınır. Tahminler kesinlik veya garanti içermez.</div>
 </nav>
 
@@ -6719,9 +6721,10 @@ async function analyze(button){
 (function initMamNavigation(){
  const drawer=$("mamDrawer"),backdrop=$("mamDrawerBackdrop"),toggle=$("mamMenuToggle"),close=$("mamMenuClose");
  if(!drawer||!backdrop||!toggle||!close)return;
- const open=()=>{backdrop.hidden=false;drawer.classList.add("open");drawer.setAttribute("aria-hidden","false");toggle.setAttribute("aria-expanded","true");document.body.style.overflow="hidden";};
- const shut=()=>{drawer.classList.remove("open");drawer.setAttribute("aria-hidden","true");toggle.setAttribute("aria-expanded","false");document.body.style.overflow="";backdrop.hidden=true;};
+ const open=()=>{backdrop.hidden=false;drawer.classList.add("open");drawer.setAttribute("aria-hidden","false");toggle.setAttribute("aria-expanded","true");document.body.style.overflow="hidden";close.focus();};
+ const shut=()=>{drawer.classList.remove("open");drawer.setAttribute("aria-hidden","true");toggle.setAttribute("aria-expanded","false");document.body.style.overflow="";backdrop.hidden=true;toggle.focus();};
  toggle.addEventListener("click",open);close.addEventListener("click",shut);backdrop.addEventListener("click",shut);
+ drawer.addEventListener("keydown",event=>{if(event.key==="Escape"){event.preventDefault();shut();}});
  drawer.querySelectorAll("[data-mam-nav]").forEach(item=>item.classList.remove("active"));
  $("mamSearchToggle")?.addEventListener("click",()=>{$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});});
  $("mamLiveNav")?.querySelectorAll("[data-live-action]").forEach(button=>button.addEventListener("click",async()=>{
@@ -6735,6 +6738,7 @@ async function analyze(button){
  }));
  drawer.querySelectorAll("[data-mam-nav]").forEach(button=>button.addEventListener("click",async()=>{
   const action=button.dataset.mamNav;shut();
+  if(action==="special"){setMamScreen("special");window.scrollTo(0,0);}
   if(action==="live"){setMamScreen("live");await loadLiveMatches();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="upcoming"){setMamScreen("upcoming");await loadMatches();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="fixtures"){setMamScreen("home");await loadMatches();$("date")?.scrollIntoView({behavior:"smooth",block:"center"});}
@@ -8578,5 +8582,92 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
  .lineup-player-profile dd{margin:0}
  #mamAuthGate a[hidden]{display:none!important}
  #mamAuthGate a:not([hidden]){display:block;padding:12px;min-height:44px;color:#80e9d2}
+</style>
+
+<style id="mamCompactMobile">
+@media (max-width: 600px) {
+ body > main {padding-inline: max(10px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-right)) !important}
+ body > main > .mam-favorite-shortcuts, .mam-appbar .mam-new-page-link,
+ main.mam-screen-standings .mam-standings-intro {display:none !important}
+ body > main .mam-appbar {gap:8px!important;min-height:52px!important;padding:4px 8px!important;border-radius:12px!important;box-shadow:none!important}
+ body > main #mamMenuToggle, body > main #mamSearchToggle {display:flex!important;min-width:44px!important;min-height:44px!important;justify-content:center;align-items:center}
+ body #mamDrawer.open, body #mamDrawerBackdrop:not([hidden]) {display:block!important;visibility:visible!important;pointer-events:auto!important}
+ body #mamDrawer .mam-nav-item {min-height:44px!important;font-size:13px!important;text-decoration:none}
+ /* Star buttons retain accessible names; no unexplained E/D visual suffixes. */
+ .mam-independent-favorites [data-mam-star="1"]::after,
+ .mam-independent-favorites [data-mam-star="2"]::after {content:none!important}
+ body > main .mam-brand {flex:1;min-width:0;gap:5px!important}
+ body > main .mam-brand span {font-size:12px!important;letter-spacing:.02em!important;white-space:normal!important}
+ body .mam-bottom-nav {grid-template-columns:repeat(5,minmax(44px,1fr))!important;gap:3px!important;padding:3px!important;border-radius:12px!important}
+ body .mam-bottom-nav button {min-height:46px!important;height:auto!important;font-size:10px!important}
+ body .mam-bottom-nav button span {font-size:15px!important}
+ body .mam-bottom-nav [data-mam-bottom="coupon"],body .mam-bottom-nav [data-mam-bottom="special"] {display:none!important}
+ body > main .mam-match-tabs {gap:4px!important;padding:3px!important}
+ body > main .mam-match-tabs button, body > main .mam-live-nav button,
+ body > main .mam-section-header button {min-height:44px!important;padding:4px 6px!important;font-size:11px!important;box-shadow:none!important}
+ body > main .mam-section-header, body > main #mamTodayHeader {margin:8px 0!important;padding:6px 8px!important;border-width:1px!important;border-radius:10px!important;box-shadow:none!important;min-height:44px!important}
+ #mamSectionTitle,#mamTodayTitle {font-size:14px!important}
+ #mamSectionEyebrow,#mamTodayHeader small {font-size:9px!important}
+ #matches .mam-league-group {padding:4px!important;margin:7px 0!important;border-width:1px!important;border-radius:10px!important;box-shadow:none!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) {
+  padding:4px 46px 0 52px!important;min-height:0!important;height:auto!important;
+  border-width:1px!important;border-radius:9px!important;box-shadow:none!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-head {left:2px!important;width:47px!important;top:23px!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-versus {gap:3px!important;min-height:44px!important;height:auto!important;grid-template-columns:minmax(0,1fr) 43px minmax(0,1fr)!important}
+ #matches article.match.match-modern:not(.in-detail) .team-block strong {font-size:11px!important;line-height:1.15!important;white-space:normal!important;overflow-wrap:anywhere!important;max-width:none!important}
+ #matches article.match.match-modern:not(.in-detail) .match-center small {font-size:9px!important;line-height:1.15!important;white-space:normal!important;text-align:center}
+ #matches article.match.match-modern:not(.in-detail) .match-clock {font-size:12px!important}
+ #matches article.match.match-modern:not(.in-detail) .absences-summary {display:none!important}
+ #matches article.match.match-modern:not(.in-detail) .mam-match-open {top:25px!important;right:1px!important;box-shadow:none!important}
+ #matches .mam-independent-favorites {gap:0!important;margin:0!important;flex-wrap:nowrap!important;justify-content:center}
+ .mam-independent-favorites button {flex:0 0 44px;min-width:44px!important;min-height:44px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+ .mam-independent-favorites .mam-star-label {display:none}
+ .mam-independent-favorites .mam-star-glyph {font-size:17px}
+ .mam-independent-favorites [aria-pressed="true"] .mam-star-glyph {color:#f4bd36}
+ #matches .mam-fixture-row {padding:6px!important;gap:4px!important;border-width:1px!important;box-shadow:none!important}
+ #mamStandingsScreen .mam-standings-group,#mamStandingsScreen .mam-standings-card,#mamFavoritePanel {margin:8px 0!important;padding:8px!important;border-width:1px!important;border-radius:11px!important;box-shadow:none!important}
+ #mamStandingsScreen .mam-standings-search {margin:8px 0!important}
+ #mamStandingsScreen .mam-standings-leagues {gap:5px!important}
+ #mamStandingsScreen .mam-standings-leagues button {min-height:44px!important;padding:5px 7px!important;font-size:12px!important;line-height:1.25!important;white-space:normal!important;box-shadow:none!important}
+ #mamStandingsScreen .mam-standings-table {min-width:0!important;width:100%!important}
+ #mamStandingsScreen .mam-standings-table :is(th,td) {padding:5px 2px!important;font-size:10px!important}
+ #mamStandingsScreen .mam-team-name-cell {white-space:normal!important;overflow-wrap:anywhere}
+ #mamFavoritePanel h2,#mamFavoritePanel h3 {font-size:14px;margin:6px 0}
+ #mamFavoritePanel li {font-size:13px;overflow-wrap:anywhere}
+ #mamFavoritePanel button {min-height:44px!important;padding:4px 8px!important;font-size:12px!important}
+ .match-detail-top strong {font-size:14px!important;overflow-wrap:anywhere;white-space:normal!important}
+ .match.in-detail .match-detail-tabs {grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:3px!important}
+ .match.in-detail .match-detail-tab {font-size:11px!important;min-height:44px!important;padding:4px!important}
+ .match.in-detail .pred,.lineup-player-profile {font-size:13px!important;line-height:1.4!important}
+ .match.in-detail .stat {padding:8px!important;border-width:1px!important;box-shadow:none!important}
+ .match.in-detail .stat b {font-size:16px!important}
+ #mamTeamHistoryScreen header strong {white-space:normal!important;overflow-wrap:anywhere}
+ /* Reduce duplicated quick links while retaining navigation in the drawer. */
+ main .mam-favorite-shortcuts, main .mam-quick-links {display:none!important}
+ /* Avoid horizontal scrolling from seven fixed navigation slots. */
+ body .mam-bottom-nav {overflow-x:hidden!important;min-width:0!important}
+ body .mam-bottom-nav button {min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.15!important}
+ /* Consistent compact typography on iPhone, without reducing touch targets. */
+ body > main {font-size:13px!important;line-height:1.4!important}
+ body > main h1 {font-size:21px!important;line-height:1.2!important;margin:10px 0 5px!important;letter-spacing:-.35px!important}
+ body > main h2 {font-size:17px!important;line-height:1.25!important}
+ body > main h3 {font-size:15px!important;line-height:1.3!important}
+ body > main .sub, body > main .hint {font-size:12px!important;line-height:1.4!important}
+ body > main .mam-section-header strong,
+ body > main .mam-league-heading {font-size:13px!important;line-height:1.3!important}
+ body > main .mam-appbar .mam-brand {font-size:13px!important;line-height:1.2!important}
+ body > main .mam-live-nav-item, body > main .mam-match-tabs button {font-size:11px!important;line-height:1.2!important}
+ #matches article.match.match-modern:not(.in-detail) .team-block strong {font-size:11px!important;line-height:1.25!important}
+ #matches article.match.match-modern:not(.in-detail) .match-clock {font-size:12px!important;line-height:1.2!important}
+ #matches article.match.match-modern:not(.in-detail) .league-label {font-size:10px!important;line-height:1.25!important}
+ body > main .mam-bottom-nav button {font-size:10px!important;letter-spacing:0!important}
+ #mamStandingsScreen .mam-standings-card-head h3 {font-size:15px!important}
+ #mamFavoritePanel h2 {font-size:16px!important}
+ #mamFavoritePanel h3 {font-size:14px!important}
+ /* Long names wrap naturally instead of becoming a single truncated word. */
+ #matches .team-block {min-width:0!important}
+ #matches .team-block strong {overflow-wrap:break-word!important;word-break:normal!important}
+}
 </style>
 

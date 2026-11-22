@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
+import {spawn,execFileSync} from 'node:child_process';
 import {once} from 'node:events';
-import {readFileSync} from 'node:fs';
+import {mkdirSync,readFileSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {chromium,webkit} from 'playwright';
 
@@ -27,7 +27,7 @@ async function waitForServer(server){
 const fixture={id:'101',homeTeamId:'1',awayTeamId:'2',homeTeamName:'Fenerbahçe',awayTeamName:'Galatasaray',homeGoals:2,awayGoals:1,status:'FT',kickoff:'2026-11-22T17:00:00Z',leagueId:'tr',leagueName:'Süper Lig',events:[{time:{elapsed:15},team:{name:'Fenerbahçe'},player:{name:'Örnek Oyuncu'},type:'Goal'}],statistics:[{type:'Topla sahip olma',home:'55%',away:'45%'}]};
 const url='http://127.0.0.1:'+port+'/mobile/product-hub.html';
 const origin=new URL(url).origin;
-async function verifyMainApp(context){
+async function verifyMainApp(context,browserName){
  const main=await context.newPage();
  try{
   await main.route('**/*',route=>route.request().url().startsWith(origin+'/')?route.continue():route.abort());
@@ -214,8 +214,65 @@ async function verifyMainApp(context){
    await forecast.getByRole('button',{name:'Geri',exact:true}).click();
   }
   await main.clock.setFixedTime(new Date());
+  const visualDir=process.env.MAM_VISUAL_DIR;
+  if(visualDir){
+   mkdirSync(visualDir,{recursive:true});
+   const baseline='717c273d40b7cd2d6a1467942e86e819f5c64f1a';
+   const beforeHtml=execFileSync('git',['show',baseline+':index.html'],{encoding:'utf8',maxBuffer:2_000_000});
+   const beforeFavorites=execFileSync('git',['show',baseline+':mobile/main-favorites.mjs'],{encoding:'utf8'});
+   const visualContext=await context.browser().newContext({isMobile:true,hasTouch:true,serviceWorkers:'block'});
+   try{
+    const visual=await visualContext.newPage();
+    await visual.addInitScript(()=>{
+     localStorage.setItem('mam_session_token','local-browser-acceptance');
+     localStorage.removeItem('mam_app_view_state');
+     const fetchNetwork=window.fetch.bind(window);
+     window.fetch=(input,options)=>String(input).endsWith('/auth/check')
+      ?Promise.resolve(new Response('{"ok":true}'))
+      :new URL(String(input),location.href).origin===location.origin?fetchNetwork(input,options):Promise.reject(new Error('External requests disabled'));
+    });
+    let before=true;
+    await visual.route('**/*',route=>{
+     const url=new URL(route.request().url());
+     if(url.origin!==origin)return route.abort();
+     if(before&&url.pathname==='/index.html')return route.fulfill({contentType:'text/html; charset=utf-8',body:beforeHtml});
+     if(before&&url.pathname==='/mobile/main-favorites.mjs')return route.fulfill({contentType:'text/javascript; charset=utf-8',body:beforeFavorites});
+     return route.continue();
+    });
+    for(const mode of ['before','after']){
+     before=mode==='before';
+     for(const width of [375,390,430]){
+      await visual.setViewportSize({width,height:844});
+      await visual.goto(origin+'/index.html?visual='+mode+width);
+      await visual.locator('#mamAuthGate').waitFor({state:'detached'});
+      await visual.evaluate(match=>{
+       setMamScreen('finished');
+       allMatches=[match];
+       renderMatches();
+      },match);
+      const card=visual.locator('#matches article.match');
+      await card.locator('[data-mam-star="0"]').waitFor();
+      if(!before){
+       assert.equal(await visual.locator('.mam-bottom-nav button:visible').count(),5);
+       assert.equal(await visual.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+       assert.equal(await card.locator('[data-mam-star]').evaluateAll(buttons=>buttons.every(button=>button.offsetWidth>=44&&button.offsetHeight>=44)),true);
+       assert.equal(await card.locator('.team-block strong').evaluateAll(names=>names.every(name=>name.scrollHeight<=name.clientHeight+1&&name.scrollWidth<=name.clientWidth+1)),true);
+      }
+      await visual.screenshot({path:visualDir+'/'+browserName+'-'+width+'-'+mode+'-matches.png',animations:'disabled'});
+      await visual.locator('[data-mam-bottom="standings"]').click();
+      await visual.screenshot({path:visualDir+'/'+browserName+'-'+width+'-'+mode+'-leagues.png',animations:'disabled'});
+      if(!before){
+       await visual.locator('#mamMenuToggle').click();
+       await visual.getByRole('button',{name:'Özel analizler'}).waitFor();
+       await visual.getByRole('link',{name:'Takım ara'}).waitFor();
+       await visual.locator('#mamMenuClose').click();
+      }
+     }
+    }
+   }finally{await visualContext.close();}
+  }
   await main.setViewportSize({width:320,height:720});
-  assert.equal(await main.locator('.mam-bottom-nav button').evaluateAll(buttons=>buttons.every(button=>button.getBoundingClientRect().height>=44&&button.getBoundingClientRect().width>=44)),true);
+  assert.equal(await main.locator('.mam-bottom-nav button:visible').evaluateAll(buttons=>buttons.every(button=>button.getBoundingClientRect().height>=44&&button.getBoundingClientRect().width>=44)),true);
   assert.equal(await main.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
   await main.setViewportSize({width:430,height:932});
   assert.equal(await main.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
@@ -328,7 +385,7 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    assert.equal(await page.locator('.nav button').evaluateAll(buttons=>buttons.every(button=>button.getBoundingClientRect().height>=44&&button.textContent.trim())),true);
    await page.locator('#query').focus();
    assert.equal(await page.locator('#query').evaluate(input=>document.activeElement===input&&getComputedStyle(input).outlineStyle!=='none'),true);
-   await verifyMainApp(page.context());
+   await verifyMainApp(page.context(),name);
    await page.waitForFunction(()=>Boolean(navigator.serviceWorker.controller));
    // Stop the origin so both engines exercise a real connection failure.
    // Playwright's offline override prevents WebKit from dispatching this navigation to the worker.
