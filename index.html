@@ -2762,7 +2762,7 @@ async function espnFixtures(date,includeAllLeagues=false){
      return payload;
     }catch(error){
      const reason=String(error?.message??error);
-     const transient=!error?.permanent&&/(?:\\b408\\b|\\b502\\b|\\b503\\b|\\b504\\b|timeout|temporar|network)/i.test(reason);
+     const transient=!error?.permanent&&/(?:\b408\b|\b502\b|\b503\b|\b504\b|timeout|temporar|network)/i.test(reason);
      if(!transient||attempt===1)throw error;
      await new Promise(resolve=>setTimeout(resolve,150));
     }
