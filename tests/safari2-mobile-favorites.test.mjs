@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {normalizeFavorites,toggleFavorite,mergeFavoriteUpdates,normalizeTeamFavorites,toggleTeamFavorite} from "../mobile/favorites.js";
+import favoriteUtils from "../mobile/favorites.js";\nconst {normalizeFavorites,toggleFavorite,mergeFavoriteUpdates,normalizeTeamFavorites,toggleTeamFavorite}=favoriteUtils;
 
 const match=(id,home="Göztepe",away="Erzurumspor",homeGoals=1)=>({
  fixture:{id,status:{short:"FT"}},teams:{home:{name:home},away:{name:away}},goals:{home:homeGoals,away:0}
