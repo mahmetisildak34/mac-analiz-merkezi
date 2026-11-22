@@ -8341,5 +8341,17 @@ input,select,.league-trigger{
 
 /* Today is upcoming-only: avoid showing a second filter row offering live/finished inside Today. */
 main.mam-screen-today #mamTodayTabs{display:none!important}
+
+/* Safari 2: allow compact mobile match cards to grow for kickoff and team names. */
+@media(max-width:600px){
+ #matches article.match.match-modern:not(.in-detail){height:auto!important;min-height:64px!important;padding-top:9px!important;padding-bottom:9px!important;overflow:visible!important}
+ #matches article.match.match-modern:not(.in-detail) .match-head{overflow:visible!important}
+ #matches article.match.match-modern:not(.in-detail) .match-time,
+ #matches article.match.match-modern:not(.in-detail) .mam-kickoff-time{font-variant-numeric:tabular-nums!important;line-height:1.3!important}
+ #matches article.match.match-modern:not(.in-detail) .match-versus{height:auto!important;min-height:44px!important;min-width:0!important}
+ #matches article.match.match-modern:not(.in-detail) .team-block strong{overflow-wrap:anywhere!important;white-space:normal!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;line-height:1.2!important;max-height:2.4em!important}
+ .mam-bottom-nav button{min-width:0!important;overflow:hidden!important}
+}
+@media(max-width:350px){#matches article.match.match-modern:not(.in-detail){min-height:68px!important}}
 </style>
 
