@@ -44,3 +44,11 @@ test('provider events, statistics and lineups render only when supplied',()=>{
  assert.match(source,/\['startXI','substitutes'\]/);
  assert.match(source,/Sağlayıcıdan doğrulanmış ilk yarı skoru bulunmuyor/);
 });
+
+test('favorite team form also reads real cached history without new provider requests',()=>{
+ assert.match(source,/function knownHistoryRows\(\)/);
+ assert.match(source,/cacheKey\.startsWith\("mam_history_v76_"\)/);
+ assert.match(source,/Array\.isArray\(stored\?\.matches\)/);
+ assert.match(source,/knownHistoryRows\(\)\.filter/);
+ assert.doesNotMatch(source,/\bfetch\s*\(/);
+});
