@@ -1,6 +1,8 @@
 // Safari 2 ESPN live acceptance: read-only public scoreboard requests.
 // Never calls the production Worker, D1 or API-Football.
-import {readFileSync,writeFileSync} from "node:fs";
+import {readFileSync,writeFileSync,mkdirSync} from "node:fs";
+import {createHash} from "node:crypto";
+mkdirSync("safari2-espn-acceptance-raw",{recursive:true});
 const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
 const index=html.indexOf("const ESPN_LEAGUES=");
 const end=html.indexOf("};",index);
@@ -18,13 +20,19 @@ if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error("Invalid ESPN_ACCEPT_DATE");
 const isId=x=>(typeof x==="string"&&/^[a-z0-9._-]+$/i.test(x.trim())&&!/^(?:null|undefined|nan)$/i.test(x.trim()))||(typeof x==="number"&&Number.isFinite(x)&&x>0);
 async function check({id,slug,name,country}){
  const url="https://site.api.espn.com/apis/site/v2/sports/soccer/"+encodeURIComponent(slug)+"/scoreboard?dates="+day.replace(/-/g,"")+"&limit=500";
- const record={leagueId:id,slug,name,country,date:day,url,http:null,jsonValid:false,events:0,checked:0,outcome:"failed",issues:[]};
+ const record={leagueId:id,slug,name,country,date:day,url,http:null,jsonValid:false,events:0,checked:0,outcome:"failed",issues:[],rawSha256:null,rawBytes:0,leagueMetadata:[]};
  try{
   const response=await fetch(url,{method:"GET",headers:{accept:"application/json"},signal:AbortSignal.timeout(15000)});
   record.http=response.status;
+  const raw=await response.text();
+  writeFileSync("safari2-espn-acceptance-raw/"+slug+".json",raw);
+  record.rawBytes=Buffer.byteLength(raw);
+  record.rawSha256=createHash("sha256").update(raw).digest("hex");
   if(!response.ok){record.issues.push("HTTP "+response.status);return record;}
   let data;
-  try{data=await response.json();record.jsonValid=true;}catch(err){record.issues.push("Invalid JSON: "+String(err.message||err));return record;}
+  try{data=JSON.parse(raw);record.jsonValid=true;}catch(err){record.issues.push("Invalid JSON: "+String(err.message||err));return record;}
+  record.leagueMetadata=Array.isArray(data?.leagues)?data.leagues.map(x=>({id:x.id??null,slug:x.slug??null,name:x.name??null})):[];
+
   if(!data||!Array.isArray(data.events)){record.issues.push("Missing events array");return record;}
   record.events=data.events.length;
   if(!data.events.length){record.outcome="empty";return record;}
