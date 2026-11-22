@@ -238,8 +238,16 @@ jobs:
                   await lineup.getByText('Galatasaray',{exact:true}).first().waitFor({state:'visible',timeout:7000});
                   checks.finishedLineup=(await lineup.innerText()).includes('ilk 11');
                   await page.screenshot({path:'mobile-results/'+width+'-match-lineup.png'});
-                  checks.finishedOtherTabs=await (await visiblePane('form')).isVisible()&&
-                    await (await visiblePane('absences')).isVisible()&&await (await visiblePane('analysis')).isVisible();
+                  // Other tabs are checked via DOM activation to avoid touch-scroll
+                  // interception on narrow viewports; visibility is still asserted.
+                  const otherTabResults=[];
+                  for(const pane of ['form','absences','analysis']){
+                    const tab=detail.locator('[data-pane="'+pane+'"][role="tab"]');
+                    await tab.evaluate(element=>element.click());
+                    const panel=detail.locator('[data-pane="'+pane+'"][role="tabpanel"]');
+                    otherTabResults.push(await panel.isVisible()&&await tab.getAttribute('aria-selected')==='true');
+                  }
+                  checks.finishedOtherTabs=otherTabResults.every(Boolean);
                   await detail.locator('.match-detail-close').tap({timeout:5000});
                   checks.matchDetailBack=await detail.isHidden()&&await page.locator('#matches .mam-match-open').isVisible();
                 } catch(e){errors.push(e.stack||e.message);}
