@@ -22,7 +22,7 @@ export function teamProfile(team,fixtures,{now=Date.now()}={}){
 export function matchDetails(match){
  if(!match?.id)throw new TypeError('Invalid match');
  const minute=e=>{const raw=e?.minute??e?.time?.elapsed??e?.clock?.displayValue??e?.clock;const n=typeof raw==='string'&&/^\d{1,3}:\d{2}$/.test(raw)?Number(raw.split(':')[0])+Number(raw.split(':')[1])/60:Number(raw);return raw===null||raw===undefined||raw===''||!Number.isFinite(n)?Infinity:n;};
- const sourceEvents=Array.isArray(match.events)?match.events:Array.isArray(match.events?.response)?match.events.response:Array.isArray(match.events?.plays)?match.events.plays:[];
+ const sourceEvents=Array.isArray(match.events)?match.events:Array.isArray(match.events?.response)?match.events.response:Array.isArray(match.events?.plays)?match.events.plays:Array.isArray(match.plays)?match.plays:[];
  const events=[...sourceEvents].sort((a,b)=>minute(a)-minute(b));
  const lineups=Array.isArray(match.lineups)?match.lineups:Array.isArray(match.lineups?.response)?match.lineups.response:[];
  return {match,events,lineups,statistics:match.statistics??null,hasVerifiedStatistics:match.statistics?.independentCrossSourceVerification===true};
