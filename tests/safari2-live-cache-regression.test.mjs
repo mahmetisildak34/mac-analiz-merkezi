@@ -58,3 +58,14 @@ test("goal alerts ignore missing, empty, negative and fractional scores",()=>{
  assert.match(source,/Number\.isInteger\(away\)/);
  assert.match(source,/home<0\|\|away<0/);
 });
+
+test("favorites only persist provider-verified live snapshots",()=>{
+ const favorites=readFileSync(new URL("../safari2-favorites-search.js",import.meta.url),"utf8");
+ const start=favorites.indexOf("function syncFavoriteSnapshots(){");
+ const end=favorites.indexOf('window.addEventListener("mam:fresh-live"',start);
+ assert.ok(start>0&&end>start);
+ const sync=favorites.slice(start,end);
+ assert.match(sync,/const verifiedAt=Number\(match\._mamLastVerifiedAt\)/);
+ assert.match(sync,/if\(!Number\.isFinite\(verifiedAt\)\|\|verifiedAt<=0\)continue/);
+ assert.doesNotMatch(sync,/savedAt:Number\(match\._mamLastVerifiedAt\)\|\|Date\.now\(\)/);
+});
