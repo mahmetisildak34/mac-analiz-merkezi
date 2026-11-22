@@ -151,3 +151,11 @@ test("today's ESPN scoreboard refreshes after five seconds and concurrent refres
  assert.equal(JSON.stringify(await api(path)),JSON.stringify(payload));
  assert.equal(requests,1);
 });
+
+test("team profiles only show completed matches with two known scores",()=>{
+ const fn=name=>html.match(new RegExp("function "+name+"\\([\\s\\S]*?\\n\\}"))?.[0];
+ const completed=require("node:vm").runInNewContext(fn("mamCanonicalMatchStatus")+"\n"+fn("mamHasCompletedScore")+"\n mamHasCompletedScore");
+ const fixture={id:"espn-tur.1-401888243",status:{short:"FT"}};
+ assert.equal(completed({fixture,goals:{home:0,away:1}}),true);
+ assert.equal(completed({fixture,goals:{home:null,away:1}}),false);
+});

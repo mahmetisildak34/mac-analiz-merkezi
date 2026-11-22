@@ -270,9 +270,11 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
     await offlineMain.getByText(/Cihazdaki favoriler korunuyor/).waitFor();
     assert.equal(await offlineMain.evaluate(()=>localStorage.getItem('mam_session_token')),'local-browser-acceptance');
     await offlineMain.getByRole('link',{name:'Cihazdaki kayıtları aç'}).click();
-    await offlineMain.waitForURL('**/mobile/product-hub.html#saved');
+    await offlineMain.waitForURL('**/mobile/product-hub.html');
     await offlineMain.locator('[data-tab="favorites"]').click();
     await offlineMain.locator('#favTeams').getByText(/Fenerbahçe/).waitFor();
+    await offlineMain.locator('[data-tab="live"]').click();
+    await offlineMain.getByText(/Kaydedilmiş görünüm açık/).waitFor();
    }finally{await offlineMain.close();}
    await page.goto('about:blank');
    await page.goto(url);

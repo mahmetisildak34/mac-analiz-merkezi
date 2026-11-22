@@ -6,7 +6,7 @@
 <section class="card"><label for="data">İsteğe bağlı maç verisi (JSON dosyası)</label><p><small>Mevcut uygulamanın API-Football biçimindeki maç listesini veya normalize edilmiş maç listesini içeren yerel JSON dosyasını seç. Bu ekran dış servise istek göndermez.</small></p><input id="data" type="file" accept=".json,application/json"><p id="dataStatus" role="status">Ana uygulamanın son maç verileri kontrol ediliyor.</p></section>
 <section id="home" data-view><h2>Maçlar</h2><label for="matchFilter">Maç durumu</label><select id="matchFilter"><option value="all">Tüm maçlar</option><option value="finished">Biten</option><option value="upcoming">Yaklaşan</option></select><div id="homeList" class="grid"></div></section>
 <section id="today" data-view class="hidden"><h2>Günlük maçlar</h2><label for="matchDate">Tarih (İstanbul)</label><input id="matchDate" type="date"><div id="todayList" class="grid"></div></section>
-<section id="live" data-view class="hidden"><h2>Canlı maçlar</h2><p>Kayıtlar ana uygulamadan gelir. <a href="../index.html#mam-live">Canlı akışı ana uygulamada aç</a></p><div id="liveList" class="grid"></div></section>
+<section id="live" data-view class="hidden"><h2>Canlı maçlar</h2><p id="savedOnlyNotice" hidden>Kaydedilmiş görünüm açık. Güncel canlı skorlar bu ekranda gösterilmez.</p><p>Kayıtlar ana uygulamadan gelir. <a href="../index.html#mam-live">Canlı akışı ana uygulamada aç</a></p><div id="liveList" class="grid"></div></section>
 <section id="favorites" data-view class="hidden"><h2>Favoriler</h2><h3>Maçlar</h3><div id="favMatches"></div><h3>Takımlar</h3><div id="favTeams"></div></section>
 <section id="teams" data-view class="hidden"><h2>Takım profilleri</h2><div id="teamsList"></div><div id="teamDetail" aria-live="polite"></div></section>
 <section id="leagues" data-view class="hidden"><h2>Puan tabloları</h2><label for="espnLeague">ESPN resmî puan tablosu</label><select id="espnLeague"></select><div id="espnTable" aria-live="polite"></div><label for="standingsFile">ESPN puan tablosu JSON (isteğe bağlı)</label><input id="standingsFile" type="file" accept=".json,application/json"><div id="officialTable" aria-live="polite"></div><label for="league">Lig</label><select id="league"></select><p class="muted">Bu tablo yalnızca yüklenen bitmiş maçlardan hesaplanır; resmi tam sezon sıralaması değildir.</p><div id="table"></div></section>
@@ -18,7 +18,11 @@
 import {espnCompetitions,toggleFavorite,teamProfile,matchDetails,leagueStandings,parseEspnStandings,isLiveMatch,isIstanbulToday,searchFootball,notificationCandidates} from './product-features.mjs';
 import {loadEspnStandings} from './espn-standings.mjs';
 const $=id=>document.getElementById(id),KEY='mam-product-hub-v1';
-const savedOnly=location.hash==="#saved";
+let savedOnly=false;
+try{
+ savedOnly=sessionStorage.getItem('mam_open_saved_records')==='1';
+ if(savedOnly)sessionStorage.removeItem('mam_open_saved_records');
+}catch{}
 let fixtureSnapshotAt=null;
 let state={matches:[],favoriteMatches:[],favoriteTeams:[],alerts:false},active='home',detailReturn={tab:'home',id:''};
 function readPreferences(){
@@ -42,6 +46,7 @@ function normalize(m){const fixture=m.fixture||{},home=m.teams?.home||{},away=m.
 function loadSharedFixtures(){fixtureSnapshotAt=null;try{const saved=JSON.parse(localStorage.getItem(FIXTURE_CACHE)||'null');if(!Array.isArray(saved?.matches)||!Number.isFinite(saved.savedAt)||saved.savedAt>Date.now()+60000||Date.now()-saved.savedAt>24*60*60*1000)return false;const rows=saved.matches.map(normalize).filter(m=>m.id&&m.homeTeamName&&m.awayTeamName);if(!rows.length)return false;state.matches=rows;fixtureSnapshotAt=saved.savedAt;$("dataStatus").textContent=rows.length+" maç ana uygulamanın mevcut kayıtlarından yüklendi ("+new Date(saved.savedAt).toLocaleString("tr-TR")+").";return true;}catch{return false;}}
 function show(tab){if(!document.getElementById(tab)?.hasAttribute('data-view'))return;active=tab;document.querySelectorAll('[data-view]').forEach(e=>e.classList.toggle('hidden',e.id!==tab));document.querySelectorAll('[data-tab]').forEach(b=>{const selected=b.dataset.tab===tab;b.setAttribute('aria-pressed',String(selected));if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});render();if(tab==='leagues')loadOfficialStandings();}
 function matchCard(m){const favorite=state.favoriteMatches.includes(m.id);return '<article class="card"><b>'+esc(m.homeTeamName)+' – '+esc(m.awayTeamName)+'</b><p>'+esc(m.leagueName)+' · '+esc(m.status)+' · '+esc(m.kickoff&&Number.isFinite(Date.parse(m.kickoff))?new Date(m.kickoff).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'Saat bilinmiyor')+'</p><p>'+esc(m.homeGoals??'?')+' : '+esc(m.awayGoals??'?')+'</p><div class="actions"><button data-match="'+esc(m.id)+'">Detay</button><button aria-pressed="'+favorite+'" data-favmatch="'+esc(m.id)+'">'+(favorite?'★ Favoriden çıkar':'☆ Favoriye ekle')+'</button></div></article>';}
+$('savedOnlyNotice').hidden=!savedOnly;
 function render(){
  const list=state.matches;
  if(active==='home'){
