@@ -8820,9 +8820,9 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
 </style>
 <section id="mamTeamSearch" role="dialog" aria-modal="true" aria-label="Takım arama ve favoriler" hidden>
  <div class="mam-search-sheet">
-  <div class="mam-search-head"><strong>Takım ara ve favorilere ekle</strong><button type="button" id="mamTeamSearchClose" aria-label="Aramayı kapat">✕</button></div>
+  <div class="mam-search-head"><strong>Takım ara</strong><button type="button" id="mamTeamSearchClose" aria-label="Aramayı kapat">✕</button></div>
   <input id="mamTeamSearchInput" type="search" placeholder="Takım adı yaz (ör. Fenerbahçe)" autocomplete="off" aria-label="Takım adı">
-  <p id="mamTeamSearchHelp">Yüklenen maçların takımları arasında ara. Yıldızla favorilerine ekle.</p>
+  <p id="mamTeamSearchHelp">Takım adı yaz; bulunan takımları görüntüle.</p>
   <div id="mamTeamSearchResults" aria-live="polite"></div>
  </div>
 </section>
@@ -8835,6 +8835,29 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
  const normalize=value=>String(value??'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  const read=key=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{return {};}};
  let previousFocus=null;
+ // Public ESPN team directories supplement fixture-only results. No API-Football calls.
+ const ESPN_LEAGUES=['tur.1','eng.1','esp.1','ita.1','ger.1','fra.1','ned.1','por.1','usa.1','bra.1','arg.1','uefa.champions','uefa.europa','uefa.europa.conf'];
+ const directory=new Map();
+ let directoryLoading=false,directoryLoaded=false;
+ const catalogKey='mam_search_espn_teams_v1';
+ try{const cache=read(catalogKey);if(Array.isArray(cache.teams)&&Date.now()-Number(cache.savedAt||0)<7*86400000){for(const t of cache.teams)if(t?.id&&t?.name)directory.set(t.id,t);directoryLoaded=true;}}catch{}
+ async function loadDirectory(){
+  if(directoryLoading||directoryLoaded)return;
+  directoryLoading=true;
+  const requests=ESPN_LEAGUES.map(async league=>{
+   try{
+    const response=await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/'+encodeURIComponent(league)+'/teams?limit=500',{signal:AbortSignal.timeout(9000)});
+    if(!response.ok)return;
+    const data=await response.json();
+    const rows=Array.isArray(data?.sports?.[0]?.leagues?.[0]?.teams)?data.sports[0].leagues[0].teams:[];
+    for(const row of rows){const team=row?.team||row;if(team?.id!=null&&team?.displayName){const id='espn:'+league+':'+team.id;directory.set(id,{id,name:String(team.displayName),league,country:''});}}
+   }catch{}
+  });
+  await Promise.all(requests);
+  directoryLoading=false;
+  if(directory.size){directoryLoaded=true;try{localStorage.setItem(catalogKey,JSON.stringify({savedAt:Date.now(),teams:[...directory.values()]}));}catch{}}
+  if(!panel.hidden)draw();
+ }
  function teams(){
   const map=new Map();
   let rows=typeof allMatches!=='undefined'&&Array.isArray(allMatches)?allMatches:[];
@@ -8844,17 +8867,18 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
    const id=String(team.id);
    if(!map.has(id))map.set(id,{id,name:String(team.name),league:String(match?.league?.name||''),country:String(match?.league?.country||'')});
   }
+  for(const [id,team] of directory)if(!map.has(id))map.set(id,team);
   return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
  }
  function draw(){
   const q=normalize(input.value.trim());
   const all=teams(),fav=read(KEY).favoriteTeams||[];
-  const filtered=(q?all.filter(t=>normalize(t.name).includes(q)):all.filter(t=>fav.includes(t.id))).slice(0,60);
-  document.getElementById('mamTeamSearchHelp').textContent=q?'Bulunan takımlardan yıldızla favori seç.':'Takım adı yaz; favorilerin varsa aşağıda görünür.';
-  results.innerHTML=filtered.map(t=>'<div class="mam-team-result"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span><button type="button" data-search-team="'+escapeHtml(t.id)+'" aria-pressed="'+fav.includes(t.id)+'" aria-label="'+escapeHtml(t.name)+' favori">'+(fav.includes(t.id)?'★':'☆')+'</button></div>').join('')||'<p>'+(q?'Bu isimde takım yüklenen maçlarda bulunamadı.':'Takım aramak için adını yaz.')+'</p>';
+  const filtered=(q?all.filter(t=>normalize(t.name).includes(q)):all.slice(0,60)).slice(0,60);
+  document.getElementById('mamTeamSearchHelp').textContent=directoryLoading?'Takım rehberi yükleniyor…':q?'Takım sonuçları (ESPN rehberi ve maç verileri).':'Takım adı yaz. Takımı favoriye eklemek için yıldızına basabilirsin.';
+  results.innerHTML=filtered.map(t=>'<div class="mam-team-result"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span><button type="button" data-search-team="'+escapeHtml(t.id)+'" aria-pressed="'+fav.includes(t.id)+'" aria-label="'+escapeHtml(t.name)+' favori">'+(fav.includes(t.id)?'★':'☆')+'</button></div>').join('')||'<p>'+(q?'Bu takım mevcut rehberde bulunamadı.':'Takım aramak için adını yaz.')+'</p>';
  }
  function hide(){panel.hidden=true;trigger.setAttribute('aria-expanded','false');document.body.style.overflow='';previousFocus?.focus();}
- trigger.addEventListener('click',()=>{previousFocus=document.activeElement;panel.hidden=false;trigger.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';input.value='';draw();input.focus();});
+ trigger.addEventListener('click',()=>{previousFocus=document.activeElement;panel.hidden=false;trigger.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';input.value='';draw();loadDirectory();input.focus();});
  close.addEventListener('click',hide);
  panel.addEventListener('click',e=>{if(e.target===panel)hide();});
  document.addEventListener('keydown',e=>{if(!panel.hidden&&e.key==='Escape')hide();});
