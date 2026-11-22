@@ -21,9 +21,9 @@ test("PWA manifest is scoped to the GitHub Pages project path and installable",(
 
 test("service worker is syntactically valid and precaches both local app modules",()=>{
  assert.doesNotThrow(()=>new Script(worker));
- assert.match(worker,/half-goal-algorithm\\.js/);
- assert.match(worker,/safari2-favorites-search\\.js/);
- assert.doesNotMatch(worker,/\\\\n/);
+ assert.match(worker,/half-goal-algorithm\.js/);
+ assert.match(worker,/safari2-favorites-search\.js/);
+ assert.equal(worker.includes(String.raw`\n`),false);
 });
 
 test("offline shell caches only same-origin static assets, never API responses",()=>{
