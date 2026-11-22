@@ -8,9 +8,11 @@ test('product hub exposes nine feature areas and responsive navigation',()=>{
  for(const id of ['home','live','today','favorites','teams','leagues','search','settings','details'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/aria-label="Alt gezinme"/);assert.match(html,/env\(safe-area-inset-bottom\)/);
 });
-test('product hub uses local data only, not live APIs or notification permissions',()=>{
+test('product hub limits external requests to public ESPN standings',()=>{
  assert.match(html,/type="file"/);assert.match(html,/localStorage/);
- assert.doesNotMatch(html,/fetch\s*\(|Notification\.requestPermission|navigator\.serviceWorker\.register/);
+ assert.equal([...html.matchAll(/fetch\s*\(/g)].length,1);
+ assert.match(html,/fetch\('https:\/\/site\.api\.espn\.com\/apis\/v2\/sports\/soccer\/'.+\/standings/);
+ assert.doesNotMatch(html,/Notification\.requestPermission/);
 });
 test('main app links to product hub without replacing existing rendering',()=>{
  assert.match(app,/href="\.\/mobile\/product-hub\.html"/);
@@ -205,4 +207,12 @@ test('published ESPN standings preserve team name when displayName is absent',as
 test('mobile hub preserves ESPN date when kickoff is absent',()=>{
  assert.match(html,/kickoff:m\.kickoff\?\?m\.date\?\?fixture\.date/);
  assert.match(html,/isIstanbulToday\(m\)/);
+});
+
+
+test('mobile standings catalog covers the main scoreboard ESPN competitions',async()=>{
+ const {espnCompetitions}=await import('../mobile/product-features.mjs');
+ const mapping=app.split('const ESPN_LEAGUES={')[1].split('\n};')[0];
+ const slugs=new Set([...mapping.matchAll(/slug:"([^"]+)"/g)].map(match=>match[1]));
+ assert.deepEqual(new Set(espnCompetitions.keys()),slugs);
 });

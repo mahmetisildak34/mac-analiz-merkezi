@@ -9,13 +9,13 @@
 <section id="live" data-view class="hidden"><h2>Canlı maçlar</h2><div id="liveList" class="grid"></div></section>
 <section id="favorites" data-view class="hidden"><h2>Favoriler</h2><h3>Maçlar</h3><div id="favMatches"></div><h3>Takımlar</h3><div id="favTeams"></div></section>
 <section id="teams" data-view class="hidden"><h2>Takım profilleri</h2><div id="teamsList"></div><div id="teamDetail" aria-live="polite"></div></section>
-<section id="leagues" data-view class="hidden"><h2>Puan tabloları</h2><label for="standingsFile">ESPN puan tablosu JSON (isteğe bağlı)</label><input id="standingsFile" type="file" accept=".json,application/json"><div id="officialTable" aria-live="polite"></div><label for="league">Lig</label><select id="league"></select><p class="muted">Bu tablo yalnızca yüklenen bitmiş maçlardan hesaplanır; resmi tam sezon sıralaması değildir.</p><div id="table"></div></section>
+<section id="leagues" data-view class="hidden"><h2>Puan tabloları</h2><label for="espnLeague">ESPN resmî puan tablosu</label><select id="espnLeague"></select><div id="espnTable" aria-live="polite"></div><label for="standingsFile">ESPN puan tablosu JSON (isteğe bağlı)</label><input id="standingsFile" type="file" accept=".json,application/json"><div id="officialTable" aria-live="polite"></div><label for="league">Lig</label><select id="league"></select><p class="muted">Bu tablo yalnızca yüklenen bitmiş maçlardan hesaplanır; resmi tam sezon sıralaması değildir.</p><div id="table"></div></section>
 <section id="search" data-view class="hidden"><h2>Arama</h2><label for="query">Takım, lig veya maç</label><input id="query" type="search" placeholder="Ör. Fenerbahçe"><div id="results"></div></section>
 <section id="settings" data-view class="hidden"><h2>Bildirim tercihleri</h2><p>Başlangıç bildirimleri için aday olaylar hesaplanır. Otomatik arka plan bildirimi veya push gönderimi etkin değildir.</p><label><input id="alerts" type="checkbox"> Yaklaşan favori maçları burada hatırlat</label><p><button id="notifyCheck" type="button">Yaklaşan maçları kontrol et</button></p><div id="alertsList" role="status"></div></section>
 <section id="details" data-view class="hidden"><h2>Maç detayları</h2><button type="button" id="detailsBack">← Maçlara dön</button><div id="detailsContent"></div></section></main>
 <nav class="nav" aria-label="Alt gezinme"><button data-tab="home">Maçlar</button><button data-tab="live">Canlı</button><button data-tab="today">Bugün</button><button data-tab="favorites">Favoriler</button><button data-tab="teams">Takımlar</button><button data-tab="leagues">Ligler</button><button data-tab="search">Ara</button><button data-tab="settings">Ayarlar</button></nav>
 <script type="module">
-import {toggleFavorite,teamProfile,matchDetails,leagueStandings,parseEspnStandings,isLiveMatch,isIstanbulToday,searchFootball,notificationCandidates} from './product-features.mjs';
+import {espnCompetitions,toggleFavorite,teamProfile,matchDetails,leagueStandings,parseEspnStandings,isLiveMatch,isIstanbulToday,searchFootball,notificationCandidates} from './product-features.mjs';
 const $=id=>document.getElementById(id),KEY='mam-product-hub-v1';
 let state={matches:[],favoriteMatches:[],favoriteTeams:[],alerts:false},active='home';
 try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved&&typeof saved==='object'){state.favoriteMatches=Array.isArray(saved.favoriteMatches)?saved.favoriteMatches.filter(x=>typeof x==='string'):[];state.favoriteTeams=Array.isArray(saved.favoriteTeams)?saved.favoriteTeams.filter(x=>typeof x==='string'):[];state.alerts=saved.alerts===true;}}catch{}
@@ -27,7 +27,7 @@ const teams=()=>{const map=new Map();for(const m of state.matches){for(const sid
 const leagues=()=>[...new Map(state.matches.map(m=>[m.leagueId,{id:m.leagueId,name:m.leagueName}]).filter(([id])=>id)).values()];
 function normalize(m){const fixture=m.fixture||{},home=m.teams?.home||{},away=m.teams?.away||{},league=m.league||{},goals=m.goals||{};return {id:String(m.id??fixture.id??''),homeTeamId:String(m.homeTeamId??home.id??''),awayTeamId:String(m.awayTeamId??away.id??''),homeTeamName:String(m.homeTeamName??home.name??''),awayTeamName:String(m.awayTeamName??away.name??''),homeGoals:m.homeGoals??goals.home??null,awayGoals:m.awayGoals??goals.away??null,status:String((typeof m.status==='string'?m.status:m.status?.type?.name??m.status?.type?.state??m.status?.short)??fixture.status?.short??''),kickoff:m.kickoff??m.date??fixture.date,leagueId:String(m.leagueId??league.id??''),leagueName:String(m.leagueName??league.name??''),events:m.events,keyEvents:m.keyEvents,scoringPlays:m.scoringPlays,plays:m.plays,lineups:m.lineups,rosters:m.rosters,boxscore:m.boxscore,statistics:m.statistics};}
 function loadSharedFixtures(){try{const saved=JSON.parse(localStorage.getItem(FIXTURE_CACHE)||'null');if(!Array.isArray(saved?.matches)||!Number.isFinite(saved.savedAt)||saved.savedAt>Date.now()+60000||Date.now()-saved.savedAt>24*60*60*1000)return false;const rows=saved.matches.map(normalize).filter(m=>m.id&&m.homeTeamName&&m.awayTeamName);if(!rows.length)return false;state.matches=rows;$("dataStatus").textContent=rows.length+" maç ana uygulamanın mevcut kayıtlarından yüklendi ("+new Date(saved.savedAt).toLocaleString("tr-TR")+").";return true;}catch{return false;}}
-function show(tab){if(!document.getElementById(tab)?.hasAttribute('data-view'))return;active=tab;document.querySelectorAll('[data-view]').forEach(e=>e.classList.toggle('hidden',e.id!==tab));document.querySelectorAll('[data-tab]').forEach(b=>{const selected=b.dataset.tab===tab;b.setAttribute('aria-pressed',String(selected));if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});render();}
+function show(tab){if(!document.getElementById(tab)?.hasAttribute('data-view'))return;active=tab;document.querySelectorAll('[data-view]').forEach(e=>e.classList.toggle('hidden',e.id!==tab));document.querySelectorAll('[data-tab]').forEach(b=>{const selected=b.dataset.tab===tab;b.setAttribute('aria-pressed',String(selected));if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});render();if(tab==='leagues')loadOfficialStandings();}
 function matchCard(m){const favorite=state.favoriteMatches.includes(m.id);return '<article class="card"><b>'+esc(m.homeTeamName)+' – '+esc(m.awayTeamName)+'</b><p>'+esc(m.leagueName)+' · '+esc(m.status)+' · '+esc(m.kickoff&&Number.isFinite(Date.parse(m.kickoff))?new Date(m.kickoff).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'Saat bilinmiyor')+'</p><p>'+esc(m.homeGoals??'?')+' : '+esc(m.awayGoals??'?')+'</p><div class="actions"><button data-match="'+esc(m.id)+'">Detay</button><button aria-pressed="'+favorite+'" data-favmatch="'+esc(m.id)+'">'+(favorite?'★ Favoriden çıkar':'☆ Favoriye ekle')+'</button></div></article>';}
 function render(){const list=state.matches,allTeams=teams();const live=list.filter(isLiveMatch);$('liveList').innerHTML=live.length?live.map(matchCard).join(''):'<p class="empty">Şu anda doğrulanmış canlı maç bulunamadı.</p>';const today=list.filter(m=>isIstanbulToday(m)&&!isLiveMatch(m));$('todayList').innerHTML=today.length?today.map(matchCard).join(''):'<p class="empty">Bugün için canlı olmayan maç bulunamadı.</p>';$('homeList').innerHTML=list.length?list.map(matchCard).join(''):'<p class="empty">Ana uygulamada maçları yükleyip bu ekrana dönün veya JSON dosyası seçin.</p>';
 $('favMatches').innerHTML=list.filter(m=>state.favoriteMatches.includes(m.id)).map(matchCard).join('')||'<p class="empty">Favori maç bulunamadı.</p>';
@@ -64,7 +64,70 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
 $('data').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>5_000_000)throw Error('Dosya çok büyük (en fazla 5 MB).');const data=JSON.parse(await file.text());const rows=Array.isArray(data)?data:Array.isArray(data.response)?data.response:Array.isArray(data.matches)?data.matches:null;if(!rows)throw Error('JSON içinde maç listesi bulunamadı.');const normalized=rows.map(normalize).filter(m=>m.id&&m.homeTeamName&&m.awayTeamName);if(normalized.length!==rows.length)throw Error('Bazı maçların kimlik veya takım bilgisi eksik.');state.matches=normalized;$('dataStatus').textContent=normalized.length+' maç yüklendi (yalnızca bu oturum).';render();}catch(err){$('dataStatus').textContent='Yükleme hatası: '+err.message;}});
 $('notifyCheck').addEventListener('click',()=>{if(!state.alerts){$('alertsList').textContent='Önce hatırlatmaları açın.';return;}const upcoming=notificationCandidates(state.matches,state.favoriteMatches);const fresh=upcoming.filter(x=>!seenAlerts.includes(x.id+'|'+x.kickoff));for(const item of fresh)seenAlerts.push(item.id+'|'+item.kickoff);seenAlerts=seenAlerts.slice(-500);try{localStorage.setItem(SEEN_KEY,JSON.stringify(seenAlerts));}catch{}$('alertsList').textContent=fresh.length?fresh.length+' yeni maç hatırlatması görüntülendi.':'Yeni hatırlatma yok.';});
 $('detailsBack').addEventListener('click',()=>show('home'));
-$('standingsFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const target=$('officialTable');try{if(file.size>5_000_000)throw Error('Dosya çok büyük.');const groups=parseEspnStandings(JSON.parse(await file.text()));if(!groups.length)throw Error('ESPN sıralama kayıtları bulunamadı.');target.innerHTML=groups.map(g=>'<div class="card"><h3>'+esc(g.name)+'</h3><p>'+esc(g.season??'Sezon belirtilmedi')+' · Yüklenen ESPN biçimli JSON (kaynak bağımsız doğrulanmadı)</p>'+g.rows.map(r=>'<p>'+esc(r.rank??'—')+'. '+esc(r.name)+' · '+esc(r.points??'—')+' puan · '+esc(r.played??'—')+' maç · '+esc(r.wins??'—')+' G · '+esc(r.draws??'—')+' B · '+esc(r.losses??'—')+' M · '+esc(r.goalDifference??'—')+' averaj</p>').join('')+'</div>').join('');}catch(err){target.textContent='Puan tablosu yüklenemedi: '+err.message;}});
+const standingsSelect=$('espnLeague');
+standingsSelect.innerHTML=[...espnCompetitions].map(([slug,name])=>'<option value="'+esc(slug)+'">'+esc(name)+'</option>').join('');
+standingsSelect.value='tur.1';
+const standingsCache=new Map(),standingsRequests=new Map();
+const standingsFreshMs=10*60*1000,standingsOfflineMs=7*24*60*60*1000;
+function standingsMarkup(groups,source){
+ return groups.map(g=>'<div class="card"><h3>'+esc(g.name)+'</h3><p>'+esc(g.season??'Sezon belirtilmedi')+' · '+esc(source)+'</p>'+g.rows.map(r=>'<p>'+esc(r.rank??'—')+'. '+esc(r.name)+' · '+esc(r.points??'—')+' puan · '+esc(r.played??'—')+' maç · '+esc(r.wins??'—')+' G · '+esc(r.draws??'—')+' B · '+esc(r.losses??'—')+' M · '+esc(r.goalDifference??'—')+' averaj</p>').join('')+'</div>').join('');
+}
+async function loadOfficialStandings(){
+ const slug=standingsSelect.value,target=$('espnTable');
+ if(!espnCompetitions.has(slug))return;
+ const key='mam_espn_standings_v1_'+slug;
+ let saved=standingsCache.get(slug);
+ if(!saved){
+  try{
+   const entry=JSON.parse(localStorage.getItem(key)??'null');
+   if(entry&&Number.isFinite(entry.at)&&entry.at<=Date.now()&&Date.now()-entry.at<standingsOfflineMs){
+    const groups=parseEspnStandings(entry.payload);
+    if(groups.length)saved={at:entry.at,groups};
+   }
+  }catch{}
+ }
+ const display=result=>{
+  if(standingsSelect.value!==slug)return;
+  if(result.groups.length)target.innerHTML=standingsMarkup(result.groups,result.stale?'ESPN · Kaydedilmiş tablo ('+new Date(result.at).toLocaleDateString('tr-TR',{timeZone:'Europe/Istanbul'})+')':'ESPN · Yayımlanan sıralama');
+  else target.textContent='ESPN bu müsabaka için puan tablosu yayımlamadı.';
+ };
+ if(saved&&Date.now()-saved.at<standingsFreshMs){display(saved);return;}
+ if(saved)display({...saved,stale:true});
+ else target.textContent='ESPN puan tablosu yükleniyor…';
+ if(!standingsRequests.has(slug)){
+  const request=(async()=>{
+   const response=await fetch('https://site.api.espn.com/apis/v2/sports/soccer/'+encodeURIComponent(slug)+'/standings',{credentials:'omit',signal:AbortSignal.timeout(8000)});
+   if(!response.ok&&response.status!==404)throw Error('ESPN HTTP '+response.status);
+   const payload=response.status===404?{}:await response.json();
+   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw Error('Geçersiz ESPN yanıtı');
+   const result={at:Date.now(),groups:parseEspnStandings(payload)};
+   standingsCache.set(slug,result);
+   try{
+    if(result.groups.length)localStorage.setItem(key,JSON.stringify({at:result.at,payload}));
+    else localStorage.removeItem(key);
+   }catch{}
+   return result;
+  })().finally(()=>standingsRequests.delete(slug));
+  standingsRequests.set(slug,request);
+ }
+ try{display(await standingsRequests.get(slug));}
+ catch{
+  if(standingsSelect.value!==slug)return;
+  if(saved)display({...saved,stale:true});
+  else target.textContent='ESPN puan tablosuna ulaşılamadı. Bağlantınızı kontrol edin veya bir JSON dosyası yükleyin.';
+ }
+}
+standingsSelect.addEventListener('change',loadOfficialStandings);
+$('standingsFile').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ const target=$('officialTable');
+ try{
+  if(file.size>5_000_000)throw Error('Dosya çok büyük.');
+  const groups=parseEspnStandings(JSON.parse(await file.text()));
+  if(!groups.length)throw Error('ESPN sıralama kayıtları bulunamadı.');
+  target.innerHTML=standingsMarkup(groups,'Yüklenen ESPN biçimli JSON (kaynak bağımsız doğrulanmadı)');
+ }catch(err){target.textContent='Puan tablosu yüklenemedi: '+err.message;}
+});
 $('league').addEventListener('change',render);$('query').addEventListener('input',render);$('alerts').addEventListener('change',e=>{state.alerts=e.target.checked;save();render();});loadSharedFixtures();show('home');
 window.addEventListener('pageshow',()=>{if(loadSharedFixtures())render();});
 </script></body></html>
