@@ -62,3 +62,17 @@ export function parseEspnStandings(payload){
   return {id:String(e.team.id),name:String(e.team.displayName),rank:stat(stats,['rank','playoffSeed']),played:stat(stats,['gamesPlayed','GP']),wins:stat(stats,['wins','W']),draws:stat(stats,['ties','draws','D']),losses:stat(stats,['losses','L']),points:stat(stats,['points','PTS']),goalDifference:stat(stats,['pointDifferential','goalDifference','GD'])};
  })})).filter(g=>g.rows.length);
 }
+
+/** Conservative live status check: never infer live state from kickoff alone. */
+export function isLiveMatch(match){
+ const raw=match?.status?.type?.name??match?.status?.type?.state??match?.status?.short??match?.status;
+ const value=typeof raw==='string'?raw.trim().toUpperCase():'';
+ return new Set(['1H','2H','HT','ET','BT','P','LIVE','IN','IN_PROGRESS','STATUS_IN_PROGRESS','STATUS_HALFTIME','STATUS_END_PERIOD','STATUS_FIRST_HALF','STATUS_SECOND_HALF','STATUS_OVERTIME','STATUS_PENALTY_SHOOTOUT']).has(value);
+}
+/** Calendar-day match grouping uses Istanbul, never UTC date slicing. */
+export function isIstanbulToday(match,now=Date.now()){
+ const kickoff=Date.parse(match?.kickoff??'');
+ if(!Number.isFinite(kickoff)||!Number.isFinite(now))return false;
+ const day=t=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(t);
+ return day(kickoff)===day(now);
+}
