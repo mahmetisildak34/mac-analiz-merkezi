@@ -252,6 +252,11 @@ jobs:
                   checks.matchDetailBack=await detail.isHidden()&&await page.locator('#matches .mam-match-open').isVisible();
                 } catch(e){errors.push(e.stack||e.message);}
                 Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===75&&Object.values(checks).every(Boolean)&&errors.length===0});
+                const failedChecks=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
+                const missingCount=75-Object.keys(checks).length;
+                if(failedChecks.length||missingCount||errors.length){
+                  console.error(JSON.stringify({engine,width,failedChecks,checkCount:Object.keys(checks).length,expectedChecks:75,missingCount,errors},null,2));
+                }
                 await context.close();
               }
             } finally {await browser.close();server.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
