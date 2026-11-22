@@ -4756,10 +4756,11 @@ function mamDeduplicateFixtures(matches){
   const leagueA=String(a?.league?.id??""),leagueB=String(b?.league?.id??"");
   if(leagueA&&leagueB&&leagueA!==leagueB)return false;
   const idA=String(a?.fixture?.id??"").trim(),idB=String(b?.fixture?.id??"").trim();
-  if(idA&&idB&&idA===idB)return true;
-  if(!leagueA||!leagueB)return false;
   const homeA=normalizeTeam(a?.teams?.home?.name),awayA=normalizeTeam(a?.teams?.away?.name);
   const homeB=normalizeTeam(b?.teams?.home?.name),awayB=normalizeTeam(b?.teams?.away?.name);
+  // An identical ID is not enough when both providers explicitly disagree on the teams.
+  if(idA&&idB&&idA===idB)return !(homeA&&homeB&&homeA!==homeB||awayA&&awayB&&awayA!==awayB);
+  if(!leagueA||!leagueB)return false;
   if(!homeA||!awayA||homeA!==homeB||awayA!==awayB)return false;
   const first=Date.parse(a?.fixture?.date||""),second=Date.parse(b?.fixture?.date||"");
   return Number.isFinite(first)&&Number.isFinite(second)&&Math.abs(first-second)<=10*60*1000;
