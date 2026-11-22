@@ -132,6 +132,9 @@ test("PWA installs with project-scoped manifest and precaches the complete app s
  const icon=await page.request.get("/icons/app-icon.svg");
  expect(icon.ok()).toBeTruthy();
  expect(await icon.text()).toContain("<svg");
+ const appleIcon=await page.request.get("/icons/apple-touch-icon.png");
+ expect(appleIcon.ok()).toBeTruthy();
+ expect(appleIcon.headers()["content-type"]).toContain("image/png");
  await page.waitForFunction(async()=>{
   if(!("serviceWorker" in navigator))return false;
   const registration=await navigator.serviceWorker.getRegistration();
