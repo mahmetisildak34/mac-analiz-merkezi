@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'scripts/espn-scoreboard-coverage-audit.mjs'
       - 'tests/espn-*.test.cjs'
       - 'tests/safari2-*.test.mjs'
       - 'tests/fixtures/espn-tur1-20261122.json'
@@ -34,7 +35,7 @@ jobs:
         run: node --test tests/safari2-*.test.mjs
 
   browser-acceptance:
-    if: github.event_name != 'pull_request' || github.head_ref == 'feature/independent-espn-data-audit-20261122' || github.head_ref == 'fix/league-upcoming-espn-status-20261122'
+    if: github.event_name != 'pull_request' || github.head_ref == 'feature/independent-espn-data-audit-20261122' || github.head_ref == 'fix/league-upcoming-espn-status-20261122' || github.head_ref == 'fix/espn-unknown-status-coverage-20261122'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
@@ -48,3 +49,23 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
       - name: Verify mobile, favorites, and offline PWA
         run: npx playwright test --config=playwright.safari2.config.cjs
+
+  live-espn-coverage:
+    if: github.event_name == 'pull_request' && github.head_ref == 'fix/espn-unknown-status-coverage-20261122'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit configured ESPN leagues read-only
+        run: node scripts/espn-scoreboard-coverage-audit.mjs 2026-11-22
+      - name: Upload raw coverage evidence even on blocked requests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: espn-coverage-audit-20261122
+          path: audit/espn-coverage-2026-11-22.json
+          if-no-files-found: warn
+          retention-days: 7
