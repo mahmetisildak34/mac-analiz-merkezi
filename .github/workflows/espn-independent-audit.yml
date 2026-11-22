@@ -4,6 +4,11 @@ on:
     branches:
       - feature/independent-espn-data-audit-20261122
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'tests/espn-*.test.cjs'
+      - '.github/workflows/espn-independent-audit.yml'
 permissions:
   contents: read
 jobs:
