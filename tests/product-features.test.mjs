@@ -42,3 +42,14 @@ test('kickoff notifications exclude cancelled postponed and finished games',()=>
  assert.deepEqual(notificationCandidates(fixtures,ids,{now}).map(m=>m.id),['0']);
  assert.deepEqual(notificationCandidates([{id:'nested',status:{type:{name:'CANCELLED'}},kickoff:'2026-11-22T12:05:00Z'}],['nested'],{now}),[]);
 });
+
+test('ESPN summary preserves key events, published rosters and boxscore team statistics',()=>{
+ const keyEvent={clock:{displayValue:"42'"},type:{text:'Goal'}};
+ const roster={team:{id:'1'},roster:[{starter:true,athlete:{displayName:'Player'}}]};
+ const teamStats={team:{id:'1'},statistics:[{name:'possessionPct',displayValue:'58.0'}]};
+ const detail=matchDetails({id:'espn-tur.1-401888243',events:[],keyEvents:[null,keyEvent],lineups:[],rosters:[roster],boxscore:{teams:[teamStats]}});
+ assert.deepEqual(detail.events,[keyEvent]);
+ assert.deepEqual(detail.lineups,[roster]);
+ assert.deepEqual(detail.statistics,[teamStats]);
+ assert.equal(matchDetails({id:'missing'}).statistics,null);
+});
