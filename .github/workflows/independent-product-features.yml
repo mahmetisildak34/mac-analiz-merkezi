@@ -9,7 +9,7 @@ permissions:
 jobs:
   product-features:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,3 +19,9 @@ jobs:
         run: node --test tests/product-features.test.mjs tests/product-hub-integration.test.mjs tests/main-favorites-integration.test.mjs
       - name: Validate product module syntax
         run: node --check mobile/product-features.mjs && node --check mobile/main-favorites.mjs
+      - name: Install isolated browser test runner
+        run: npm install --no-save --no-package-lock playwright@1.58.2
+      - name: Install Chromium and WebKit with system dependencies
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run real mobile browser acceptance
+        run: node --test tests/product-mobile-browser.test.mjs
