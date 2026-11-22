@@ -58,3 +58,11 @@ test("fallback providers normalize only active match states",()=>{
  assert.match(html,/footballDataLiveFixtures\(\)[\s\S]*?status:\{short:String\(m\.status\|\|"IN_PLAY"\)/);
  assert.match(html,/\["HT","ET","P","SUSP","LIVE"\]\.includes\(short\)/);
 });
+
+test("published standings keep missing fields blank and prefer source goal difference",()=>{
+ const standings=html.slice(html.indexOf("async function loadStandings"),html.indexOf("const MAM_MATCH_STATS_TTL"));
+ assert.match(standings,/found\?\.value\?\?found\?\.displayValue\?\?null/);
+ assert.match(standings,/rank:stat\(entry,\["rank","playoffseed"\]\),/);
+ assert.match(standings,/x\.difference\?\?\(x\.goals!=null&&x\.against!=null/);
+ assert.match(standings,/isTeamDirectory\?"Puan tablosu yok"/);
+});
