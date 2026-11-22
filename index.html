@@ -8884,12 +8884,23 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   const q=normalize(input.value.trim());
   const all=teams();
   const filtered=(q?all.filter(t=>normalize(t.name).includes(q)||normalize(t.league).includes(q)):all.slice(0,60)).slice(0,60);
-  const leagues=Object.entries(LEAGUE_NAMES).filter(([code,name])=>!q||normalize(name).includes(q)||normalize(code).includes(q)).slice(0,q?20:14);
-  document.getElementById('mamTeamSearchHelp').textContent=directoryLoading?'Takım ve lig rehberi yükleniyor…':q?'Takım ve lig arama sonuçları':'Takım veya lig adı yaz.';
-  const leagueHtml=leagues.map(([code,name])=>'<div class="mam-team-result"><span class="mam-team-name"><strong>'+escapeHtml(name)+'</strong><small style="display:block;color:#afc0dc">Lig · '+escapeHtml(code)+'</small></span></div>').join('');
-  const teamHtml=filtered.map(t=>'<div class="mam-team-result"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span></div>').join('');
-  results.innerHTML=leagueHtml+teamHtml||'<p>'+(directoryLoading?'Takımlar yükleniyor…':'Bu isimde takım veya lig mevcut rehberde bulunamadı.')+'</p>';
+  document.getElementById('mamTeamSearchHelp').textContent=directoryLoading?'Takım rehberi yükleniyor…':q?'Takım arama sonuçları':'Takım adı veya lig yaz.';
+  results.innerHTML=filtered.map(t=>'<button type="button" class="mam-team-result" data-search-team="'+escapeHtml(t.id)+'" style="display:flex;width:100%;text-align:left;background:transparent;color:inherit;border:0;border-bottom:1px solid #41516f;padding:12px 0;cursor:pointer"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span></button>').join('')||'<p>'+(directoryLoading?'Takımlar yükleniyor…':'Bu isimde takım bulunamadı.')+'</p>';
  }
+ results.addEventListener('click',event=>{
+  const button=event.target.closest('[data-search-team]');
+  if(!button)return;
+  const team=teams().find(t=>t.id===button.dataset.searchTeam);
+  if(!team)return;
+  const open=window.mamOpenStandingTeamHistory;
+  if(typeof open!=='function')return;
+  const row=document.createElement('div');
+  row.dataset.standingTeam=team.name;
+  row.dataset.standingTeamId=String(team.id).startsWith('espn:')?String(team.id).split(':').pop():String(team.id).startsWith('fallback:')?'':String(team.id);
+  row.dataset.teamSource='espn';
+  hide();
+  open(row,Object.keys(LEAGUE_NAMES).find(code=>LEAGUE_NAMES[code]===team.league)||'tur.1');
+ });
  function hide(){panel.hidden=true;trigger.setAttribute('aria-expanded','false');document.body.style.overflow='';previousFocus?.focus();}
  trigger.addEventListener('click',()=>{previousFocus=document.activeElement;panel.hidden=false;trigger.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';input.value='';draw();loadDirectory();input.focus();});
  close.addEventListener('click',hide);
