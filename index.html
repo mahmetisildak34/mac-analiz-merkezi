@@ -4563,7 +4563,7 @@ async function loadMamMatchForm(button,forceRefresh=false){
    const h=m.teams?.home||{},a=m.teams?.away||{},gh=Number(m.goals?.home),ga=Number(m.goals?.away);
    const side=getTeamSide(m,teamId,name),scored=side==="home"?gh:ga,conceded=side==="home"?ga:gh;
    const result=scored>conceded?"G":scored===conceded?"B":"M",cls=result==="G"?"win":result==="B"?"draw":"loss";
-   const date=m.fixture?.date?new Date(m.fixture.date).toLocaleDateString("tr-TR",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—";
+   const date=m.fixture?.date?new Date(m.fixture.date).toLocaleDateString("tr-TR",{timeZone:"Europe/Istanbul",day:"2-digit",month:"2-digit",year:"2-digit"}):"—";
    const competition=m.league?.name||m.competition?.name||m.tournament?.name||"Karşılaşma";
    const ht=m.score?.halftime,htText=ht&&ht.home!==null&&ht.home!==undefined&&ht.away!==null&&ht.away!==undefined?String(ht.home)+"–"+String(ht.away):"";
    const statsFor=which=>{
