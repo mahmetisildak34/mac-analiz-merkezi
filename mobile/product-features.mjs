@@ -52,3 +52,13 @@ export function notificationCandidates(fixtures,favoriteIds,{now=Date.now(),wind
 export function mobileNavigation(active){
  const tabs=['home','live','favorites','leagues','search','settings'];return tabs.map(id=>({id,active:id===active,ariaCurrent:id===active?'page':undefined}));
 }
+
+/** Parse ESPN's published standings without recomputing ranks or inventing missing values. */
+export function parseEspnStandings(payload){
+ const groups=Array.isArray(payload?.children)?payload.children:Array.isArray(payload?.standings?.entries)?[{name:payload.name??'Lig',standings:payload.standings}]:Array.isArray(payload?.entries)?[{name:payload.name??'Lig',standings:{entries:payload.entries}}]:[];
+ const stat=(stats,names)=>{const x=stats.find(x=>names.includes(x.name)||names.includes(x.type));const v=x?.value??x?.displayValue;return v===undefined||v===null||v===''?null:v;};
+ return groups.map(group=>({name:String(group.name??'Lig'),season:payload?.season?.displayName??null,rows:(Array.isArray(group?.standings?.entries)?group.standings.entries:[]).filter(e=>e?.team?.id&&e?.team?.displayName).map(e=>{
+  const stats=Array.isArray(e.stats)?e.stats:[];
+  return {id:String(e.team.id),name:String(e.team.displayName),rank:stat(stats,['rank','playoffSeed']),played:stat(stats,['gamesPlayed','GP']),wins:stat(stats,['wins','W']),draws:stat(stats,['ties','draws','D']),losses:stat(stats,['losses','L']),points:stat(stats,['points','PTS']),goalDifference:stat(stats,['pointDifferential','goalDifference','GD'])};
+ })})).filter(g=>g.rows.length);
+}
