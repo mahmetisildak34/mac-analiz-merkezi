@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "Maç Analiz Merkezi",
+  "short_name": "Maç Analiz",
+  "description": "Futbol maçları, canlı skorlar ve veriye dayalı analiz.",
+  "lang": "tr-TR",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#07111f",
+  "theme_color": "#101827",
+  "categories": [
+    "sports",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "./icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
