@@ -371,7 +371,7 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 }
 .lineup-fullscreen-top strong{font-size:18px;font-weight:900}
 .lineup-close{
- width:40px;height:40px;border:1px solid rgba(255,255,255,.2)!important;border-radius:50%!important;
+ width:44px;height:44px;border:1px solid rgba(255,255,255,.2)!important;border-radius:50%!important;
  background:#26332d!important;color:#fff!important;font-size:21px!important;font-weight:700!important
 }
 .lineup-fullscreen .lineup-head strong,.lineup-fullscreen .lineup-team-title{color:#f4fff6}
@@ -590,6 +590,7 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .match-detail-pane{padding:14px 0 4px;border-top:1px solid rgba(150,180,215,.15)}
 .match-detail-pane[hidden]{display:none!important}
 .match-detail-pane .match-actions{display:flex!important}
+.match-detail-pane .lineup-fullscreen-top{position:static}
 .match-detail-pane .predBtn,.match-detail-pane .lineupBtn,.match-detail-pane .liveStatsBtn,.match-detail-pane .absencesBtn{width:100%;margin:8px 0!important}
 .match-detail-pane .pred,.match-detail-pane .liveStats,.match-detail-pane .lineup-panel,.match-detail-pane .absences-panel{display:block!important;margin-top:12px}
 .match-detail-pane .liveStats[hidden],.match-detail-pane .lineup-panel[hidden],.match-detail-pane .absences-panel[hidden]{display:none!important}
@@ -4163,7 +4164,7 @@ async function loadLineups(button){
  const fixtureId=String(button.dataset.id||""),panel=document.getElementById("lineup-"+fixtureId);
  if(!panel)return;
  if(panel.dataset.loaded==="true"&&!panel.hidden){panel.hidden=true;button.textContent="⚽ Kadro ve dizilişi göster";return;}
- panel.hidden=false;panel.classList.add("lineup-fullscreen");button.textContent="Kadro yükleniyor…";
+ panel.hidden=false;panel.classList.toggle("lineup-fullscreen",!button.closest(".match.in-detail"));button.textContent="Kadro yükleniyor…";
  if(panel.dataset.loaded==="true")return; panel.innerHTML='<div class="lineup-empty">Gerçek kadro bilgileri yükleniyor…</div>';button.disabled=true;
  try{
   let teams=[],playerRows=[],isEspn=fixtureId.startsWith("espn-");
@@ -4349,6 +4350,7 @@ async function loadLineups(button){
   closeLineup?.addEventListener("click",()=>{
    panel.hidden=true;
    button.textContent="⚽ Kadro ve dizilişi göster";
+   button.focus({preventScroll:true});
   });
   const selectedTeamPanel=panel.querySelector(".lineup-selected-team");
   const showTeam=index=>{

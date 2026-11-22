@@ -82,6 +82,7 @@ async function verifyMainApp(context){
   assert.equal(await dialog.locator('.lineup-bench-content li,.lineup-bench-content .lineup-bench-item').count(),10);
   await dialog.getByRole('button',{name:/Goztepe/}).click();
   await dialog.getByText(/3-4-1-2 · 11 ilk 11/).waitFor();
+  await dialog.getByRole('button',{name:'Kadro ekranını kapat'}).click();
   await dialog.getByRole('button',{name:'Geri',exact:true}).click();
   await dialog.waitFor({state:'hidden'});
   assert.equal(await opener.evaluate(button=>document.activeElement===button),true);
