@@ -101,5 +101,8 @@ test("latest fixture update wins and cached live score is clearly marked as old"
  await expect(page.locator("#mamSafariFavoritesBody")).toContainText("FT · 2 – 0");
  await page.evaluate(()=>window.clearCurrent());
  await expect(page.locator("#mamSafariFavoritesBody")).toContainText("Son kaydedilen veri");
- await expect(page.locator("#mamSafariFavoritesBody")).toContainText("LIVE · 1 – 0");
+ await expect(page.locator("#mamSafariFavoritesBody")).toContainText("FT · 2 – 0");
+ await page.reload();
+ await page.locator('[data-mam-bottom="favorites"]').click();
+ await expect(page.locator("#mamSafariFavoritesBody")).toContainText("FT · 2 – 0");
 });
