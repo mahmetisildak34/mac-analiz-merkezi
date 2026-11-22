@@ -74,3 +74,8 @@ test('bounded fixture snapshot retains matches across league groups',()=>{
  assert.match(app,/for\(const group of groups\.values\(\)\)/);
  assert.match(app,/selected\.length<1000/);
 });
+
+test('partial computed standings are not presented as official league standings',()=>{
+ assert.match(html,/Resmî lig puan durumu değildir/);
+ assert.match(html,/Yalnızca yüklenen maçlardan hesaplanan geçici tablo/);
+});
