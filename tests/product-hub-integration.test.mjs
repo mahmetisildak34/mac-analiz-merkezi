@@ -177,3 +177,8 @@ test('ESPN live states and Istanbul today split do not misclassify kickoff or po
  assert.match(html,/data-tab="today"/);
  assert.match(html,/isIstanbulToday\(m\)&&!isLiveMatch\(m\)/);
 });
+
+test('ESPN structured match status survives hub normalization for live filtering',()=>{
+ assert.match(html,/typeof m\.status==='string'\?m\.status:m\.status\?\.type\?\.name/);
+ assert.doesNotMatch(html,/status:String\(m\.status\?\?fixture\.status/);
+});
