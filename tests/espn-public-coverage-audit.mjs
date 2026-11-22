@@ -1,34 +1,77 @@
-// Read-only public ESPN coverage audit. Never contacts Worker, D1 or API-Football.
-const leagues=['tur.1','eng.1','esp.1','ger.1','ita.1','fra.1','uefa.champions','uefa.europa','ned.1','por.1','uefa.euro','uefa.nations'];
-const day=new Date().toISOString().slice(0,10).replaceAll('-','');
-for(const league of leagues){
- const url='https://site.api.espn.com/apis/site/v2/sports/soccer/'+league+'/scoreboard?dates='+day;
+// Public ESPN GET requests only. No credentials, Worker, database, or paid provider.
+import {espnCompetitions,parseEspnStandings} from '../mobile/product-features.mjs';
+
+const site='https://site.api.espn.com/apis/site/v2/sports/soccer/';
+const standingsSite='https://site.api.espn.com/apis/v2/sports/soccer/';
+const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',dateStyle:'short'}).formatToParts(new Date());
+const part=type=>today.find(item=>item.type===type).value;
+const noon=Date.parse([part('year'),part('month'),part('day')].join('-')+'T12:00:00Z');
+const days=[-1,0,1].map(offset=>new Date(noon+offset*86400000).toISOString().slice(0,10).replaceAll('-',''));
+const list=value=>Array.isArray(value)?value:[];
+async function read(url){
+ const start=performance.now();
  try{
-  const response=await fetch(url,{signal:AbortSignal.timeout(12000),headers:{Accept:'application/json'}});
-  if(!response.ok)throw Error('HTTP '+response.status);
-  const body=await response.json();
-  const events=Array.isArray(body.events)?body.events:[];
-  const statuses={live:0,scheduled:0,finished:0,other:0};
-  for(const event of events){
-   const state=String(event.status?.type?.state??'').toLowerCase();
-   if(state==='in')statuses.live++;else if(state==='pre')statuses.scheduled++;else if(state==='post')statuses.finished++;else statuses.other++;
-  }
-  // Sample one actual match summary per league; zero-match days remain explicitly unknown.
-  let detail={sampled:0,events:'not audited',statistics:'not audited',lineups:'not audited'};
-  const sample=events.find(event=>String(event.status?.type?.state).toLowerCase()!=='pre')??events[0];
-  if(sample?.id){
-   try{
-    const summary=await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/'+league+'/summary?event='+encodeURIComponent(sample.id),{signal:AbortSignal.timeout(12000),headers:{Accept:'application/json'}});
-    if(!summary.ok)throw Error('HTTP '+summary.status);
-    const payload=await summary.json();
-    const competition=payload.header?.competitions?.[0];
-    const competitors=competition?.competitors??[];
-    const hasStats=competitors.some(c=>Array.isArray(c.statistics)&&c.statistics.length>0)||Array.isArray(payload.boxscore?.teams)&&payload.boxscore.teams.some(team=>Array.isArray(team?.statistics)&&team.statistics.length>0);
-    const hasLineups=Array.isArray(payload.rosters)&&payload.rosters.length>0||competitors.some(c=>Array.isArray(c.roster)&&c.roster.length>0);
-    const hasEvents=Array.isArray(payload.keyEvents)&&payload.keyEvents.length>0||Array.isArray(payload.plays)&&payload.plays.length>0||Array.isArray(payload.scoringPlays)&&payload.scoringPlays.length>0;
-    detail={sampled:1,eventId:String(sample.id),events:hasEvents?'present':'not observed',statistics:hasStats?'present':'not observed',lineups:hasLineups?'present':'not observed'};
-   }catch(error){detail={sampled:1,eventId:String(sample.id),events:'unavailable',statistics:'unavailable',lineups:'unavailable',error:String(error.message)};}
-  }
-  console.log(JSON.stringify({league,date:day,scoreboard:'accessible',matches:events.length,statuses,detail,standingsCoverage:'not audited'}));
- }catch(error){console.log(JSON.stringify({league,date:day,scoreboard:'unavailable',error:String(error.message),eventsCoverage:'not audited',statisticsCoverage:'not audited',standingsCoverage:'not audited'}));}
+  const response=await fetch(url,{signal:AbortSignal.timeout(8000),credentials:'omit',headers:{Accept:'application/json'}});
+  if(!response.ok)return {error:'HTTP '+response.status};
+  return {value:await response.json(),ms:Math.round(performance.now()-start)};
+ }catch(error){return {error:String(error.message)};}
 }
+function matchState(event){
+ const type=event?.status?.type??event?.competitions?.[0]?.status?.type;
+ const name=String(type?.name??'');
+ if(/POSTPONED|CANCELL?ED|ABANDONED/.test(name))return 'other';
+ if(type?.state==='in')return 'live';
+ if(type?.state==='pre')return 'scheduled';
+ if(type?.state==='post'||type?.completed===true)return 'finished';
+ return 'unknown';
+}
+function dayResult(data){
+ const events=list(data.value?.events);
+ const counts={live:0,scheduled:0,finished:0,other:0,unknown:0};
+ for(const event of events)counts[matchState(event)]++;
+ return data.error?{error:data.error}:{...counts,ms:data.ms};
+}
+function summarize(data){
+ if(!data)return null;
+ if(data.error)return {error:data.error};
+ const value=data.value,teams=list(value.boxscore?.teams),rosters=list(value.rosters);
+ return {
+  events:[value.keyEvents,value.plays,value.scoringPlays].some(rows=>list(rows).length>0),
+  statistics:teams.some(team=>list(team?.statistics).length>0),
+  lineups:rosters.some(team=>list(team?.roster).length>0),
+  players:rosters.some(team=>list(team?.roster).some(entry=>list(entry?.stats).length>0))
+ };
+}
+async function audit([league,name]){
+ const base=site+league;
+ const boards=[];
+ for(const day of days)boards.push(await read(base+'/scoreboard?dates='+day));
+ const events=boards.flatMap(data=>list(data.value?.events));
+ const sample=events.find(event=>matchState(event)==='live')??events.find(event=>matchState(event)==='finished');
+ const detail=sample?.id?await read(base+'/summary?event='+encodeURIComponent(sample.id)):null;
+ const standings=await read(standingsSite+league+'/standings');
+ let standingsResult;
+ try{
+  const groups=parseEspnStandings(standings.value);
+  standingsResult=standings.error?{error:standings.error}:{rows:groups.reduce((n,group)=>n+group.rows.length,0),season:standings.value?.season?.displayName??null,ms:standings.ms};
+ }catch(error){standingsResult={error:String(error.message)};}
+ const withTeams=events.filter(event=>list(event.competitions?.[0]?.competitors).some(row=>row.homeAway==='home')&&list(event.competitions?.[0]?.competitors).some(row=>row.homeAway==='away'));
+ const withLogos=withTeams.filter(event=>list(event.competitions?.[0]?.competitors).every(row=>row.team?.logo||list(row.team?.logos).some(logo=>logo.href)));
+ return {
+  league,name,days:Object.fromEntries(days.map((day,index)=>[day,dayResult(boards[index])])),
+  teams:withTeams.length,logos:withLogos.length,eventId:sample?.id??null,
+  detail:summarize(detail),standings:standingsResult,
+  active:events.filter(event=>matchState(event)==='live').map(event=>({id:event.id,status:event.status?.type?.name,clock:event.status?.displayClock,scores:list(event.competitions?.[0]?.competitors).map(row=>[row.homeAway,row.score])}))
+ };
+}
+const entries=[...espnCompetitions];
+const results=new Array(entries.length);
+let next=0;
+// Limit concurrent network activity and keep output in catalog order.
+await Promise.all(Array.from({length:8},async()=>{
+ while(next<entries.length){
+  const index=next++;
+  results[index]=await audit(entries[index]);
+ }
+}));
+for(const result of results)console.log(JSON.stringify(result));

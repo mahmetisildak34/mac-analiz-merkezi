@@ -140,6 +140,26 @@ async function verifyMainApp(context){
   assert.equal(await main.evaluate(()=>window.historicalStandingsRequests),2);
   await main.waitForFunction(()=>navigator.serviceWorker.controller?.scriptURL.endsWith('/sw.js'));
   console.log('Main mobile timing '+JSON.stringify(measurements));
+  const transition=JSON.parse(readFileSync(new URL('./fixtures/espn-esp2-401883109-transition.json',import.meta.url),'utf8'));
+  async function replayEspn(step){
+   await main.evaluate(({transition,step})=>{
+    const {fixture}=transition,record=transition[step];
+    const clock=mamEspnClock(record),short=mamEspnStatus(record.status.type);
+    const side=key=>fixture.competitors.find(row=>row.homeAway===key).team;
+    const team=key=>({id:side(key).id,name:side(key).displayName});
+    const scores=Object.fromEntries(record.scores);
+    allMatches=[{fixture:{id:'espn-esp.2-'+fixture.id,date:fixture.date,status:{short,...clock}},
+     league:{id:'141',name:'La Liga 2',country:'Spain'},teams:{home:team('home'),away:team('away')},
+     goals:{home:Number(scores.home),away:Number(scores.away)}}];
+    setMamScreen('live');
+    renderMatches();
+   },{transition,step});
+  }
+  await replayEspn('live');
+  await main.locator('#matches article.match').getByText(/90\+6/).waitFor();
+  await main.locator('#matches article.match').getByText('2 – 1',{exact:true}).waitFor();
+  await replayEspn('finished');
+  assert.equal(await main.locator('#matches article.match').count(),0);
   await main.setViewportSize({width:320,height:720});
   assert.equal(await main.locator('.mam-bottom-nav button').evaluateAll(buttons=>buttons.every(button=>button.getBoundingClientRect().height>=44&&button.getBoundingClientRect().width>=44)),true);
   assert.equal(await main.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);

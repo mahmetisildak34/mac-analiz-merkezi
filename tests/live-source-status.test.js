@@ -159,3 +159,16 @@ test("team profiles only show completed matches with two known scores",()=>{
  assert.equal(completed({fixture,goals:{home:0,away:1}}),true);
  assert.equal(completed({fixture,goals:{home:null,away:1}}),false);
 });
+
+test("captured ESPN Spain second division match transitions from added time to full time",()=>{
+ const fn=name=>html.match(new RegExp("function "+name+"\\([\\s\\S]*?\\n\\}"))?.[0];
+ const {status,clock}=require("node:vm").runInNewContext(fn("mamEspnStatus")+"\n"+fn("mamEspnClock")+"\n({status:mamEspnStatus,clock:mamEspnClock})");
+ const {live,finished}=require("./fixtures/espn-esp2-401883109-transition.json");
+ assert.equal(status(live.status.type),"LIVE");
+ assert.equal(clock(live).displayClock,"90+6'");
+ assert.equal(clock(live).elapsed,90);
+ assert.equal(status(finished.status.type),"FT");
+ assert.equal(clock({status:{type:{detail:"11/22 - 8:30 PM"}}}).elapsed,null);
+ assert.equal(status({state:"in",name:"STATUS_OVERTIME"}),"ET");
+ assert.equal(status({state:"in",name:"STATUS_PENALTY_SHOOTOUT"}),"P");
+});
