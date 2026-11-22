@@ -15,4 +15,4 @@ jobs:
         with:
           node-version: '22'
       - name: Run Safari 2 Node regressions
-        run: node --test tests/safari2-mobile-card.test.mjs tests/safari2-today-filter.test.mjs tests/safari2-live-behavior.test.mjs tests/safari2-all-leagues.test.mjs
+        run: node --test tests/safari2-mobile-card.test.mjs tests/safari2-today-filter.test.mjs tests/safari2-live-behavior.test.mjs tests/safari2-all-leagues.test.mjs tests/safari2-espn-behavior.test.mjs
