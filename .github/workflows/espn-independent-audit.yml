@@ -16,4 +16,4 @@ jobs:
         with:
           node-version: '22'
       - name: ESPN status and match-list regression tests
-        run: node --test tests/espn-status-classification.test.cjs tests/espn-match-list.test.cjs
+        run: node --test tests/espn-status-classification.test.cjs tests/espn-match-list.test.cjs tests/espn-archive-merge.test.cjs
