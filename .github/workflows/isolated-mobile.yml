@@ -37,9 +37,11 @@ jobs:
             const browser=await {chromium,webkit}[engine].launch();
             const device=devices[engine==='webkit'?'iPhone 13':'Pixel 7'];
             const results=[];
+            // All requests are intercepted; WebKit must remain network-enabled for navigation.
+            // The catch-all route below aborts every non-fixture request.
             try {
               for(const width of [320,360,375,390,414,430]){
-                const context=await browser.newContext({...device,viewport:{width,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block',offline:true});
+                const context=await browser.newContext({...device,viewport:{width,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block',offline:false});
                 const page=await context.newPage();
                 await context.route('**/*',async route=>{
                   const url=new URL(route.request().url());
