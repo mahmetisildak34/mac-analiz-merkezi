@@ -69,3 +69,13 @@ test("favorites only persist provider-verified live snapshots",()=>{
  assert.match(sync,/if\(!Number\.isFinite\(verifiedAt\)\|\|verifiedAt<=0\)continue/);
  assert.doesNotMatch(sync,/savedAt:Number\(match\._mamLastVerifiedAt\)\|\|Date\.now\(\)/);
 });
+
+test("goal alerts reject null and invalid previous score baselines",()=>{
+ const start=html.indexOf("function mamNotifyLiveGoalChanges(");
+ const end=html.indexOf("let mamLiveLoadPromise=",start);
+ const source=html.slice(start,end);
+ assert.match(source,/old\.home!=null&&old\.away!=null/);
+ assert.match(source,/old\.home!==""&&old\.away!==""/);
+ assert.match(source,/Number\.isInteger\(Number\(old\.home\)\)/);
+ assert.match(source,/Number\(old\.home\)>=0&&Number\(old\.away\)>=0/);
+});
