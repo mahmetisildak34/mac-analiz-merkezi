@@ -4709,7 +4709,7 @@ function mamIsCrediblyLive(match,now=Date.now(),fresh=false){
  // Cached LIVE labels alone cannot establish that a fixture is still in progress.
  const extended=["ET","BT","P","SUSP","INT"].includes(status);
  const elapsed=Number(match?.fixture?.status?.elapsed);
- const hasProgress=Number.isFinite(elapsed)&&elapsed>=0;
+ const hasProgress=match?.fixture?.status?.elapsed!=null&&Number.isFinite(elapsed)&&elapsed>=0;
  if(fresh&&(extended||hasProgress))return true;
  if(!Number.isFinite(kickoff)||age< -20*60*1000)return false;
  if(age<=4*60*60*1000)return true;
