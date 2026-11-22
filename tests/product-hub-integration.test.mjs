@@ -100,8 +100,9 @@ test('mobile match details preserve and render available lineup players without 
 
 test('match detail supports wrapped event arrays without inventing events',()=>{
  const features=readFileSync(new URL('../mobile/product-features.mjs',import.meta.url),'utf8');
- assert.match(features,/Array\.isArray\(match\.events\?\.response\)/);
- assert.match(features,/Array\.isArray\(match\.events\?\.plays\)/);
+ assert.match(features,/match\.events\?\.response/);
+ assert.match(features,/match\.events\?\.plays/);
+ assert.match(features,/eventSources\.find\(x=>Array\.isArray\(x\)&&x\.length>0\)/);
  assert.match(features,/const events=\[\.\.\.sourceEvents\]\.sort/);
 });
 
