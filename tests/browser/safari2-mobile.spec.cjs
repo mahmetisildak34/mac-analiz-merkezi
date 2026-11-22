@@ -8,7 +8,7 @@ test.beforeEach(async ({page})=>{
   return route.abort("blockedbyclient");
  });
 });
-for(const width of [320,390]){
+for(const width of [320,375,390,414,430]){
  test("mobile navigation and fixture container fit "+width+"px without horizontal page clipping",async({page})=>{
   await page.setViewportSize({width,height:844});
   await page.goto("/",{waitUntil:"domcontentloaded"});
@@ -20,7 +20,7 @@ for(const width of [320,390]){
     navWidth:nav.scrollWidth,navViewport:nav.clientWidth,
     tabs:nav.querySelectorAll("[data-mam-bottom]").length};
   });
-  expect(measurements.tabs).toBe(6);
+  expect(measurements.tabs).toBe(7);
   expect(measurements.navWidth).toBeLessThanOrEqual(measurements.navViewport+2);
   expect(measurements.pageWidth).toBeLessThanOrEqual(measurements.viewport+2);
  });
@@ -46,4 +46,60 @@ test("Today and Live routes are distinct in the real application source",async({
  await expect(today).toHaveCount(1);
  expect(await live.getAttribute("data-match-mode")).not.toBe(await today.getAttribute("data-match-mode"));
  // Full route click-through is intentionally not claimed: the auth gate requires real credentials.
+});
+
+for(const width of [320,375,390,414,430]){
+ test("real favorites module survives reload and remove on "+width+"px",async({page})=>{
+  await page.setViewportSize({width,height:844});
+  await page.goto("/tests/fixtures/safari2-favorites-harness.html");
+  const save=page.getByRole("button",{name:"Göztepe – Erzurumspor favori"});
+  await expect(save).toBeVisible();
+  await save.click();
+  await expect(save).toHaveAttribute("aria-pressed","true");
+  await page.locator('[data-mam-bottom="favorites"]').click();
+  await expect(page.locator("#mamSafariFavoritesScreen")).toBeVisible();
+  await expect(page.locator("#mamSafariFavoritesBody")).toContainText("Göztepe – Erzurumspor");
+  await expect(page.locator("#mamSafariFavoritesBody")).toContainText("1 – 0");
+  await page.locator('#mamSafariFavoritesBody [data-fav-open]').first().click();
+  await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("Test Oyuncusu");
+  await page.locator('#mamSafariFavoritesDetail [data-safari-back]').click();
+  await page.reload();
+  await page.locator('[data-mam-bottom="favorites"]').click();
+  await expect(page.locator('#mamSafariFavoritesBody [data-fav-open]')).toHaveCount(1);
+  await page.locator('#mamSafariFavoritesBody [data-fav-remove]').click();
+  await expect(page.locator("#mamSafariFavoritesBody")).toContainText("Henüz favori eklenmedi");
+  await page.reload();
+  await page.locator('[data-mam-bottom="favorites"]').click();
+  await expect(page.locator('#mamSafariFavoritesBody [data-fav-open]')).toHaveCount(0);
+  const metrics=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}));
+  expect(metrics.scroll).toBeLessThanOrEqual(metrics.width+2);
+ });
+}
+test("team favorite opens verified last-five and last-ten profile, finished match stays saved",async({page})=>{
+ await page.goto("/tests/fixtures/safari2-favorites-harness.html");
+ await page.getByRole("button",{name:"Göztepe favori"}).click();
+ await page.getByRole("button",{name:"Fenerbahçe – Galatasaray favori"}).click();
+ await page.locator('[data-mam-bottom="favorites"]').click();
+ await expect(page.locator("#mamSafariFavoritesBody")).toContainText("Favori takımlar (1)");
+ await expect(page.locator("#mamSafariFavoritesBody")).toContainText("Favori maçlar (1)");
+ await expect(page.locator("#mamSafariFavoritesBody")).toContainText("FT");
+ await page.locator('#mamSafariFavoritesBody [data-fav-open]').last().click();
+ await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("Son 5");
+ await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("Son 10");
+ await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("İç saha");
+ await page.locator('#mamSafariFavoritesDetail [data-safari-back]').click();
+ await page.reload();
+ await page.locator('[data-mam-bottom="favorites"]').click();
+ await expect(page.locator('#mamSafariFavoritesBody [data-fav-open]')).toHaveCount(2);
+});
+test("latest fixture update wins and cached live score is clearly marked as old",async({page})=>{
+ await page.goto("/tests/fixtures/safari2-favorites-harness.html");
+ await page.getByRole("button",{name:"Göztepe – Erzurumspor favori"}).click();
+ await page.locator('[data-mam-bottom="favorites"]').click();
+ await expect(page.locator("#mamSafariFavoritesBody")).toContainText("LIVE · 1 – 0");
+ await page.evaluate(()=>window.updateFixture());
+ await expect(page.locator("#mamSafariFavoritesBody")).toContainText("FT · 2 – 0");
+ await page.evaluate(()=>window.clearCurrent());
+ await expect(page.locator("#mamSafariFavoritesBody")).toContainText("Son kaydedilen veri");
+ await expect(page.locator("#mamSafariFavoritesBody")).toContainText("LIVE · 1 – 0");
 });
