@@ -1814,7 +1814,7 @@ const $=id=>document.getElementById(id);
 const WORKER="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
 const CACHE_HOURS=12;
 const today=new Date();
-$("date").value=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(today);
+$("date").value=mamIstanbulDay(today.toISOString());
 
 function esc(value){
  return String(value??"").replace(/[&<>"']/g,c=>({
