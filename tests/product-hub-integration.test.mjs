@@ -85,3 +85,7 @@ test('ESPN team and boxscore statistics arrays are recognized in detail renderer
  assert.match(html,/Array\.isArray\(statistics\.boxscore\?\.teams\)/);
  assert.match(html,/independentCrossSourceVerification/);
 });
+
+test('ESPN displayValue statistics are preserved in match detail rendering',()=>{
+ assert.match(html,/stat\?\.value\?\?stat\?\.displayValue\?\?stat\?\.home/);
+});
