@@ -4716,7 +4716,15 @@ function renderMatches(){
  // Share only the already-loaded fixture snapshot with the isolated product hub.
  // No additional provider calls, D1 access or cross-tab messaging.
  try {
-  const safeRows=Array.isArray(allMatches)?allMatches.slice(0,1000):[];
+  const safeRows=(()=>{
+   if(!Array.isArray(allMatches))return [];
+   // Preserve representation across leagues when the localStorage snapshot is bounded.
+   const groups=new Map();
+   for(const match of allMatches){const key=String(match?.league?.id??match?.leagueId??'unknown');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(match);}
+   const selected=[];
+   while(selected.length<1000){let added=false;for(const group of groups.values()){if(!group.length)continue;selected.push(group.shift());added=true;if(selected.length>=1000)break;}if(!added)break;}
+   return selected;
+  })();
   if(safeRows.length) localStorage.setItem("mam_product_hub_fixtures_v1",JSON.stringify({savedAt:Date.now(),matches:safeRows}));
  } catch (_) { /* Storage is optional. */ }
  const league=$("league").value;
