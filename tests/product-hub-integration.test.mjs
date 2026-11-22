@@ -57,3 +57,13 @@ test('mobile detail back navigation and accessibility affordances exist',()=>{
  assert.match(html,/prefers-reduced-motion:reduce/);
  assert.match(html,/select:focus-visible,a:focus-visible/);
 });
+
+test('fixture cards format kickoff in Istanbul rather than raw UTC',()=>{
+ assert.match(html,/timeZone:'Europe\/Istanbul'/);
+ assert.match(html,/Number\.isFinite\(Date\.parse\(m\.kickoff\)\)/);
+});
+test('event detail supports API-Football nested elapsed minute, team and player',()=>{
+ assert.match(html,/x\.time\?\.elapsed/);
+ assert.match(html,/x\.team\?\.name/);
+ assert.match(html,/x\.player\?\.name/);
+});
