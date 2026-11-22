@@ -1,0 +1,19 @@
+name: Independent ESPN regression tests
+on:
+  push:
+    branches:
+      - feature/independent-espn-data-audit-20261122
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  espn-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: ESPN status and match-list regression tests
+        run: node --test tests/espn-status-classification.test.cjs tests/espn-match-list.test.cjs
