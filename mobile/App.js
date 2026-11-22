@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {normalizeFavorites,toggleFavorite,mergeFavoriteUpdates} from "./favorites";
 import {
   ActivityIndicator, SafeAreaView, ScrollView, StatusBar, StyleSheet,
   Text, TouchableOpacity, View, RefreshControl
@@ -14,8 +16,27 @@ export default function App() {
   const [error, setError] = useState("");
   const [updated, setUpdated] = useState("");
   const [stale, setStale] = useState(false);
+  const [favorites, setFavorites] = useState([]);
+  const [favoritesReady, setFavoritesReady] = useState(false);
   const latestRequest = useRef(0);
   const activeController = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem("mam-favorites-v1").then(raw => {
+      if (!active || !raw) return;
+      try { setFavorites(normalizeFavorites(JSON.parse(raw))); }
+      catch (_) { setFavorites([]); }
+    }).catch(() => {}).finally(() => { if (active) setFavoritesReady(true); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!favoritesReady) return;
+    AsyncStorage.setItem("mam-favorites-v1", JSON.stringify(favorites)).catch(() => {});
+  }, [favorites, favoritesReady]);
+
+  const onToggleFavorite = item => setFavorites(current => toggleFavorite(current,item).favorites);
 
   const loadMatches = useCallback(async (selectedTab = tab) => {
     const requestId = ++latestRequest.current;
@@ -27,7 +48,7 @@ export default function App() {
     try {
       const result = await fetchFixtures({tab:selectedTab,signal:controller.signal});
       if (requestId === latestRequest.current) {
-        setMatches(result.matches);
+        setMatches(result.matches);\n        setFavorites(current => mergeFavoriteUpdates(current,result.matches));
         setUpdated(new Date(result.updatedAt).toLocaleTimeString("tr-TR", {
           hour:"2-digit", minute:"2-digit", timeZone:"Europe/Istanbul"
         }));
@@ -117,7 +138,7 @@ export default function App() {
       </View>
       <View style={styles.sectionHead}>
         <View>
-          <Text style={styles.sectionTitle}>{tab === "live" ? "Şu anda oynananlar" : "Bugünün maçları"}</Text>
+          <Text style={styles.sectionTitle}>{tab === "live" ? "Şu anda oynananlar" : tab === "today" ? "Bugünün maçları" : "Favori maçların"}</Text>
           <Text style={styles.sectionSub}>{updated ? (stale ? "Son başarılı veri " + updated + " · bağlantı sorunu" : "Son güncelleme " + updated) : "Güncel maç verileri"}</Text>
         </View>
         <TouchableOpacity onPress={() => loadMatches(tab)} style={styles.refreshButton}>
@@ -130,14 +151,14 @@ export default function App() {
       >
         {loading && matches.length === 0 ? <ActivityIndicator size="large" color="#54D6A0" style={{marginTop:30}} /> : null}
         {!!error && <View style={styles.message}><Text style={styles.errorText}>{error}</Text></View>}
-        {!loading && !error && matches.length === 0 && (
+        {!loading && !error && (tab === "favorites" ? favorites : matches).length === 0 && (
           <View style={styles.empty}>
             <Text style={styles.emptyBall}>⚽</Text>
-            <Text style={styles.emptyTitle}>{tab === "live" ? "Şu anda listelenecek canlı maç yok" : "Bugün için maç bulunamadı"}</Text>
+            <Text style={styles.emptyTitle}>{tab === "live" ? "Şu anda listelenecek canlı maç yok" : tab === "today" ? "Bugün için maç bulunamadı" : "Henüz favori maç eklenmedi"}</Text>
             <Text style={styles.emptyCopy}>Daha sonra yenileyerek tekrar kontrol edebilirsin.</Text>
           </View>
         )}
-        {matches.map((item) => <MatchCard key={String(item.fixture?.id)} item={item} />)}
+        {(tab === "favorites" ? favorites : matches).map((item) => <MatchCard key={String(item.fixture?.id)} item={item} />)}
         <Text style={styles.footer}>MRTYLT ANALİZ  ·  VERİLER SAĞLAYICI KAYNAKLARDAN ALINIR</Text>
       </ScrollView>
     </SafeAreaView>
@@ -168,7 +189,7 @@ const styles = StyleSheet.create({
   refreshText:{color:"#6CE0B0",fontSize:12,fontWeight:"800"},
   list:{paddingHorizontal:18,paddingBottom:30},
   matchCard:{backgroundColor:"#111A28",borderRadius:15,padding:14,marginTop:10,borderWidth:1,borderColor:"#202D3D"},
-  matchTop:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",gap:8},
+  matchTop:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",gap:8},\n  cardActions:{flexDirection:"row",alignItems:"center",gap:8},\n  favoriteButton:{minWidth:32,minHeight:32,alignItems:"center",justifyContent:"center"},\n  favoriteGlyph:{color:"#69E0AF",fontSize:23,fontWeight:"900"},
   league:{color:"#8E9BB0",fontSize:10,fontWeight:"700",flex:1,minWidth:0,flexShrink:1},
   matchStatus:{color:"#AAB4C3",fontSize:10,fontWeight:"800",flexShrink:0,textAlign:"right",fontVariant:["tabular-nums"]},
   liveStatus:{color:"#FF6B78"},
