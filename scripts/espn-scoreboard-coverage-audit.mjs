@@ -47,7 +47,36 @@ async function check(slug,league){
   const parsedIds=new Set(parsed.map(e=>String(e.fixture?.id||'').slice(('espn-'+slug+'-').length)));
   row.missingIds=[...new Set(rawIds)].filter(id=>!parsedIds.has(id));
   row.unknownStatus=parsed.filter(e=>e.fixture?.status?.short==='UNKNOWN').length;
-  row.result=row.missingIds.length||row.duplicateSourceIds?'coverage_gap':'parsed';
+  row.statusMismatches=[];
+  row.scoreMismatches=[];
+  row.completedWithMissingScore=[];
+  const byId=new Map(parsed.map(match=>[String(match.fixture?.id||'').slice(('espn-'+slug+'-').length),match]));
+  for(const event of payload.events){
+   const id=String(event?.id??''),match=byId.get(id);
+   if(!match)continue;
+   const type=event.status?.type||event.competitions?.[0]?.status?.type||{};
+   const state=String(type.state||'').toLowerCase();
+   const detail=String(type.detail||type.name||'').toLowerCase();
+   const special=/cancel|postpon|abandon|suspend/.test(detail);
+   const expected=!special&&(type.completed===true||state==='post')?'FT':
+     !special&&state==='pre'?'NS':!special&&state==='in'?'LIVE':null;
+   const status=match.fixture?.status?.short;
+   if(expected&&!(expected==='LIVE'?['LIVE','HT'].includes(status):status===expected)){
+    row.statusMismatches.push({id,expected,actual:status});
+   }
+   if(status!=='FT')continue;
+   const teams=event.competitions?.[0]?.competitors||[];
+   const home=teams.find(team=>team.homeAway==='home');
+   const away=teams.find(team=>team.homeAway==='away');
+   const rawHome=home?.score==null||home.score===''?null:Number(home.score);
+   const rawAway=away?.score==null||away.score===''?null:Number(away.score);
+   if(!Number.isFinite(rawHome)||!Number.isFinite(rawAway)||match.goals?.home==null||match.goals?.away==null){
+    row.completedWithMissingScore.push(id);
+   }else if(match.goals.home!==rawHome||match.goals.away!==rawAway){
+    row.scoreMismatches.push({id,raw:[rawHome,rawAway],app:[match.goals.home,match.goals.away]});
+   }
+  }
+  row.result=row.missingIds.length||row.duplicateSourceIds||row.statusMismatches.length||row.scoreMismatches.length||row.completedWithMissingScore.length?'coverage_gap':'parsed';
  }catch(e){row.result='request_or_parse_error';row.error=String(e?.message||e).slice(0,300);}
  return row;
 }
@@ -65,7 +94,10 @@ const summary={date,configuredLeagueKeys:Object.keys(leagues).length,uniqueSlugs
  gaps:results.filter(x=>x.result==='coverage_gap').length,
  failed:results.filter(x=>!['parsed','coverage_gap'].includes(x.result)).length,
  rawEvents:results.reduce((n,x)=>n+(x.espnEvents||0),0),
- appParserEvents:results.reduce((n,x)=>n+(x.appParserEvents||0),0)};
+ appParserEvents:results.reduce((n,x)=>n+(x.appParserEvents||0),0),
+ statusMismatches:results.reduce((n,x)=>n+(x.statusMismatches?.length||0),0),
+ scoreMismatches:results.reduce((n,x)=>n+(x.scoreMismatches?.length||0),0),
+ completedWithMissingScore:results.reduce((n,x)=>n+(x.completedWithMissingScore?.length||0),0)};
 const report={summary,results,limitations:['Compares ESPN scoreboard responses with app parser; does not verify authenticated browser display','Only one calendar date is checked','Network errors never count as empty league results']};
 fs.mkdirSync('audit',{recursive:true});
 const filename=path.join('audit','espn-coverage-'+date+'.json');
