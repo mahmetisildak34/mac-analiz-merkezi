@@ -37,3 +37,12 @@ test("new live response dispatches a UI freshness event for favorites sync",()=>
  assert.match(html,/new CustomEvent\("mam:fresh-live"/);
  assert.match(html,/_mamLastVerifiedAt:checkedAt/);
 });
+
+test("all live provider success paths label their actual last client verification time",()=>{
+ assert.match(html,/function mamLiveCheckedLabel\(\)/);
+ assert.match(html,/window\.mamLiveLastVerifiedAt=checkedAt/);
+ for(const source of ["API-Football kaynağı","Football-data.org yedek kaynağı","SportScore yedek kaynağı"]){
+  const line=live.split("\n").find(x=>x.includes(source)&&x.includes('$("status").textContent='));
+  assert.ok(line&&line.includes("mamLiveCheckedLabel()"),"missing timestamp for "+source);
+ }
+});
