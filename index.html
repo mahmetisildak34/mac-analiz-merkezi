@@ -4713,6 +4713,12 @@ function mamIsFutureUnplayed(match,now=Date.now()){
  return ["NS","TBD"].includes(status)&&Number.isFinite(stamp)&&stamp>now;
 }
 function renderMatches(){
+ // Share only the already-loaded fixture snapshot with the isolated product hub.
+ // No additional provider calls, D1 access or cross-tab messaging.
+ try {
+  const safeRows=Array.isArray(allMatches)?allMatches.slice(0,1000):[];
+  if(safeRows.length) localStorage.setItem("mam_product_hub_fixtures_v1",JSON.stringify({savedAt:Date.now(),matches:safeRows}));
+ } catch (_) { /* Storage is optional. */ }
  const league=$("league").value;
  // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
  let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
