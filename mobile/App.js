@@ -69,6 +69,7 @@ export default function App() {
   }, [tab]);
 
   useEffect(() => {
+    if (!favoritesReady) return;
     // Never display Live results in the Today tab (or vice versa) while a new request loads.
     setMatches([]);
     setUpdated("");
@@ -79,7 +80,7 @@ export default function App() {
       activeController.current?.abort();
       activeController.current = null;
     };
-  }, [tab, loadMatches]);
+  }, [tab, loadMatches, favoritesReady]);
 
   const statusText = fixture => statusLabel({fixture});
 
@@ -92,7 +93,17 @@ export default function App() {
       <View style={styles.matchCard}>
         <View style={styles.matchTop}>
           <Text style={styles.league}>{item.league?.country || ""}  ·  {item.league?.name || "Maç"}</Text>
-          <Text style={[styles.matchStatus, live && styles.liveStatus]}>{live ? "● " : ""}{statusText(item.fixture)}</Text>
+          <View style={styles.cardActions}>
+            <Text style={[styles.matchStatus, live && styles.liveStatus]}>{live ? "● " : ""}{statusText(item.fixture)}</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={(favorites.some(row=>String(row.fixture?.id)===String(item.fixture?.id))?"Favorilerden çıkar: ":"Favorilere ekle: ")+(home?.name||"")+" - "+(away?.name||"")}
+              accessibilityState={{selected:favorites.some(row=>String(row.fixture?.id)===String(item.fixture?.id))}}
+              onPress={()=>onToggleFavorite(item)}
+              style={styles.favoriteButton}>
+              <Text style={styles.favoriteGlyph}>{favorites.some(row=>String(row.fixture?.id)===String(item.fixture?.id))?"★":"☆"}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.teamsRow}>
           <View style={styles.team}>
@@ -133,7 +144,10 @@ export default function App() {
           <Text style={[styles.tabText, tab === "live" && styles.activeTabText]}>● CANLI MAÇLAR</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setTab("today")} style={[styles.tab, tab === "today" && styles.activeTab]}>
-          <Text style={[styles.tabText, tab === "today" && styles.activeTabText]}>BUGÜNÜN FİKSTÜRÜ</Text>
+          <Text style={[styles.tabText, tab === "today" && styles.activeTabText]}>BUGÜN</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setTab("favorites")} style={[styles.tab, tab === "favorites" && styles.activeTab]}>
+          <Text style={[styles.tabText, tab === "favorites" && styles.activeTabText]}>★ {favorites.length}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.sectionHead}>
@@ -141,9 +155,9 @@ export default function App() {
           <Text style={styles.sectionTitle}>{tab === "live" ? "Şu anda oynananlar" : tab === "today" ? "Bugünün maçları" : "Favori maçların"}</Text>
           <Text style={styles.sectionSub}>{updated ? (stale ? "Son başarılı veri " + updated + " · bağlantı sorunu" : "Son güncelleme " + updated) : "Güncel maç verileri"}</Text>
         </View>
-        <TouchableOpacity onPress={() => loadMatches(tab)} style={styles.refreshButton}>
+        {tab !== "favorites" ? <TouchableOpacity onPress={() => loadMatches(tab)} style={styles.refreshButton}>
           <Text style={styles.refreshText}>↻ Yenile</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> : null}
       </View>
       <ScrollView
         contentContainerStyle={styles.list}
@@ -189,7 +203,10 @@ const styles = StyleSheet.create({
   refreshText:{color:"#6CE0B0",fontSize:12,fontWeight:"800"},
   list:{paddingHorizontal:18,paddingBottom:30},
   matchCard:{backgroundColor:"#111A28",borderRadius:15,padding:14,marginTop:10,borderWidth:1,borderColor:"#202D3D"},
-  matchTop:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",gap:8},\n  cardActions:{flexDirection:"row",alignItems:"center",gap:8},\n  favoriteButton:{minWidth:32,minHeight:32,alignItems:"center",justifyContent:"center"},\n  favoriteGlyph:{color:"#69E0AF",fontSize:23,fontWeight:"900"},
+  matchTop:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",gap:8},
+  cardActions:{flexDirection:"row",alignItems:"center",gap:8},
+  favoriteButton:{minWidth:32,minHeight:32,alignItems:"center",justifyContent:"center"},
+  favoriteGlyph:{color:"#69E0AF",fontSize:23,fontWeight:"900"},\n  cardActions:{flexDirection:"row",alignItems:"center",gap:8},\n  favoriteButton:{minWidth:32,minHeight:32,alignItems:"center",justifyContent:"center"},\n  favoriteGlyph:{color:"#69E0AF",fontSize:23,fontWeight:"900"},
   league:{color:"#8E9BB0",fontSize:10,fontWeight:"700",flex:1,minWidth:0,flexShrink:1},
   matchStatus:{color:"#AAB4C3",fontSize:10,fontWeight:"800",flexShrink:0,textAlign:"right",fontVariant:["tabular-nums"]},
   liveStatus:{color:"#FF6B78"},
