@@ -109,3 +109,9 @@ test('ESPN play text and object event types render as readable labels',()=>{
  assert.match(html,/x\.text\?\?x\.shortText\?\?x\.detail/);
  assert.match(html,/typeof x\.type==='string'\?x\.type:x\.type\?\.text/);
 });
+
+test('ESPN clock-based play sorting handles minute:second without losing legacy elapsed time',()=>{
+ const features=readFileSync(new URL('../mobile/product-features.mjs',import.meta.url),'utf8');
+ assert.match(features,/e\?\.clock\?\.displayValue\?\?e\?\.clock/);
+ assert.ok(features.includes("raw.split(':')"));
+});
