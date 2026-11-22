@@ -23,3 +23,21 @@ test('past scheduled match is not falsely upcoming', () => assert.equal(helpers.
 test('Istanbul day rolls over at UTC+3', () => assert.equal(helpers.mamIstanbulDay('2026-11-21T22:30:00Z'), '2026-11-22'));
 test('duplicate fixture IDs are collapsed', () => assert.equal(helpers.mamDeduplicateFixtures([fixture(8, 'NS', '2026-11-22T13:00:00Z'), fixture(8, 'FT', '2026-11-22T13:00:00Z')]).length, 1));
 test('different leagues are not merged', () => assert.equal(helpers.mamDeduplicateFixtures([fixture(8, 'NS', '2026-11-22T13:00:00Z'), fixture(8, 'NS', '2026-11-22T13:00:00Z', 999)]).length, 2));
+
+test('cross-source ESPN and API-Football fixture deduplicates', () => {
+  const first = fixture('espn-tur.1-123', 'NS', '2026-11-22T16:00:00Z');
+  const second = fixture(456, 'LIVE', '2026-11-22T16:05:00Z');
+  second.teams.home.name = 'Fenerbahce';
+  assert.equal(helpers.mamDeduplicateFixtures([first, second]).length, 1);
+});
+test('different opponents never deduplicate', () => {
+  const first = fixture(1, 'NS', '2026-11-22T16:00:00Z');
+  const second = fixture(2, 'NS', '2026-11-22T16:00:00Z');
+  second.teams.away.name = 'Beşiktaş';
+  assert.equal(helpers.mamDeduplicateFixtures([first, second]).length, 2);
+});
+test('kickoffs more than ten minutes apart remain separate', () => {
+  const first = fixture(1, 'NS', '2026-11-22T16:00:00Z');
+  const second = fixture(2, 'NS', '2026-11-22T16:11:00Z');
+  assert.equal(helpers.mamDeduplicateFixtures([first, second]).length, 2);
+});
