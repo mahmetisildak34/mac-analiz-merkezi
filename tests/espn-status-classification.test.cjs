@@ -37,3 +37,64 @@ for (const [name, type, expected] of cases) {
   test('ESPN status: ' + name, () => assert.equal(classify(type), expected));
 }
 test('competition status fallback', () => assert.equal(classify({}, { state: 'in', detail: 'First Half' }), 'LIVE'));
+
+const espnCaptured = require('./fixtures/espn-tur1-20261122.json');
+const clockStart = html.indexOf('function mamEspnClock(event){');
+const clockEnd = html.indexOf('async function mamFindEspnLiveEvent', clockStart);
+assert.ok(clockStart>=0 && clockEnd>clockStart, 'real ESPN clock must be present');
+const mamEspnClock = vm.runInNewContext(html.slice(clockStart,clockEnd)+';mamEspnClock', { Number, String }, { timeout:1000 });
+
+test('ESPN saved Süper Lig sample: scheduled timestamp is not a match minute', () => {
+ const scheduled=espnCaptured.events.find(e=>e.status.type.state==='pre');
+ assert.ok(scheduled);
+ assert.equal(mamEspnClock(scheduled).elapsed,null);
+ assert.equal(new Intl.DateTimeFormat('tr-TR',{timeZone:'Europe/Istanbul',hour:'2-digit',minute:'2-digit'}).format(new Date(scheduled.date)),'19:00');
+});
+test('ESPN saved Süper Lig sample: active clocks use only leading elapsed minute', () => {
+ const inPlay=espnCaptured.events.filter(e=>e.status.type.state==='in');
+ assert.equal(inPlay.length,2);
+ assert.deepEqual(inPlay.map(e=>mamEspnClock(e).elapsed),[32,31]);
+});
+test('ESPN clock never converts dates or schedule copy into playing time',()=>{
+ for(const detail of ['Sun, November 22nd at 11:00 AM EST','2026-11-22 19:00','Scheduled 20:00','Live coverage starts soon']){
+  assert.equal(mamEspnClock({status:{type:{state:'pre',detail}}}).elapsed,null,detail);
+ }
+ assert.equal(mamEspnClock({status:{type:{state:'in',detail:"45'+2'"}}}).elapsed,45);
+});
+
+const refreshStart=html.indexOf('async function refreshActiveMatchScore(){');
+const refreshEnd=html.indexOf('const existing=fresh||',refreshStart);
+assert.ok(refreshStart>=0&&refreshEnd>refreshStart,'active ESPN score refresh classifier must be present');
+const refreshSource=html.slice(refreshStart,refreshEnd);
+const classifierStart=refreshSource.indexOf('const type=event.status?.type||competition.status?.type||{};');
+assert.ok(classifierStart>=0,'refresh classifier anchor must be present');
+const refreshClassifier=refreshSource.slice(classifierStart);
+function classifyRefresh(type){
+ const event={status:{type}}, competition={status:{type:{}}};
+ return vm.runInNewContext('(function(){'+refreshClassifier+';return statusShort;})()',{
+  event,competition,mamEspnClock:()=>({elapsed:null,displayClock:''}),String,
+ },{timeout:1000});
+}
+test('open detail refresh keeps scheduled, cancelled and postponed games out of LIVE',()=>{
+ for(const [type,expected] of [
+  [{state:'pre',detail:'Scheduled'},'NS'],
+  [{state:'pre',detail:'Live coverage starts soon'},'NS'],
+  [{state:'pre',detail:'Postponed'},'PST'],
+  [{state:'pre',detail:'Cancelled'},'CANC'],
+  [{state:'post',detail:'Abandoned'},'ABD'],
+  [{state:'in',detail:'Suspended'},'SUSP'],
+  [{state:'in',detail:'Halftime'},'HT'],
+  [{state:'in',detail:'First Half'},'LIVE'],
+  [{state:'post',detail:'Full Time',completed:true},'FT'],
+  [{state:'pre',detail:'Unknown'},'NS'],
+ ]){
+  assert.equal(classifyRefresh(type),expected,JSON.stringify(type));
+ }
+});
+test('saved ESPN sample statuses agree between fixture parser and open-detail refresh',()=>{
+ for(const event of espnCaptured.events){
+  const fixture=classify(event.status.type);
+  const refresh=classifyRefresh(event.status.type);
+  assert.equal(refresh,fixture,'ESPN fixture '+event.id);
+ }
+});
