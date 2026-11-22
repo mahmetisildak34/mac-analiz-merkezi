@@ -4671,7 +4671,8 @@ function setMamScreen(mode){
  if(mode==="special"||mode==="special-archive"){
   mamScreenMode=mode;
   const main=document.querySelector("main");
-  main.classList.remove("mam-screen-special","mam-screen-special-archive");
+  const favoritesScreen=$("mamSafariFavoritesScreen");if(favoritesScreen)favoritesScreen.hidden=true;
+  main.classList.remove("mam-screen-special","mam-screen-special-archive","mam-screen-favorites");
   main.classList.add(mode==="special"?"mam-screen-special":"mam-screen-special-archive");
   document.querySelectorAll("[data-mam-bottom]").forEach(b=>b.classList.toggle("active",b.dataset.mamBottom=== "special"));
   $("mamSpecialScreen").hidden=mode!=="special";
@@ -4682,6 +4683,8 @@ function setMamScreen(mode){
  }
  const specialMain=document.querySelector("main");
  specialMain.classList.remove("mam-screen-special","mam-screen-special-archive");
+ const specialScreen=$("mamSpecialScreen");if(specialScreen)specialScreen.hidden=true;
+ const halfGoalScreen=$("mamHalfGoalScreen");if(halfGoalScreen)halfGoalScreen.hidden=true;
 
  mamScreenMode=mode;
  // Günlük pano ve gelecek fikstürü varsayılan olarak tüm liglerle açılır.
