@@ -1,7 +1,7 @@
 const {istanbulDay,visibleMatches}=require("./match-rules");
 const DEFAULT_API_BASE="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api";
 
-export async function fetchFixtures({
+exports.fetchFixtures = async function fetchFixtures({
  tab,now=Date.now(),fetchImpl=globalThis.fetch,apiBase=DEFAULT_API_BASE,
  timeoutMs=8000,signal
 }={}){
