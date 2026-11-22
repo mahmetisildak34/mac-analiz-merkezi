@@ -16,7 +16,9 @@ test('isolated browser cannot reach live endpoints',()=>{
   assert.match(workflow,/route\.fulfill\(/);
   assert.match(workflow,/mam-test\.invalid/);
   assert.match(workflow,/serviceWorkers:\s*'block'/);
-  assert.doesNotMatch(workflow,/route\.continue\(/);
+  // Local fixture requests are intentionally continued to 127.0.0.1.
+  assert.match(workflow,/origin='http:\/\/127\.0\.0\.1:4173'/);
+  assert.match(workflow,/new URL\(route\.request\(\)\.url\(\)\)\.origin===origin\?route\.continue\(\):route\.abort\(\)/);
   assert.doesNotMatch(workflow,/route\.fallback\(/);
 });
 
