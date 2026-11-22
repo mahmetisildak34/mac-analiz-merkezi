@@ -82,8 +82,8 @@
  function decorate(){
   for(const article of document.querySelectorAll("#matches article.match-modern")){
    if(article.querySelector(".mam-safari-actions"))continue;
-   const button=article.querySelector(".predBtn[data-id]");if(!button)continue;
-   const m=matchRows().find(row=>clean(row.fixture?.id)===button.dataset.id);if(!m)continue;
+   const fixtureId=article.dataset.safariFixtureId;if(!fixtureId)continue;
+   const m=matchRows().find(row=>clean(row.fixture?.id)===fixtureId);if(!m)continue;
    const wrap=document.createElement("div");wrap.className="mam-safari-actions";wrap.style.cssText="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px";
    for(const [item,label] of [[itemFromMatch(m),"☆ Maç"],[itemFromTeam(m,"home"),"☆ Ev"],[itemFromTeam(m,"away"),"☆ Dep"]]){
     if(!valid(item))continue;
