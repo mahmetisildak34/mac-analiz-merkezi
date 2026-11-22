@@ -48,6 +48,10 @@ export default function App() {
   }, [tab]);
 
   useEffect(() => {
+    // Never display Live results in the Today tab (or vice versa) while a new request loads.
+    setMatches([]);
+    setUpdated("");
+    setStale(false);
     loadMatches(tab);
     return () => {
       latestRequest.current += 1;
