@@ -7340,10 +7340,23 @@ const openStandingTeamHistory=async row=>{
      const start=new Date(),end=new Date();end.setDate(end.getDate()+30);
      const fmt=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
      const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:fmt(start)+"-"+fmt(end),limit:500}));
+function mamEspnUpcomingStatus(type){
+ const detail=String(type?.detail||type?.shortDetail||type?.name||"").toLowerCase();
+ const state=String(type?.state||"").toLowerCase();
+ const name=String(type?.name||"").toLowerCase();
+ if(/cancelled|canceled/.test(detail+" "+name))return "CANC";
+ if(/postponed/.test(detail+" "+name))return "PST";
+ if(/abandoned/.test(detail+" "+name))return "ABD";
+ if(/suspended/.test(detail+" "+name))return "SUSP";
+ if(type?.completed===true||state==="post")return "FT";
+ if(["in","live","inprogress"].includes(state))return "LIVE";
+ // Unknown state cannot be treated as a scheduled fixture.
+ return state==="pre"?"NS":"UNKNOWN";
+}
      leagueFixtures=(payload.events||[]).map(event=>{
       const comp=(event.competitions||[])[0]||{},teams=comp.competitors||[];
       const h=teams.find(x=>x.homeAway==="home")||{},a=teams.find(x=>x.homeAway==="away")||{};
-      return {fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date,status:{short:event.status?.type?.completed?"FT":String(event.status?.type?.state||"").toLowerCase()==="in"?"LIVE":"NS"}},
+      return {fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date,status:{short:mamEspnUpcomingStatus(event.status?.type||comp.status?.type||{})}},
        league:{id:String(selectedStandingsLeague),name:league.name,country:league.country},
        teams:{home:{id:Number(h.team?.id)||-1,name:h.team?.displayName||h.team?.name||""},away:{id:Number(a.team?.id)||-1,name:a.team?.displayName||a.team?.name||""}},
        goals:{home:h.score==null?null:Number(h.score),away:a.score==null?null:Number(a.score)}};

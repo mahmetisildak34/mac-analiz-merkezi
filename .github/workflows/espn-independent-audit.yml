@@ -29,12 +29,12 @@ jobs:
         with:
           node-version: '22'
       - name: ESPN status and match-list regression tests
-        run: node --test tests/espn-status-classification.test.cjs tests/espn-match-list.test.cjs tests/espn-archive-merge.test.cjs
+        run: node --test tests/espn-status-classification.test.cjs tests/espn-match-list.test.cjs tests/espn-archive-merge.test.cjs tests/espn-upcoming-status.test.cjs
       - name: Mobile and PWA Node regressions
         run: node --test tests/safari2-*.test.mjs
 
   browser-acceptance:
-    if: github.event_name != 'pull_request' || github.head_ref == 'feature/independent-espn-data-audit-20261122'
+    if: github.event_name != 'pull_request' || github.head_ref == 'feature/independent-espn-data-audit-20261122' || github.head_ref == 'fix/league-upcoming-espn-status-20261122'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
