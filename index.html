@@ -2733,7 +2733,7 @@ async function espnFixtures(date,includeAllLeagues=false){
      const completed=eventType.completed===true||competitionType.completed===true||state==="post";
      const halftime=/half[ -]?time|halftime|end of (the )?first half|interval/i.test(detail);
      const live=!completed&&(state==="in"||state==="live"||state==="inprogress"||/in progress|halftime|live|first half|second half|extra time|penalty/i.test(detail));
-     const statusShort=completed?"FT":halftime?"HT":live?"LIVE":"NS";
+     const statusShort=completed?"FT":/cancelled|canceled/i.test(detail)?"CANC":/postponed/i.test(detail)?"PST":/suspended/i.test(detail)?"SUSP":/abandoned/i.test(detail)?"ABD":halftime?"HT":live?"LIVE":"NS";
      const clock=mamEspnClock(event);
      const toGoals=value=>{
       if(value===null||value===undefined||value==="")return null;
@@ -2741,7 +2741,7 @@ async function espnFixtures(date,includeAllLeagues=false){
      };
      const teamId=value=>{const n=Number(value);return Number.isFinite(n)&&n!==0?n:-1;};
      return {
-      fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||date+"T12:00:00Z",status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock||detail}},
+      fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||null,status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock||detail}},
       league:{id:leagueId,name:league.name,country:league.country},
       teams:{
        home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||home.team?.logos?.[0]?.url||""},
@@ -2749,7 +2749,7 @@ async function espnFixtures(date,includeAllLeagues=false){
       },
       goals:{home:toGoals(home.score),away:toGoals(away.score)}
      };
-    }).filter(match=>match.teams.home.name&&match.teams.away.name)};
+    }).filter(match=>match.teams.home.name&&match.teams.away.name&&Number.isFinite(Date.parse(match.fixture.date||"")))};
    }catch(error){results[index]={status:"rejected",reason:error};}
   }
  };
