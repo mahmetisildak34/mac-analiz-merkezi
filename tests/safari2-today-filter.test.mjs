@@ -36,7 +36,7 @@ test('Today counters use selected day only',()=>{
  assert.match(html,/upcoming:dayMatches\.filter\(m=>mamIsFutureUnplayed\(m,mamNow\)\)/);
 });
 test('live and Today remain separate screen filters',()=>{
- assert.match(html,/if\(mamScreenMode==="live"\)list=list\.filter\(m=>mamIsCrediblyLive\(m,Date\.now\(\)\)\)/);
+ assert.match(html,/if\(mamScreenMode==="live"\)list=list\.filter\(m=>mamIsCrediblyLive\(m,mamNow\)\)/);
  assert.match(html,/const isRecentLive=match=>mamIsCrediblyLive\(match,Date\.now\(\)\)/);
  assert.match(html,/list=list\.filter\(m=>mamIsFutureUnplayed\(m,mamNow\)&&mamIstanbulDay\(m\.fixture\?\.date\)===selectedDay\)/);
 });
@@ -58,4 +58,18 @@ test('team match history uses Istanbul timezone for displayed dates',()=>{
  assert.match(html,/new Date\(m\.fixture\.date\)\.toLocaleDateString\("tr-TR",\{timeZone:"Europe\/Istanbul",day:"2-digit",month:"2-digit",year:"2-digit"\}\)/);
  const kickoff=new Date('2026-11-22T21:30:00Z');
  assert.equal(kickoff.toLocaleDateString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',year:'2-digit'}),'23.11.26');
+});
+
+test('screen filters share a single time snapshot',()=>{
+ const now=Date.parse('2026-11-22T12:00:00Z');
+ const live={fixture:{date:'2026-11-22T10:00:00Z',status:{short:'2H',elapsed:80}}};
+ const upcoming={fixture:{date:'2026-11-22T17:00:00Z',status:{short:'NS'}}};
+ const liveCode=html.slice(html.indexOf('function mamIsCrediblyLive('),html.indexOf('function mamIsFutureUnplayed('));
+ const context={Date,Number};vm.createContext(context);
+ vm.runInContext(getFunction('mamCanonicalMatchStatus','mamIstanbulDay')+liveCode,context);
+ assert.equal(context.mamIsCrediblyLive(live,now),true);
+ assert.equal(context.mamIsCrediblyLive(upcoming,now),false);
+ assert.equal(sandbox.mamIsFutureUnplayed(live,now),false);
+ assert.equal(sandbox.mamIsFutureUnplayed(upcoming,now),true);
+ assert.equal(sandbox.mamIstanbulDay(upcoming.fixture.date),'2026-11-22');
 });
