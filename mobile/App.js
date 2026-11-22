@@ -39,6 +39,14 @@ export default function App() {
   const onToggleFavorite = item => setFavorites(current => toggleFavorite(current,item).favorites);
 
   const loadMatches = useCallback(async (selectedTab = tab) => {
+    if (selectedTab === "favorites") {
+      latestRequest.current += 1;
+      activeController.current?.abort();
+      activeController.current = null;
+      setLoading(false);
+      setError("");
+      return;
+    }
     const requestId = ++latestRequest.current;
     activeController.current?.abort();
     const controller = new AbortController();
