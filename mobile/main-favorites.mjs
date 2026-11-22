@@ -53,6 +53,7 @@ for(const control of [btn,bottom])control?.addEventListener('click',()=>setPanel
 document.querySelector('.mam-bottom-nav')?.addEventListener('click',event=>{if(event.target.closest('[data-mam-bottom]'))setPanel(false);});
 function sync(){state=read();refresh();}
 window.addEventListener('pageshow',sync);
+window.addEventListener('mam-favorites-updated',sync);
 window.addEventListener('storage',event=>{if(event.key===KEY||event.key===SNAPSHOT)sync();});
 document.addEventListener('click',e=>{const star=e.target.closest('[data-mam-star]');if(star){toggle(star.dataset.type,star.dataset.value);return;}const m=e.target.closest('[data-mam-remove-match]');if(m){toggle('match',m.dataset.mamRemoveMatch);return;}const t=e.target.closest('[data-mam-remove-team]');if(t)toggle('team',t.dataset.mamRemoveTeam);});const target=document.getElementById('matches');if(target){let scheduled=false;const observer=new MutationObserver(()=>{if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;decorate();});});observer.observe(target,{childList:true,subtree:true});}refresh();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
