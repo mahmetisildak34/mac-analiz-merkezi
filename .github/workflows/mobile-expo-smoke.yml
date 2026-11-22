@@ -5,6 +5,7 @@ on:
       - feature/safari2-mobile-ux-20261122
     paths:
       - mobile/**
+      - tests/safari2-mobile-favorites.test.mjs
       - .github/workflows/mobile-expo-smoke.yml
   workflow_dispatch:
 permissions:

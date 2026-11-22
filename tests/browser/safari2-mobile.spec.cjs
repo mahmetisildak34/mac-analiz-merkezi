@@ -118,10 +118,10 @@ test("cached real-result history contributes to favorite team form without provi
  await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("İç saha");
 });
 
-test("PWA installs with project-scoped manifest and precaches the complete app shell",async({page,browserName})=>{
+test("PWA installs with project-scoped manifest and precaches the complete app shell",async({page,context})=>{
  await page.unroute("**/*");
  await page.setViewportSize({width:390,height:844});
- await page.goto("/",{waitUntil:"domcontentloaded"});
+ await page.goto("/",{waitUntil:"load"});
  expect(await page.locator('link[rel="manifest"]').getAttribute("href")).toBe("./manifest.webmanifest");
  const manifest=await page.request.get("/manifest.webmanifest");
  expect(manifest.ok()).toBeTruthy();
@@ -138,7 +138,7 @@ test("PWA installs with project-scoped manifest and precaches the complete app s
  await page.waitForFunction(async()=>{
   if(!("serviceWorker" in navigator))return false;
   const registration=await navigator.serviceWorker.getRegistration();
-  return Boolean(registration?.active);
+  return registration?.active?.state==="activated" && Boolean(navigator.serviceWorker.controller);
  },null,{timeout:10000});
  const cachedPaths=await page.evaluate(async()=>{
   const cache=await caches.open("mam-shell-v1");
@@ -148,4 +148,9 @@ test("PWA installs with project-scoped manifest and precaches the complete app s
  expect(cachedPaths.some(path=>path.endsWith("/half-goal-algorithm.js"))).toBeTruthy();
  expect(cachedPaths.some(path=>path.endsWith("/safari2-favorites-search.js"))).toBeTruthy();
  await expect(page.locator("#mamAuthGate")).toBeVisible();
+ await context.setOffline(true);
+ const offlineNavigation=await page.reload({waitUntil:"load"});
+ expect(offlineNavigation?.status()).toBe(200);
+ await expect(page.locator("#mamAuthGate")).toBeVisible();
+ await expect(page.locator("nav.mam-bottom-nav")).toBeVisible();
 });
