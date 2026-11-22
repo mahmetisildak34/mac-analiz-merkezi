@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import rules from "../mobile/match-rules.js";
 import {readFileSync} from "node:fs";
 const app=readFileSync(new URL("../mobile/App.js",import.meta.url),"utf8");
+const apiClient=readFileSync(new URL("../mobile/api-client.js",import.meta.url),"utf8");
 const fixture=(id,date,status,home="Ev",away="Dep",league=203)=>({
  fixture:{id,date,status:{short:status,elapsed:90}},
  teams:{home:{name:home},away:{name:away}},league:{id:league,name:"Süper Lig"},
@@ -10,7 +11,8 @@ const fixture=(id,date,status,home="Ev",away="Dep",league=203)=>({
 });
 test("native Today requests the Istanbul calendar date rather than UTC",()=>{
  assert.equal(rules.istanbulDay("2026-11-22T21:30:00Z"),"2026-11-23");
- assert.match(app,/istanbulDay\(new Date\(\)\)/);
+ assert.match(apiClient,/istanbulDay\(new Date\(timestamp\)\)/);
+ assert.match(app,/fetchFixtures\(\{tab:selectedTab,signal:controller\.signal\}\)/);
  assert.doesNotMatch(app,/new Date\(\)\.toISOString\(\)\.slice\(0, 10\)/);
 });
 test("native Today only lists matches not yet played on Istanbul day",()=>{
@@ -55,7 +57,9 @@ test("native deduplication preserves separate games on different days",()=>{
 test("native UI guards stale tab responses and narrows layout without clipping",()=>{
  assert.match(app,/const requestId = \+\+latestRequest\.current/);
  assert.match(app,/requestId === latestRequest\.current/);
- assert.match(app,/visibleMatches\(data\.response, selectedTab, Date\.now\(\)\)/);
+ assert.match(app,/activeController\.current\?\.abort\(\)/);
+ assert.match(app,/setStale\(true\)/);
+ assert.match(app,/setMatches\(\[\]\)/);
  assert.match(app,/team:\{flex:1,minWidth:0\}/);
  assert.match(app,/fontVariant:\["tabular-nums"\]/);
 });
