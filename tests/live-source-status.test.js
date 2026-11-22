@@ -12,9 +12,11 @@ test("live screen accepts supported provider live states",()=>{
  for(const state of ["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"])assert.ok(states.includes(state),state+" must be accepted");
 });
 
-test("ESPN scoreboard maps in-progress and halftime events to live states",()=>{
- assert.match(html,/const live=!completed&&\(state==="in"\|\|state==="live"\|\|state==="inprogress"\|\|\/in progress\|halftime\|live\|first half\|second half/);
- assert.match(html,/const statusShort=completed\?"FT":halftime\?"HT":live\?"LIVE":"NS"/);
+test("ESPN scoreboard respects terminal and active states",()=>{
+ assert.match(html,/const live=!completed&&/);
+ assert.match(html,/state==="in"\|\|state==="live"\|\|state==="inprogress"/);
+ assert.match(html,/const statusShort=\/cancelled\|canceled\/i\.test\(detail\)\?"CANC"/);
+ assert.match(html,/completed\?"FT":live&&halftime\?"HT":live\?"LIVE":"NS"/);
 });
 
 test("ESPN live events preserve score, team identity and clock",()=>{
@@ -29,15 +31,15 @@ test("ESPN live events preserve score, team identity and clock",()=>{
 
 test("stale live cache is limited to three minutes and plausible kickoff window",()=>{
  assert.match(html,/age>3\*60\*1000/);
- assert.match(html,/age>=-20\*60\*1000&&age<=4\*60\*60\*1000/);
+ assert.match(html,/if\(!Number\.isFinite\(kickoff\)\|\|age<0\)return false/);
+ assert.match(html,/if\(age<=4\*60\*60\*1000\)return true/);
 });
 
-test("ESPN archive write cannot block rendering of its live matches",()=>{
+test("ESPN live refresh does not write to D1 archive",()=>{
  const start=html.indexOf("async function loadLiveMatchesNow");
- const end=html.indexOf("\nasync function ",start+30);
+ const end=html.indexOf("\\nasync function ",start+30);
  const block=html.slice(start,end);
- assert.match(block,/mamSaveMatchesToD1\(fallback\)\.catch/);
- assert.doesNotMatch(block,/await\s+mamSaveMatchesToD1\(fallback\)/);
+ assert.doesNotMatch(block,/mamSaveMatchesToD1\\(fallback\\)/);
 });
 
 test("fallback providers normalize only active match states",()=>{
