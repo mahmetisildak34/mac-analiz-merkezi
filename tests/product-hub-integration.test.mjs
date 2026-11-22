@@ -21,3 +21,11 @@ test('product hub module script is syntactically valid',()=>{
  assert.ok(script,'module script present');
  const check=spawnSync(process.execPath,['--check','--input-type=module'],{input:script,encoding:'utf8'});assert.equal(check.status,0,check.stderr);
 });
+
+test('main app shares already loaded matches and hub automatically consumes them',()=>{
+ assert.match(app,/mam_product_hub_fixtures_v1/);
+ assert.match(app,/safeRows\.length\) localStorage\.setItem/);
+ assert.match(html,/function loadSharedFixtures\(\)/);
+ assert.match(html,/loadSharedFixtures\(\);show\('home'\)/);
+ assert.match(html,/24\*60\*60\*1000/);
+});
