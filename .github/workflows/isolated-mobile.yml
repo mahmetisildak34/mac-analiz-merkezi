@@ -63,9 +63,12 @@ jobs:
                   if(route.request().method()==='GET'&&route.request().headers().authorization==='Bearer offline-test-token')return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':origin},body:JSON.stringify({ok:true})});
                   return route.abort();
                 });
-                await context.route('https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/espn/tur.1/summary?event=750191',route=>route.fulfill({
-                  status:200,contentType:'application/json',headers:{'access-control-allow-origin':origin},body:JSON.stringify(finishedSummary)
-                }));
+                await context.route('https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/espn/tur.1/summary?event=750191',route=>{
+                  const headers={'access-control-allow-origin':origin,'access-control-allow-headers':'authorization','access-control-allow-methods':'GET, OPTIONS'};
+                  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers});
+                  if(route.request().method()!=='GET')return route.abort();
+                  return route.fulfill({status:200,contentType:'application/json',headers,body:JSON.stringify(finishedSummary)});
+                });
                 const errors=[];
                 page.on('pageerror',e=>errors.push(e.stack || e.message));
                 await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
