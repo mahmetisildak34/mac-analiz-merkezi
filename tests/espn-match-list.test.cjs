@@ -59,3 +59,14 @@ test('same fixture ID on a different kickoff date is not deduplicated', () => {
   const second = fixture(801, 'NS', '2026-11-23T16:00:00Z');
   assert.equal(helpers.mamDeduplicateFixtures([first, second]).length, 2);
 });
+
+test('Istanbul midnight separates UTC dates correctly', () => {
+  assert.equal(helpers.mamIstanbulDay('2026-11-22T20:59:59Z'), '2026-11-22');
+  assert.equal(helpers.mamIstanbulDay('2026-11-22T21:00:00Z'), '2026-11-23');
+});
+test('today upcoming excludes already-started and finished fixtures', () => {
+  const now = Date.parse('2026-11-22T21:30:00Z');
+  assert.equal(helpers.mamIsFutureUnplayed(fixture(901, 'NS', '2026-11-22T21:00:00Z'), now), false);
+  assert.equal(helpers.mamIsFutureUnplayed(fixture(902, 'FT', '2026-11-22T22:00:00Z'), now), false);
+  assert.equal(helpers.mamIsFutureUnplayed(fixture(903, 'NS', '2026-11-22T22:00:00Z'), now), true);
+});
