@@ -2776,7 +2776,7 @@ async function espnFixtures(date,includeAllLeagues=false){
      };
      const teamId=value=>{const n=Number(value);return Number.isFinite(n)&&n!==0?n:-1;};
      return {
-      fixture:{id:"espn-"+league.slug+"-"+String(event.id).trim(),date:event.date||null,status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock||detail,updated:event.status?.lastUpdated||competition.status?.lastUpdated||null}},
+      fixture:{id:"espn-"+league.slug+"-"+String(event.id).trim(),date:event.date||competition.date||null,status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock||detail,updated:event.status?.lastUpdated||competition.status?.lastUpdated||null}},
       league:{id:leagueId,name:league.name,country:league.country},
       teams:{
        home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||home.team?.logos?.[0]?.url||""},
@@ -3385,8 +3385,8 @@ async function loadLiveMatchesNow(){
    fallbackSchedule=fallback.slice();
    // Türkiye saatiyle gece yarısından sonra, UTC/ESPN takviminde bir önceki güne ait
    // hâlâ devam eden maçlar yeni gün scoreboard sorgusunda görünmeyebilir.
-   // Bugün canlı maç bulunmadıysa 00:00–05:59 arasında dünkü ESPN skor tabelasını da tara.
-   if(!fallback.some(isLive)){
+   // 00:00–05:59 arasında bugün başka ligler canlı olsa bile dünkü maçları da tara.
+   {
     const localHour=Number(new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Istanbul",hour:"2-digit",hourCycle:"h23"}).format(new Date()));
     if(Number.isFinite(localHour)&&localHour<6){
      const previousDateObj=new Date(date+"T00:00:00Z");
@@ -3402,8 +3402,6 @@ async function loadLiveMatchesNow(){
      }
     }
    }
-   // D1 arşiv yazımı canlı ekranı bekletmemeli; sağlayıcıdan gelen maçları
-   // gösterme akışıyla paralel yürüt ve arşiv hatasını yalnızca günlüğe yaz.
    // Live scoreboard refresh is read-only: never write provider snapshots to D1.
    const fallbackLive=fallback.filter(isLive);
    espnLiveCount=fallbackLive.length;
