@@ -1965,6 +1965,11 @@ async function api(path){
     try{data=await response.json();}
     catch(e){throw new Error("Sunucudan okunabilir yanıt alınamadı.");}
 
+    // A 200 response without events is not an empty ESPN matchday.
+    // Do not poison the scoreboard cache with provider error/malformed payloads.
+    if(response.ok&&isEspnScoreboard&&!Array.isArray(data?.events)){
+      throw new Error("ESPN skor tablosu geçersiz: events dizisi eksik.");
+    }
     const errorText=JSON.stringify((isArchive&&data.detail)?{error:data.error||"Archive request failed",detail:data.detail}:data.errors||data.error||data);
     // Preserve provider HTTP status and sanitized error details for the dedicated
     // /status diagnostic, including provider-side 401/429 responses.
@@ -2772,7 +2777,8 @@ async function espnFixtures(date,includeAllLeagues=false){
    const index=cursor++,[leagueId,league]=targets[index];
    try{
     const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:espnDate,limit:500}));
-    const events=Array.isArray(payload.events)?payload.events:[];
+    if(!payload||!Array.isArray(payload.events))throw new Error("ESPN skor tablosu geçersiz: events dizisi eksik.");
+    const events=payload.events;
     results[index]={status:"fulfilled",value:events.filter(event=>{
      const id=event?.id;
      return (typeof id==="string"&&/^[a-z0-9._-]+$/i.test(id.trim())&&!/^(?:null|undefined|nan)$/i.test(id.trim()))||
