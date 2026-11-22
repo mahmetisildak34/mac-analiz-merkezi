@@ -40,6 +40,14 @@ let allMatches=[
  {fixture:{id:"api-88",date:"2026-11-21T18:00:00Z",status:{short:"FT",elapsed:90}},league:{id:203,name:"Süper Lig"},
  teams:{home:{id:11,name:"Fenerbahçe"},away:{id:12,name:"Galatasaray"}},goals:{home:2,away:1}}
 ];
+// This is an isolated, synthetic cached-history fixture for UI behavior tests, not provider evidence.
+if(!localStorage.getItem("mam_history_v76_203_fixture_10_2026-11-22")){
+ localStorage.setItem("mam_history_v76_203_fixture_10_2026-11-22",JSON.stringify({time:Date.now(),matches:[
+  {fixture:{id:"historic-99",date:"2026-11-20T15:00:00Z",status:{short:"FT"}},
+   league:{id:203,name:"Süper Lig"},teams:{home:{id:10,name:"Göztepe"},away:{id:99,name:"Bursaspor"}},
+   goals:{home:2,away:0},score:{halftime:{home:1,away:0}}}
+ ]}));
+}
 function setMamScreen(mode){document.querySelector("main").className="mam-screen-"+mode;}
 function renderMatches(){}
 window.updateFixture=()=>{allMatches[0]={...allMatches[0],goals:{home:2,away:0},fixture:{...allMatches[0].fixture,status:{short:"FT",elapsed:90}}};window.dispatchEvent(new CustomEvent("mam:fresh-live",{detail:{checkedAt:Date.now(),count:1}}));window.mamSafari2Favorites.refresh();};
