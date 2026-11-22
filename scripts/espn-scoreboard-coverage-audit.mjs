@@ -17,7 +17,7 @@ const leagues=vm.runInNewContext(html.slice(begin,end)+';ESPN_LEAGUES');
 const unique=new Map();
 for(const [id,value] of Object.entries(leagues))if(value?.slug&&!unique.has(value.slug))unique.set(value.slug,{id,name:value.name});
 const date=process.argv[2]||'2026-11-22';
-if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date))throw new Error('Use YYYY-MM-DD');
+if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw new Error('Use YYYY-MM-DD');
 const dateCompact=date.replaceAll('-','');
 const results=[];
 let index=0;
