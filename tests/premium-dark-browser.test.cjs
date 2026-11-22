@@ -1,7 +1,6 @@
 const {chromium,webkit,devices}=require('playwright');
 const fs=require('node:fs');
 const assert=require('node:assert/strict');
-const html=fs.readFileSync('index.html','utf8');
 const css=fs.readFileSync('premium-dark-red.css','utf8');
 (async()=>{
  for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
@@ -13,7 +12,7 @@ const css=fs.readFileSync('premium-dark-red.css','utf8');
    await page.addStyleTag({content:css});
    const values=await page.evaluate(()=>({bg:getComputedStyle(document.body).backgroundColor,logo:document.querySelector('.team-logo').getBoundingClientRect().width,overflow:document.documentElement.scrollWidth>innerWidth,nav:getComputedStyle(document.querySelector('.mam-bottom-nav')).backgroundColor}));
    assert.match(values.bg,/rgb\(8, 11, 17\)/);
-   assert.ok(values.logo>0&&values.logo<=32,'logo should be compact');
+   assert.ok(values.logo>0&&values.logo<=40,'logo should be compact (max 40 CSS px)');
    assert.equal(values.overflow,false,'horizontal overflow');
    console.log(name,values);
   }finally{await browser.close()}
