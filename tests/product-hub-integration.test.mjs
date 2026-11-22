@@ -89,3 +89,11 @@ test('ESPN team and boxscore statistics arrays are recognized in detail renderer
 test('ESPN displayValue statistics are preserved in match detail rendering',()=>{
  assert.match(html,/stat\?\.value\?\?stat\?\.displayValue\?\?stat\?\.home/);
 });
+
+test('mobile match details preserve and render available lineup players without inventing squads',()=>{
+ assert.match(html,/lineups:m\.lineups/);
+ assert.match(html,/d\.lineups\.length/);
+ assert.match(html,/lineup\.startXI/);
+ assert.match(html,/lineup\.substitutes/);
+ assert.match(html,/Kadro verisi yok/);
+});
