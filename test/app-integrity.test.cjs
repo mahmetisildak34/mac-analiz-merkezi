@@ -94,3 +94,26 @@ for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
 assert.ok(checkedScripts > 0, "No inline JavaScript blocks were syntax-checked");
 
 console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup exception, fallback paths, cache version and " + checkedScripts + " inline scripts.");
+
+async function verifyEspnLiveRecovery(){
+  const source = html.slice(html.indexOf("function mamMergeSuperLigScoreboard("), html.indexOf("async function espnFixtures("));
+  const tur = {fixture:{id:"espn-tur.1-401888244"},league:{id:"203"}};
+  const eng = {fixture:{id:"espn-eng.1-401000001"},league:{id:"39"}};
+  const fresh = {...tur, goals:{home:1,away:0}};
+  const failure = new Error("scoreboard unavailable");
+  const recover = (all, superLig) => vm.runInNewContext(source + "\nmamEspnLiveScoreboard('2026-11-21')", {
+    espnFixtures: async () => { if (all === failure) throw failure; return all; },
+    espnSuperLigScoreboard: async () => { if (superLig === failure) throw failure; return superLig; },
+    console:{warn(){}}
+  });
+  assert.deepEqual(Array.from(await recover(failure,[fresh])),[fresh]);
+  assert.deepEqual(Array.from(await recover([tur,eng],[fresh,fresh])),[fresh,eng]);
+  assert.deepEqual(Array.from(await recover([tur,eng],failure)),[tur,eng]);
+  await assert.rejects(recover(failure,failure), failure);
+  console.log("PASS: four ESPN live recovery and deduplication scenarios.");
+}
+
+verifyEspnLiveRecovery().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});

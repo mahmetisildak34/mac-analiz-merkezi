@@ -1,15 +1,18 @@
 "use strict";
 const test=require("node:test");
 const assert=require("node:assert/strict");
+const vm=require("node:vm");
 const fs=require("node:fs");
 const path=require("node:path");
 const html=fs.readFileSync(path.join(__dirname,"..","index.html"),"utf8");
 
 test("live screen accepts supported provider live states",()=>{
- const block=html.match(/const liveStatuses=new Set\(\[([^\]]+)\]\)/);
- assert.ok(block,"live status allow-list must exist");
- const states=[...block[1].matchAll(/"([^"]+)"/g)].map(x=>x[1]);
- for(const state of ["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"])assert.ok(states.includes(state),state+" must be accepted");
+ const canonical=html.slice(html.indexOf("function mamCanonicalMatchStatus("),html.indexOf("function mamIstanbulDay("));
+ const active=html.match(/^function mamIsActiveMatch\(.*$/m)[0];
+ const check=vm.runInNewContext(canonical+active+";mamIsActiveMatch");
+ const match=short=>({fixture:{status:{short}}});
+ for(const status of ["1H","HT","2H","ET","BT","P","LIVE","IN_PLAY","PAUSED"])assert.equal(check(match(status)),true,status);
+ for(const status of ["NS","FT","PST","CANC","SUSP","INT"])assert.equal(check(match(status)),false,status);
 });
 
 test("ESPN scoreboard maps in-progress and halftime events to live states",()=>{
