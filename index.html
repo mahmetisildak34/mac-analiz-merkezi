@@ -5,6 +5,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Maç Analiz">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="./icons/app-icon.svg">
+<link rel="apple-touch-icon" href="./icons/app-icon.svg">
 <title>Maç Analiz Merkezi</title>
 <style>
 :root{color-scheme:dark;--bg:#0b1220;--panel:#141f31;--muted:#9eacc2;--line:#26354b;--accent:#38d6b0;--warn:#ffca70}
@@ -7809,6 +7816,14 @@ const openStandingTeamHistory=async row=>{
 })();
 </script>
 <script src="./safari2-favorites-search.js" defer></script>
+<script>
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+ window.addEventListener("load", () => {
+  navigator.serviceWorker.register("./service-worker.js", {scope:"./"})
+   .catch(() => { /* PWA installation is optional; keep the app usable without it. */ });
+ });
+}
+</script>
 </body>
 </html>
 
