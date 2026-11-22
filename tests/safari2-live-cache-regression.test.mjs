@@ -66,7 +66,8 @@ test("favorites only persist provider-verified live snapshots",()=>{
  assert.ok(start>0&&end>start);
  const sync=favorites.slice(start,end);
  assert.match(sync,/const verifiedAt=Number\(match\._mamLastVerifiedAt\)/);
- assert.match(sync,/if\(!Number\.isFinite\(verifiedAt\)\|\|verifiedAt<=0\)continue/);
+ assert.match(sync,/const previousAt=Number\\(item\\.snapshot\\?\\.savedAt\\)\\|\\|0/);
+ assert.match(sync,/verifiedAt<=previousAt/);
  assert.doesNotMatch(sync,/savedAt:Number\(match\._mamLastVerifiedAt\)\|\|Date\.now\(\)/);
 });
 
