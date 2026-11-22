@@ -97,3 +97,10 @@ test('mobile match details preserve and render available lineup players without 
  assert.match(html,/lineup\.substitutes/);
  assert.match(html,/Kadro verisi yok/);
 });
+
+test('match detail supports wrapped event arrays without inventing events',()=>{
+ const features=readFileSync(new URL('../mobile/product-features.mjs',import.meta.url),'utf8');
+ assert.match(features,/Array\.isArray\(match\.events\?\.response\)/);
+ assert.match(features,/Array\.isArray\(match\.events\?\.plays\)/);
+ assert.match(features,/const events=\[\.\.\.sourceEvents\]\.sort/);
+});
