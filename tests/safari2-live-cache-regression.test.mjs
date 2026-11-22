@@ -46,3 +46,15 @@ test("all live provider success paths label their actual last client verificatio
   assert.ok(line&&line.includes("mamLiveCheckedLabel()"),"missing timestamp for "+source);
  }
 });
+
+test("goal alerts ignore missing, empty, negative and fractional scores",()=>{
+ const start=html.indexOf("function mamNotifyLiveGoalChanges(");
+ const end=html.indexOf("let mamLiveLoadPromise=",start);
+ assert.ok(start>0&&end>start);
+ const source=html.slice(start,end);
+ assert.match(source,/rawHome==null\|\|rawAway==null/);
+ assert.match(source,/rawHome===""\|\|rawAway===""/);
+ assert.match(source,/Number\.isInteger\(home\)/);
+ assert.match(source,/Number\.isInteger\(away\)/);
+ assert.match(source,/home<0\|\|away<0/);
+});
