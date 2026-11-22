@@ -38,7 +38,7 @@ $('alerts').checked=state.alerts;const upcoming=state.alerts?notificationCandida
 function renderStatValue(value){if(value===null||value===undefined)return 'Veri yok';if(typeof value==='string'||typeof value==='number'||typeof value==='boolean')return esc(value);return 'Veri yok';}
 function renderStatistics(statistics){
  if(!statistics)return '<p>İstatistik verisi yok.</p>';
- const rows=Array.isArray(statistics)?statistics:typeof statistics==='object'?(Array.isArray(statistics.response)?statistics.response:Object.entries(statistics).filter(([key])=>key!=='independentCrossSourceVerification').map(([type,value])=>({type,value}))):[];
+ const rows=Array.isArray(statistics)?statistics:typeof statistics==='object'?(Array.isArray(statistics.response)?statistics.response:Array.isArray(statistics.teams)?statistics.teams:Array.isArray(statistics.boxscore?.teams)?statistics.boxscore.teams:Object.entries(statistics).filter(([key])=>!['independentCrossSourceVerification','response','teams','boxscore'].includes(key)).map(([type,value])=>({type,value}))):[];
  if(!rows.length)return '<p>Görüntülenebilir istatistik verisi yok.</p>';
  const items=[];
  for(const row of rows.slice(0,60)){
