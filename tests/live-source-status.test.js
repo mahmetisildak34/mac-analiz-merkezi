@@ -172,3 +172,13 @@ test("captured ESPN Spain second division match transitions from added time to f
  assert.equal(status({state:"in",name:"STATUS_OVERTIME"}),"ET");
  assert.equal(status({state:"in",name:"STATUS_PENALTY_SHOOTOUT"}),"P");
 });
+
+test("ESPN detail clock is not advanced by the local display timer",()=>{
+ const source=html.slice(html.indexOf("function mamTickVisibleMatchClock"),html.indexOf("async function refreshVisibleFixtureLists"));
+ const button={dataset:{liveSource:"espn"}};
+ const tick=require("node:vm").runInNewContext(source+"\n mamTickVisibleMatchClock",{
+  document:{querySelectorAll:()=>[button]},
+  mamSeedVisibleMatchClock:()=>assert.fail("ESPN clocks must come from the provider")
+ });
+ tick();
+});

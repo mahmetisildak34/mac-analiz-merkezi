@@ -5230,6 +5230,7 @@ function mamSeedVisibleMatchClock(button){
 function mamTickVisibleMatchClock(){
  const buttons=[...document.querySelectorAll(".match-detail-overlay:not([hidden]) .liveStatsBtn")];
  for(const button of buttons){
+  if(button.dataset.liveSource==="espn")continue;
   mamSeedVisibleMatchClock(button);
   const base=Number(button.dataset.liveClockBase),at=Number(button.dataset.liveClockAt);
   if(!Number.isFinite(base)||!Number.isFinite(at))continue;
