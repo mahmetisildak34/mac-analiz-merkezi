@@ -235,8 +235,11 @@
   for(const item of favorites){
    if(item.kind!=="match")continue;
    const match=findMatch(item);if(!match)continue;
+   // Cached or unverified matches must not overwrite trusted favorite snapshots.
+   const verifiedAt=Number(match._mamLastVerifiedAt);
+   if(!Number.isFinite(verifiedAt)||verifiedAt<=0)continue;
    const current={status:fixtureStatus(match),home:match.goals?.home??null,away:match.goals?.away??null,
-    savedAt:Number(match._mamLastVerifiedAt)||Date.now()};
+    savedAt:verifiedAt};
    if(JSON.stringify(item.snapshot)!==JSON.stringify(current)){item.snapshot=current;updated=true;}
   }
   if(updated)save();
