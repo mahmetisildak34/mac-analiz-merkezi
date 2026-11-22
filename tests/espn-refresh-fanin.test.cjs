@@ -79,3 +79,19 @@ test('failed request clears in-flight state so a later refresh can recover',asyn
  assert.equal(calls,2);
  assert.equal(data.events.length,0);
 });
+
+test('HTTP 200 malformed scoreboard is rejected rather than interpreted as no matches',async()=>{
+ let calls=0;
+ const {api,localStorage}=client(async()=>{calls++;return response(200,{message:'service unavailable'});});
+ await assert.rejects(api(endpoint),/events dizisi eksik/);
+ assert.equal(calls,1);
+ assert.equal(localStorage.getItem('mam_api_cache_v2_'+endpoint),null,'bad response must not be cached');
+});
+test('recovery after a malformed 200 scoreboard fetches a fresh valid payload',async()=>{
+ let calls=0;
+ const {api}=client(async()=>{calls++;return response(200,calls===1?{error:'upstream unavailable'}:{events:[{id:'1'}]});});
+ await assert.rejects(api(endpoint),/events dizisi eksik/);
+ const recovered=await api(endpoint);
+ assert.equal(calls,2);
+ assert.equal(recovered.events.length,1);
+});
