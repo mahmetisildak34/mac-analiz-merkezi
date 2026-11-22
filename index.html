@@ -4700,18 +4700,16 @@ function mamIstanbulDay(value){
  const get=type=>parts.find(part=>part.type===type)?.value||"";
  return get("year")+"-"+get("month")+"-"+get("day");
 }
-function mamIsCrediblyLive(match,now=Date.now(),fresh=false){
+function mamIsCrediblyLive(match,now=Date.now()){
  const status=mamCanonicalMatchStatus(match);
  if(!["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(status))return false;
  const kickoff=Date.parse(match?.fixture?.date||"");
  const age=now-kickoff;
- // Fresh provider responses can prove an extended, interrupted or resumed match is active.
  // Cached LIVE labels alone cannot establish that a fixture is still in progress.
  const extended=["ET","BT","P","SUSP","INT"].includes(status);
  const elapsed=Number(match?.fixture?.status?.elapsed);
  const hasProgress=match?.fixture?.status?.elapsed!=null&&Number.isFinite(elapsed)&&elapsed>=0;
- // A newly fetched stale LIVE label is not proof of a match still running.
- // Prefer timestamped provider updates to bypass the normal kickoff window.
+ // A recent provider update can substantiate an extended match beyond the normal kickoff window.
  if(!Number.isFinite(kickoff)||age< -20*60*1000)return false;
  if(age<=4*60*60*1000)return true;
  // Explicit provider update timestamps can substantiate an older live fixture.
