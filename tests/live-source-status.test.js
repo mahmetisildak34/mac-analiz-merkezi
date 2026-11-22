@@ -102,3 +102,17 @@ test("main date shortcuts follow the Istanbul day across midnight and month roll
  assert.equal(relative(-1,after),"2026-11-30");
  assert.equal(relative(1,after),"2026-12-02");
 });
+
+test("ESPN summary event types retain goals, cards and substitutions from the captured fixture",()=>{
+ const source=html.match(/function mamMatchEventKind\([\s\S]*?\n\}/)?.[0];
+ const eventKind=require("node:vm").runInNewContext(source+"; mamMatchEventKind");
+ const summary=require("./fixtures/espn-tur1-401888243-summary.json");
+ const counts=summary.keyEvents.reduce((out,event)=>{
+  const kind=eventKind(event);
+  out[kind]=(out[kind]??0)+1;
+  return out;
+ },{});
+ assert.deepEqual(counts,{"Sarı kart":3,"Değişiklik":10,"Gol":1});
+ assert.equal(eventKind({type:{text:"Red Card"}}),"Kırmızı kart");
+ assert.equal(eventKind({type:{text:"Offside"}}),"");
+});

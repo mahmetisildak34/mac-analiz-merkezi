@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
+import {readFileSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {chromium,webkit} from 'playwright';
 
@@ -30,7 +31,15 @@ async function verifyMainApp(context){
  try{
   const origin=new URL(url).origin;
   await main.route('**/*',route=>route.request().url().startsWith(origin+'/')?route.continue():route.abort());
+  await main.addInitScript(()=>{
+   localStorage.setItem('mam_session_token','local-browser-acceptance');
+   const fetchNetwork=window.fetch.bind(window);
+   window.fetch=(input,options)=>String(input)==='https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/auth/check'
+    ?Promise.resolve(new Response('{"ok":true}'))
+    :fetchNetwork(input,options);
+  });
   await main.goto(origin+'/index.html');
+  await main.locator('#mamAuthGate').waitFor({state:'detached'});
   const initialFavorites=await main.evaluate(()=>localStorage.getItem('mam-product-hub-v1'));
   // Real ESPN tur.1 result 401888243, captured 2026-11-22.
   const match={
@@ -39,12 +48,14 @@ async function verifyMainApp(context){
    teams:{home:{id:19267,name:'Erzurum BB'},away:{id:789,name:'Goztepe'}},
    goals:{home:0,away:1}
   };
-  await main.evaluate(match=>{
+  const summary=JSON.parse(readFileSync(new URL('./fixtures/espn-tur1-401888243-summary.json',import.meta.url),'utf8'));
+  await main.evaluate(({match,summary})=>{
+   localStorage.setItem('mam_api_cache_v2_espn/tur.1/summary?event=401888243',JSON.stringify({time:Date.now(),data:summary}));
    setMamScreen('finished');
    document.getElementById('date').value='2026-11-22';
    allMatches=[match];
    renderMatches();
-  },match);
+  },{match,summary});
   const card=main.locator('#matches article.match');
   assert.match(await card.innerText(),/0 – 1/);
   await card.locator('[data-mam-star="0"]').click();
@@ -53,6 +64,14 @@ async function verifyMainApp(context){
   await opener.click();
   const dialog=main.getByRole('dialog',{name:/Erzurum BB/});
   await dialog.waitFor();
+  await dialog.getByRole('button',{name:/Olaylar/}).click();
+  const events=dialog.locator('.match-detail-pane[data-pane="goals"]');
+  await events.getByText('Sarı kart',{exact:true}).first().waitFor();
+  await events.getByText('Sinclair Armstrong / André Henrique',{exact:true}).waitFor();
+  await events.getByText('Gol',{exact:true}).waitFor();
+  await dialog.getByRole('button',{name:/İstatistik/}).click();
+  await dialog.getByRole('cell',{name:'55.2%'}).waitFor();
+  await dialog.getByRole('cell',{name:'44.8%'}).waitFor();
   await dialog.getByRole('button',{name:'Geri',exact:true}).click();
   await dialog.waitFor({state:'hidden'});
   assert.equal(await opener.evaluate(button=>document.activeElement===button),true);
