@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {normalizeFavorites,toggleFavorite,mergeFavoriteUpdates} from "./favorites";
+import favoriteUtils from "./favorites";\nconst {normalizeFavorites,toggleFavorite,mergeFavoriteUpdates,normalizeTeamFavorites,toggleTeamFavorite}=favoriteUtils;
 import {
   ActivityIndicator, SafeAreaView, ScrollView, StatusBar, StyleSheet,
   Text, TouchableOpacity, View, RefreshControl
@@ -103,7 +103,7 @@ export default function App() {
         <View style={styles.matchTop}>
           <Text style={styles.league}>{item.league?.country || ""}  ·  {item.league?.name || "Maç"}</Text>
           <View style={styles.cardActions}>
-            <Text style={[styles.matchStatus, live && styles.liveStatus]}>{live ? "● " : ""}{statusText(item.fixture)}</Text>
+            <View style={styles.cardActions}><Text style={[styles.matchStatus, live && styles.liveStatus]}>{live ? "● " : ""}{statusText(item.fixture)}</Text><TouchableOpacity accessibilityRole="button" accessibilityLabel={isMatchFavorite(item)?"Maçı favorilerden çıkar":"Maçı favorilere ekle"} onPress={()=>onToggleFavorite(item)} style={styles.favoriteButton}><Text style={styles.favoriteGlyph}>{isMatchFavorite(item)?"★":"☆"}</Text></TouchableOpacity></View>
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel={(favorites.some(row=>String(row.fixture?.id)===String(item.fixture?.id))?"Favorilerden çıkar: ":"Favorilere ekle: ")+(home?.name||"")+" - "+(away?.name||"")}
@@ -116,13 +116,13 @@ export default function App() {
         </View>
         <View style={styles.teamsRow}>
           <View style={styles.team}>
-            <Text style={styles.teamName} numberOfLines={2}>{home?.name || "Ev sahibi"}</Text>
+            <View style={styles.teamNameRow}><Text style={styles.teamName} numberOfLines={2}>{home?.name || "Ev sahibi"}</Text><TouchableOpacity accessibilityRole="button" accessibilityLabel={(home&&isTeamFavorite(home)?"Takımı favorilerden çıkar: ":"Takımı favorilere ekle: ")+(home?.name||"Ev sahibi")} onPress={()=>home&&onToggleTeamFavorite(home)} style={styles.teamFavoriteButton}><Text style={styles.teamFavoriteGlyph}>{home&&isTeamFavorite(home)?"★":"☆"}</Text></TouchableOpacity></View>
           </View>
           <View style={styles.scoreBox}>
             <Text style={styles.score}>{goals.home ?? "-"} : {goals.away ?? "-"}</Text>
           </View>
           <View style={[styles.team, styles.awayTeam]}>
-            <Text style={styles.teamName} numberOfLines={2}>{away?.name || "Deplasman"}</Text>
+            <View style={[styles.teamNameRow,styles.awayTeamNameRow]}><TouchableOpacity accessibilityRole="button" accessibilityLabel={(away&&isTeamFavorite(away)?"Takımı favorilerden çıkar: ":"Takımı favorilere ekle: ")+(away?.name||"Deplasman")} onPress={()=>away&&onToggleTeamFavorite(away)} style={styles.teamFavoriteButton}><Text style={styles.teamFavoriteGlyph}>{away&&isTeamFavorite(away)?"★":"☆"}</Text></TouchableOpacity><Text style={styles.teamName} numberOfLines={2}>{away?.name || "Deplasman"}</Text></View>
           </View>
         </View>
         <View style={styles.matchBottom}>
@@ -174,14 +174,14 @@ export default function App() {
       >
         {loading && matches.length === 0 ? <ActivityIndicator size="large" color="#54D6A0" style={{marginTop:30}} /> : null}
         {!!error && <View style={styles.message}><Text style={styles.errorText}>{error}</Text></View>}
-        {!loading && !error && (tab === "favorites" ? favorites : matches).length === 0 && (
+        {!loading && !error && (tab === "favorites" ? favorites.length+favoriteTeams.length : matches.length) === 0 && (
           <View style={styles.empty}>
             <Text style={styles.emptyBall}>⚽</Text>
             <Text style={styles.emptyTitle}>{tab === "live" ? "Şu anda listelenecek canlı maç yok" : tab === "today" ? "Bugün için maç bulunamadı" : "Henüz favori maç eklenmedi"}</Text>
             <Text style={styles.emptyCopy}>Daha sonra yenileyerek tekrar kontrol edebilirsin.</Text>
           </View>
         )}
-        {(tab === "favorites" ? favorites : matches).map((item) => <MatchCard key={String(item.fixture?.id)} item={item} />)}
+        {tab==="favorites" && favoriteTeams.length>0 ? <View style={styles.favoriteTeamsPanel}><Text style={styles.favoriteTeamsTitle}>Favori takımlar ({favoriteTeams.length})</Text>{favoriteTeams.map(team=><View key={String(team.id??team.name)} style={styles.favoriteTeamRow}><Text style={styles.favoriteTeamName}>{team.name}</Text><TouchableOpacity accessibilityRole="button" accessibilityLabel={"Takımı favorilerden çıkar: "+team.name} onPress={()=>onToggleTeamFavorite(team)}><Text style={styles.favoriteGlyph}>★</Text></TouchableOpacity></View>)}</View> : null}\n        {(tab === "favorites" ? favorites : matches).map((item) => <MatchCard key={String(item.fixture?.id)} item={item} />)}
         <Text style={styles.footer}>MRTYLT ANALİZ  ·  VERİLER SAĞLAYICI KAYNAKLARDAN ALINIR</Text>
       </ScrollView>
     </SafeAreaView>
