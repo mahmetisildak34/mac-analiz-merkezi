@@ -8883,9 +8883,9 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
  function draw(){
   const q=normalize(input.value.trim());
   const all=teams();
-  const filtered=(q?all.filter(t=>normalize(t.name).includes(q)||normalize(t.league).includes(q)):all.slice(0,60)).slice(0,60);
+  const filtered=q?all.filter(t=>normalize(t.name).includes(q)||normalize(t.league).includes(q)).slice(0,60):[];
   document.getElementById('mamTeamSearchHelp').textContent=directoryLoading?'Takım rehberi yükleniyor…':q?'Takım arama sonuçları':'Takım adı veya lig yaz.';
-  results.innerHTML=filtered.map(t=>'<button type="button" class="mam-team-result" data-search-team="'+escapeHtml(t.id)+'" style="display:flex;width:100%;text-align:left;background:transparent;color:inherit;border:0;border-bottom:1px solid #41516f;padding:12px 0;cursor:pointer"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span></button>').join('')||'<p>'+(directoryLoading?'Takımlar yükleniyor…':'Bu isimde takım bulunamadı.')+'</p>';
+  results.innerHTML=!q?'':filtered.map(t=>'<button type="button" class="mam-team-result" data-search-team="'+escapeHtml(t.id)+'" style="display:flex;width:100%;text-align:left;background:transparent;color:inherit;border:0;border-bottom:1px solid #41516f;padding:12px 0;cursor:pointer"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span></button>').join('')||'<p>'+(directoryLoading?'Takımlar yükleniyor…':'Bu isimde takım bulunamadı.')+'</p>';
  }
  results.addEventListener('click',event=>{
   const button=event.target.closest('[data-search-team]');
@@ -8899,7 +8899,9 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   row.dataset.standingTeamId=String(team.id).startsWith('espn:')?String(team.id).split(':').pop():String(team.id).startsWith('fallback:')?'':String(team.id);
   row.dataset.teamSource='espn';
   hide();
-  open(row,Object.keys(LEAGUE_NAMES).find(code=>LEAGUE_NAMES[code]===team.league)||'tur.1');
+  const espnCode=String(team.id).startsWith('espn:')?String(team.id).split(':')[1]:Object.keys(LEAGUE_NAMES).find(code=>LEAGUE_NAMES[code]===team.league)||'tur.1';
+  const profileLeagueIds={'tur.1':'203','eng.1':'39','esp.1':'140','ita.1':'135','ger.1':'78','fra.1':'61','ned.1':'88','por.1':'94','usa.1':'253','bra.1':'71','arg.1':'128','uefa.champions':'2','uefa.europa':'3','uefa.europa.conf':'848'};
+  open(row,profileLeagueIds[espnCode]||'203');
  });
  function hide(){panel.hidden=true;trigger.setAttribute('aria-expanded','false');document.body.style.overflow='';previousFocus?.focus();}
  trigger.addEventListener('click',()=>{previousFocus=document.activeElement;panel.hidden=false;trigger.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';input.value='';draw();loadDirectory();input.focus();});
