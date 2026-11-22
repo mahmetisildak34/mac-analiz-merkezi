@@ -5,3 +5,5 @@ test('main page loads real match-card favorites module',()=>{assert.match(html,/
 test('favorites share persisted keys with product hub and support remove',()=>{assert.match(js,/mam-product-hub-v1/);assert.match(js,/favoriteMatches/);assert.match(js,/favoriteTeams/);assert.match(js,/data-mam-remove-match/);assert.match(js,/data-mam-remove-team/);});
 test('favorites DOM observer avoids recursive text writes',()=>{assert.match(js,/button\.textContent!==labelText/);assert.match(js,/MutationObserver/);});
 test('main favorites JavaScript parses',()=>{const check=spawnSync(process.execPath,['--check','--input-type=module'],{input:js,encoding:'utf8'});assert.equal(check.status,0,check.stderr);});
+
+test('fixture favorite buttons use identified match action with team IDs',()=>{assert.match(js,/button\.predBtn\[data-id\]/);assert.match(js,/button\.lineupBtn\[data-id\]/);assert.match(js,/if\(!id\)return;/);});
