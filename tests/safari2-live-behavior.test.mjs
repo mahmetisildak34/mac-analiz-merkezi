@@ -40,3 +40,17 @@ test('Today live count excludes stale labels using production predicate',()=>{
  const matches=[fixture('LIVE','2026-11-20T12:00:00Z'),fixture('2H','2026-11-22T13:00:00Z'),fixture('FT','2026-11-22T12:00:00Z')];
  assert.equal(matches.filter(m=>ctx.mamIsCrediblyLive(m,now)).length,1);
 });
+
+test('recent update cannot revive a completed fixture',()=>{
+ assert.equal(ctx.mamIsCrediblyLive(fixture('FT','2026-11-22T09:00:00Z','2026-11-22T14:59:00Z',120),now),false);
+});
+test('future kickoff cannot be live from an erroneous LIVE label',()=>{
+ assert.equal(ctx.mamIsCrediblyLive(fixture('LIVE','2026-11-22T17:00:00Z'),now),false);
+});
+test('missing kickoff is not proof of a live fixture',()=>{
+ assert.equal(ctx.mamIsCrediblyLive(fixture('LIVE',''),now),false);
+});
+test('provider update must not be in the future or older than twenty minutes',()=>{
+ assert.equal(ctx.mamIsCrediblyLive(fixture('P','2026-11-22T09:00:00Z','2026-11-22T15:01:00Z',120),now),false);
+ assert.equal(ctx.mamIsCrediblyLive(fixture('P','2026-11-22T09:00:00Z','2026-11-22T14:39:00Z',120),now),false);
+});
