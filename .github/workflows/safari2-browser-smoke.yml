@@ -10,7 +10,7 @@ on:
       - .github/workflows/safari2-browser-smoke.yml
 jobs:
   offline-mobile-browsers:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     permissions:
       contents: read
