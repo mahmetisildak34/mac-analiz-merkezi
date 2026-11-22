@@ -15,7 +15,7 @@ export function teamProfile(team,fixtures,{now=Date.now()}={}){
  if(!team?.id||!Array.isArray(fixtures)||!Number.isFinite(now))throw new TypeError('Invalid team profile');
  const id=String(team.id),games=fixtures.filter(m=>String(m.homeTeamId)===id||String(m.awayTeamId)===id);
  const past=games.filter(m=>['FT','AET','PEN'].includes(m.status)).sort((a,b)=>Date.parse(b.kickoff)-Date.parse(a.kickoff));
- const future=games.filter(m=>Number.isFinite(Date.parse(m.kickoff))&&Date.parse(m.kickoff)>now&&!['FT','AET','PEN'].includes(m.status)).sort((a,b)=>Date.parse(a.kickoff)-Date.parse(b.kickoff));
+ const future=games.filter(m=>Number.isFinite(Date.parse(m.kickoff))&&Date.parse(m.kickoff)>now&&!['FT','AET','PEN','PST','POSTPONED','CANC','CANCELLED','ABD','ABANDONED'].includes(String(m.status).toUpperCase())).sort((a,b)=>Date.parse(a.kickoff)-Date.parse(b.kickoff));
  const form=past.slice(0,5).map(m=>{const home=String(m.homeTeamId)===id;const a=m.homeGoals,b=m.awayGoals;if(!Number.isSafeInteger(a)||!Number.isSafeInteger(b))return '?';return a===b?'D':(home?a>b:b>a)?'W':'L';});
  return {team,form,past,future};
 }
