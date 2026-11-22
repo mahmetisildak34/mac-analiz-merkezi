@@ -193,3 +193,11 @@ test('ESPN summary plays survive empty event arrays and navigation covers visibl
  assert.deepEqual(mobileNavigation('today').filter(x=>x.active).map(x=>x.id),['today']);
  assert.ok(mobileNavigation('teams').some(x=>x.id==='teams'&&x.ariaCurrent==='page'));
 });
+
+test('published ESPN standings preserve team name when displayName is absent',async()=>{
+ const {parseEspnStandings}=await import('../mobile/product-features.mjs');
+ const groups=parseEspnStandings({standings:{entries:[{team:{id:'34',name:'Fenerbahçe'},stats:[{name:'points',value:27}]}]}});
+ assert.equal(groups[0].rows[0].name,'Fenerbahçe');
+ assert.equal(groups[0].rows[0].points,27);
+ assert.equal(groups[0].rows[0].played,null);
+});
