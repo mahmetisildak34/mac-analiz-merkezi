@@ -30,9 +30,9 @@ test('live, finished and stale kickoff never count as future unplayed',()=>{
  assert.equal(sandbox.mamIsFutureUnplayed(fixture('2026-11-22T15:00:00Z','LIVE'),now),false);
  assert.equal(sandbox.mamIsFutureUnplayed(fixture('2026-11-22T15:00:00Z','FT'),now),false);
 });
-test('Today counters use selected day only',()=>{
+test('Today counters count only upcoming fixtures in the All tab',()=>{
  assert.match(html,/const dayMatches=allMatches\.filter\(m=>mamIstanbulDay\(m\.fixture\?\.date\)===selectedDay\)/);
- assert.match(html,/const counts=\{all:dayMatches\.length,live:dayMatches\.filter\(m=>mamIsCrediblyLive\(m,mamNow\)\)\.length/);
+ assert.match(html,/const counts=\{all:dayMatches\.filter\(m=>mamIsFutureUnplayed\(m,mamNow\)\)\.length,live:dayMatches\.filter\(m=>mamIsCrediblyLive\(m,mamNow\)\)\.length/);
  assert.match(html,/upcoming:dayMatches\.filter\(m=>mamIsFutureUnplayed\(m,mamNow\)\)/);
 });
 test('live and Today remain separate screen filters',()=>{
