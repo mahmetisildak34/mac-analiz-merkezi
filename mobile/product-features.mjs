@@ -72,7 +72,7 @@ export function isLiveMatch(match){
 }
 /** Calendar-day match grouping uses Istanbul, never UTC date slicing. */
 export function isIstanbulToday(match,now=Date.now()){
- const kickoff=Date.parse(match?.kickoff??'');
+ const kickoff=Date.parse(match?.kickoff??match?.date??match?.fixture?.date??'');
  if(!Number.isFinite(kickoff)||!Number.isFinite(now))return false;
  const day=t=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(t);
  return day(kickoff)===day(now);
