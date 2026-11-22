@@ -119,7 +119,7 @@ test("cached real-result history contributes to favorite team form without provi
 });
 
 test("PWA install metadata and static shell assets are served",async({page})=>{
- await page.setViewportSize({width:390,height:844});
+ await page.unroute("**/*"); // Playwright routing bypasses service-worker navigation interception.\n await page.setViewportSize({width:390,height:844});
  await page.goto("/",{waitUntil:"domcontentloaded"});
  expect(await page.locator('link[rel="manifest"]').getAttribute("href")).toBe("./manifest.webmanifest");
  const manifest=await page.request.get("/manifest.webmanifest");
