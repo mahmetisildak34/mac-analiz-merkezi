@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {toggleFavorite,favoriteMatches,favoriteTeams,teamProfile,matchDetails,leagueStandings,searchFootball,notificationCandidates,mobileNavigation} from '../mobile/product-features.mjs';
+import {toggleFavorite,favoriteMatches,favoriteTeams,teamProfile,matchDetails,leagueStandings,searchFootball,notificationCandidates,mobileNavigation,isIstanbulToday} from '../mobile/product-features.mjs';
 const teams=[{id:'1',name:'Fenerbahçe'},{id:'2',name:'Galatasaray'},{id:'3',name:'Beşiktaş'}];
 const match={id:'m1',homeTeamId:'1',awayTeamId:'2',homeTeamName:'Fenerbahçe',awayTeamName:'Galatasaray',homeGoals:2,awayGoals:1,status:'FT',kickoff:'2026-11-21T15:00:00Z'};
 test('favorites toggle without mutating original',()=>{const ids=['x'];assert.deepEqual(toggleFavorite(ids,'y'),['x','y']);assert.deepEqual(toggleFavorite(ids,'x'),[]);assert.deepEqual(ids,['x']);});
@@ -25,4 +25,12 @@ test('team profile excludes postponed cancelled and abandoned fixtures from upco
  const fixtures=['PST','POSTPONED','CANC','CANCELLED','ABD','ABANDONED','SCHEDULED'].map((status,i)=>({...match,id:'future-'+i,status,kickoff:'2026-11-23T15:00:00Z'}));
  const profile=teamProfile(teams[0],fixtures,{now});
  assert.deepEqual(profile.future.map(m=>m.status),['SCHEDULED']);
+});
+
+test('Istanbul today accepts raw ESPN date and API fixture date across midnight',()=>{
+ const now=Date.parse('2026-11-22T22:30:00Z');
+ assert.equal(isIstanbulToday({date:'2026-11-22T22:15:00Z'},now),true);
+ assert.equal(isIstanbulToday({fixture:{date:'2026-11-22T22:15:00Z'}},now),true);
+ assert.equal(isIstanbulToday({date:'2026-11-22T20:15:00Z'},now),false);
+ assert.equal(isIstanbulToday({date:'not-a-date'},now),false);
 });
