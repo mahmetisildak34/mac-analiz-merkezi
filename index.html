@@ -2967,7 +2967,11 @@ async function loadMatches(){
     const ah=teamKey(a.teams?.home?.name),aa=teamKey(a.teams?.away?.name);
     const bh=teamKey(b.teams?.home?.name),ba=teamKey(b.teams?.away?.name);
     // IDs from separate feeds can collide; never merge explicitly conflicting teams.
-    if(aId&&bId&&aId===bId)return !(ah&&bh&&ah!==bh||aa&&ba&&aa!==ba);
+    if(aId&&bId&&aId===bId){
+    if(ah&&bh&&ah!==bh||aa&&ba&&aa!==ba)return false;
+    const at=Date.parse(a.fixture?.date||""),bt=Date.parse(b.fixture?.date||"");
+    return !Number.isFinite(at)||!Number.isFinite(bt)||Math.abs(at-bt)<=10*60*1000;
+   }
     if(!ah||!aa||!bh||!ba||ah!==bh||aa!==ba)return false;
     const at=Date.parse(a.fixture?.date||""),bt=Date.parse(b.fixture?.date||"");
     return Number.isFinite(at)&&Number.isFinite(bt)&&Math.abs(at-bt)<=10*60*1000;
@@ -4760,7 +4764,11 @@ function mamDeduplicateFixtures(matches){
   const homeA=normalizeTeam(a?.teams?.home?.name),awayA=normalizeTeam(a?.teams?.away?.name);
   const homeB=normalizeTeam(b?.teams?.home?.name),awayB=normalizeTeam(b?.teams?.away?.name);
   // An identical ID is not enough when both providers explicitly disagree on the teams.
-  if(idA&&idB&&idA===idB)return !(homeA&&homeB&&homeA!==homeB||awayA&&awayB&&awayA!==awayB);
+  if(idA&&idB&&idA===idB){
+   if(homeA&&homeB&&homeA!==homeB||awayA&&awayB&&awayA!==awayB)return false;
+   const timeA=Date.parse(a?.fixture?.date||""),timeB=Date.parse(b?.fixture?.date||"");
+   return !Number.isFinite(timeA)||!Number.isFinite(timeB)||Math.abs(timeA-timeB)<=10*60*1000;
+  }
   if(!leagueA||!leagueB)return false;
   if(!homeA||!awayA||homeA!==homeB||awayA!==awayB)return false;
   const first=Date.parse(a?.fixture?.date||""),second=Date.parse(b?.fixture?.date||"");
