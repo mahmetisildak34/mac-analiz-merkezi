@@ -4,10 +4,12 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const source=readFileSync(new URL('../safari2-favorites-search.js',import.meta.url),'utf8');
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-test('favorites and search are mounted without changing the six bottom tabs',()=>{
+test('favorites are mounted with a dedicated seventh bottom navigation destination',()=>{
  assert.match(html,/<script src="\.\/safari2-favorites-search\.js" defer><\/script>/);
  assert.match(html,/data-safari-fixture-id="\$\{esc\(f\.id\)\}"/);
- assert.equal((html.match(/data-mam-bottom="(?:home|fixtures|analysis|standings|coupon|special)"/g)||[]).length>=6,true);
+ assert.equal((html.match(/data-mam-bottom="(?:home|fixtures|analysis|standings|coupon|special|favorites)"/g)||[]).length,7);
+ assert.match(source,/id="mamSafariFavoritesScreen"/);
+ assert.match(source,/function openFavorites\(\)/);
 });
 test('favorite storage uses a namespaced key and deduplicates loaded records',()=>{
  assert.match(source,/mam_safari2_favorites_v1/);
