@@ -4523,6 +4523,7 @@ function activateMamFixture(article){
  const analysisButton=article.querySelector(".predBtn:not(.liveAnalyzeBtn)");
  const liveStatsButton=article.querySelector(".liveStatsBtn");
  openMamMatchDetail(article);
+ if(article.querySelector(".finishedStatsBtn"))return;
  // Canlı maçta detay ekranı doğrudan istatistik sekmesini açar ve veriyi yükler.
  // Böylece kullanıcı ayrıca gizli bir düğme aramak zorunda kalmaz.
  if(liveStatsButton){
