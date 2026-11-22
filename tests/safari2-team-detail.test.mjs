@@ -9,7 +9,7 @@ test('team form uses only completed fixtures with valid nonnegative integer scor
 test('last five and last ten summaries count W D L and goals without filling missing results',()=>{
  assert.match(source,/teamSummary\(item,5\)/);
  assert.match(source,/teamSummary\(item,10\)/);
- assert.match(source,/if\(gf>ga\)wins\+\+;else if\(gf===ga\)draws\+\+;else losses\+\+/);
+ assert.match(source,/if\(gf>ga\)\{wins\+\+;split\.wins\+\+\}else if\(gf===ga\)\{draws\+\+;split\.draws\+\+\}else\{losses\+\+;split\.losses\+\+\}/);
  assert.match(source,/scored\+=gf;conceded\+=ga/);
 });
 test('team profile retains home and away breakdown and Istanbul time',()=>{
