@@ -22,8 +22,8 @@ jobs:
           persist-credentials: false
       - name: App integrity and inline JavaScript checks
         run: node test/app-integrity.test.cjs
-      - name: Trusted Poisson v1.2 acceptance tests
-        run: node --test tests/trusted-goal-poisson.test.mjs tests/archive-poisson-client.test.mjs
+      - name: Frontend regression tests
+        run: node --test tests/*.test.*
       - run: npm install --no-save --ignore-scripts playwright@1.51.1
       - run: npx playwright install --with-deps "$MAM_BROWSER"
       - name: Offline browser checks
@@ -32,36 +32,39 @@ jobs:
           node <<'JS'
           const {chromium,webkit,devices}=require('playwright');
           const fs=require('fs');
+          const http=require('http');
+          const origin='http://127.0.0.1:4173';
+          const assets=new Map([
+            ['/index.html','text/html; charset=utf-8'],
+            ...['half-goal-algorithm.js','trusted-goal-poisson.js','archive-poisson-client.js'].map(name=>['/'+name,'application/javascript; charset=utf-8'])
+          ]);
           (async()=>{
             const engine=process.env.MAM_BROWSER;
             const browser=await {chromium,webkit}[engine].launch();
             const device=devices[engine==='webkit'?'iPhone 13':'Pixel 7'];
             const results=[];
-            // All requests are intercepted; WebKit must remain network-enabled for navigation.
-            // The catch-all route below aborts every non-fixture request.
+            const server=http.createServer((request,response)=>{
+              const type=assets.get(request.url);
+              if(request.method!=='GET'||!type){response.writeHead(404).end();return;}
+              response.writeHead(200,{'Content-Type':type}).end(fs.readFileSync(request.url.slice(1)));
+            });
+            await new Promise(resolve=>server.listen(4173,'127.0.0.1',resolve));
             try {
               for(const width of [320,360,375,390,414,430]){
-                const context=await browser.newContext({...device,viewport:{width,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block',offline:false});
+                const context=await browser.newContext({...device,viewport:{width,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
                 const page=await context.newPage();
-                await context.route('**/*',async route=>{
-                  const url=new URL(route.request().url());
-                  const local={'/index.html':['index.html','text/html; charset=utf-8'],'/half-goal-algorithm.js':['half-goal-algorithm.js','application/javascript; charset=utf-8'],'/trusted-goal-poisson.js':['trusted-goal-poisson.js','application/javascript; charset=utf-8'],'/archive-poisson-client.js':['archive-poisson-client.js','application/javascript; charset=utf-8']};
-                  const asset=local[url.pathname];
-                  if(url.origin==='https://mam-test.invalid'&&route.request().method()==='GET'&&!url.search&&asset){
-                    return route.fulfill({status:200,contentType:asset[1],body:fs.readFileSync(asset[0],'utf8')});
-                  }
-                  return route.abort();
-                });
+                // All service calls are intercepted. Only the local asset server is reachable.
+                await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
                 // Synthetic authentication only inside this offline browser context.
-                await context.addInitScript(()=>{if(location.origin==='https://mam-test.invalid')localStorage.setItem('mam_session_token','offline-test-token');});
+                await context.addInitScript(localOrigin=>{if(location.origin===localOrigin)localStorage.setItem('mam_session_token','offline-test-token');},origin);
                 await context.route('https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/auth/check',route=>{
-                  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'https://mam-test.invalid','access-control-allow-headers':'authorization','access-control-allow-methods':'GET, OPTIONS'}});
-                  if(route.request().method()==='GET'&&route.request().headers().authorization==='Bearer offline-test-token')return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'https://mam-test.invalid'},body:JSON.stringify({ok:true})});
+                  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':origin,'access-control-allow-headers':'authorization','access-control-allow-methods':'GET, OPTIONS'}});
+                  if(route.request().method()==='GET'&&route.request().headers().authorization==='Bearer offline-test-token')return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':origin},body:JSON.stringify({ok:true})});
                   return route.abort();
                 });
                 const errors=[];
                 page.on('pageerror',e=>errors.push(e.stack || e.message));
-                await page.goto('https://mam-test.invalid/index.html',{waitUntil:'domcontentloaded'});
+                await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
                 await page.waitForTimeout(500);
                 const metrics=await page.evaluate(()=>({viewport:innerWidth,scroll:document.documentElement.scrollWidth,title:document.title,favorites:!!document.querySelector('#mamFavoritesOpen')}));
                 await page.screenshot({path:'mobile-results/'+width+'.png',fullPage:true});
@@ -179,11 +182,26 @@ jobs:
                     };
                   }));
 
+                  for(const mode of ['today','live','finished','upcoming','standings']){
+                    const navigation=mode==='standings'?'[data-mam-bottom="standings"]':'[data-mam-action="'+mode+'"]';
+                    await page.locator(navigation).click({timeout:5000});
+                    await page.locator('main.mam-screen-'+mode).waitFor({state:'visible',timeout:5000});
+                    checks['screen_'+mode]=await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth);
+                    await page.screenshot({path:'mobile-results/'+width+'-'+mode+'.png'});
+                    await page.locator('#mamSectionBack').click({timeout:5000});
+                    await page.locator('main.mam-screen-home').waitFor({state:'visible',timeout:5000});
+                  }
+                  checks.backHome=await page.locator('main.mam-screen-home').isVisible();
+                  const oldDate=await page.locator('#date').inputValue();
+                  await page.locator('[data-day-offset="1"]').click({timeout:5000});
+                  checks.dateChanged=oldDate!==(await page.locator('#date').inputValue());
+                  const nav=await page.locator('.mam-bottom-nav').boundingBox();
+                  checks.navigationWithinViewport=Boolean(nav&&nav.x>=0&&nav.x+nav.width<=width+1&&nav.y>=0&&nav.y+nav.height<=845);
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===61&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===69&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
-            } finally {await browser.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
+            } finally {await browser.close();server.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}
             if(results.length!==6||results.some(r=>!r.pass))process.exitCode=1;
           })().catch(e=>{console.error(e);process.exitCode=1});
           JS

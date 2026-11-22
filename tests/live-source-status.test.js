@@ -17,11 +17,11 @@ test("live screen accepts supported provider live states",()=>{
 
 test("ESPN scoreboard maps in-progress and halftime events to live states",()=>{
  assert.match(html,/const live=!completed&&\(state==="in"\|\|state==="live"\|\|state==="inprogress"\|\|\/in progress\|halftime\|live\|first half\|second half/);
- assert.match(html,/const statusShort=completed\?"FT":halftime\?"HT":live\?"LIVE":"NS"/);
+ assert.match(html,/completed\?"FT":halftime\?"HT":live\?"LIVE":"NS"/);
 });
 
 test("ESPN live events preserve score, team identity and clock",()=>{
- const start=html.indexOf("async function espnFixtures");
+ const start=html.indexOf("function mamEspnScoreboardMatches");
  const end=html.indexOf("\n}\n",start);
  const block=html.slice(start,end);
  assert.match(block,/goals:\{home:toGoals\(home\.score\),away:toGoals\(away\.score\)\}/);
@@ -46,4 +46,23 @@ test("ESPN archive write cannot block rendering of its live matches",()=>{
 test("fallback providers normalize only active match states",()=>{
  assert.match(html,/footballDataLiveFixtures\(\)[\s\S]*?status:\{short:String\(m\.status\|\|"IN_PLAY"\)/);
  assert.match(html,/\["HT","ET","P","SUSP","LIVE"\]\.includes\(short\)/);
+});
+
+test("ESPN unavailable statuses cannot enter today or finished as scheduled or completed",()=>{
+ const start=html.indexOf("function mamEspnScoreboardMatches");
+ const end=html.indexOf("\n}\n",start);
+ const parse=vm.runInNewContext(html.slice(start,end+2)+";mamEspnScoreboardMatches",{
+  mamEspnClock:()=>({elapsed:null,displayClock:""})
+ });
+ const event=(name,state,completed,date="2026-11-23T12:00:00Z",detail="")=>({
+  id:123,date,status:{type:{name,state,completed,detail}},
+  competitions:[{competitors:[{homeAway:"home",team:{id:1,name:"A"}},{homeAway:"away",team:{id:2,name:"B"}}]}]
+ });
+ const fixtures=parse([
+  event("STATUS_POSTPONED","pre",false),event("STATUS_CANCELED","post",true),
+  event("STATUS_SUSPENDED","in",false),event("STATUS_SCHEDULED","pre",false),
+  event("STATUS_HALFTIME","in",false,undefined,"Halftime"),event("STATUS_FULL_TIME","post",true),
+  event("STATUS_SCHEDULED","pre",false,"invalid")
+ ],"203",{slug:"tur.1"});
+ assert.deepEqual(Array.from(fixtures,m=>m.fixture.status.short),["PST","CANC","SUSP","NS","HT","FT"]);
 });

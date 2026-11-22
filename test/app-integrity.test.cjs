@@ -139,3 +139,5 @@ for (const match of recoveredStatistics) {
   }
 }
 console.log("PASS: 45 recovered Süper Lig fixtures match their ESPN evidence.");
+
+assert.match(html,/const date=mamScreenMode==="today"\?mamIstanbulDateString\(\):\$\("date"\)\.value/, "Today must request the Istanbul date regardless of the date picker");
