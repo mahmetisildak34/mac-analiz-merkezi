@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Maç Analiz Merkezi",
+    "slug": "mac-analiz-merkezi",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "../pwa/icon-512.png",
+    "splash": {
+      "image": "../pwa/icon-512.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#101827"
+    },
+    "ios": { "bundleIdentifier": "com.macanalizmerkezi.app", "buildNumber": "1" },
+    "android": { "package": "com.macanalizmerkezi.app", "versionCode": 1 }
+  }
+}
