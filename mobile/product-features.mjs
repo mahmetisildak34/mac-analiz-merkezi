@@ -22,7 +22,8 @@ export function teamProfile(team,fixtures,{now=Date.now()}={}){
 export function matchDetails(match){
  if(!match?.id)throw new TypeError('Invalid match');
  const minute=e=>{const raw=e?.minute??e?.time?.elapsed??e?.clock?.displayValue??e?.clock;const n=typeof raw==='string'&&/^\d{1,3}:\d{2}$/.test(raw)?Number(raw.split(':')[0])+Number(raw.split(':')[1])/60:Number(raw);return raw===null||raw===undefined||raw===''||!Number.isFinite(n)?Infinity:n;};
- const sourceEvents=Array.isArray(match.events)?match.events:Array.isArray(match.events?.response)?match.events.response:Array.isArray(match.events?.plays)?match.events.plays:Array.isArray(match.plays)?match.plays:[];
+ const eventSources=[match.events,match.events?.response,match.events?.plays,match.plays];
+ const sourceEvents=eventSources.find(x=>Array.isArray(x)&&x.length>0)??eventSources.find(Array.isArray)??[];
  const events=[...sourceEvents].sort((a,b)=>minute(a)-minute(b));
  const lineups=Array.isArray(match.lineups)?match.lineups:Array.isArray(match.lineups?.response)?match.lineups.response:Array.isArray(match.rosters)?match.rosters:Array.isArray(match.boxscore?.players)?match.boxscore.players:[];
  return {match,events,lineups,statistics:match.statistics??null,hasVerifiedStatistics:match.statistics?.independentCrossSourceVerification===true};
@@ -50,7 +51,7 @@ export function notificationCandidates(fixtures,favoriteIds,{now=Date.now(),wind
  const ids=new Set(favoriteIds);return fixtures.filter(m=>ids.has(String(m.id))&&Number.isFinite(Date.parse(m.kickoff))&&Date.parse(m.kickoff)>=now&&Date.parse(m.kickoff)<=now+windowMs).map(m=>({id:String(m.id),type:'kickoff_soon',kickoff:m.kickoff}));
 }
 export function mobileNavigation(active){
- const tabs=['home','live','favorites','leagues','search','settings'];return tabs.map(id=>({id,active:id===active,ariaCurrent:id===active?'page':undefined}));
+ const tabs=['home','live','today','favorites','teams','leagues','search','settings'];return tabs.map(id=>({id,active:id===active,ariaCurrent:id===active?'page':undefined}));
 }
 
 /** Parse ESPN's published standings without recomputing ranks or inventing missing values. */
