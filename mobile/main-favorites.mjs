@@ -52,7 +52,7 @@ function setPanel(open){
   panel.scrollIntoView({block:'start'});
  }
 }
-for(const control of [btn,bottom])control?.addEventListener('click',()=>setPanel(panel.hidden));
+for(const control of [btn,bottom])control?.addEventListener('click',event=>{if(control===bottom)event.stopPropagation();setPanel(panel.hidden);});
 document.querySelector('.mam-bottom-nav')?.addEventListener('click',event=>{if(event.target.closest('[data-mam-bottom]'))setPanel(false);});
 function sync(){state=read();refresh();}
 window.addEventListener('pageshow',sync);
