@@ -3316,7 +3316,7 @@ function mamNotifyLiveGoalChanges(matches){
   const home=Number(rawHome),away=Number(rawAway);
   if(!Number.isInteger(home)||!Number.isInteger(away)||home<0||away<0)continue;
   const old=previous[id];
-  if(old&&Number.isFinite(Number(old.home))&&Number.isFinite(Number(old.away))){
+  if(old&&old.home!=null&&old.away!=null&&old.home!==""&&old.away!==""&&Number.isInteger(Number(old.home))&&Number.isInteger(Number(old.away))&&Number(old.home)>=0&&Number(old.away)>=0){
    if(home>Number(old.home))notifications.push({match,side:"home",score:home+" – "+away});
    if(away>Number(old.away))notifications.push({match,side:"away",score:home+" – "+away});
   }
