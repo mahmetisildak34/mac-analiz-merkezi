@@ -1612,7 +1612,7 @@ button{transition:filter .15s ease,transform .15s ease}
  <button type="button" class="mam-nav-item" data-mam-nav="coupon"><span>🎟</span><span>Kupon oluşturucu<small>Analizlerinden seçim oluştur</small></span></button>
  <button type="button" class="mam-nav-item" data-mam-nav="analysis"><span>▥</span><span>Maç analiz merkezi<small>İstatistik, kadro ve tahminler</small></span></button>
  <button type="button" class="mam-nav-item" data-mam-nav="special"><span aria-hidden="true">★</span><span>Özel analizler</span></button>
- <button type="button" class="mam-nav-item" data-mam-nav="search"><span aria-hidden="true">⌕</span><span>Takım ara</span></button>
+ <button type="button" class="mam-nav-item" data-mam-nav="search"><span aria-hidden="true">⌕</span><span>Maç listesi</span></button>
  <div class="mam-drawer-foot">Maç verileri farklı sağlayıcılardan alınır. Tahminler kesinlik veya garanti içermez.</div>
 </nav>
 
@@ -6734,6 +6734,7 @@ async function analyze(button){
   if(action==="fixtures"){setMamScreen("upcoming");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});}
   if(action==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için yukarıdan bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});}
   if(action==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
+  if(action==="search"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
  }));
  drawer.querySelectorAll("[data-mam-nav]").forEach(button=>button.addEventListener("click",async()=>{
