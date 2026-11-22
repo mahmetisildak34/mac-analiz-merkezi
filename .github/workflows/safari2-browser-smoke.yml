@@ -8,9 +8,11 @@ on:
       - playwright.safari2.config.cjs
       - tests/browser/safari2-mobile.spec.cjs
       - index.html
+      - manifest.webmanifest
+      - service-worker.js
+      - icons/**
       - safari2-favorites-search.js
-      - mobile/App.js
-      - mobile/match-rules.js
+      - mobile/**
       - .github/workflows/safari2-browser-smoke.yml
 jobs:
   offline-mobile-browsers:
