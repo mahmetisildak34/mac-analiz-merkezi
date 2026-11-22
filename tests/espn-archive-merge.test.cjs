@@ -18,3 +18,7 @@ test('same ID, same teams and league remains matchable', () => assert.equal(same
 test('cross-provider IDs match on teams and nearby kickoff', () => assert.equal(sameFixture(fixture('espn-tur.1-2',203),fixture(123,203,'Galatasaray','2026-11-22T16:05:00Z')),true));
 test('different opponents never match across IDs', () => assert.equal(sameFixture(fixture(1,203),fixture(2,203,'Beşiktaş')),false));
 test('kickoff difference above ten minutes prevents cross-ID merge', () => assert.equal(sameFixture(fixture(1,203),fixture(2,203,'Galatasaray','2026-11-22T16:11:00Z')),false));
+
+test('same ID and teams on different days must not merge archive records', () => {
+ assert.equal(sameFixture(fixture(801,203),fixture(801,203,'Galatasaray','2026-11-23T16:00:00Z')),false);
+});
