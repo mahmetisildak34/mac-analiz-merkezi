@@ -12,9 +12,23 @@ test("live screen accepts supported provider live states",()=>{
  for(const state of ["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"])assert.ok(states.includes(state),state+" must be accepted");
 });
 
-test("ESPN scoreboard maps in-progress and halftime events to live states",()=>{
- assert.match(html,/const live=!completed&&\(state==="in"\|\|state==="live"\|\|state==="inprogress"\|\|\/in progress\|halftime\|live\|first half\|second half/);
- assert.match(html,/const statusShort=completed\?"FT":halftime\?"HT":live\?"LIVE":"NS"/);
+test("ESPN lists only provider-declared in-progress and halftime events as live",()=>{
+ const source=html.match(/function mamEspnStatus\([\s\S]*?\n\}/)?.[0];
+ assert.ok(source);
+ const status=require("node:vm").runInNewContext(source+"; mamEspnStatus");
+ for(const [input,expected] of [
+  [{state:"in",name:"STATUS_IN_PROGRESS"},"LIVE"],
+  [{state:"in",name:"STATUS_HALFTIME"},"HT"],
+  [{state:"pre",detail:"Live coverage starts soon"},"NS"],
+  [{state:"post",name:"STATUS_FULL_TIME",completed:true},"FT"],
+  [{state:"post",name:"STATUS_POSTPONED",completed:true},"PST"],
+  [{state:"post",name:"STATUS_CANCELLED"},"CANC"],
+  [{state:"post",name:"STATUS_CANCELED"},"CANC"],
+  [{state:"in",name:"STATUS_ABANDONED"},"ABD"],
+  [{name:"STATUS_UNKNOWN"},"NS"]
+ ])assert.equal(status(input),expected);
+ assert.equal(status({}, {state:"in"}),"LIVE");
+ assert.equal(status({state:"in"}, {name:"STATUS_POSTPONED"}),"PST");
 });
 
 test("ESPN live events preserve score, team identity and clock",()=>{

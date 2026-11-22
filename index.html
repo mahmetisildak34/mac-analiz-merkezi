@@ -2699,9 +2699,25 @@ async function getApiFootballMatchStats(fixtureId){
  });
 }
 
+function mamEspnStatus(eventType={},competitionType={}){
+ const types=[eventType,competitionType];
+ for(const type of types){
+  const name=String(type.name||"").toUpperCase();
+  if(name==="STATUS_POSTPONED")return "PST";
+  if(["STATUS_CANCELED","STATUS_CANCELLED"].includes(name))return "CANC";
+  if(["STATUS_ABANDONED","STATUS_ABANDONED_GAME"].includes(name))return "ABD";
+ }
+ const state=String(eventType.state||competitionType.state||"").toLowerCase();
+ if(state==="post"||types.some(type=>type.completed===true))return "FT";
+ if(!["in","live","inprogress"].includes(state))return "NS";
+ const halftime=types.some(type=>/^STATUS_HALFTIME$/i.test(type.name||"")||
+  /^(half[ -]?time|interval)$/i.test(type.detail||type.shortDetail||""));
+ return halftime?"HT":"LIVE";
+}
+
 async function espnFixtures(date,includeAllLeagues=false){
  const selected=$("league").value;
- const espnCacheKey="mam_espn_scoreboard_cache_v1_"+String(date)+"_"+(includeAllLeagues||selected==="all"?"all":selected);
+ const espnCacheKey="mam_espn_scoreboard_cache_v2_"+String(date)+"_"+(includeAllLeagues||selected==="all"?"all":selected);
  try{const cached=JSON.parse(localStorage.getItem(espnCacheKey)||"null");if(cached?.time&&Array.isArray(cached.matches)&&Date.now()-cached.time<(includeAllLeagues?15000:45000))return cached.matches;}catch(_){}
  const rawTargets=(includeAllLeagues||selected==="all")
   ? Object.entries(ESPN_LEAGUES)
@@ -2723,18 +2739,14 @@ async function espnFixtures(date,includeAllLeagues=false){
    try{
     const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:espnDate,limit:500}));
     const events=Array.isArray(payload.events)?payload.events:[];
-    results[index]={status:"fulfilled",value:events.map(event=>{
+    results[index]={status:"fulfilled",value:events.filter(event=>event?.id!=null&&String(event.id).trim()).map(event=>{
      const competition=(event.competitions||[])[0]||{};
      const competitors=competition.competitors||[];
      const home=competitors.find(team=>team.homeAway==="home")||{};
      const away=competitors.find(team=>team.homeAway==="away")||{};
      const eventType=event.status?.type||{},competitionType=competition.status?.type||{};
-     const state=String(eventType.state||competitionType.state||"").toLowerCase();
      const detail=String(eventType.detail||competitionType.detail||eventType.name||competitionType.name||"");
-     const completed=eventType.completed===true||competitionType.completed===true||state==="post";
-     const halftime=/half[ -]?time|halftime|end of (the )?first half|interval/i.test(detail);
-     const live=!completed&&(state==="in"||state==="live"||state==="inprogress"||/in progress|halftime|live|first half|second half|extra time|penalty/i.test(detail));
-     const statusShort=completed?"FT":halftime?"HT":live?"LIVE":"NS";
+     const statusShort=mamEspnStatus(eventType,competitionType);
      const clock=mamEspnClock(event);
      const toGoals=value=>{
       if(value===null||value===undefined||value==="")return null;
@@ -2742,7 +2754,7 @@ async function espnFixtures(date,includeAllLeagues=false){
      };
      const teamId=value=>{const n=Number(value);return Number.isFinite(n)&&n!==0?n:-1;};
      return {
-      fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||date+"T12:00:00Z",status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock||detail}},
+      fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||competition.date||null,status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock||detail}},
       league:{id:leagueId,name:league.name,country:league.country},
       teams:{
        home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||home.team?.logos?.[0]?.url||""},
@@ -2761,7 +2773,7 @@ async function espnFixtures(date,includeAllLeagues=false){
   throw new Error("ESPN sonuçları ("+failures.length+"/"+targets.length+" lig isteği başarısız): "+failures.slice(0,4).map((x,index)=>String(x.reason?.message||x.reason)).join(" | "));
  }
  const sorted=matches.sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
- try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),matches:sorted}));}catch(_){}
+ if(!failures.length)try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),matches:sorted}));}catch(_){}
  return sorted;
 }
 
@@ -3340,8 +3352,8 @@ async function loadLiveMatchesNow(){
    fallbackSchedule=fallback.slice();
    // Türkiye saatiyle gece yarısından sonra, UTC/ESPN takviminde bir önceki güne ait
    // hâlâ devam eden maçlar yeni gün scoreboard sorgusunda görünmeyebilir.
-   // Bugün canlı maç bulunmadıysa 00:00–05:59 arasında dünkü ESPN skor tabelasını da tara.
-   if(!fallback.some(isLive)){
+   // 00:00–05:59 arasında dünkü ESPN skor tabelasını da tara.
+   {
     const localHour=Number(new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Istanbul",hour:"2-digit",hourCycle:"h23"}).format(new Date()));
     if(Number.isFinite(localHour)&&localHour<6){
      const previousDateObj=new Date(date+"T00:00:00Z");
@@ -3350,7 +3362,8 @@ async function loadLiveMatchesNow(){
      try{
       const previousDay=await espnFixtures(previousDate,true);
       const previousLive=previousDay.filter(isLive);
-      if(previousLive.length)fallback=[...fallback,...previousLive];
+      const currentIds=new Set(fallback.map(match=>match.fixture.id));
+      fallback=[...fallback,...previousLive.filter(match=>!currentIds.has(match.fixture.id))];
       fallbackSchedule=fallback.slice();
      }catch(previousDayError){
       console.warn("Gece yarısı önceki gün ESPN canlı taraması başarısız:",previousDayError);
@@ -4978,11 +4991,7 @@ async function refreshActiveMatchScore(){
      const competitors=competition.competitors||[];
      const home=competitors.find(team=>team.homeAway==="home"),away=competitors.find(team=>team.homeAway==="away");
      const clock=mamEspnClock(event);
-     const type=event.status?.type||competition.status?.type||{};
-     const state=String(type.state||"").toLowerCase();
-     const completed=type.completed===true||state==="post";
-     const halfTime=/half.?time/i.test(String(type.detail||type.shortDetail||""));
-     const statusShort=completed||state==="post"?"FT":halfTime?"HT":state==="pre"?"NS":state==="in"||state==="live"||state==="inprogress"?"LIVE":"LIVE";
+     const statusShort=mamEspnStatus(event.status?.type??{},competition.status?.type??{});
      const existing=fresh||allMatches.find(match=>
       (source==="api"?String(match.fixture?.id||"")===rawId:String(match.league?.id||"")===leagueId&&String(match.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId)
      );
