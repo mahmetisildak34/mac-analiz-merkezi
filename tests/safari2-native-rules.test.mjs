@@ -55,8 +55,8 @@ test("native deduplication preserves separate games on different days",()=>{
  assert.equal(rules.visibleMatches([a,b,later],"live",now).length,1);
 });
 test("native UI guards stale tab responses and narrows layout without clipping",()=>{
- assert.match(app,/const requestId = \+\+latestRequest\.current/);
- assert.match(app,/requestId === latestRequest\.current/);
+ assert.match(app,/const requestId\s*=\s*\+\+latestRequest\.current/);
+ assert.match(app,/requestId\s*===\s*latestRequest\.current/);
  assert.match(app,/activeController\.current\?\.abort\(\)/);
  assert.match(app,/setStale\(true\)/);
  assert.match(app,/setMatches\(\[\]\)/);
