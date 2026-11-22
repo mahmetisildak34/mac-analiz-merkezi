@@ -1,0 +1,43 @@
+name: Expo iOS and Android bundle smoke
+on:
+  push:
+    branches:
+      - feature/safari2-mobile-ux-20261122
+    paths:
+      - mobile/**
+      - .github/workflows/mobile-expo-smoke.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  expo-bundles:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package.json
+      - name: Install Expo dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate Expo app configuration
+        run: npx expo config --type public --json > /tmp/expo-config.json
+      - name: Export iOS JavaScript bundle
+        run: npx expo export --platform ios --output-dir dist/ios
+      - name: Export Android JavaScript bundle
+        run: npx expo export --platform android --output-dir dist/android
+      - name: Upload native platform bundles
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-expo-ios-android-bundles
+          path: |
+            mobile/dist/ios
+            mobile/dist/android
+          if-no-files-found: warn
+          retention-days: 7
