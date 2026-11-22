@@ -11,7 +11,7 @@ exports.fetchFixtures = async function fetchFixtures({
  const timestamp=now instanceof Date?now.getTime():Number(now);
  if(!Number.isFinite(timestamp))throw Object.assign(new RangeError("Invalid request time"),{kind:"invalid_request"});
  const endpoint=tab==="live"?"/fixtures?live=all&timezone=Europe%2FIstanbul":
-  "/fixtures?date="+encodeURIComponent(istanbulDay(timestamp))+"&timezone=Europe%2FIstanbul";
+  "/fixtures?date="+encodeURIComponent(istanbulDay(new Date(timestamp)))+"&timezone=Europe%2FIstanbul";
  const controller=new AbortController();
  let timedOut=false,timer;
  const relay=()=>controller.abort(signal?.reason);
@@ -28,7 +28,11 @@ exports.fetchFixtures = async function fetchFixtures({
   }
   let data;
   try{data=await response.json();}
-  catch(error){throw Object.assign(new Error("Maç servisinden geçersiz JSON yanıtı alındı."),{kind:"invalid_json",cause:error});}
+  catch(error){
+   if(signal?.aborted)throw signal.reason??Object.assign(new Error("Request cancelled"),{kind:"aborted"});
+   if(timedOut)throw Object.assign(new Error("Maç verisi isteği zaman aşımına uğradı."),{kind:"timeout"});
+   throw Object.assign(new Error("Maç servisinden geçersiz JSON yanıtı alındı."),{kind:"invalid_json",cause:error});
+  }
   const errors=data?.errors;
   if(!response.ok||errors&&Object.keys(errors).length){
    const rateLimited=Boolean(errors?.rateLimit||errors?.rate_limit||response.status===429);
