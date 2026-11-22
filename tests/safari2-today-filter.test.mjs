@@ -53,3 +53,9 @@ test('Istanbul calendar handles dates around local midnight and rejects invalid 
 test('Today heading uses same canonical Istanbul day as fixture filtering',()=>{
  assert.match(html,/const todayKey=mamIstanbulDay\(new Date\(\)\.toISOString\(\)\)/);
 });
+
+test('team match history uses Istanbul timezone for displayed dates',()=>{
+ assert.match(html,/new Date\(m\.fixture\.date\)\.toLocaleDateString\("tr-TR",\{timeZone:"Europe\/Istanbul",day:"2-digit",month:"2-digit",year:"2-digit"\}\)/);
+ const kickoff=new Date('2026-11-22T21:30:00Z');
+ assert.equal(kickoff.toLocaleDateString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',year:'2-digit'}),'23.11.26');
+});
