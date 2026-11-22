@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator, SafeAreaView, ScrollView, StatusBar, StyleSheet,
   Text, TouchableOpacity, View, RefreshControl
 } from "react-native";
 
 const API_BASE = "https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api";
+const {istanbulDay, statusLabel, isCrediblyLive, visibleMatches} = require("./match-rules");
 
 export default function App() {
   const [tab, setTab] = useState("live");
@@ -12,14 +13,16 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [updated, setUpdated] = useState("");
+  const latestRequest = useRef(0);
 
   const loadMatches = useCallback(async (selectedTab = tab) => {
+    const requestId = ++latestRequest.current;
     setLoading(true);
     setError("");
     try {
       const endpoint = selectedTab === "live"
-        ? "/fixtures?live=all"
-        : "/fixtures?date=" + new Date().toISOString().slice(0, 10) + "&timezone=Europe/Istanbul";
+        ? "/fixtures?live=all&timezone=Europe/Istanbul"
+        : "/fixtures?date=" + istanbulDay(new Date()) + "&timezone=Europe/Istanbul";
       const response = await fetch(API_BASE + endpoint);
       const data = await response.json();
       if (!response.ok || (data.errors && Object.keys(data.errors).length)) {
@@ -28,31 +31,29 @@ export default function App() {
           : "Maç verisi şu anda alınamadı.";
         throw new Error(message);
       }
-      setMatches(Array.isArray(data.response) ? data.response : []);
-      setUpdated(new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }));
+      if (requestId === latestRequest.current) {
+        setMatches(visibleMatches(data.response, selectedTab, Date.now()));
+        setUpdated(new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" }));
+      }
     } catch (e) {
-      setError(e.message || "Bağlantı hatası. Tekrar deneyebilirsin.");
-      setMatches([]);
+      if (requestId === latestRequest.current) {
+        setError(e.message || "Bağlantı hatası. Tekrar deneyebilirsin.");
+        setMatches([]);
+      }
     } finally {
-      setLoading(false);
+      if (requestId === latestRequest.current) setLoading(false);
     }
   }, [tab]);
 
   useEffect(() => { loadMatches(tab); }, [tab]);
 
-  const statusText = (fixture) => {
-    const s = fixture?.status;
-    if (!s) return "—";
-    if (s.short === "HT") return "DEVRE ARASI";
-    if (s.elapsed != null) return s.elapsed + "'";
-    return s.long || s.short || "CANLI";
-  };
+  const statusText = fixture => statusLabel({fixture});
 
   const MatchCard = ({ item }) => {
     const home = item.teams?.home;
     const away = item.teams?.away;
     const goals = item.goals || {};
-    const live = ["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"].includes(item.fixture?.status?.short);
+    const live = isCrediblyLive(item);
     return (
       <View style={styles.matchCard}>
         <View style={styles.matchTop}>
@@ -154,17 +155,17 @@ const styles = StyleSheet.create({
   refreshText:{color:"#6CE0B0",fontSize:12,fontWeight:"800"},
   list:{paddingHorizontal:18,paddingBottom:30},
   matchCard:{backgroundColor:"#111A28",borderRadius:15,padding:14,marginTop:10,borderWidth:1,borderColor:"#202D3D"},
-  matchTop:{flexDirection:"row",justifyContent:"space-between",alignItems:"center"},
-  league:{color:"#8E9BB0",fontSize:10,fontWeight:"700",flex:1},
-  matchStatus:{color:"#AAB4C3",fontSize:10,fontWeight:"800"},
+  matchTop:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",gap:8},
+  league:{color:"#8E9BB0",fontSize:10,fontWeight:"700",flex:1,minWidth:0,flexShrink:1},
+  matchStatus:{color:"#AAB4C3",fontSize:10,fontWeight:"800",flexShrink:0,textAlign:"right",fontVariant:["tabular-nums"]},
   liveStatus:{color:"#FF6B78"},
   teamsRow:{flexDirection:"row",alignItems:"center",marginTop:16,marginBottom:14},
-  team:{flex:1},
+  team:{flex:1,minWidth:0},
   awayTeam:{alignItems:"flex-end"},
-  teamName:{color:"#F2F5FA",fontSize:13,fontWeight:"700"},
-  scoreBox:{paddingHorizontal:12},
-  score:{color:"#FFFFFF",fontSize:21,fontWeight:"900"},
-  matchBottom:{borderTopWidth:1,borderTopColor:"#253142",paddingTop:10,flexDirection:"row",justifyContent:"space-between"},
+  teamName:{color:"#F2F5FA",fontSize:13,fontWeight:"700",flexShrink:1},
+  scoreBox:{paddingHorizontal:6,minWidth:70,alignItems:"center"},
+  score:{color:"#FFFFFF",fontSize:21,fontWeight:"900",fontVariant:["tabular-nums"]},
+  matchBottom:{borderTopWidth:1,borderTopColor:"#253142",paddingTop:10,flexDirection:"row",justifyContent:"space-between",gap:8},
   muted:{color:"#77859A",fontSize:10},
   empty:{alignItems:"center",padding:28,marginTop:12,backgroundColor:"#101927",borderRadius:16,borderWidth:1,borderColor:"#202D3D"},
   emptyBall:{fontSize:32},
