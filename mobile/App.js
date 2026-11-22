@@ -56,7 +56,8 @@ export default function App() {
     try {
       const result = await fetchFixtures({tab:selectedTab,signal:controller.signal});
       if (requestId === latestRequest.current) {
-        setMatches(result.matches);\n        setFavorites(current => mergeFavoriteUpdates(current,result.matches));
+        setMatches(result.matches);
+        setFavorites(current => mergeFavoriteUpdates(current,result.matches));
         setUpdated(new Date(result.updatedAt).toLocaleTimeString("tr-TR", {
           hour:"2-digit", minute:"2-digit", timeZone:"Europe/Istanbul"
         }));
