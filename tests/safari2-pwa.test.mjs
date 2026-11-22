@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
-import {Script} from "node:vm";
+import {Script,runInNewContext} from "node:vm";
 
 const manifest=JSON.parse(await readFile(new URL("../manifest.webmanifest",import.meta.url),"utf8"));
 const worker=await readFile(new URL("../service-worker.js",import.meta.url),"utf8");
@@ -33,6 +33,38 @@ test("offline shell caches only same-origin static assets, never API responses",
  assert.match(worker,/request\.mode === "navigate"/);
  assert.match(worker,/cache\.addAll\(SHELL\)/);
  assert.doesNotMatch(worker,/https:\/\/odd-sunset|api-football/i);
+});
+
+test("offline navigation returns the cached shell and never intercepts API requests",async()=>{
+ const handlers={},cached=[];
+ const cache={
+  addAll:async urls=>cached.push(...urls),
+  put:async()=>{},
+  match:async()=>new Response("cached offline shell",{status:200})
+ };
+ const self={
+  registration:{scope:"https://example.test/app/"},
+  location:{origin:"https://example.test"},
+  clients:{claim:async()=>{}},
+  skipWaiting:async()=>{},
+  addEventListener:(name,fn)=>{handlers[name]=fn}
+ };
+ const caches={open:async()=>cache,keys:async()=>["mam-shell-v1"],delete:async()=>true};
+ runInNewContext(worker,{self,caches,URL,Response,fetch:async()=>{throw new Error("offline");}});
+ let install;
+ handlers.install({waitUntil:promise=>{install=promise;}});
+ await install;
+ assert.ok(cached.some(url=>url==="https://example.test/app/"));
+ assert.ok(cached.some(url=>url.endsWith("/half-goal-algorithm.js")));
+ let responsePromise;
+ handlers.fetch({request:{method:"GET",mode:"navigate",url:"https://example.test/app/"},
+  respondWith:promise=>{responsePromise=promise;}});
+ const response=await responsePromise;
+ assert.equal(await response.text(),"cached offline shell");
+ let intercepted=false;
+ handlers.fetch({request:{method:"GET",mode:"cors",url:"https://example.test/api/matches"},
+  respondWith:()=>{intercepted=true;}});
+ assert.equal(intercepted,false);
 });
 
 test("app icon is a valid scalable SVG with an accessible viewBox",()=>{
