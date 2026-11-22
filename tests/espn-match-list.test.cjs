@@ -87,3 +87,11 @@ test('Süper Lig is prioritized in the all-league ESPN live scan', () => {
  const source=html.slice(leaguesStart,leaguesEnd)+html.slice(fnStart,fnEnd);
  assert.ok(source.includes('targets.sort((a,b)=>Number(b[0]==="203")-Number(a[0]==="203"))'), 'Turkish league must lead the scan');
 });
+
+test('live ESPN refresh does not write provider snapshots to D1', () => {
+ const begin=html.indexOf('async function loadLiveMatchesNow(){');
+ const end=html.indexOf('async function ',begin+20);
+ assert.ok(begin>=0,'live refresh must exist');
+ const source=html.slice(begin,end>begin?end:undefined);
+ assert.equal(source.includes('mamSaveMatchesToD1(fallback)'),false);
+});
