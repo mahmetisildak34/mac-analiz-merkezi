@@ -4728,8 +4728,8 @@ function renderMatches(){
  // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
  let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
  const liveCodes=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
- if(mamScreenMode==="live")list=list.filter(m=>mamIsCrediblyLive(m,Date.now()));
  const mamNow=Date.now();
+ if(mamScreenMode==="live")list=list.filter(m=>mamIsCrediblyLive(m,mamNow));
  const mamTodayKey=mamIstanbulDay(new Date(mamNow).toISOString());
  if(mamScreenMode==="upcoming")list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)>mamTodayKey);
  if(mamScreenMode==="finished")list=list.filter(m=>["FT","AET","PEN","AWD","WO"].includes(mamCanonicalMatchStatus(m)));
@@ -4754,7 +4754,7 @@ function renderMatches(){
  };
  const mamLiveMinute=m=>{
   const elapsed=Number(m.fixture?.status?.elapsed);
-  if(Number.isFinite(elapsed)&&elapsed>=0)return elapsed;
+  if(m.fixture?.status?.elapsed!=null&&Number.isFinite(elapsed)&&elapsed>=0)return elapsed;
   const kickoff=Date.parse(m.fixture?.date||"");
   const estimate=Number.isFinite(kickoff)?Math.max(0,Math.min(130,Math.floor((Date.now()-kickoff)/60000))):0;
   return estimate;
