@@ -192,6 +192,28 @@ async function verifyMainApp(context){
   await toggleRecordedFavorites();
   await replayEspn('finished');
 
+  // Rewind only the test clock. Match identity, kickoff and the two ten-match
+  // histories come from ESPN recordings. Percentages are computed by the app.
+  const analysisInputs=JSON.parse(readFileSync(new URL('./fixtures/espn-poisson-historical-inputs.json',import.meta.url),'utf8'));
+  for(const sample of analysisInputs){
+   await main.clock.setFixedTime(new Date(Date.parse(sample.fixture.date)-60000));
+   await main.evaluate(sample=>{
+    window.getTeamFixtures=async teamId=>sample.history[String(teamId)]??[];
+    const match={league:sample.league,teams:sample.teams,fixture:{...sample.fixture,status:{short:'NS'}}};
+    setMamScreen('home');
+    allMatches=[match];
+    renderMatches();
+   },sample);
+   const forecastCard=main.locator('#matches article.match');
+   await forecastCard.locator('.mam-match-open').click();
+   const forecast=main.getByRole('dialog',{name:sample.teams.home.name+' – '+sample.teams.away.name});
+   await forecast.getByText('Maç önü tahmini',{exact:true}).waitFor();
+   await forecast.getByText(/En yeni örnek maç: 2026-/).waitFor();
+   await forecast.getByText('En olası 5 skor',{exact:true}).waitFor();
+   assert.equal(await forecast.locator('.scoreline').count(),5);
+   await forecast.getByRole('button',{name:'Geri',exact:true}).click();
+  }
+  await main.clock.setFixedTime(new Date());
   await main.setViewportSize({width:320,height:720});
   assert.equal(await main.locator('.mam-bottom-nav button').evaluateAll(buttons=>buttons.every(button=>button.getBoundingClientRect().height>=44&&button.getBoundingClientRect().width>=44)),true);
   assert.equal(await main.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
