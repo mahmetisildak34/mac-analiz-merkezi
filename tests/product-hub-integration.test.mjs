@@ -104,3 +104,8 @@ test('match detail supports wrapped event arrays without inventing events',()=>{
  assert.match(features,/Array\.isArray\(match\.events\?\.plays\)/);
  assert.match(features,/const events=\[\.\.\.sourceEvents\]\.sort/);
 });
+
+test('ESPN play text and object event types render as readable labels',()=>{
+ assert.match(html,/x\.text\?\?x\.shortText\?\?x\.detail/);
+ assert.match(html,/typeof x\.type==='string'\?x\.type:x\.type\?\.text/);
+});
