@@ -117,3 +117,25 @@ verifyEspnLiveRecovery().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });
+
+const superLigDirectory = "data/TUR_1_super-lig/";
+const seasonRows = fs.readFileSync(superLigDirectory + "results_2526.csv","utf8").trim().split(/\r?\n/);
+const columns = seasonRows.shift().split(",");
+const fixtures = new Map(seasonRows.map(line => {
+  const row = Object.fromEntries(line.split(",").map((value, index) => [columns[index],value]));
+  return [[row.date,row.home,row.away].join("|"),row];
+}));
+const recoveredStatistics = JSON.parse(fs.readFileSync(superLigDirectory + "statistics_2526_espn_evidence.json","utf8")).matches;
+assert.equal(recoveredStatistics.length,45);
+assert.equal(new Set(recoveredStatistics.map(match => match.id)).size,45);
+for (const match of recoveredStatistics) {
+  const row = fixtures.get([match.date,match.home,match.away].join("|"));
+  assert.ok(row,"Missing verified ESPN fixture: " + match.id);
+  assert.deepEqual([Number(row.ft_home),Number(row.ft_away)],match.score);
+  assert.equal(Object.keys(match.statistics).length,12);
+  for (const [column,value] of Object.entries(match.statistics)) {
+    assert.match(value,/^\d+$/);
+    assert.equal(row[column],value,"ESPN statistic mismatch: " + match.id + " " + column);
+  }
+}
+console.log("PASS: 45 recovered Süper Lig fixtures match their ESPN evidence.");

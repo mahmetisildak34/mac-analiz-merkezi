@@ -1,0 +1,1131 @@
+{
+  "league": "tur.1",
+  "season": "2025/26",
+  "matches": [
+    {
+      "id": "750181",
+      "date": "2026-04-17",
+      "home": "Fenerbahce",
+      "away": "Rizespor",
+      "score": [
+        2,
+        2
+      ],
+      "statistics": {
+        "home_shots": "15",
+        "home_target": "5",
+        "home_fouls": "14",
+        "home_corners": "7",
+        "home_yellow": "1",
+        "home_red": "0",
+        "away_shots": "6",
+        "away_target": "3",
+        "away_fouls": "16",
+        "away_corners": "3",
+        "away_yellow": "6",
+        "away_red": "1"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750181"
+    },
+    {
+      "id": "750179",
+      "date": "2026-04-17",
+      "home": "Antalyaspor",
+      "away": "Konyaspor",
+      "score": [
+        0,
+        2
+      ],
+      "statistics": {
+        "home_shots": "13",
+        "home_target": "5",
+        "home_fouls": "8",
+        "home_corners": "10",
+        "home_yellow": "3",
+        "home_red": "0",
+        "away_shots": "9",
+        "away_target": "4",
+        "away_fouls": "21",
+        "away_corners": "1",
+        "away_yellow": "5",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750179"
+    },
+    {
+      "id": "750183",
+      "date": "2026-04-18",
+      "home": "Genclerbirligi",
+      "away": "Galatasaray",
+      "score": [
+        1,
+        2
+      ],
+      "statistics": {
+        "home_shots": "11",
+        "home_target": "3",
+        "home_fouls": "11",
+        "home_corners": "2",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "9",
+        "away_target": "2",
+        "away_fouls": "14",
+        "away_corners": "4",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750183"
+    },
+    {
+      "id": "750185",
+      "date": "2026-04-18",
+      "home": "Kocaelispor",
+      "away": "Goztepe",
+      "score": [
+        1,
+        1
+      ],
+      "statistics": {
+        "home_shots": "21",
+        "home_target": "4",
+        "home_fouls": "11",
+        "home_corners": "9",
+        "home_yellow": "3",
+        "home_red": "1",
+        "away_shots": "7",
+        "away_target": "3",
+        "away_fouls": "23",
+        "away_corners": "0",
+        "away_yellow": "7",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750185"
+    },
+    {
+      "id": "750180",
+      "date": "2026-04-18",
+      "home": "Karagumruk",
+      "away": "Eyupspor",
+      "score": [
+        1,
+        2
+      ],
+      "statistics": {
+        "home_shots": "12",
+        "home_target": "3",
+        "home_fouls": "14",
+        "home_corners": "6",
+        "home_yellow": "0",
+        "home_red": "0",
+        "away_shots": "6",
+        "away_target": "4",
+        "away_fouls": "12",
+        "away_corners": "5",
+        "away_yellow": "3",
+        "away_red": "1"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750180"
+    },
+    {
+      "id": "750187",
+      "date": "2026-04-19",
+      "home": "Trabzonspor",
+      "away": "Buyuksehyr",
+      "score": [
+        1,
+        1
+      ],
+      "statistics": {
+        "home_shots": "11",
+        "home_target": "2",
+        "home_fouls": "10",
+        "home_corners": "5",
+        "home_yellow": "0",
+        "home_red": "0",
+        "away_shots": "17",
+        "away_target": "2",
+        "away_fouls": "13",
+        "away_corners": "8",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750187"
+    },
+    {
+      "id": "750186",
+      "date": "2026-04-19",
+      "home": "Samsunspor",
+      "away": "Besiktas",
+      "score": [
+        2,
+        1
+      ],
+      "statistics": {
+        "home_shots": "14",
+        "home_target": "5",
+        "home_fouls": "17",
+        "home_corners": "1",
+        "home_yellow": "5",
+        "home_red": "0",
+        "away_shots": "14",
+        "away_target": "3",
+        "away_fouls": "4",
+        "away_corners": "7",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750186"
+    },
+    {
+      "id": "750184",
+      "date": "2026-04-19",
+      "home": "Kasimpasa",
+      "away": "Alanyaspor",
+      "score": [
+        1,
+        0
+      ],
+      "statistics": {
+        "home_shots": "7",
+        "home_target": "2",
+        "home_fouls": "11",
+        "home_corners": "6",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "8",
+        "away_target": "4",
+        "away_fouls": "15",
+        "away_corners": "1",
+        "away_yellow": "4",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750184"
+    },
+    {
+      "id": "750182",
+      "date": "2026-04-20",
+      "home": "Gaziantep",
+      "away": "Kayserispor",
+      "score": [
+        3,
+        0
+      ],
+      "statistics": {
+        "home_shots": "20",
+        "home_target": "6",
+        "home_fouls": "10",
+        "home_corners": "5",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "17",
+        "away_target": "7",
+        "away_fouls": "11",
+        "away_corners": "3",
+        "away_yellow": "3",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750182"
+    },
+    {
+      "id": "750194",
+      "date": "2026-04-24",
+      "home": "Buyuksehyr",
+      "away": "Kasimpasa",
+      "score": [
+        4,
+        0
+      ],
+      "statistics": {
+        "home_shots": "14",
+        "home_target": "8",
+        "home_fouls": "14",
+        "home_corners": "6",
+        "home_yellow": "3",
+        "home_red": "0",
+        "away_shots": "5",
+        "away_target": "2",
+        "away_fouls": "8",
+        "away_corners": "2",
+        "away_yellow": "1",
+        "away_red": "1"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750194"
+    },
+    {
+      "id": "750193",
+      "date": "2026-04-25",
+      "home": "Goztepe",
+      "away": "Antalyaspor",
+      "score": [
+        2,
+        0
+      ],
+      "statistics": {
+        "home_shots": "16",
+        "home_target": "8",
+        "home_fouls": "24",
+        "home_corners": "4",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "19",
+        "away_target": "4",
+        "away_fouls": "6",
+        "away_corners": "4",
+        "away_yellow": "0",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750193"
+    },
+    {
+      "id": "750195",
+      "date": "2026-04-25",
+      "home": "Kayserispor",
+      "away": "Rizespor",
+      "score": [
+        2,
+        0
+      ],
+      "statistics": {
+        "home_shots": "17",
+        "home_target": "4",
+        "home_fouls": "15",
+        "home_corners": "8",
+        "home_yellow": "3",
+        "home_red": "0",
+        "away_shots": "12",
+        "away_target": "1",
+        "away_fouls": "16",
+        "away_corners": "6",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750195"
+    },
+    {
+      "id": "750190",
+      "date": "2026-04-25",
+      "home": "Eyupspor",
+      "away": "Gaziantep",
+      "score": [
+        3,
+        0
+      ],
+      "statistics": {
+        "home_shots": "14",
+        "home_target": "5",
+        "home_fouls": "12",
+        "home_corners": "6",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "11",
+        "away_target": "3",
+        "away_fouls": "12",
+        "away_corners": "5",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750190"
+    },
+    {
+      "id": "750191",
+      "date": "2026-04-26",
+      "home": "Galatasaray",
+      "away": "Fenerbahce",
+      "score": [
+        3,
+        0
+      ],
+      "statistics": {
+        "home_shots": "21",
+        "home_target": "8",
+        "home_fouls": "16",
+        "home_corners": "6",
+        "home_yellow": "5",
+        "home_red": "0",
+        "away_shots": "5",
+        "away_target": "1",
+        "away_fouls": "13",
+        "away_corners": "4",
+        "away_yellow": "4",
+        "away_red": "1"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750191"
+    },
+    {
+      "id": "750192",
+      "date": "2026-04-26",
+      "home": "Genclerbirligi",
+      "away": "Kocaelispor",
+      "score": [
+        1,
+        0
+      ],
+      "statistics": {
+        "home_shots": "8",
+        "home_target": "2",
+        "home_fouls": "14",
+        "home_corners": "1",
+        "home_yellow": "1",
+        "home_red": "0",
+        "away_shots": "7",
+        "away_target": "0",
+        "away_fouls": "12",
+        "away_corners": "2",
+        "away_yellow": "1",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750192"
+    },
+    {
+      "id": "750196",
+      "date": "2026-04-27",
+      "home": "Konyaspor",
+      "away": "Trabzonspor",
+      "score": [
+        2,
+        1
+      ],
+      "statistics": {
+        "home_shots": "12",
+        "home_target": "6",
+        "home_fouls": "12",
+        "home_corners": "7",
+        "home_yellow": "4",
+        "home_red": "0",
+        "away_shots": "23",
+        "away_target": "3",
+        "away_fouls": "4",
+        "away_corners": "5",
+        "away_yellow": "0",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750196"
+    },
+    {
+      "id": "750189",
+      "date": "2026-04-27",
+      "home": "Besiktas",
+      "away": "Karagumruk",
+      "score": [
+        0,
+        0
+      ],
+      "statistics": {
+        "home_shots": "20",
+        "home_target": "7",
+        "home_fouls": "12",
+        "home_corners": "5",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "12",
+        "away_target": "3",
+        "away_fouls": "15",
+        "away_corners": "2",
+        "away_yellow": "3",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750189"
+    },
+    {
+      "id": "750188",
+      "date": "2026-04-27",
+      "home": "Alanyaspor",
+      "away": "Samsunspor",
+      "score": [
+        2,
+        3
+      ],
+      "statistics": {
+        "home_shots": "17",
+        "home_target": "5",
+        "home_fouls": "11",
+        "home_corners": "12",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "12",
+        "away_target": "7",
+        "away_fouls": "18",
+        "away_corners": "5",
+        "away_yellow": "3",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750188"
+    },
+    {
+      "id": "750201",
+      "date": "2026-05-01",
+      "home": "Gaziantep",
+      "away": "Besiktas",
+      "score": [
+        0,
+        2
+      ],
+      "statistics": {
+        "home_shots": "17",
+        "home_target": "4",
+        "home_fouls": "5",
+        "home_corners": "8",
+        "home_yellow": "1",
+        "home_red": "0",
+        "away_shots": "12",
+        "away_target": "5",
+        "away_fouls": "15",
+        "away_corners": "2",
+        "away_yellow": "0",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750201"
+    },
+    {
+      "id": "750198",
+      "date": "2026-05-01",
+      "home": "Rizespor",
+      "away": "Konyaspor",
+      "score": [
+        3,
+        2
+      ],
+      "statistics": {
+        "home_shots": "15",
+        "home_target": "7",
+        "home_fouls": "12",
+        "home_corners": "1",
+        "home_yellow": "1",
+        "home_red": "0",
+        "away_shots": "11",
+        "away_target": "5",
+        "away_fouls": "17",
+        "away_corners": "2",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750198"
+    },
+    {
+      "id": "750205",
+      "date": "2026-05-02",
+      "home": "Trabzonspor",
+      "away": "Goztepe",
+      "score": [
+        1,
+        1
+      ],
+      "statistics": {
+        "home_shots": "10",
+        "home_target": "4",
+        "home_fouls": "14",
+        "home_corners": "4",
+        "home_yellow": "4",
+        "home_red": "1",
+        "away_shots": "18",
+        "away_target": "2",
+        "away_fouls": "22",
+        "away_corners": "3",
+        "away_yellow": "4",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750205"
+    },
+    {
+      "id": "750204",
+      "date": "2026-05-02",
+      "home": "Samsunspor",
+      "away": "Galatasaray",
+      "score": [
+        4,
+        1
+      ],
+      "statistics": {
+        "home_shots": "13",
+        "home_target": "8",
+        "home_fouls": "15",
+        "home_corners": "3",
+        "home_yellow": "3",
+        "home_red": "0",
+        "away_shots": "14",
+        "away_target": "4",
+        "away_fouls": "14",
+        "away_corners": "6",
+        "away_yellow": "0",
+        "away_red": "1"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750204"
+    },
+    {
+      "id": "750200",
+      "date": "2026-05-02",
+      "home": "Fenerbahce",
+      "away": "Buyuksehyr",
+      "score": [
+        3,
+        1
+      ],
+      "statistics": {
+        "home_shots": "22",
+        "home_target": "9",
+        "home_fouls": "13",
+        "home_corners": "10",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "15",
+        "away_target": "4",
+        "away_fouls": "3",
+        "away_corners": "2",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750200"
+    },
+    {
+      "id": "750203",
+      "date": "2026-05-03",
+      "home": "Kayserispor",
+      "away": "Eyupspor",
+      "score": [
+        1,
+        1
+      ],
+      "statistics": {
+        "home_shots": "21",
+        "home_target": "5",
+        "home_fouls": "12",
+        "home_corners": "9",
+        "home_yellow": "0",
+        "home_red": "0",
+        "away_shots": "11",
+        "away_target": "4",
+        "away_fouls": "16",
+        "away_corners": "3",
+        "away_yellow": "0",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750203"
+    },
+    {
+      "id": "750202",
+      "date": "2026-05-03",
+      "home": "Kasimpasa",
+      "away": "Kocaelispor",
+      "score": [
+        1,
+        1
+      ],
+      "statistics": {
+        "home_shots": "13",
+        "home_target": "4",
+        "home_fouls": "14",
+        "home_corners": "6",
+        "home_yellow": "0",
+        "home_red": "0",
+        "away_shots": "5",
+        "away_target": "1",
+        "away_fouls": "17",
+        "away_corners": "5",
+        "away_yellow": "1",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750202"
+    },
+    {
+      "id": "750199",
+      "date": "2026-05-03",
+      "home": "Karagumruk",
+      "away": "Genclerbirligi",
+      "score": [
+        1,
+        0
+      ],
+      "statistics": {
+        "home_shots": "6",
+        "home_target": "2",
+        "home_fouls": "14",
+        "home_corners": "1",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "13",
+        "away_target": "4",
+        "away_fouls": "9",
+        "away_corners": "6",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750199"
+    },
+    {
+      "id": "750197",
+      "date": "2026-05-03",
+      "home": "Antalyaspor",
+      "away": "Alanyaspor",
+      "score": [
+        0,
+        0
+      ],
+      "statistics": {
+        "home_shots": "7",
+        "home_target": "1",
+        "home_fouls": "10",
+        "home_corners": "3",
+        "home_yellow": "4",
+        "home_red": "0",
+        "away_shots": "8",
+        "away_target": "2",
+        "away_fouls": "15",
+        "away_corners": "8",
+        "away_yellow": "5",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750197"
+    },
+    {
+      "id": "750214",
+      "date": "2026-05-09",
+      "home": "Konyaspor",
+      "away": "Fenerbahce",
+      "score": [
+        0,
+        3
+      ],
+      "statistics": {
+        "home_shots": "10",
+        "home_target": "2",
+        "home_fouls": "16",
+        "home_corners": "6",
+        "home_yellow": "4",
+        "home_red": "0",
+        "away_shots": "23",
+        "away_target": "11",
+        "away_fouls": "7",
+        "away_corners": "2",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750214"
+    },
+    {
+      "id": "750213",
+      "date": "2026-05-09",
+      "home": "Kocaelispor",
+      "away": "Karagumruk",
+      "score": [
+        0,
+        1
+      ],
+      "statistics": {
+        "home_shots": "8",
+        "home_target": "0",
+        "home_fouls": "13",
+        "home_corners": "3",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "6",
+        "away_target": "1",
+        "away_fouls": "13",
+        "away_corners": "3",
+        "away_yellow": "0",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750213"
+    },
+    {
+      "id": "750211",
+      "date": "2026-05-09",
+      "home": "Goztepe",
+      "away": "Gaziantep",
+      "score": [
+        2,
+        1
+      ],
+      "statistics": {
+        "home_shots": "19",
+        "home_target": "6",
+        "home_fouls": "21",
+        "home_corners": "8",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "14",
+        "away_target": "2",
+        "away_fouls": "10",
+        "away_corners": "7",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750211"
+    },
+    {
+      "id": "750210",
+      "date": "2026-05-09",
+      "home": "Genclerbirligi",
+      "away": "Kasimpasa",
+      "score": [
+        3,
+        2
+      ],
+      "statistics": {
+        "home_shots": "14",
+        "home_target": "8",
+        "home_fouls": "11",
+        "home_corners": "5",
+        "home_yellow": "4",
+        "home_red": "0",
+        "away_shots": "10",
+        "away_target": "4",
+        "away_fouls": "24",
+        "away_corners": "4",
+        "away_yellow": "10",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750210"
+    },
+    {
+      "id": "750209",
+      "date": "2026-05-09",
+      "home": "Galatasaray",
+      "away": "Antalyaspor",
+      "score": [
+        4,
+        2
+      ],
+      "statistics": {
+        "home_shots": "23",
+        "home_target": "9",
+        "home_fouls": "10",
+        "home_corners": "6",
+        "home_yellow": "4",
+        "home_red": "0",
+        "away_shots": "8",
+        "away_target": "2",
+        "away_fouls": "15",
+        "away_corners": "1",
+        "away_yellow": "3",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750209"
+    },
+    {
+      "id": "750208",
+      "date": "2026-05-09",
+      "home": "Eyupspor",
+      "away": "Rizespor",
+      "score": [
+        4,
+        0
+      ],
+      "statistics": {
+        "home_shots": "11",
+        "home_target": "6",
+        "home_fouls": "8",
+        "home_corners": "3",
+        "home_yellow": "0",
+        "home_red": "0",
+        "away_shots": "14",
+        "away_target": "4",
+        "away_fouls": "10",
+        "away_corners": "6",
+        "away_yellow": "0",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750208"
+    },
+    {
+      "id": "750212",
+      "date": "2026-05-09",
+      "home": "Buyuksehyr",
+      "away": "Samsunspor",
+      "score": [
+        3,
+        0
+      ],
+      "statistics": {
+        "home_shots": "19",
+        "home_target": "6",
+        "home_fouls": "13",
+        "home_corners": "2",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "9",
+        "away_target": "1",
+        "away_fouls": "13",
+        "away_corners": "5",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750212"
+    },
+    {
+      "id": "750207",
+      "date": "2026-05-09",
+      "home": "Besiktas",
+      "away": "Trabzonspor",
+      "score": [
+        1,
+        2
+      ],
+      "statistics": {
+        "home_shots": "21",
+        "home_target": "5",
+        "home_fouls": "12",
+        "home_corners": "7",
+        "home_yellow": "1",
+        "home_red": "0",
+        "away_shots": "10",
+        "away_target": "6",
+        "away_fouls": "13",
+        "away_corners": "3",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750207"
+    },
+    {
+      "id": "750206",
+      "date": "2026-05-09",
+      "home": "Alanyaspor",
+      "away": "Kayserispor",
+      "score": [
+        3,
+        1
+      ],
+      "statistics": {
+        "home_shots": "13",
+        "home_target": "8",
+        "home_fouls": "13",
+        "home_corners": "1",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "19",
+        "away_target": "9",
+        "away_fouls": "15",
+        "away_corners": "7",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750206"
+    },
+    {
+      "id": "750216",
+      "date": "2026-05-15",
+      "home": "Rizespor",
+      "away": "Besiktas",
+      "score": [
+        2,
+        2
+      ],
+      "statistics": {
+        "home_shots": "22",
+        "home_target": "5",
+        "home_fouls": "7",
+        "home_corners": "8",
+        "home_yellow": "2",
+        "home_red": "0",
+        "away_shots": "23",
+        "away_target": "9",
+        "away_fouls": "11",
+        "away_corners": "3",
+        "away_yellow": "3",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750216"
+    },
+    {
+      "id": "750219",
+      "date": "2026-05-16",
+      "home": "Samsunspor",
+      "away": "Goztepe",
+      "score": [
+        3,
+        0
+      ],
+      "statistics": {
+        "home_shots": "14",
+        "home_target": "9",
+        "home_fouls": "10",
+        "home_corners": "0",
+        "home_yellow": "3",
+        "home_red": "0",
+        "away_shots": "22",
+        "away_target": "5",
+        "away_fouls": "18",
+        "away_corners": "4",
+        "away_yellow": "3",
+        "away_red": "1"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750219"
+    },
+    {
+      "id": "750223",
+      "date": "2026-05-16",
+      "home": "Gaziantep",
+      "away": "Buyuksehyr",
+      "score": [
+        1,
+        2
+      ],
+      "statistics": {
+        "home_shots": "11",
+        "home_target": "5",
+        "home_fouls": "12",
+        "home_corners": "6",
+        "home_yellow": "3",
+        "home_red": "0",
+        "away_shots": "9",
+        "away_target": "4",
+        "away_fouls": "19",
+        "away_corners": "3",
+        "away_yellow": "2",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750223"
+    },
+    {
+      "id": "750217",
+      "date": "2026-05-16",
+      "home": "Karagumruk",
+      "away": "Alanyaspor",
+      "score": [
+        2,
+        1
+      ],
+      "statistics": {
+        "home_shots": "8",
+        "home_target": "4",
+        "home_fouls": "12",
+        "home_corners": "0",
+        "home_yellow": "1",
+        "home_red": "0",
+        "away_shots": "11",
+        "away_target": "4",
+        "away_fouls": "13",
+        "away_corners": "4",
+        "away_yellow": "0",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750217"
+    },
+    {
+      "id": "750222",
+      "date": "2026-05-17",
+      "home": "Trabzonspor",
+      "away": "Genclerbirligi",
+      "score": [
+        0,
+        3
+      ],
+      "statistics": {
+        "home_shots": "11",
+        "home_target": "4",
+        "home_fouls": "13",
+        "home_corners": "5",
+        "home_yellow": "1",
+        "home_red": "0",
+        "away_shots": "13",
+        "away_target": "6",
+        "away_fouls": "14",
+        "away_corners": "3",
+        "away_yellow": "1",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750222"
+    },
+    {
+      "id": "750220",
+      "date": "2026-05-17",
+      "home": "Kasimpasa",
+      "away": "Galatasaray",
+      "score": [
+        1,
+        0
+      ],
+      "statistics": {
+        "home_shots": "5",
+        "home_target": "3",
+        "home_fouls": "9",
+        "home_corners": "2",
+        "home_yellow": "0",
+        "home_red": "0",
+        "away_shots": "12",
+        "away_target": "5",
+        "away_fouls": "6",
+        "away_corners": "7",
+        "away_yellow": "1",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750220"
+    },
+    {
+      "id": "750218",
+      "date": "2026-05-17",
+      "home": "Fenerbahce",
+      "away": "Eyupspor",
+      "score": [
+        3,
+        3
+      ],
+      "statistics": {
+        "home_shots": "19",
+        "home_target": "7",
+        "home_fouls": "9",
+        "home_corners": "6",
+        "home_yellow": "5",
+        "home_red": "0",
+        "away_shots": "6",
+        "away_target": "3",
+        "away_fouls": "14",
+        "away_corners": "0",
+        "away_yellow": "3",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750218"
+    },
+    {
+      "id": "750215",
+      "date": "2026-05-17",
+      "home": "Antalyaspor",
+      "away": "Kocaelispor",
+      "score": [
+        1,
+        0
+      ],
+      "statistics": {
+        "home_shots": "16",
+        "home_target": "5",
+        "home_fouls": "21",
+        "home_corners": "2",
+        "home_yellow": "6",
+        "home_red": "0",
+        "away_shots": "7",
+        "away_target": "1",
+        "away_fouls": "21",
+        "away_corners": "4",
+        "away_yellow": "6",
+        "away_red": "0"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750215"
+    },
+    {
+      "id": "750221",
+      "date": "2026-05-17",
+      "home": "Kayserispor",
+      "away": "Konyaspor",
+      "score": [
+        2,
+        1
+      ],
+      "statistics": {
+        "home_shots": "15",
+        "home_target": "10",
+        "home_fouls": "10",
+        "home_corners": "4",
+        "home_yellow": "0",
+        "home_red": "0",
+        "away_shots": "16",
+        "away_target": "3",
+        "away_fouls": "12",
+        "away_corners": "3",
+        "away_yellow": "0",
+        "away_red": "1"
+      },
+      "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750221"
+    }
+  ]
+}
