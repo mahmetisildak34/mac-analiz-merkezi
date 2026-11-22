@@ -1,0 +1,26 @@
+name: Mobile Favorites browser acceptance
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'mobile/main-favorites.mjs'
+      - 'tests/favorites-mobile-acceptance.mjs'
+      - '.github/workflows/mobile-favorites-acceptance.yml'
+  workflow_dispatch:
+jobs:
+  browser-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser runner
+        run: npm install --no-save playwright@1.58.2
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run mobile browser acceptance
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/mam-http.log 2>&1 &
+          node tests/favorites-mobile-acceptance.mjs
