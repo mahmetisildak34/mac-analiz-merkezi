@@ -7,6 +7,9 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
   try {
     const page = await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,locale:'tr-TR'});
     await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
+    // Local UI-only acceptance: no credentials or production authentication are exercised.
+    // The app's authentication overlay blocks clicks on the static preview.
+    await page.locator('#mamAuthGate').evaluate(gate => { gate.style.display='none'; });
     await page.locator('#mamSearchToggle').click();
     const search = page.locator('#mamTeamSearch');
     await search.waitFor({state:'visible'});
