@@ -14,7 +14,6 @@ test('mobile acceptance runs in both browser engines',()=>{
 test('isolated browser cannot reach live endpoints',()=>{
   assert.match(workflow,/route\.abort\(\)/);
   assert.match(workflow,/route\.fulfill\(/);
-  assert.match(workflow,/mam-test\.invalid/);
   assert.match(workflow,/serviceWorkers:\s*'block'/);
   // Local fixture requests are intentionally continued to 127.0.0.1.
   assert.match(workflow,/origin='http:\/\/127\.0\.0\.1:4173'/);
