@@ -41,3 +41,15 @@ test('kickoffs more than ten minutes apart remain separate', () => {
   const second = fixture(2, 'NS', '2026-11-22T16:11:00Z');
   assert.equal(helpers.mamDeduplicateFixtures([first, second]).length, 2);
 });
+
+test('same fixture ID with conflicting teams is not merged', () => {
+  const first = fixture(700, 'NS', '2026-11-22T16:00:00Z');
+  const second = fixture(700, 'NS', '2026-11-22T16:00:00Z');
+  second.teams.away.name = 'Beşiktaş';
+  assert.equal(helpers.mamDeduplicateFixtures([first, second]).length, 2);
+});
+test('same fixture ID with matching teams remains deduplicated', () => {
+  const first = fixture(701, 'NS', '2026-11-22T16:00:00Z');
+  const second = fixture(701, 'LIVE', '2026-11-22T16:00:00Z');
+  assert.equal(helpers.mamDeduplicateFixtures([first, second]).length, 1);
+});
