@@ -95,3 +95,15 @@ test('live ESPN refresh does not write provider snapshots to D1', () => {
  const source=html.slice(begin,end>begin?end:undefined);
  assert.equal(source.includes('mamSaveMatchesToD1(fallback)'),false);
 });
+
+test('ESPN fixture kickoff falls back to competition date', () => {
+ assert.ok(html.includes('date:event.date||competition.date||null'));
+});
+test('midnight ESPN scan does not depend on absence of other live matches', () => {
+ const begin=html.indexOf('async function loadLiveMatchesNow(){');
+ const end=html.indexOf('const previousDateObj=',begin);
+ assert.ok(begin>=0&&end>begin);
+ const part=html.slice(begin,end);
+ assert.equal(part.includes('if(!fallback.some(isLive))'),false);
+ assert.ok(part.includes('localHour<6'));
+});
