@@ -59,3 +59,22 @@ test("unverified fixture data never modifies persistent favorite",()=>{
  assert.deepEqual(result.snapshot,old);
  assert.equal(result.writes,0);
 });
+
+test("new favorite uses provider verification time, never the device clock",()=>{
+ const begin=source.indexOf('function itemFromMatch(m){');
+ const finish=source.indexOf('function itemFromTeam(m,side)',begin);
+ assert.ok(begin>=0&&finish>begin,"favorite fixture mapping must be present");
+ const sandbox={clean:v=>String(v??"").trim(),fixtureStatus:m=>m.fixture.status.short,Number,Date};
+ vm.createContext(sandbox);
+ vm.runInContext(source.slice(begin,finish),sandbox,{timeout:1000});
+ const make=at=>sandbox.itemFromMatch({league:{id:203,name:"Süper Lig"},fixture:{id:42,date:"2026-11-22T17:00:00Z",status:{short:"LIVE"}},teams:{home:{name:"Home"},away:{name:"Away"}},goals:{home:1,away:0},_mamLastVerifiedAt:at});
+ assert.equal(make(undefined).snapshot.savedAt,0);
+ assert.equal(make(null).snapshot.savedAt,0);
+ assert.equal(make(123456).snapshot.savedAt,123456);
+});
+test("fresh verified score replaces an initially unverified favorite snapshot",()=>{
+ const old={status:"NS",home:null,away:null,savedAt:0};
+ const result=runSync(old,fixture(123456,1,0));
+ assert.deepEqual(result.snapshot,{status:"LIVE",home:1,away:0,savedAt:123456});
+ assert.equal(result.writes,1);
+});
