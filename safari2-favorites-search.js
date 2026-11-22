@@ -35,6 +35,7 @@
  #mamSafariPanel .mam-safari-row button{flex-shrink:0}
  #matches .mam-safari-save{min-height:36px;min-width:36px;padding:5px 9px!important;border:1px solid #52618a!important;border-radius:10px!important;background:#152743!important;color:#fff!important}
  #matches .mam-safari-save[aria-pressed="true"]{color:#f9cc6b!important}
+ #matches .mam-fixture-row .mam-safari-actions{grid-column:1/-1;min-width:0;max-width:100%}
  @media(max-width:350px){#mamSafariTools{padding:6px;gap:5px}#mamSafariTools button{padding:7px}#mamSafariPanel .mam-safari-row{flex-wrap:wrap}}
  `;document.head.appendChild(css);
  const bar=document.createElement("section");bar.id="mamSafariTools";bar.setAttribute("aria-label","Favoriler ve arama");
@@ -99,7 +100,8 @@
   const dateText=Number.isFinite(date)?new Date(date).toLocaleString("tr-TR",{timeZone:"Europe/Istanbul",day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"}):"Başlangıç saati bilinmiyor";
   const status=clean(m.fixture?.status?.short)||"Durum bilinmiyor";
   const score=m.goals?.home!=null&&m.goals?.away!=null?clean(m.goals.home)+" – "+clean(m.goals.away):"Skor henüz yok";
-  const minute=m.fixture?.status?.elapsed!=null&&Number.isFinite(Number(m.fixture.status.elapsed))?" · "+clean(m.fixture.status.elapsed)+"'":"";
+  const active=["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(status.toUpperCase());
+  const minute=active&&m.fixture?.status?.elapsed!=null&&Number.isFinite(Number(m.fixture.status.elapsed))?" · "+clean(m.fixture.status.elapsed)+"'":"";
   const empty='<p>Sağlayıcıdan doğrulanmış veri bulunmuyor.</p>';
   const detailRows=(value)=>Array.isArray(value)?value.filter(row=>row&&typeof row==="object").slice(0,60):[];
   const eventText=row=>[row.time?.elapsed!=null?String(row.time.elapsed)+"'":"",row.type,row.detail,row.player?.name,row.assist?.name].filter(Boolean).join(" · ");
@@ -113,11 +115,12 @@
   panel.innerHTML='<button type="button" data-safari-back="1">← Geri</button><h3>'+esc(m.teams?.home?.name)+' – '+esc(m.teams?.away?.name)+'</h3><p>'+esc(m.league?.name)+' · '+esc(dateText)+'</p><p><strong>'+esc(score)+'</strong> · '+esc(status+minute)+'</p>'+halftimeSection+section("Olaylar",m.events)+statSection+lineupSection+section("Geçmiş karşılaşmalar",m.headToHead);
  }
  function decorate(){
-  for(const article of document.querySelectorAll("#matches article.match-modern")){
+  for(const article of document.querySelectorAll("#matches article.match-modern,#matches article.mam-fixture-row")){
    if(article.querySelector(".mam-safari-actions"))continue;
-   const fixtureId=article.dataset.safariFixtureId;if(!fixtureId)continue;
-   const m=matchRows().find(row=>clean(row.fixture?.id)===fixtureId);if(!m)continue;
-   const wrap=document.createElement("div");wrap.className="mam-safari-actions";const detail=document.createElement("button");detail.type="button";detail.className="mam-safari-save";detail.textContent="Detay";detail.setAttribute("aria-label","Maç detaylarını aç");detail.addEventListener("click",()=>showDetail(itemFromMatch(m)));wrap.appendChild(detail);wrap.style.cssText="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px";
+   const fixtureId=article.dataset.safariFixtureId||article.querySelector(".predBtn")?.dataset.id;if(!fixtureId)continue;
+   const leagueId=article.querySelector(".predBtn")?.dataset.league;
+   const m=matchRows().find(row=>clean(row.fixture?.id)===fixtureId&&(!leagueId||clean(row.league?.id)===leagueId));if(!m)continue;
+   const wrap=document.createElement("div");wrap.className="mam-safari-actions";const detail=document.createElement("button");detail.type="button";detail.className="mam-safari-save";detail.textContent="Detay";detail.setAttribute("aria-label","Maç detaylarını aç");detail.addEventListener("click",()=>showDetail(itemFromMatch(m)));wrap.appendChild(detail);wrap.style.cssText="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;min-width:0;max-width:100%";
    for(const [item,label] of [[itemFromMatch(m),"☆ Maç"],[itemFromTeam(m,"home"),"☆ Ev"],[itemFromTeam(m,"away"),"☆ Dep"]]){
     if(!valid(item))continue;
     const el=document.createElement("button");el.type="button";el.className="mam-safari-save";el.textContent=label;el.setAttribute("aria-label",item.name+" favori");el.setAttribute("aria-pressed",String(favorites.some(x=>key(x.kind,x.league,x.id)===key(item.kind,item.league,item.id))));el.addEventListener("click",()=>{toggle(item);decorate();document.querySelectorAll(".mam-safari-save").forEach(b=>{if(b.__item&&key(b.__item.kind,b.__item.league,b.__item.id)===key(item.kind,item.league,item.id))b.setAttribute("aria-pressed",String(favorites.some(x=>key(x.kind,x.league,x.id)===key(item.kind,item.league,item.id))))})});el.__item=item;wrap.appendChild(el);
