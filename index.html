@@ -1580,6 +1580,26 @@ button{transition:filter .15s ease,transform .15s ease}
   #matches article.match.match-modern:not(.in-detail) .team-block strong { font-size: 10px !important; }
 }
 </style>
+<style id="mam-safari2-favorites-nav-v2">
+/* Keep the seven real destinations visible at iPhone widths; preserve safe-area padding. */
+.mam-bottom-nav{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+.mam-bottom-nav button{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;padding-left:0!important;padding-right:0!important}
+@media(max-width:430px){.mam-bottom-nav button{font-size:8px!important;letter-spacing:-.25px!important}.mam-bottom-nav button span{font-size:16px!important}}
+@media(max-width:350px){.mam-bottom-nav button{font-size:7px!important}.mam-bottom-nav button span{font-size:14px!important}}
+#mamSafariFavoritesScreen[hidden]{display:none!important}
+main.mam-screen-favorites > :not(#mamSafariFavoritesScreen){display:none!important}
+main.mam-screen-favorites #mamSafariFavoritesScreen{display:block!important;max-width:920px;margin:10px auto 90px;padding:16px;border:1px solid #294961;border-radius:18px;background:#101d31;color:#f5f7ff;min-height:55vh}
+#mamSafariFavoritesScreen .mam-safari-favorite-row{display:flex;align-items:center;gap:10px;justify-content:space-between;min-width:0;padding:12px 2px;border-bottom:1px solid #34506d}
+#mamSafariFavoritesScreen .mam-safari-favorite-info{flex:1;min-width:0}
+#mamSafariFavoritesScreen .mam-safari-favorite-info strong{font-size:14px;overflow-wrap:anywhere}
+#mamSafariFavoritesScreen .mam-safari-favorite-info small{display:block;color:#bbcde3;margin-top:5px}
+#mamSafariFavoritesScreen button{min-height:42px;border-radius:11px;border:1px solid #3a5973;background:#1a3551;color:#f5f7ff;padding:8px 10px}
+#mamSafariFavoritesScreen button:focus-visible{outline:3px solid #54d6a0;outline-offset:2px}
+#mamSafariFavoritesScreen .mam-safari-favorite-actions{display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0}
+#mamSafariFavoritesScreen .mam-safari-empty{padding:24px 12px;text-align:center;color:#cad8e9;line-height:1.6}
+#mamSafariFavoritesDetail[hidden],#mamSafariFavoritesBody[hidden]{display:none!important}
+@media(max-width:375px){#mamSafariFavoritesScreen .mam-safari-favorite-row{flex-wrap:wrap}#mamSafariFavoritesScreen .mam-safari-favorite-actions{width:100%}}
+</style>
 </head>
 <body>
 
@@ -1806,6 +1826,7 @@ Veri kaynakları: API-Football, ESPN ve Football-data.org. Geçmiş takım veril
  <button type="button" data-mam-bottom="standings"><span>🏆</span>Ligler</button>
  <button type="button" data-mam-bottom="coupon"><span>🎟</span>Kupon</button>
  <button type="button" data-mam-bottom="special"><span>⭐</span>Özel</button>
+ <button type="button" data-mam-bottom="favorites" aria-label="Favoriler"><span>☆</span>Favoriler</button>
 </nav>
 
 <script src="./half-goal-algorithm.js"></script>
@@ -4672,7 +4693,8 @@ function setMamScreen(mode){
   if(location.hash!==route)history.replaceState({...history.state,mamScreen:mode},"",route);
  }catch(_){}
  const main=document.querySelector("main");
- main.classList.remove("mam-screen-home","mam-screen-live","mam-screen-upcoming","mam-screen-finished","mam-screen-standings","mam-screen-today");
+ main.classList.remove("mam-screen-home","mam-screen-live","mam-screen-upcoming","mam-screen-finished","mam-screen-standings","mam-screen-today","mam-screen-favorites");
+ const favoritesScreen=$("mamSafariFavoritesScreen");if(favoritesScreen)favoritesScreen.hidden=mode!=="favorites";
  main.classList.add("mam-screen-"+mode);
  document.querySelectorAll("[data-match-mode]").forEach(tab=>tab.classList.toggle("active",tab.dataset.matchMode===mode));
  const standingsScreen=$("mamStandingsScreen");if(standingsScreen)standingsScreen.hidden=mode!=="standings";
@@ -7553,6 +7575,7 @@ const openStandingTeamHistory=async row=>{
  }
  async function go(mode){
   markActive(mode);
+  if(mode==="favorites"){window.mamSafari2Favorites?.open();window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="home"){setMamScreen("home");window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="fixtures"){setMamScreen("upcoming");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="today"){mamTodayFilter="all";setMamScreen("today");await loadMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
