@@ -4710,7 +4710,8 @@ function mamIsCrediblyLive(match,now=Date.now(),fresh=false){
  const extended=["ET","BT","P","SUSP","INT"].includes(status);
  const elapsed=Number(match?.fixture?.status?.elapsed);
  const hasProgress=match?.fixture?.status?.elapsed!=null&&Number.isFinite(elapsed)&&elapsed>=0;
- if(fresh&&(extended||hasProgress))return true;
+ // A newly fetched stale LIVE label is not proof of a match still running.
+ // Prefer timestamped provider updates to bypass the normal kickoff window.
  if(!Number.isFinite(kickoff)||age< -20*60*1000)return false;
  if(age<=4*60*60*1000)return true;
  // Explicit provider update timestamps can substantiate an older live fixture.
@@ -4738,7 +4739,7 @@ function renderMatches(){
   list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)===selectedDay);
   const status=m=>mamCanonicalMatchStatus(m);
   const dayMatches=allMatches.filter(m=>mamIstanbulDay(m.fixture?.date)===selectedDay);
-  const counts={all:dayMatches.length,live:dayMatches.filter(m=>liveCodes.has(status(m))).length,upcoming:dayMatches.filter(m=>mamIsFutureUnplayed(m,mamNow)).length,finished:dayMatches.filter(m=>["FT","AET","PEN","AWD","WO"].includes(status(m))).length};
+  const counts={all:dayMatches.length,live:dayMatches.filter(m=>mamIsCrediblyLive(m,mamNow)).length,upcoming:dayMatches.filter(m=>mamIsFutureUnplayed(m,mamNow)).length,finished:dayMatches.filter(m=>["FT","AET","PEN","AWD","WO"].includes(status(m))).length};
   $("mamTodayAllCount").textContent=counts.all;$("mamTodayLiveCount").textContent=counts.live;$("mamTodayUpcomingCount").textContent=counts.upcoming;$("mamTodayFinishedCount").textContent=counts.finished;
   $("mamTodayTabs")?.querySelectorAll("[data-today-filter]").forEach(tab=>{const active=tab.dataset.todayFilter===mamTodayFilter;tab.classList.toggle("active",active);tab.setAttribute("aria-selected",String(active));});
  }
