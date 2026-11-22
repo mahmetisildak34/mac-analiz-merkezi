@@ -101,8 +101,16 @@
   const score=m.goals?.home!=null&&m.goals?.away!=null?clean(m.goals.home)+" – "+clean(m.goals.away):"Skor henüz yok";
   const minute=m.fixture?.status?.elapsed!=null&&Number.isFinite(Number(m.fixture.status.elapsed))?" · "+clean(m.fixture.status.elapsed)+"'":"";
   const empty='<p>Sağlayıcıdan doğrulanmış veri bulunmuyor.</p>';
-  const section=(label,value)=>'<h4>'+label+'</h4>'+(Array.isArray(value)&&value.length?'<p>'+value.length+' sağlayıcı kaydı mevcut; ayrıntılı gösterim henüz desteklenmiyor.</p>':empty);
-  panel.innerHTML='<button type="button" data-safari-back="1">← Geri</button><h3>'+esc(m.teams?.home?.name)+' – '+esc(m.teams?.away?.name)+'</h3><p>'+esc(m.league?.name)+' · '+esc(dateText)+'</p><p><strong>'+esc(score)+'</strong> · '+esc(status+minute)+'</p>'+section("Olaylar",m.events)+section("İstatistikler",m.statistics)+section("Kadrolar",m.lineups)+section("Geçmiş karşılaşmalar",m.headToHead);
+  const detailRows=(value)=>Array.isArray(value)?value.filter(row=>row&&typeof row==="object").slice(0,60):[];
+  const eventText=row=>[row.time?.elapsed!=null?String(row.time.elapsed)+"'":"",row.type,row.detail,row.player?.name,row.assist?.name].filter(Boolean).join(" · ");
+  const section=(label,value)=>'<h4>'+label+'</h4>'+(detailRows(value).length?'<ul>'+detailRows(value).map(row=>'<li>'+esc(eventText(row)||"Ayrıntı sağlanmadı")+'</li>').join("")+'</ul>':empty);
+  const stats=m.statistics;
+  const statSection=Array.isArray(stats)&&stats.length?'<h4>İstatistikler</h4>'+stats.slice(0,2).map(team=>'<h5>'+esc(team.team?.name||"Takım")+'</h5>'+(Array.isArray(team.statistics)?'<ul>'+team.statistics.filter(x=>x&&x.value!=null).map(x=>'<li>'+esc(x.type)+': '+esc(x.value)+'</li>').join("")+'</ul>':empty)).join(""):'<h4>İstatistikler</h4>'+empty;
+  const lineups=Array.isArray(m.lineups)?m.lineups:[];
+  const lineupSection='<h4>Kadrolar</h4>'+(lineups.length?lineups.map(team=>'<h5>'+esc(team.team?.name||"Takım")+'</h5>'+['startXI','substitutes'].map(field=>'<strong>'+(field==="startXI"?"İlk 11":"Yedekler")+'</strong>'+(Array.isArray(team[field])&&team[field].length?'<ul>'+team[field].map(x=>'<li>'+esc(x.player?.name||"Oyuncu adı eksik")+'</li>').join("")+'</ul>':empty)).join("")).join(""):empty);
+  const halftime=m.score?.halftime;
+  const halftimeSection='<h4>İlk yarı skoru</h4><p>'+(halftime?.home!=null&&halftime?.away!=null?esc(halftime.home)+" – "+esc(halftime.away):"Sağlayıcıdan doğrulanmış ilk yarı skoru bulunmuyor.")+'</p>';
+  panel.innerHTML='<button type="button" data-safari-back="1">← Geri</button><h3>'+esc(m.teams?.home?.name)+' – '+esc(m.teams?.away?.name)+'</h3><p>'+esc(m.league?.name)+' · '+esc(dateText)+'</p><p><strong>'+esc(score)+'</strong> · '+esc(status+minute)+'</p>'+halftimeSection+section("Olaylar",m.events)+statSection+lineupSection+section("Geçmiş karşılaşmalar",m.headToHead);
  }
  function decorate(){
   for(const article of document.querySelectorAll("#matches article.match-modern")){
