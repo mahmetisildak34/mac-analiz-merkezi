@@ -19,3 +19,10 @@ test('match events sort nested elapsed minutes while preserving unknown-minute e
  assert.deepEqual(result.events.map(e=>e.type),['Goal','Substitution','Card','Unknown']);
  assert.deepEqual(source.map(e=>e.type),['Card','Goal','Unknown','Substitution']);
 });
+
+test('team profile excludes postponed cancelled and abandoned fixtures from upcoming list',()=>{
+ const now=Date.parse('2026-11-22T12:00:00Z');
+ const fixtures=['PST','POSTPONED','CANC','CANCELLED','ABD','ABANDONED','SCHEDULED'].map((status,i)=>({...match,id:'future-'+i,status,kickoff:'2026-11-23T15:00:00Z'}));
+ const profile=teamProfile(teams[0],fixtures,{now});
+ assert.deepEqual(profile.future.map(m=>m.status),['SCHEDULED']);
+});
