@@ -79,3 +79,9 @@ test('partial computed standings are not presented as official league standings'
  assert.match(html,/Resmî lig puan durumu değildir/);
  assert.match(html,/Yalnızca yüklenen maçlardan hesaplanan geçici tablo/);
 });
+
+test('ESPN team and boxscore statistics arrays are recognized in detail renderer',()=>{
+ assert.match(html,/Array\.isArray\(statistics\.teams\)/);
+ assert.match(html,/Array\.isArray\(statistics\.boxscore\?\.teams\)/);
+ assert.match(html,/independentCrossSourceVerification/);
+});
