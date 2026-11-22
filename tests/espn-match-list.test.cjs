@@ -12,7 +12,7 @@ const helpers = vm.runInNewContext(html.slice(begin, end) + ';({mamCanonicalMatc
 const now = Date.parse('2026-11-22T12:00:00Z');
 const fixture = (id, status, date, league = 203) => ({
   fixture: { id, date, status: { short: status } },
-  league: { id },
+  league: { id: league },
   teams: { home: { name: 'Fenerbahçe' }, away: { name: 'Galatasaray' } }
 });
 test('current live match remains visible', () => assert.equal(helpers.mamIsCrediblyLive(fixture(1, 'LIVE', '2026-11-22T11:00:00Z'), now), true));
