@@ -22,3 +22,8 @@ test('kickoff difference above ten minutes prevents cross-ID merge', () => asser
 test('same ID and teams on different days must not merge archive records', () => {
  assert.equal(sameFixture(fixture(801,203),fixture(801,203,'Galatasaray','2026-11-23T16:00:00Z')),false);
 });
+
+test('archive row missing opponent must not overwrite identified live fixture', () => {
+ const incomplete=fixture(920,203,'');
+ assert.equal(sameFixture(fixture(920,203),incomplete),false);
+});
