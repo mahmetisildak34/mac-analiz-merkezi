@@ -26,7 +26,8 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     await results.first().click();
     await page.locator('#mamTeamHistoryScreen').waitFor({state:'visible',timeout:10000});
     assert.equal(await search.isVisible(),false,name+' search closes on team selection');
-    await page.locator('#mamTeamHistoryScreen').evaluate(node=>node.remove());
+    await page.locator('#mamTeamHistoryBack').click();
+    await page.locator('#mamTeamHistoryScreen').waitFor({state:'detached'});
     await page.locator('#mamFavoriteBottom').click();
     await page.locator('#mamFavoritePanel').waitFor({state:'visible'});
     assert.equal(await page.locator('#mamFavoriteBottom').getAttribute('aria-expanded'),'true');
