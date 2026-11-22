@@ -1846,6 +1846,7 @@ function mamIstanbulDateString(value=new Date()){
  return part("year")+"-"+part("month")+"-"+part("day");
 }
 
+const mamEspnPending=new Map();
 let apiQueue=Promise.resolve();
 let lastApiCall=0;
 
@@ -1879,7 +1880,7 @@ async function api(path){
   // gereksiz API-Football isteği gönderilmesin. Hata halinde son başarılı veri korunur.
   const isArchiveBackfill=cleanPath.startsWith("archive/backfill-all?");
   if(!isDiagnostic&&cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLineupRequest&&!isArchiveBackfill){
-    const cacheAge=isLive?5*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?15*1000:30*60*1000;
+    const cacheAge=isEspnLiveScoreboard||isLive?5*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?15*1000:30*60*1000;
     if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
   }
 
@@ -1995,6 +1996,13 @@ async function api(path){
     return data;
   };
 
+  if(isEspnScoreboard||isEspnSummary){
+    if(!mamEspnPending.has(cleanPath)){
+      const pending=request().finally(()=>mamEspnPending.delete(cleanPath));
+      mamEspnPending.set(cleanPath,pending);
+    }
+    return mamEspnPending.get(cleanPath);
+  }
   if(!isPrimaryApi)return request();
 
   const run=apiQueue.then(request);
@@ -4328,7 +4336,7 @@ async function loadLineups(button){
       const athlete=entry.athlete||{},pos=entry.position||athlete.position||{};
       const position=String(pos.abbreviation||pos.name||"").toUpperCase();
       const row=/^(GK|G|GOALKEEPER)$/.test(position)?1:/^(D|DF|DEF|DEFENDER|CB|LB|RB|WB)$/.test(position)?2:/^(M|MF|MID|MIDFIELDER|DM|CM|AM)$/.test(position)?3:/^(F|FW|FWD|FORWARD|ST|CF|LW|RW)$/.test(position)?4:3;
-      return {player:{id:athlete.id,source:"espn",name:athlete.displayName||athlete.fullName||athlete.shortName||"Oyuncu",number:athlete.jersey||entry.jersey||"",photo:athlete.headshot?.href||athlete.headshot||"",grid:row+":"+String(entry.formationPlace||"")}};
+      return {player:{id:athlete.id,source:"espn",stats:entry.stats,positionLabel:pos.displayName||pos.name||pos.abbreviation,name:athlete.displayName||athlete.fullName||athlete.shortName||"Oyuncu",number:athlete.jersey||entry.jersey||"",photo:athlete.headshot?.href||athlete.headshot||"",grid:row+":"+String(entry.formationPlace||"")}};
      };
      const starters=entries.filter(x=>x.starter===true).map(players),substitutes=entries.filter(x=>x.starter!==true).map(players);
      return {team:{id:rosterId,name:teamInfo.displayName||teamInfo.name||""},formation:roster.formation||forms.find(x=>String(x.team?.id||"")===rosterId)?.formation||"",startXI:starters,substitutes};
@@ -7565,7 +7573,7 @@ const openStandingTeamHistory=async row=>{
  const retry=document.createElement("button");
  retry.type="button";retry.textContent="Bağlantıyı yeniden dene";retry.hidden=true;
  const cached=document.createElement("a");
- cached.href="./mobile/product-hub.html";
+ cached.href="./mobile/product-hub.html#saved";
  cached.textContent="Cihazdaki kayıtları aç";
  cached.hidden=true;
  form.after(retry,cached);

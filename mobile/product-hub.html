@@ -18,6 +18,7 @@
 import {espnCompetitions,toggleFavorite,teamProfile,matchDetails,leagueStandings,parseEspnStandings,isLiveMatch,isIstanbulToday,searchFootball,notificationCandidates} from './product-features.mjs';
 import {loadEspnStandings} from './espn-standings.mjs';
 const $=id=>document.getElementById(id),KEY='mam-product-hub-v1';
+const savedOnly=location.hash==="#saved";
 let fixtureSnapshotAt=null;
 let state={matches:[],favoriteMatches:[],favoriteTeams:[],alerts:false},active='home',detailReturn={tab:'home',id:''};
 function readPreferences(){
@@ -51,7 +52,7 @@ function render(){
    filter==='upcoming'?list.filter(m=>scheduled.includes(m.status.toUpperCase())&&Date.parse(m.kickoff)>Date.now()):list;
   $('homeList').innerHTML=matches.length?matches.map(matchCard).join(''):filter!=='all'?'<p class="empty">Bu durumda maç bulunamadı.</p>':'<p class="empty">Ana uygulamada maçları yükleyip bu ekrana dönün veya JSON dosyası seçin.</p>';
  }
- if(active==='live'){const live=isRecentFixtureSnapshot(fixtureSnapshotAt)?list.filter(isLiveMatch):[];$('liveList').innerHTML=live.length?live.map(matchCard).join(''):'<p class="empty">Şu anda doğrulanmış canlı maç bulunamadı.</p>';}
+ if(active==='live'){const live=!savedOnly&&navigator.onLine!==false&&isRecentFixtureSnapshot(fixtureSnapshotAt)?list.filter(isLiveMatch):[];$('liveList').innerHTML=live.length?live.map(matchCard).join(''):'<p class="empty">Şu anda doğrulanmış canlı maç bulunamadı.</p>';}
  if(active==='today'){const date=$('matchDate').value;const day=date?Date.parse(date+'T12:00:00+03:00'):Date.now();const today=list.filter(m=>isIstanbulToday(m,day)&&!isLiveMatch(m));$('todayList').innerHTML=today.length?today.map(matchCard).join(''):'<p class="empty">Seçilen gün için canlı olmayan maç bulunamadı.</p>';}
  if(active==='favorites'){
   const allTeams=teams();

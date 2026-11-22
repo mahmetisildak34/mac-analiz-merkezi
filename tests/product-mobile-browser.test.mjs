@@ -36,7 +36,9 @@ async function verifyMainApp(context){
    const fetchNetwork=window.fetch.bind(window);
    window.fetch=(input,options)=>String(input)==='https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/auth/check'
     ?Promise.resolve(new Response('{"ok":true}'))
-    :fetchNetwork(input,options);
+    :new URL(String(input),location.href).origin===location.origin
+     ?fetchNetwork(input,options)
+     :Promise.reject(new TypeError('External requests disabled in the acceptance test'));
   });
   await main.goto(origin+'/index.html');
   await main.locator('#mamAuthGate').waitFor({state:'detached'});
@@ -268,7 +270,7 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
     await offlineMain.getByText(/Cihazdaki favoriler korunuyor/).waitFor();
     assert.equal(await offlineMain.evaluate(()=>localStorage.getItem('mam_session_token')),'local-browser-acceptance');
     await offlineMain.getByRole('link',{name:'Cihazdaki kayıtları aç'}).click();
-    await offlineMain.waitForURL('**/mobile/product-hub.html');
+    await offlineMain.waitForURL('**/mobile/product-hub.html#saved');
     await offlineMain.locator('[data-tab="favorites"]').click();
     await offlineMain.locator('#favTeams').getByText(/Fenerbahçe/).waitFor();
    }finally{await offlineMain.close();}

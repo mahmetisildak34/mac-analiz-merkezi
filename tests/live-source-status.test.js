@@ -127,3 +127,27 @@ test("ESPN player profiles show only published match statistics and preserve zer
  assert.match(profile,/<dt>Yapılan faul<\/dt><dd>0<\/dd>/);
  assert.match(render([{player:{source:"espn",name:goalkeeper.athlete.displayName}}]),/istatistiği paylaşmadı/);
 });
+
+test("today's ESPN scoreboard refreshes after five seconds and concurrent refreshes share one request",async()=>{
+ const source=html.match(/async function api\([\s\S]*?\n\}/)?.[0];
+ const path="espn/tur.1/scoreboard?dates=20261122";
+ const key="mam_api_cache_v2_"+path;
+ const payload={events:[{id:"401888243",date:"2026-11-22T10:30Z",status:{type:{state:"post",name:"STATUS_FULL_TIME",completed:true}}}]};
+ const entries=new Map([[key,JSON.stringify({time:Date.now()-6000,data:payload})]]);
+ let requests=0;
+ let respond;
+ const api=require("node:vm").runInNewContext("const mamEspnPending=new Map();\n"+source+"\napi",{
+  WORKER:"https://fixture.invalid",
+  mamIstanbulDateString:()=>"2026-11-22",
+  localStorage:{getItem:key=>entries.get(key),setItem:(key,value)=>entries.set(key,value)},
+  AbortController,setTimeout,clearTimeout,
+  fetch:()=>{requests++;return new Promise(resolve=>{respond=()=>resolve({ok:true,json:async()=>payload});});}
+ });
+ const first=api(path),second=api(path);
+ assert.equal(requests,1);
+ respond();
+ assert.deepEqual(await first,payload);
+ assert.deepEqual(await second,payload);
+ assert.equal(JSON.stringify(await api(path)),JSON.stringify(payload));
+ assert.equal(requests,1);
+});
