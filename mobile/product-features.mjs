@@ -22,7 +22,8 @@ export function teamProfile(team,fixtures,{now=Date.now()}={}){
 export function matchDetails(match){
  if(!match?.id)throw new TypeError('Invalid match');
  const minute=e=>{const raw=e?.minute??e?.time?.elapsed;const n=Number(raw);return raw===null||raw===undefined||raw===''||!Number.isFinite(n)?Infinity:n;};
- const events=Array.isArray(match.events)?[...match.events].sort((a,b)=>minute(a)-minute(b)):[];
+ const sourceEvents=Array.isArray(match.events)?match.events:Array.isArray(match.events?.response)?match.events.response:Array.isArray(match.events?.plays)?match.events.plays:[];
+ const events=[...sourceEvents].sort((a,b)=>minute(a)-minute(b));
  const lineups=Array.isArray(match.lineups)?match.lineups:Array.isArray(match.lineups?.response)?match.lineups.response:[];
  return {match,events,lineups,statistics:match.statistics??null,hasVerifiedStatistics:match.statistics?.independentCrossSourceVerification===true};
 }
