@@ -144,6 +144,11 @@ async function verifyMainApp(context){
   await main.locator('#mamStandingsRefresh').click();
   await table.getByText(/Kaydedilmiş ESPN tablosu/).waitFor();
   assert.equal(await main.evaluate(()=>window.historicalStandingsRequests),2);
+  await main.locator('#mamStandingsBack').click();
+  await main.locator('#mamStandingsScreen [data-standing-league="206"]').first().click();
+  const officialCup=table.getByRole('link',{name:'TFF resmî kupa fikstürünü aç'});
+  assert.equal(await officialCup.getAttribute('href'),'https://www.tff.org/default.aspx?pageID=598');
+  assert.equal(await table.locator('table').count(),0);
   await main.waitForFunction(()=>navigator.serviceWorker.controller?.scriptURL.endsWith('/sw.js'));
   console.log('Main mobile timing '+JSON.stringify(measurements));
   const transition=JSON.parse(readFileSync(new URL('./fixtures/espn-esp2-401883109-transition.json',import.meta.url),'utf8'));
@@ -161,9 +166,21 @@ async function verifyMainApp(context){
     renderMatches();
    },{transition:recording,step});
   }
+  async function toggleRecordedFavorites(){
+   const card=main.locator('#matches article.match').first();
+   for(const index of [0,1]){
+    const button=card.locator('[data-mam-star="'+index+'"]');
+    assert.equal(await button.getAttribute('aria-pressed'),'false');
+    await button.click();
+    assert.equal(await button.getAttribute('aria-pressed'),'true');
+    await button.click();
+    assert.equal(await button.getAttribute('aria-pressed'),'false');
+   }
+  }
   await replayEspn('live');
   await main.locator('#matches article.match').getByText(/90\+6/).waitFor();
   await main.locator('#matches article.match').getByText('2 – 1',{exact:true}).waitFor();
+  await toggleRecordedFavorites();
   await replayEspn('finished');
   assert.equal(await main.locator('#matches article.match').count(),0);
   const brazil=JSON.parse(readFileSync(new URL('./fixtures/espn-bra1-401841318-score-change.json',import.meta.url),'utf8'));
@@ -172,6 +189,7 @@ async function verifyMainApp(context){
   await replayEspn('after',brazil);
   await main.locator('#matches article.match').getByText('2 – 0',{exact:true}).waitFor();
   await main.locator('#matches article.match').getByText(/33'/).waitFor();
+  await toggleRecordedFavorites();
   await replayEspn('finished');
 
   await main.setViewportSize({width:320,height:720});

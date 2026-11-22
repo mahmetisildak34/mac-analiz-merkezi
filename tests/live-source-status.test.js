@@ -182,3 +182,15 @@ test("ESPN detail clock is not advanced by the local display timer",()=>{
  });
  tick();
 });
+
+test("a stale not-started label cannot authorize a prematch prediction after ESPN kickoff",()=>{
+ const source=html.match(/function mamCanAnalyzePrematch\([\s\S]*?\n\}/)?.[0];
+ const eligible=require("node:vm").runInNewContext(source+"\n mamCanAnalyzePrematch");
+ const {fixture}=require("./fixtures/espn-esp2-401883109-transition.json");
+ const at=Date.parse(fixture.date);
+ assert.equal(eligible("NS",fixture.date,at-1000),true);
+ assert.equal(eligible("NS",fixture.date,at),false);
+ assert.equal(eligible("NS",fixture.date,at+1000),false);
+ assert.equal(eligible("TBD",fixture.date,at-1000),false);
+ assert.equal(eligible("NS",fixture.date.slice(0,10),at-1000),false);
+});

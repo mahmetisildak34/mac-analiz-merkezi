@@ -44,12 +44,36 @@ function summarize(data){
   players:rosters.some(team=>list(team?.roster).some(entry=>list(entry?.stats).length>0))
  };
 }
+const verifiedArchiveDates={
+ 'uefa.champions':'20261104',
+ 'fifa.world':'20260719',
+ 'uefa.euro':'20240714'
+};
+function archiveDates(boards,league){
+ if(verifiedArchiveDates[league])return [verifiedArchiveDates[league]];
+ const calendar=boards.flatMap(board=>list(board.value?.leagues).flatMap(league=>list(league?.calendar)));
+ const dates=[...new Set(calendar.filter(value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}/.test(value)).map(value=>value.slice(0,10).replaceAll('-','')))];
+ const earlier=dates.filter(day=>day<days[0]).sort().reverse();
+ const published=[0,1,3,7,14,30,60].map(index=>earlier[index]).filter(Boolean);
+ if(published.length)return published;
+ // Bounded date probes when the current provider response omits a calendar.
+ return [3,7,14,21,28,56,112].map(offset=>new Date(noon-offset*86400000).toISOString().slice(0,10).replaceAll('-',''));
+}
 async function audit([league,name]){
  const base=site+league;
  const boards=[];
  for(const day of days)boards.push(await read(base+'/scoreboard?dates='+day));
  const events=boards.flatMap(data=>list(data.value?.events));
- const sample=events.find(event=>matchState(event)==='live')??events.find(event=>matchState(event)==='finished');
+ let sample=events.find(event=>matchState(event)==='live')??events.find(event=>matchState(event)==='finished');
+ const archive={attempted:[],sampleDate:null};
+ if(!sample&&process.argv.includes('--archive')){
+  for(const day of archiveDates(boards,league)){
+   const board=await read(base+'/scoreboard?dates='+day);
+   archive.attempted.push({day,...dayResult(board)});
+   sample=list(board.value?.events).find(event=>matchState(event)==='finished');
+   if(sample){archive.sampleDate=day;break;}
+  }
+ }
  const detail=sample?.id?await read(base+'/summary?event='+encodeURIComponent(sample.id)):null;
  const standings=await read(standingsSite+league+'/standings');
  let standingsResult;
@@ -74,11 +98,12 @@ async function audit([league,name]){
  return {
   league,name,days:Object.fromEntries(days.map((day,index)=>[day,dayResult(boards[index])])),
   teams:withTeams.length,logos:withLogos.length,eventId:sample?.id??null,
-  detail:summarize(detail),standings:standingsResult,
+  detail:summarize(detail),archive,standings:standingsResult,
   active:events.filter(event=>matchState(event)==='live').map(event=>({id:event.id,status:event.status?.type?.name,clock:event.status?.displayClock,scores:list(event.competitions?.[0]?.competitors).map(row=>[row.homeAway,row.score])}))
  };
 }
-const entries=[...espnCompetitions];
+const selectedLeagues=new Set(process.argv.filter(arg=>arg.startsWith('--league=')).map(arg=>arg.slice('--league='.length)));
+const entries=[...espnCompetitions].filter(([league])=>!selectedLeagues.size||selectedLeagues.has(league));
 const results=new Array(entries.length);
 let next=0;
 // Limit concurrent network activity and keep output in catalog order.
