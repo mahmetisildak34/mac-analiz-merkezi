@@ -14,6 +14,8 @@ test("PWA manifest is scoped to the GitHub Pages project path and installable",(
  assert.equal(manifest.scope,"./");
  assert.equal(manifest.display,"standalone");
  assert.ok(manifest.icons.some(icon=>icon.src==="./icons/app-icon.svg"&&icon.type==="image/svg+xml"));
+ assert.ok(manifest.icons.some(icon=>icon.src==="./icons/apple-touch-icon.png"&&icon.sizes==="180x180"&&icon.type==="image/png"));
+ assert.match(html,/apple-touch-icon" sizes="180x180" href="\.\/icons\/apple-touch-icon\.png"/);
  assert.match(html,/<link rel="manifest" href="\.\/manifest\.webmanifest">/);
  assert.match(html,/apple-mobile-web-app-capable/);
  assert.match(html,/serviceWorker\.register\("\.\/service-worker\.js", \{scope:"\.\/"\}\)/);
@@ -23,6 +25,7 @@ test("service worker is syntactically valid and precaches both local app modules
  assert.doesNotThrow(()=>new Script(worker));
  assert.match(worker,/half-goal-algorithm\.js/);
  assert.match(worker,/safari2-favorites-search\.js/);
+ assert.match(worker,/apple-touch-icon\.png/);
  assert.equal(worker.includes(String.raw`\n`),false);
 });
 
