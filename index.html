@@ -1583,6 +1583,841 @@ button{transition:filter .15s ease,transform .15s ease}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./mobile/icon-192.png">
+<style id="mam-today-live-fix-v1">
+/* Dedicated daily fixture area and restore the existing live screen safely. */
+.mam-today-header{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ margin:15px 0 10px;padding:15px 16px;border:1px solid rgba(155,112,255,.55);
+ border-radius:17px;background:linear-gradient(115deg,#17264a,#101a35);
+ box-shadow:0 8px 22px rgba(0,0,0,.22)
+}
+.mam-today-header>div{display:grid;gap:4px;min-width:0}
+.mam-today-header small{font-size:9px;font-weight:900;letter-spacing:1.35px;color:#b9a0ff}
+.mam-today-header strong{font-size:16px;font-weight:950;letter-spacing:.25px;color:#fff}
+.mam-today-header>span{flex:0 0 auto;padding:6px 9px;border:1px solid rgba(153,123,255,.4);border-radius:20px;background:#211b45;color:#d9caff;font-size:9px;font-weight:850}
+.mam-screen-home .mam-today-header{display:flex}
+.mam-screen-live .mam-today-header,.mam-screen-upcoming .mam-today-header,.mam-screen-standings .mam-today-header{display:none!important}
+.mam-screen-live #mamLiveNav:not([hidden]){display:flex!important;visibility:visible!important;pointer-events:auto!important}
+.mam-screen-live #mamLiveNav .mam-live-nav-item{display:flex!important}
+/* Keep all six navigation destinations in the same row on mobile. */
+.mam-bottom-nav{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+@media(max-width:390px){
+ .mam-bottom-nav button{font-size:9px!important}
+ .mam-bottom-nav button span{font-size:17px!important}
+ .mam-today-header{padding:12px}
+ .mam-today-header strong{font-size:14px}
+ .mam-today-header>span{font-size:8px;padding:5px 7px}
+}
+</style>
+<style id="mam-match-tabs-and-panel-fix-v4">
+.mam-match-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0 14px;padding:6px;border:1px solid rgba(132,157,218,.35);border-radius:15px;background:rgba(7,18,39,.96)}
+.mam-match-tabs button{min-width:0;padding:10px 3px!important;min-height:42px!important;border:1px solid transparent!important;border-radius:10px!important;background:transparent!important;color:#bdcbe0!important;font-size:11px!important;font-weight:850!important;white-space:nowrap}
+.mam-match-tabs button.active{background:linear-gradient(135deg,#7044df,#4326a7)!important;border-color:#9678ff!important;color:#fff!important;box-shadow:0 4px 15px rgba(111,73,230,.25)!important}
+.mam-home-shortcuts{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.mam-home-shortcut.finished>span{color:#72e2b0}
+main.mam-screen-live>section.panel:has(#matches),main.mam-screen-upcoming>section.panel:has(#matches),main.mam-screen-finished>section.panel:has(#matches),main.mam-screen-today>section.panel:has(#matches){display:block!important;visibility:visible!important}
+main.mam-screen-live>section.panel:has(#matches)[hidden],main.mam-screen-upcoming>section.panel:has(#matches)[hidden],main.mam-screen-finished>section.panel:has(#matches)[hidden],main.mam-screen-today>section.panel:has(#matches)[hidden]{display:block!important}
+.mam-screen-live>.panel:first-of-type,.mam-screen-upcoming>.panel:first-of-type,.mam-screen-finished>.panel:first-of-type{display:block!important}
+.mam-screen-live .mam-match-tabs,.mam-screen-upcoming .mam-match-tabs,.mam-screen-finished .mam-match-tabs,.mam-screen-today .mam-match-tabs{display:grid!important}
+@media(max-width:390px){.mam-match-tabs{gap:4px;padding:4px}.mam-match-tabs button{font-size:9px!important;padding:8px 1px!important}.mam-home-shortcut small{display:none}}
+</style>
+<style id="mam-dense-match-list-v1">
+/* Dense scoreboard: fit roughly ten fixtures on a phone screen without removing detail access. */
+#matches .mam-league-group{margin:5px 0 7px!important;padding:0 4px 3px!important;border-radius:10px!important}
+#matches .mam-league-heading{min-height:25px!important;padding:4px 6px!important;gap:5px!important}
+#matches .mam-league-heading .mam-league-globe{font-size:13px!important}
+#matches .mam-league-heading strong{font-size:10px!important;line-height:1.1!important}
+#matches .mam-league-heading small,#matches .mam-league-count{font-size:8px!important}
+#matches .mam-league-group .match.match-modern{
+ display:block!important;position:relative!important;
+ margin:3px 0!important;padding:5px 7px!important;min-height:0!important;
+ border-radius:8px!important;box-shadow:none!important;
+}
+#matches .match-modern .match-head{
+ display:flex!important;align-items:center!important;justify-content:flex-end!important;
+ min-height:13px!important;margin:0 0 2px!important;padding:0 0 2px!important;
+ border:0!important;font-size:8px!important;line-height:1!important;
+}
+#matches .match-modern .match-head .league-label{display:none!important}
+#matches .match-modern .match-time{font-size:9px!important;line-height:1!important}
+#matches .match-modern .match-time i{font-size:8px!important;font-style:normal!important}
+#matches .match-modern .match-versus{
+ display:grid!important;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr)!important;
+ align-items:center!important;gap:4px!important;margin:0!important;padding:2px 0!important;
+}
+#matches .match-modern .team-block{
+ display:flex!important;flex-direction:row!important;align-items:center!important;
+ justify-content:center!important;gap:4px!important;min-width:0!important;
+}
+#matches .match-modern .team-block:first-child{flex-direction:row!important}
+#matches .match-modern .team-block:last-child{flex-direction:row-reverse!important}
+#matches .match-modern .team-block strong{
+ display:block!important;min-width:0!important;max-width:calc(100% - 24px)!important;
+ overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+ font-size:9px!important;line-height:1.15!important;text-align:left!important;
+}
+#matches .match-modern .team-logo,#matches .match-modern .team-placeholder{
+ width:19px!important;height:19px!important;flex:0 0 19px!important;
+}
+#matches .match-modern .match-center{display:flex!important;flex-direction:column!important;align-items:center!important;gap:0!important}
+#matches .match-modern .match-clock{font-size:12px!important;line-height:1.1!important;font-weight:900!important}
+#matches .match-modern .match-center small{font-size:7px!important;line-height:1!important;margin-top:1px!important}
+#matches .match-modern .match-actions{display:none!important}
+#matches .match-modern .analysis-preview{display:none!important}
+#matches .match-modern .mam-match-open{
+ display:block!important;width:100%!important;min-height:20px!important;height:20px!important;
+ margin:3px 0 0!important;padding:2px 6px!important;border-radius:6px!important;
+ font-size:8px!important;line-height:1!important;font-weight:750!important;
+}
+#matches .match-modern .match-detail-tabs,#matches .match-modern .match-detail-pane{display:none!important}
+.match-detail-overlay .match-detail-tabs{display:flex!important}
+.match-detail-overlay .match-detail-pane[hidden]{display:none!important}
+#matches .mam-upcoming-group .mam-fixture-row{
+ display:grid!important;grid-template-columns:44px minmax(0,1fr)!important;
+ gap:5px!important;margin:3px 0!important;padding:5px 6px!important;
+ border-radius:8px!important;align-items:center!important;
+}
+#matches .mam-fixture-time{font-size:8px!important;line-height:1.1!important}
+#matches .mam-fixture-time span{font-size:6px!important}
+#matches .mam-fixture-teams{display:grid!important;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr)!important;align-items:center!important;gap:3px!important}
+#matches .mam-fixture-teams>div{display:flex!important;align-items:center!important;gap:3px!important;min-width:0!important}
+#matches .mam-fixture-teams>div:last-child{flex-direction:row-reverse!important}
+#matches .mam-fixture-teams strong{font-size:8px!important;line-height:1.1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#matches .mam-fixture-teams img,#matches .mam-fixture-teams .team-logo{width:17px!important;height:17px!important;flex-basis:17px!important}
+#matches .mam-fixture-analyze{grid-column:2!important;width:auto!important;justify-self:end!important;margin:2px 0 0!important;padding:3px 7px!important;min-height:19px!important;font-size:7px!important}
+#matches .mam-upcoming-summary{margin:4px 0!important;padding:6px 8px!important;font-size:9px!important}
+@media(max-width:430px){
+ main{padding-left:8px!important;padding-right:8px!important}
+ #matches .mam-league-group .match.match-modern{padding:4px 5px!important}
+ #matches .match-modern .match-versus{grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr)!important}
+ #matches .match-modern .team-block strong{font-size:8px!important}
+ #matches .match-modern .match-clock{font-size:11px!important}
+ #matches .match-modern .mam-match-open{height:18px!important;min-height:18px!important;font-size:7px!important}
+}
+</style>
+<style id="mam-live-row-compact-fix-v2">
+/* Live list only: compact single-line rows and an icon-only detail affordance. */
+.mam-screen-live #matches article.match.match-modern:not(.in-detail){
+ min-height:36px!important;height:36px!important;
+ padding:3px 34px 3px 38px!important;margin:2px 0!important;
+ border-radius:7px!important;
+}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-head{left:5px!important;width:29px!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-time{font-size:8px!important;letter-spacing:-.2px!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{
+ min-height:28px!important;height:28px!important;
+ grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr)!important;gap:3px!important;
+}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block{gap:3px!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-logo,
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-placeholder{
+ width:18px!important;height:18px!important;min-width:18px!important;max-width:18px!important;flex:0 0 18px!important;
+}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block strong{font-size:8px!important;line-height:1!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-clock{min-width:39px!important;padding:3px 2px!important;font-size:10px!important}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .mam-match-open{
+ right:4px!important;width:24px!important;height:24px!important;min-height:24px!important;padding:0!important;
+ display:grid!important;place-items:center!important;font-size:0!important;line-height:0!important;
+ white-space:nowrap!important;overflow:hidden!important;
+}
+.mam-screen-live #matches article.match.match-modern:not(.in-detail) .mam-match-open::after{
+ content:"↗";display:block!important;font-size:15px!important;line-height:1!important;
+}
+@media(max-width:390px){
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail){min-height:34px!important;height:34px!important;padding-left:35px!important;padding-right:31px!important}
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr)!important}
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block strong{font-size:7.5px!important}
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-clock{min-width:36px!important;font-size:9px!important}
+}
+</style>
+<style id="mam-final-mobile-match-row-v1">
+/* FINAL MOBILE MATCH ROW OVERRIDE · NOV 15 */
+@media(max-width:600px){
+ #matches .mam-league-group{margin:5px 0 8px!important;padding:0 5px 4px!important;border-radius:11px!important}
+ #matches .mam-league-heading{min-height:29px!important;margin-left:-5px!important;margin-right:-5px!important;padding:5px 7px!important;gap:5px!important}
+ #matches .mam-league-heading strong{font-size:10px!important;line-height:1.1!important}
+ #matches .mam-league-heading small,#matches .mam-league-count{font-size:8px!important}
+ #matches article.match.match-modern:not(.in-detail){
+  position:relative!important;display:block!important;min-height:43px!important;height:43px!important;
+  margin:3px 0!important;padding:4px 34px 4px 5px!important;border-radius:8px!important;
+  overflow:hidden!important;box-shadow:none!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-head{
+  position:absolute!important;left:5px!important;top:3px!important;width:27px!important;
+  min-height:0!important;margin:0!important;padding:0!important;border:0!important;
+  display:flex!important;justify-content:center!important;align-items:center!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-head .league-label{display:none!important}
+ #matches article.match.match-modern:not(.in-detail) .match-time{font-size:8px!important;line-height:1!important;white-space:nowrap!important}
+ #matches article.match.match-modern:not(.in-detail) .match-time i{display:none!important}
+ #matches article.match.match-modern:not(.in-detail) .match-versus{
+  display:grid!important;grid-template-columns:minmax(0,1fr) 55px minmax(0,1fr)!important;
+  align-items:center!important;gap:3px!important;height:34px!important;min-height:34px!important;
+  margin:0!important;padding:0!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .team-block{
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  justify-content:center!important;gap:4px!important;min-width:0!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .team-block:first-child{flex-direction:row!important}
+ #matches article.match.match-modern:not(.in-detail) .team-block:last-child{flex-direction:row-reverse!important}
+ #matches article.match.match-modern:not(.in-detail) .team-block strong{
+  display:block!important;min-width:0!important;max-width:calc(100% - 22px)!important;
+  overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+  font-size:9px!important;line-height:1!important;text-align:left!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .team-logo,
+ #matches article.match.match-modern:not(.in-detail) .team-placeholder{
+  width:19px!important;height:19px!important;min-width:19px!important;max-width:19px!important;
+  flex:0 0 19px!important;object-fit:contain!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-center{
+  display:flex!important;flex-direction:column!important;align-items:center!important;gap:0!important;min-width:0!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-clock{font-size:11px!important;line-height:1.1!important;white-space:nowrap!important}
+ #matches article.match.match-modern:not(.in-detail) .match-center small{font-size:6px!important;line-height:1!important;margin-top:1px!important;white-space:nowrap!important;letter-spacing:-.15px!important}
+ #matches article.match.match-modern:not(.in-detail) .match-actions,
+ #matches article.match.match-modern:not(.in-detail) .analysis-preview,
+ #matches article.match.match-modern:not(.in-detail) .pred,
+ #matches article.match.match-modern:not(.in-detail) .lineup-panel,
+ #matches article.match.match-modern:not(.in-detail) .liveStats{display:none!important}
+ #matches article.match.match-modern:not(.in-detail) .mam-match-open{
+  position:absolute!important;right:4px!important;top:50%!important;left:auto!important;
+  transform:translateY(-50%)!important;display:grid!important;place-items:center!important;
+  width:25px!important;height:25px!important;min-width:25px!important;min-height:25px!important;
+  margin:0!important;padding:0!important;border-radius:7px!important;
+  background:#263b58!important;border:1px solid rgba(130,170,220,.45)!important;
+  color:#fff!important;font-size:0!important;line-height:0!important;
+  white-space:nowrap!important;overflow:hidden!important;box-shadow:none!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .mam-match-open::after{
+  content:"↗"!important;display:block!important;font-size:15px!important;line-height:1!important;
+ }
+ #matches article.match.match-modern.in-detail{height:auto!important;min-height:0!important;padding:10px!important;overflow:visible!important}
+ #matches article.match.match-modern.in-detail .match-head{position:static!important;width:auto!important;display:flex!important;justify-content:space-between!important;padding-bottom:8px!important;border-bottom:1px solid rgba(140,170,210,.2)!important}
+ #matches article.match.match-modern.in-detail .match-head .league-label{display:block!important}
+ #matches article.match.match-modern.in-detail .match-versus{height:auto!important;min-height:64px!important;grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr)!important;padding:10px 0!important}
+ #matches article.match.match-modern.in-detail .team-block{flex-direction:column!important}
+ #matches article.match.match-modern.in-detail .team-logo,
+ #matches article.match.match-modern.in-detail .team-placeholder{width:34px!important;height:34px!important;flex-basis:34px!important}
+ #matches article.match.match-modern.in-detail .team-block strong{font-size:11px!important;max-width:100%!important;text-align:center!important;white-space:normal!important}
+ #matches article.match.match-modern.in-detail .mam-match-open{display:none!important}
+}
+</style>
+<style id="mam-professional-controls-v1">
+/* Unified professional control system: stronger contrast, borders and navigation. */
+:root{
+ --mam-ink:#17243a;
+ --mam-blue:#174f9b;
+ --mam-blue-deep:#123b73;
+ --mam-border:#c8d3df;
+ --mam-focus:#2878d8;
+}
+button,.mam-home-shortcut,.mam-bottom-nav button,.mam-nav-item{
+ -webkit-tap-highlight-color:transparent;
+ touch-action:manipulation;
+}
+button{
+ border:1px solid #159b65!important;
+ border-radius:13px!important;
+ font-weight:800!important;
+ box-shadow:0 3px 0 rgba(8,91,55,.18),0 7px 16px rgba(24,55,84,.10)!important;
+}
+button.secondary{
+ border:1.5px solid #9aacc0!important;
+ background:linear-gradient(180deg,#f8fafc,#e9eef4)!important;
+ color:#20344d!important;
+ box-shadow:0 2px 0 rgba(44,64,88,.12)!important;
+}
+button:focus-visible,a:focus-visible{
+ outline:3px solid rgba(40,120,216,.38)!important;
+ outline-offset:3px!important;
+}
+button:disabled{filter:grayscale(.12);box-shadow:none!important}
+.panel,.mam-standings-card,.mam-today-header,.mam-league-group{
+ border:1.5px solid #d2dce6!important;
+ box-shadow:0 7px 22px rgba(24,43,65,.075)!important;
+}
+input,select,.league-trigger{
+ border:1.5px solid #bdcad8!important;
+ box-shadow:inset 0 1px 2px rgba(20,40,60,.035)!important;
+}
+.mam-appbar{
+ border:1.5px solid #c5d2df!important;
+ box-shadow:0 7px 24px rgba(24,43,65,.10)!important;
+}
+.mam-menu-trigger,.mam-search-trigger{
+ width:44px!important;height:44px!important;min-width:44px!important;
+ border:1.5px solid #b8c7d7!important;border-radius:13px!important;
+ background:linear-gradient(180deg,#fff,#edf2f7)!important;
+ color:#183b64!important;font-size:22px!important;
+ box-shadow:0 3px 0 rgba(30,58,88,.12)!important;
+}
+.mam-section-header{
+ display:flex!important;align-items:center!important;gap:9px!important;
+ padding:10px!important;margin:12px 0!important;
+ border:1.5px solid #b9c9da!important;border-radius:17px!important;
+ background:linear-gradient(135deg,#fff,#f0f5fa)!important;
+ box-shadow:0 5px 18px rgba(24,43,65,.08)!important;
+}
+.mam-section-title{flex:1!important;min-width:0!important}
+.mam-section-title small{color:#58718e!important;font-weight:900!important;letter-spacing:1px!important}
+.mam-section-title strong{color:#142b47!important;font-size:15px!important}
+#mamSectionBack,#mamSectionRefresh{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ gap:5px!important;min-height:43px!important;padding:0 12px!important;
+ border:1.5px solid #aebfd1!important;border-radius:12px!important;
+ background:linear-gradient(180deg,#fff,#eaf0f6)!important;
+ color:#173b64!important;font-size:12px!important;font-weight:900!important;
+ white-space:nowrap!important;box-shadow:0 2px 0 rgba(30,58,88,.13)!important;
+}
+#mamSectionBack{background:linear-gradient(180deg,#eaf3ff,#dceaff)!important;border-color:#8fb2dc!important}
+#mamSectionRefresh{
+ background:linear-gradient(135deg,#147bca,#1555a4)!important;
+ border-color:#104b91!important;color:#fff!important;
+}
+#mamSectionRefresh:active{transform:scale(.96)!important}
+#mamSectionRefresh:disabled{opacity:.72!important}
+.mam-match-tabs,.mam-today-tabs{
+ border:1.5px solid #aebfd2!important;
+ box-shadow:inset 0 1px rgba(255,255,255,.7),0 4px 12px rgba(30,55,80,.07)!important;
+}
+.mam-match-tabs button,.mam-today-tabs button{
+ border:1px solid #c0ccda!important;
+}
+.mam-match-tabs button.active{
+ border:1.5px solid #4b82d2!important;
+ box-shadow:0 3px 10px rgba(49,100,178,.22)!important;
+}
+.mam-home-shortcut{
+ border:1.5px solid #9eb4cc!important;
+ box-shadow:0 4px 0 rgba(30,55,80,.10),0 8px 18px rgba(30,55,80,.09)!important;
+}
+.mam-bottom-nav{
+ border-top:1.5px solid #c5d1dd!important;
+ box-shadow:0 -7px 24px rgba(24,43,65,.12)!important;
+ background:rgba(255,255,255,.97)!important;
+}
+.mam-bottom-nav button{
+ border:1px solid transparent!important;border-radius:12px!important;
+ color:#52647a!important;font-weight:800!important;
+}
+.mam-bottom-nav button.active{
+ border:1.5px solid #b4cce8!important;
+ background:#eaf3ff!important;color:#15539b!important;
+ box-shadow:inset 0 0 0 1px rgba(255,255,255,.8)!important;
+}
+#matches .match.match-modern:not(.in-detail){
+ border:1px solid #d4dee8!important;
+ box-shadow:0 2px 8px rgba(25,45,68,.06)!important;
+}
+@media(max-width:600px){
+ .mam-section-header{gap:6px!important;padding:8px!important}
+ .mam-section-title strong{font-size:13px!important}
+ #mamSectionBack,#mamSectionRefresh{min-height:41px!important;padding:0 9px!important;font-size:11px!important}
+ .mam-menu-trigger,.mam-search-trigger{width:40px!important;height:40px!important;min-width:40px!important}
+ .mam-bottom-nav{padding-bottom:env(safe-area-inset-bottom)!important}
+}
+@media(prefers-reduced-motion:no-preference){
+ button,.mam-home-shortcut,.mam-bottom-nav button{transition:transform .14s ease,box-shadow .14s ease,filter .14s ease!important}
+ button:active,.mam-home-shortcut:active,.mam-bottom-nav button:active{transform:translateY(1px) scale(.985)!important}
+}
+</style>
+<style id="mam-live-goal-events-v1">
+.match.in-detail .match-detail-tabs{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+@media(max-width:600px){.match.in-detail .match-detail-tabs{grid-template-columns:repeat(6,minmax(0,1fr))!important}}
+.mam-goals-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 11px;color:#effaf4}
+.mam-goals-heading b{font-size:14px;font-weight:900}
+.mam-goals-heading span{font-size:10px;font-weight:900;letter-spacing:.7px;color:#8fe2bb;background:rgba(49,190,130,.12);border:1px solid rgba(93,208,155,.22);padding:5px 8px;border-radius:20px}
+.mam-goals-list{display:grid;gap:7px}
+.mam-goal-row{display:grid;grid-template-columns:38px 22px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:58px;padding:8px 10px;border-radius:12px;background:linear-gradient(110deg,#123528,#102a22);border:1px solid rgba(100,200,150,.17)}
+.mam-goal-minute{font-size:12px;font-weight:950;color:#d9f8e7;text-align:center}
+.mam-goal-icon{font-size:16px}
+.mam-goal-copy{display:grid;gap:3px;min-width:0}
+.mam-goal-copy b{font-size:12px;line-height:1.25;color:#f5fff9;overflow-wrap:anywhere}
+.mam-goal-copy small{font-size:10px;line-height:1.3;color:#a9cbb9;overflow-wrap:anywhere}
+.mam-goal-type{font-size:9px;font-weight:850;color:#c6e9d5;background:rgba(255,255,255,.06);padding:4px 6px;border-radius:7px;white-space:nowrap}
+.mam-goals-foot,.mam-goals-empty,.mam-goals-loading{padding:12px;border-radius:11px;background:rgba(255,255,255,.04);color:#a8c4b5;font-size:11px;line-height:1.5}
+.mam-goals-retry{margin-top:8px;min-height:36px;padding:7px 12px;border-radius:9px;background:#1d5b43;color:#f2fff8;font-size:11px;font-weight:850}
+@media(max-width:420px){.mam-goal-row{grid-template-columns:34px 18px minmax(0,1fr) auto;gap:6px;padding:7px 8px;min-height:53px}.mam-goal-copy b{font-size:11px}.mam-goal-copy small{font-size:9px}.mam-goal-type{font-size:8px;padding:4px 5px}}
+</style>
+<style id="mam-mobile-stats-one-screen-v1">
+
+/* 2026-11-16: Mobil canlı istatistikler — tüm metrikleri tek ekranda göster */
+@media(max-width:600px){
+ .match.in-detail .match-detail-pane[data-pane="stats"]{padding:5px 6px 8px!important;margin:0 -10px!important;min-height:0!important}
+ .match.in-detail .match-detail-pane[data-pane="stats"] .liveStats.mam-live-stats-view{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:0 6px!important;padding:0!important;border-radius:8px!important;overflow:hidden!important;
+ }
+ .mam-live-stats-title{grid-column:1/-1!important;font-size:14px!important;line-height:1.15!important;padding:7px 9px!important}
+ .mam-live-stat-row{
+  min-width:0!important;padding:6px 7px 5px!important;
+  border-bottom:1px solid #e5ebe7!important;background:#fff!important;
+ }
+ .mam-live-stat-values{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;gap:3px!important;font-size:11px!important;line-height:1.1!important}
+ .mam-live-stat-label{font-size:8px!important;line-height:1.1!important;letter-spacing:0!important;overflow-wrap:anywhere!important}
+ .mam-live-stat-track{height:3px!important;margin-top:4px!important;gap:2px!important}
+ .mam-live-stats-foot{grid-column:1/-1!important;padding:5px 8px!important;font-size:8px!important;line-height:1.25!important}
+}
+@media(max-width:350px){
+ .match.in-detail .match-detail-pane[data-pane="stats"] .liveStats.mam-live-stats-view{gap:0 3px!important}
+ .mam-live-stat-row{padding:5px 4px 4px!important}
+ .mam-live-stat-values{font-size:10px!important;gap:2px!important}
+ .mam-live-stat-label{font-size:7px!important}
+}
+</style>
+<style id="mam-mobile-stats-contrast-fix-v1">
+
+/* Fix contrast in compact white statistic tiles: override older dark-theme !important colors */
+@media(max-width:600px){
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row .mam-live-stat-values,
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row .mam-live-stat-values b{
+  color:#102b20!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row .mam-live-stat-label{
+  color:#496456!important;font-weight:850!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row{
+  background:#ffffff!important;
+ }
+ .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-track{
+  background:#e7eee9!important;
+ }
+}
+</style>
+<style id="mam-live-stats-final-layout-fix">
+
+/* Final live-stat layout fix: target the stats panel directly (not a specific pane wrapper) */
+@media(max-width:600px){
+ .match.in-detail .mam-live-stats-view{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:0 6px!important;padding:0!important;background:#ffffff!important;
+  color:#102b20!important;border:1px solid #dce7df!important;
+  border-radius:9px!important;overflow:hidden!important;
+ }
+ .match.in-detail .mam-live-stats-view .mam-live-stats-title{
+  grid-column:1/-1!important;display:block!important;
+  background:#eaf3ed!important;color:#173d2d!important;
+  font-size:14px!important;font-weight:900!important;
+  line-height:1.15!important;padding:9px 10px!important;
+  border-bottom:1px solid #d5e2d9!important;
+ }
+ .match.in-detail .mam-live-stats-view .mam-live-stat-row{
+  display:block!important;min-width:0!important;margin:0!important;
+  padding:7px 7px 6px!important;background:#ffffff!important;
+  color:#102b20!important;border:0!important;
+  border-bottom:1px solid #e5ebe7!important;
+ }
+ .match.in-detail .mam-live-stats-view .mam-live-stat-values{
+  display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;
+  align-items:center!important;gap:3px!important;
+  color:#102b20!important;font-size:11px!important;
+  font-weight:850!important;line-height:1.15!important;
+ }
+ .match.in-detail .mam-live-stats-view .mam-live-stat-values b{
+  color:#102b20!important;font-size:11px!important;font-weight:900!important;
+ }
+ .match.in-detail .mam-live-stats-view .mam-live-stat-label{
+  color:#496456!important;text-align:center!important;
+  font-size:8px!important;font-weight:850!important;
+  line-height:1.15!important;letter-spacing:0!important;
+  text-transform:uppercase!important;overflow-wrap:anywhere!important;
+ }
+ .match.in-detail .mam-live-stats-view .mam-live-stat-track{
+  display:flex!important;width:100%!important;height:4px!important;
+  margin-top:5px!important;gap:2px!important;background:#e7eee9!important;
+  border-radius:8px!important;overflow:hidden!important;
+ }
+ .match.in-detail .mam-live-stats-view .mam-live-stat-home{background:#078b4b!important}
+ .match.in-detail .mam-live-stats-view .mam-live-stat-away{background:#e4d900!important}
+ .match.in-detail .mam-live-stats-view .mam-live-stats-foot{
+  grid-column:1/-1!important;background:#f3f7f4!important;
+  color:#63756b!important;padding:6px 8px!important;
+  font-size:8px!important;line-height:1.25!important;
+ }
+}
+.mam-hide-bottom-nav .mam-bottom-nav{display:none!important}
+
+/* MAM: scoped filter layout and de-duplicated home navigation. */
+@media (max-width: 600px) {
+  .mam-fixture-controls .mam-primary-filters {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: start !important;
+    gap: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .mam-fixture-controls .mam-primary-filters > .mam-date-filter,
+  .mam-fixture-controls .mam-primary-filters > .league-picker {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    align-self: start !important;
+  }
+  .mam-fixture-controls .mam-primary-filters label {
+    display: block !important;
+    position: static !important;
+    float: none !important;
+    transform: none !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.35 !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+  .mam-fixture-controls #date,
+  .mam-fixture-controls #leagueTrigger {
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 46px !important;
+    height: 46px !important;
+    margin: 0 !important;
+    padding: 8px !important;
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+  }
+  .mam-fixture-controls #date { display: block !important; }
+  .mam-fixture-controls #leagueCurrent {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  main.mam-screen-home #mamMatchTabs {
+    display: none !important;
+  }
+}
+@media (max-width: 350px) {
+  .mam-fixture-controls .mam-primary-filters { gap: 8px !important; }
+  .mam-fixture-controls #date,
+  .mam-fixture-controls #leagueTrigger { font-size: 11px !important; padding: 6px !important; }
+}
+
+/* Match kickoff / minute layout: dedicated time rail, no overlap with team badges. */
+@media (max-width:600px) {
+ #matches article.match.match-modern:not(.in-detail) {
+   box-sizing:border-box!important;
+   position:relative!important;
+   padding:5px 34px 5px 72px!important;
+   min-height:52px!important;
+   height:52px!important;
+   overflow:hidden!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-head,
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-head {
+   position:absolute!important;
+   top:50%!important;
+   left:5px!important;
+   transform:translateY(-50%)!important;
+   display:block!important;
+   width:62px!important;
+   height:auto!important;
+   min-height:0!important;
+   margin:0!important;
+   padding:0!important;
+   border:0!important;
+   text-align:center!important;
+   overflow:hidden!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-head > span {
+   display:flex!important;
+   flex-direction:column!important;
+   flex-wrap:nowrap!important;
+   justify-content:center!important;
+   align-items:center!important;
+   gap:3px!important;
+   width:100%!important;
+   min-width:0!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-time,
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-time {
+   display:block!important;
+   width:100%!important;
+   font-size:10px!important;
+   line-height:1.1!important;
+   text-align:center!important;
+   white-space:nowrap!important;
+   overflow:hidden!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .mam-kickoff-time {
+   display:block!important;
+   width:100%!important;
+   color:#b7c8d9!important;
+   font-size:9px!important;
+   line-height:1.15!important;
+   font-weight:650!important;
+   white-space:nowrap!important;
+   text-align:center!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .match-versus,
+ .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus {
+   display:grid!important;
+   grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr)!important;
+   gap:4px!important;
+   align-items:center!important;
+   min-height:40px!important;
+   height:40px!important;
+ }
+ #matches article.match.match-modern:not(.in-detail) .team-block {min-width:0!important}
+ #matches article.match.match-modern:not(.in-detail) .team-block strong {
+   min-width:0!important;
+   overflow:hidden!important;
+   text-overflow:ellipsis!important;
+   white-space:nowrap!important;
+ }
+}
+@media(max-width:360px) {
+ #matches article.match.match-modern:not(.in-detail){padding-left:65px!important}
+ #matches article.match.match-modern:not(.in-detail) .match-head{width:55px!important}
+ #matches article.match.match-modern:not(.in-detail) .match-versus{grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr)!important;gap:2px!important}
+}
+
+/* Today is upcoming-only: avoid showing a second filter row offering live/finished inside Today. */
+main.mam-screen-today #mamTodayTabs{display:none!important}
+
+@media(max-width:600px) {
+ #mamDateStrip .mam-date-chip{min-height:44px!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail){
+  height:auto!important;
+  min-height:100px!important;
+  padding-right:50px!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-head{top:25px!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-match-open{
+  top:25px!important;
+  width:44px!important;
+  height:44px!important;
+  min-width:44px!important;
+  min-height:44px!important;
+ }
+ #matches .mam-independent-favorites{margin:2px 0 3px!important}
+}
+@media(max-width:600px){
+ body .mam-bottom-nav{grid-template-columns:repeat(7,minmax(44px,1fr))!important;overflow-x:auto}
+}
+ .lineup-player-profile summary{min-height:44px;padding:11px;cursor:pointer}
+ .lineup-player-profile dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}
+ .lineup-player-profile dd{margin:0}
+ #mamAuthGate a[hidden]{display:none!important}
+ #mamAuthGate a:not([hidden]){display:block;padding:12px;min-height:44px;color:#80e9d2}
+</style>
+<style id="mamCompactMobile">
+@media (max-width: 600px) {
+ body > main {padding-inline: max(10px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-right)) !important}
+ body > main > .mam-favorite-shortcuts, .mam-appbar .mam-new-page-link,
+ main.mam-screen-standings .mam-standings-intro {display:none !important}
+ body > main .mam-appbar {gap:8px!important;min-height:52px!important;padding:4px 8px!important;border-radius:12px!important;box-shadow:none!important}
+ body > main #mamMenuToggle, body > main #mamSearchToggle {display:flex!important;min-width:44px!important;min-height:44px!important;justify-content:center;align-items:center}
+ body #mamDrawer.open, body #mamDrawerBackdrop:not([hidden]) {display:block!important;visibility:visible!important;pointer-events:auto!important}
+ body #mamDrawer .mam-nav-item {min-height:44px!important;font-size:13px!important;text-decoration:none}
+ /* Star buttons retain accessible names; no unexplained E/D visual suffixes. */
+ .mam-independent-favorites [data-mam-star="1"]::after,
+ .mam-independent-favorites [data-mam-star="2"]::after {content:none!important}
+ body > main .mam-brand {flex:1;min-width:0;gap:5px!important}
+ body > main .mam-brand span {font-size:12px!important;letter-spacing:.02em!important;white-space:normal!important}
+ body .mam-bottom-nav {grid-template-columns:repeat(5,minmax(44px,1fr))!important;gap:3px!important;padding:3px!important;border-radius:12px!important}
+ body .mam-bottom-nav button {min-height:46px!important;height:auto!important;font-size:10px!important}
+ body .mam-bottom-nav button span {font-size:15px!important}
+ body .mam-bottom-nav [data-mam-bottom="coupon"],body .mam-bottom-nav [data-mam-bottom="special"] {display:none!important}
+ body > main .mam-match-tabs {gap:4px!important;padding:3px!important}
+ body > main .mam-match-tabs button, body > main .mam-live-nav button,
+ body > main .mam-section-header button {min-height:44px!important;padding:4px 6px!important;font-size:11px!important;box-shadow:none!important}
+ body > main .mam-section-header, body > main #mamTodayHeader {margin:8px 0!important;padding:6px 8px!important;border-width:1px!important;border-radius:10px!important;box-shadow:none!important;min-height:44px!important}
+ #mamSectionTitle,#mamTodayTitle {font-size:14px!important}
+ #mamSectionEyebrow,#mamTodayHeader small {font-size:9px!important}
+ #matches .mam-league-group {padding:4px!important;margin:7px 0!important;border-width:1px!important;border-radius:10px!important;box-shadow:none!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) {
+  padding:4px 46px 0 52px!important;min-height:0!important;height:auto!important;
+  border-width:1px!important;border-radius:9px!important;box-shadow:none!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-head {left:2px!important;width:47px!important;top:23px!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-versus {gap:3px!important;min-height:44px!important;height:auto!important;grid-template-columns:minmax(0,1fr) 43px minmax(0,1fr)!important}
+ #matches article.match.match-modern:not(.in-detail) .team-block strong {font-size:11px!important;line-height:1.15!important;white-space:normal!important;overflow-wrap:anywhere!important;max-width:none!important}
+ #matches article.match.match-modern:not(.in-detail) .match-center small {font-size:9px!important;line-height:1.15!important;white-space:normal!important;text-align:center}
+ #matches article.match.match-modern:not(.in-detail) .match-clock {font-size:12px!important}
+ #matches article.match.match-modern:not(.in-detail) .absences-summary {display:none!important}
+ #matches article.match.match-modern:not(.in-detail) .mam-match-open {top:25px!important;right:1px!important;box-shadow:none!important}
+ #matches .mam-independent-favorites {gap:0!important;margin:0!important;flex-wrap:nowrap!important;justify-content:center}
+ .mam-independent-favorites button {flex:0 0 44px;min-width:44px!important;min-height:44px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+ .mam-independent-favorites .mam-star-label {display:none}
+ .mam-independent-favorites .mam-star-glyph {font-size:17px}
+ .mam-independent-favorites [aria-pressed="true"] .mam-star-glyph {color:#f4bd36}
+ #matches .mam-fixture-row {padding:6px!important;gap:4px!important;border-width:1px!important;box-shadow:none!important}
+ #mamStandingsScreen .mam-standings-group,#mamStandingsScreen .mam-standings-card,#mamFavoritePanel {margin:8px 0!important;padding:8px!important;border-width:1px!important;border-radius:11px!important;box-shadow:none!important}
+ #mamStandingsScreen .mam-standings-search {margin:8px 0!important}
+ #mamStandingsScreen .mam-standings-leagues {gap:5px!important}
+ #mamStandingsScreen .mam-standings-leagues button {min-height:44px!important;padding:5px 7px!important;font-size:12px!important;line-height:1.25!important;white-space:normal!important;box-shadow:none!important}
+ #mamStandingsScreen .mam-standings-table {min-width:0!important;width:100%!important}
+ #mamStandingsScreen .mam-standings-table :is(th,td) {padding:5px 2px!important;font-size:10px!important}
+ #mamStandingsScreen .mam-team-name-cell {white-space:normal!important;overflow-wrap:anywhere}
+ #mamFavoritePanel h2,#mamFavoritePanel h3 {font-size:14px;margin:6px 0}
+ #mamFavoritePanel li {font-size:13px;overflow-wrap:anywhere}
+ #mamFavoritePanel button {min-height:44px!important;padding:4px 8px!important;font-size:12px!important}
+ .match-detail-top strong {font-size:14px!important;overflow-wrap:anywhere;white-space:normal!important}
+ .match.in-detail .match-detail-tabs {grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:3px!important}
+ .match.in-detail .match-detail-tab {font-size:11px!important;min-height:44px!important;padding:4px!important}
+ .match.in-detail .pred,.lineup-player-profile {font-size:13px!important;line-height:1.4!important}
+ .match.in-detail .stat {padding:8px!important;border-width:1px!important;box-shadow:none!important}
+ .match.in-detail .stat b {font-size:16px!important}
+ #mamTeamHistoryScreen header strong {white-space:normal!important;overflow-wrap:anywhere}
+ /* Reduce duplicated quick links while retaining navigation in the drawer. */
+ main .mam-favorite-shortcuts, main .mam-quick-links {display:none!important}
+ /* Avoid horizontal scrolling from seven fixed navigation slots. */
+ body .mam-bottom-nav {overflow-x:hidden!important;min-width:0!important}
+ body .mam-bottom-nav button {min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.15!important}
+ /* Consistent compact typography on iPhone, without reducing touch targets. */
+ body > main {font-size:13px!important;line-height:1.4!important}
+ body > main h1 {font-size:21px!important;line-height:1.2!important;margin:10px 0 5px!important;letter-spacing:-.35px!important}
+ body > main h2 {font-size:17px!important;line-height:1.25!important}
+ body > main h3 {font-size:15px!important;line-height:1.3!important}
+ body > main .sub, body > main .hint {font-size:12px!important;line-height:1.4!important}
+ body > main .mam-section-header strong,
+ body > main .mam-league-heading {font-size:13px!important;line-height:1.3!important}
+ body > main .mam-appbar .mam-brand {font-size:13px!important;line-height:1.2!important}
+ body > main .mam-live-nav-item, body > main .mam-match-tabs button {font-size:11px!important;line-height:1.2!important}
+ #matches article.match.match-modern:not(.in-detail) .team-block strong {font-size:11px!important;line-height:1.25!important}
+ #matches article.match.match-modern:not(.in-detail) .match-clock {font-size:12px!important;line-height:1.2!important}
+ #matches article.match.match-modern:not(.in-detail) .league-label {font-size:10px!important;line-height:1.25!important}
+ body > main .mam-bottom-nav button {font-size:10px!important;letter-spacing:0!important}
+ #mamStandingsScreen .mam-standings-card-head h3 {font-size:15px!important}
+ #mamFavoritePanel h2 {font-size:16px!important}
+ #mamFavoritePanel h3 {font-size:14px!important}
+ /* Long names wrap naturally instead of becoming a single truncated word. */
+ #matches .team-block {min-width:0!important}
+ #matches .team-block strong {overflow-wrap:break-word!important;word-break:normal!important}
+}
+</style>
+<style id="mamDenseMatchCards">
+/* Compact mobile score rows: team stars above the respective team, match star above score. */
+@media (max-width:600px) {
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) {
+  position:relative!important;min-height:92px!important;
+  padding:24px 46px 9px 52px!important;margin:5px 0!important;
+  border-radius:8px!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-head {
+  top:28px!important;left:2px!important;width:46px!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-versus {
+  min-height:51px!important;height:auto!important;padding:0!important;
+  grid-template-columns:minmax(0,1fr) 43px minmax(0,1fr)!important;
+  gap:3px!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-block {
+  gap:2px!important;min-width:0!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-logo {
+  width:22px!important;height:22px!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-block strong {
+  font-size:12px!important;line-height:1.22!important;
+  display:-webkit-box!important;-webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;overflow:hidden!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites {
+  position:absolute!important;top:0!important;left:52px!important;right:46px!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr) 43px minmax(0,1fr)!important;
+  gap:3px!important;margin:0!important;align-items:start!important;
+  pointer-events:none!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites button {
+  pointer-events:auto!important;justify-self:center!important;
+  display:flex!important;align-items:flex-start!important;justify-content:center!important;
+  width:44px!important;height:44px!important;min-width:44px!important;
+  min-height:44px!important;padding:2px 0 0!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-mam-star="1"] {grid-column:1!important;grid-row:1!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-mam-star="0"] {grid-column:2!important;grid-row:1!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-mam-star="2"] {grid-column:3!important;grid-row:1!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-star-glyph {
+  font-size:16px!important;line-height:19px!important;color:#a7bdd5!important;
+  text-shadow:0 1px 2px #0b1427;
+ }
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) [aria-pressed="true"] .mam-star-glyph {color:#ffd36d!important}
+ #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-match-open {
+  top:26px!important;right:1px!important;min-height:44px!important;
+ }
+ #matches .mam-league-group {margin:5px 0!important;padding:4px!important}
+ #matches .mam-league-heading {margin:2px 0 4px!important;padding:4px!important}
+}
+</style>
+<style id="mamCleanHome20261122">
+/* iPhone: fixtures first, developer diagnostics out of the consumer flow. */
+#mamApiDiagnostic {display:none!important}
+@media (max-width:600px) {
+ body > main {padding-top:8px!important}
+ body > main .mam-appbar {margin-bottom:7px!important;min-height:46px!important;padding:3px 8px!important}
+ body > main .mam-fixture-controls {padding:8px!important;margin:5px 0 6px!important;border-radius:12px!important;box-shadow:none!important}
+ body > main .mam-primary-filters {display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:7px!important;align-items:end!important;margin:0!important}
+ body > main .mam-date-filter,body > main .league-picker {width:100%!important;min-width:0!important;margin:0!important}
+ body > main .mam-date-filter label,body > main .league-picker label {font-size:10px!important;margin:0 0 3px!important;line-height:1.1!important}
+ body > main #date,body > main #leagueTrigger {width:100%!important;min-width:0!important;height:44px!important;min-height:44px!important;margin:0!important;padding:7px 9px!important;font-size:12px!important;border-radius:10px!important}
+ body > main #leagueCurrent {font-size:12px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+ body > main #mamDateStrip {display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;margin:6px 0 0!important;padding:0!important;overflow:visible!important}
+ body > main #mamDateStrip .mam-date-chip {min-width:0!important;width:100%!important;min-height:44px!important;height:44px!important;padding:4px 2px!important;font-size:10px!important;border-radius:9px!important}
+ body > main #mamDateStrip .mam-date-chip b {font-size:11px!important;margin:1px 0 0!important;line-height:1.15!important}
+ body > main #load {min-height:44px!important;height:44px!important;margin:6px 0 0!important;padding:6px!important;font-size:12px!important;border-radius:9px!important}
+ body > main #loadSuperLigFixtures {display:none!important}
+ body > main #mamHomeShortcuts {display:none!important}
+ body > main #mamMatchTabs {display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;margin:5px 0 7px!important;padding:0!important}
+ body > main #mamMatchTabs button {min-width:0!important;min-height:44px!important;padding:6px 2px!important;font-size:11px!important;border-radius:9px!important;white-space:nowrap!important}
+ body > main #status {margin:3px 0!important;padding:2px 0!important;font-size:11px!important;min-height:0!important}
+ body > main #mamTodayHeader {margin:4px 0!important;padding:4px 2px!important}
+ body > main #matches {margin-top:3px!important}
+ body > main #matches .mam-league-heading {padding:5px 6px!important;margin:3px 0!important}
+ body > main #matches article.match.match-modern.mam-has-favorites:not(.in-detail) {margin:4px 0!important}
+}
+</style>
+<style id="mamUltraCompactHeader20261122">
+@media(max-width:600px){
+ body > main .mam-fixture-controls{padding:7px!important;margin:4px 0!important}
+ body > main .mam-primary-filters{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:6px!important;align-items:end!important}
+ body > main .mam-primary-filters .mam-date-filter,body > main .mam-primary-filters .league-picker{width:100%!important;min-width:0!important;height:auto!important;min-height:0!important}
+ body > main .mam-primary-filters label{font-size:10px!important;line-height:1!important;margin:0 0 3px!important;padding:0!important}
+ body > main .mam-primary-filters input#date,body > main .mam-primary-filters button#leagueTrigger{box-sizing:border-box!important;width:100%!important;max-width:100%!important;height:44px!important;min-height:44px!important;max-height:44px!important;padding:6px 8px!important;margin:0!important;border-radius:9px!important;font-size:12px!important;line-height:1.2!important}
+ body > main #leagueCurrent,body > main #leagueCurrent *{font-size:12px!important;line-height:1.2!important}
+ body > main #leagueCurrent .league-current-icon{display:none!important}
+ body > main #mamDateStrip{margin:5px 0 0!important;gap:5px!important}
+ body > main #mamDateStrip .mam-date-chip{height:44px!important;min-height:44px!important;padding:5px 2px!important;font-size:11px!important}
+ body > main #mamDateStrip .mam-date-chip b{font-size:10px!important}
+ body > main #load{display:none!important}
+ body > main #status{font-size:11px!important;margin:3px 0!important}
+}
+</style>
+<style id="mamReferenceHomeSkin">
+@media(max-width:600px){
+ body > main .mam-fixture-controls{padding:6px 8px!important;margin:3px 0 5px!important;border:0!important;background:transparent!important;box-shadow:none!important}
+ body > main #mamReferenceDateNav{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr)!important;gap:4px!important;align-items:center!important;height:44px!important;margin:0 0 5px!important}
+ body > main #mamReferenceDateNav button{height:44px!important;min-height:44px!important;padding:5px!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#b8c9e1!important;font-size:12px!important;white-space:nowrap!important}
+ body > main #mamReferenceDateNav .mam-ref-date-center{height:44px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;margin:0!important;color:#f5f8ff!important;font-size:14px!important;font-weight:800!important;white-space:nowrap!important}
+ body > main .mam-primary-filters{display:flex!important;justify-content:center!important;margin:0!important;gap:0!important}
+ body > main .mam-primary-filters .mam-date-filter{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important}
+ body > main .mam-primary-filters .league-picker{width:auto!important;max-width:100%!important;margin:0!important}
+ body > main .mam-primary-filters .league-picker label{display:none!important}
+ body > main .mam-primary-filters button#leagueTrigger{height:34px!important;min-height:34px!important;max-height:34px!important;width:auto!important;min-width:112px!important;padding:4px 12px!important;border-radius:17px!important;background:#223451!important;border:1px solid #465a7b!important;box-shadow:none!important;color:#f0f4ff!important}
+ body > main #leagueCurrent,body > main #leagueCurrent *{font-size:12px!important}
+ body > main #mamDateStrip{display:none!important}
+ body > main #load{display:none!important}
+ body > main #mamHomeShortcuts{display:none!important}
+ body > main #mamMatchTabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;margin:5px 0!important}
+ body > main #mamMatchTabs button{height:44px!important;min-height:44px!important;font-size:11px!important;padding:4px 1px!important}
+ body > main #status{margin:2px 0!important;padding:0!important;font-size:10px!important}
+}
+</style>
 </head>
 <body>
 
@@ -7944,842 +8779,6 @@ window.addEventListener("online",()=>{
  if(mamScreenMode==="live"&&!$("mamAuthGate"))loadLiveMatches();
 });
 </script>
-</body>
-</html>
-
-<style id="mam-today-live-fix-v1">
-/* Dedicated daily fixture area and restore the existing live screen safely. */
-.mam-today-header{
- display:flex;align-items:center;justify-content:space-between;gap:12px;
- margin:15px 0 10px;padding:15px 16px;border:1px solid rgba(155,112,255,.55);
- border-radius:17px;background:linear-gradient(115deg,#17264a,#101a35);
- box-shadow:0 8px 22px rgba(0,0,0,.22)
-}
-.mam-today-header>div{display:grid;gap:4px;min-width:0}
-.mam-today-header small{font-size:9px;font-weight:900;letter-spacing:1.35px;color:#b9a0ff}
-.mam-today-header strong{font-size:16px;font-weight:950;letter-spacing:.25px;color:#fff}
-.mam-today-header>span{flex:0 0 auto;padding:6px 9px;border:1px solid rgba(153,123,255,.4);border-radius:20px;background:#211b45;color:#d9caff;font-size:9px;font-weight:850}
-.mam-screen-home .mam-today-header{display:flex}
-.mam-screen-live .mam-today-header,.mam-screen-upcoming .mam-today-header,.mam-screen-standings .mam-today-header{display:none!important}
-.mam-screen-live #mamLiveNav:not([hidden]){display:flex!important;visibility:visible!important;pointer-events:auto!important}
-.mam-screen-live #mamLiveNav .mam-live-nav-item{display:flex!important}
-/* Keep all six navigation destinations in the same row on mobile. */
-.mam-bottom-nav{grid-template-columns:repeat(7,minmax(0,1fr))!important}
-@media(max-width:390px){
- .mam-bottom-nav button{font-size:9px!important}
- .mam-bottom-nav button span{font-size:17px!important}
- .mam-today-header{padding:12px}
- .mam-today-header strong{font-size:14px}
- .mam-today-header>span{font-size:8px;padding:5px 7px}
-}
-</style>
-<style id="mam-match-tabs-and-panel-fix-v4">
-.mam-match-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0 14px;padding:6px;border:1px solid rgba(132,157,218,.35);border-radius:15px;background:rgba(7,18,39,.96)}
-.mam-match-tabs button{min-width:0;padding:10px 3px!important;min-height:42px!important;border:1px solid transparent!important;border-radius:10px!important;background:transparent!important;color:#bdcbe0!important;font-size:11px!important;font-weight:850!important;white-space:nowrap}
-.mam-match-tabs button.active{background:linear-gradient(135deg,#7044df,#4326a7)!important;border-color:#9678ff!important;color:#fff!important;box-shadow:0 4px 15px rgba(111,73,230,.25)!important}
-.mam-home-shortcuts{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-.mam-home-shortcut.finished>span{color:#72e2b0}
-main.mam-screen-live>section.panel:has(#matches),main.mam-screen-upcoming>section.panel:has(#matches),main.mam-screen-finished>section.panel:has(#matches),main.mam-screen-today>section.panel:has(#matches){display:block!important;visibility:visible!important}
-main.mam-screen-live>section.panel:has(#matches)[hidden],main.mam-screen-upcoming>section.panel:has(#matches)[hidden],main.mam-screen-finished>section.panel:has(#matches)[hidden],main.mam-screen-today>section.panel:has(#matches)[hidden]{display:block!important}
-.mam-screen-live>.panel:first-of-type,.mam-screen-upcoming>.panel:first-of-type,.mam-screen-finished>.panel:first-of-type{display:block!important}
-.mam-screen-live .mam-match-tabs,.mam-screen-upcoming .mam-match-tabs,.mam-screen-finished .mam-match-tabs,.mam-screen-today .mam-match-tabs{display:grid!important}
-@media(max-width:390px){.mam-match-tabs{gap:4px;padding:4px}.mam-match-tabs button{font-size:9px!important;padding:8px 1px!important}.mam-home-shortcut small{display:none}}
-</style>
-
-<style id="mam-dense-match-list-v1">
-/* Dense scoreboard: fit roughly ten fixtures on a phone screen without removing detail access. */
-#matches .mam-league-group{margin:5px 0 7px!important;padding:0 4px 3px!important;border-radius:10px!important}
-#matches .mam-league-heading{min-height:25px!important;padding:4px 6px!important;gap:5px!important}
-#matches .mam-league-heading .mam-league-globe{font-size:13px!important}
-#matches .mam-league-heading strong{font-size:10px!important;line-height:1.1!important}
-#matches .mam-league-heading small,#matches .mam-league-count{font-size:8px!important}
-#matches .mam-league-group .match.match-modern{
- display:block!important;position:relative!important;
- margin:3px 0!important;padding:5px 7px!important;min-height:0!important;
- border-radius:8px!important;box-shadow:none!important;
-}
-#matches .match-modern .match-head{
- display:flex!important;align-items:center!important;justify-content:flex-end!important;
- min-height:13px!important;margin:0 0 2px!important;padding:0 0 2px!important;
- border:0!important;font-size:8px!important;line-height:1!important;
-}
-#matches .match-modern .match-head .league-label{display:none!important}
-#matches .match-modern .match-time{font-size:9px!important;line-height:1!important}
-#matches .match-modern .match-time i{font-size:8px!important;font-style:normal!important}
-#matches .match-modern .match-versus{
- display:grid!important;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr)!important;
- align-items:center!important;gap:4px!important;margin:0!important;padding:2px 0!important;
-}
-#matches .match-modern .team-block{
- display:flex!important;flex-direction:row!important;align-items:center!important;
- justify-content:center!important;gap:4px!important;min-width:0!important;
-}
-#matches .match-modern .team-block:first-child{flex-direction:row!important}
-#matches .match-modern .team-block:last-child{flex-direction:row-reverse!important}
-#matches .match-modern .team-block strong{
- display:block!important;min-width:0!important;max-width:calc(100% - 24px)!important;
- overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
- font-size:9px!important;line-height:1.15!important;text-align:left!important;
-}
-#matches .match-modern .team-logo,#matches .match-modern .team-placeholder{
- width:19px!important;height:19px!important;flex:0 0 19px!important;
-}
-#matches .match-modern .match-center{display:flex!important;flex-direction:column!important;align-items:center!important;gap:0!important}
-#matches .match-modern .match-clock{font-size:12px!important;line-height:1.1!important;font-weight:900!important}
-#matches .match-modern .match-center small{font-size:7px!important;line-height:1!important;margin-top:1px!important}
-#matches .match-modern .match-actions{display:none!important}
-#matches .match-modern .analysis-preview{display:none!important}
-#matches .match-modern .mam-match-open{
- display:block!important;width:100%!important;min-height:20px!important;height:20px!important;
- margin:3px 0 0!important;padding:2px 6px!important;border-radius:6px!important;
- font-size:8px!important;line-height:1!important;font-weight:750!important;
-}
-#matches .match-modern .match-detail-tabs,#matches .match-modern .match-detail-pane{display:none!important}
-.match-detail-overlay .match-detail-tabs{display:flex!important}
-.match-detail-overlay .match-detail-pane[hidden]{display:none!important}
-#matches .mam-upcoming-group .mam-fixture-row{
- display:grid!important;grid-template-columns:44px minmax(0,1fr)!important;
- gap:5px!important;margin:3px 0!important;padding:5px 6px!important;
- border-radius:8px!important;align-items:center!important;
-}
-#matches .mam-fixture-time{font-size:8px!important;line-height:1.1!important}
-#matches .mam-fixture-time span{font-size:6px!important}
-#matches .mam-fixture-teams{display:grid!important;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr)!important;align-items:center!important;gap:3px!important}
-#matches .mam-fixture-teams>div{display:flex!important;align-items:center!important;gap:3px!important;min-width:0!important}
-#matches .mam-fixture-teams>div:last-child{flex-direction:row-reverse!important}
-#matches .mam-fixture-teams strong{font-size:8px!important;line-height:1.1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-#matches .mam-fixture-teams img,#matches .mam-fixture-teams .team-logo{width:17px!important;height:17px!important;flex-basis:17px!important}
-#matches .mam-fixture-analyze{grid-column:2!important;width:auto!important;justify-self:end!important;margin:2px 0 0!important;padding:3px 7px!important;min-height:19px!important;font-size:7px!important}
-#matches .mam-upcoming-summary{margin:4px 0!important;padding:6px 8px!important;font-size:9px!important}
-@media(max-width:430px){
- main{padding-left:8px!important;padding-right:8px!important}
- #matches .mam-league-group .match.match-modern{padding:4px 5px!important}
- #matches .match-modern .match-versus{grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr)!important}
- #matches .match-modern .team-block strong{font-size:8px!important}
- #matches .match-modern .match-clock{font-size:11px!important}
- #matches .match-modern .mam-match-open{height:18px!important;min-height:18px!important;font-size:7px!important}
-}
-</style>
-
-<style id="mam-live-row-compact-fix-v2">
-/* Live list only: compact single-line rows and an icon-only detail affordance. */
-.mam-screen-live #matches article.match.match-modern:not(.in-detail){
- min-height:36px!important;height:36px!important;
- padding:3px 34px 3px 38px!important;margin:2px 0!important;
- border-radius:7px!important;
-}
-.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-head{left:5px!important;width:29px!important}
-.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-time{font-size:8px!important;letter-spacing:-.2px!important}
-.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{
- min-height:28px!important;height:28px!important;
- grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr)!important;gap:3px!important;
-}
-.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block{gap:3px!important}
-.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-logo,
-.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-placeholder{
- width:18px!important;height:18px!important;min-width:18px!important;max-width:18px!important;flex:0 0 18px!important;
-}
-.mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block strong{font-size:8px!important;line-height:1!important}
-.mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-clock{min-width:39px!important;padding:3px 2px!important;font-size:10px!important}
-.mam-screen-live #matches article.match.match-modern:not(.in-detail) .mam-match-open{
- right:4px!important;width:24px!important;height:24px!important;min-height:24px!important;padding:0!important;
- display:grid!important;place-items:center!important;font-size:0!important;line-height:0!important;
- white-space:nowrap!important;overflow:hidden!important;
-}
-.mam-screen-live #matches article.match.match-modern:not(.in-detail) .mam-match-open::after{
- content:"↗";display:block!important;font-size:15px!important;line-height:1!important;
-}
-@media(max-width:390px){
- .mam-screen-live #matches article.match.match-modern:not(.in-detail){min-height:34px!important;height:34px!important;padding-left:35px!important;padding-right:31px!important}
- .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus{grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr)!important}
- .mam-screen-live #matches article.match.match-modern:not(.in-detail) .team-block strong{font-size:7.5px!important}
- .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-clock{min-width:36px!important;font-size:9px!important}
-}
-</style>
-
-
-<style id="mam-final-mobile-match-row-v1">
-/* FINAL MOBILE MATCH ROW OVERRIDE · NOV 15 */
-@media(max-width:600px){
- #matches .mam-league-group{margin:5px 0 8px!important;padding:0 5px 4px!important;border-radius:11px!important}
- #matches .mam-league-heading{min-height:29px!important;margin-left:-5px!important;margin-right:-5px!important;padding:5px 7px!important;gap:5px!important}
- #matches .mam-league-heading strong{font-size:10px!important;line-height:1.1!important}
- #matches .mam-league-heading small,#matches .mam-league-count{font-size:8px!important}
- #matches article.match.match-modern:not(.in-detail){
-  position:relative!important;display:block!important;min-height:43px!important;height:43px!important;
-  margin:3px 0!important;padding:4px 34px 4px 5px!important;border-radius:8px!important;
-  overflow:hidden!important;box-shadow:none!important;
- }
- #matches article.match.match-modern:not(.in-detail) .match-head{
-  position:absolute!important;left:5px!important;top:3px!important;width:27px!important;
-  min-height:0!important;margin:0!important;padding:0!important;border:0!important;
-  display:flex!important;justify-content:center!important;align-items:center!important;
- }
- #matches article.match.match-modern:not(.in-detail) .match-head .league-label{display:none!important}
- #matches article.match.match-modern:not(.in-detail) .match-time{font-size:8px!important;line-height:1!important;white-space:nowrap!important}
- #matches article.match.match-modern:not(.in-detail) .match-time i{display:none!important}
- #matches article.match.match-modern:not(.in-detail) .match-versus{
-  display:grid!important;grid-template-columns:minmax(0,1fr) 55px minmax(0,1fr)!important;
-  align-items:center!important;gap:3px!important;height:34px!important;min-height:34px!important;
-  margin:0!important;padding:0!important;
- }
- #matches article.match.match-modern:not(.in-detail) .team-block{
-  display:flex!important;flex-direction:row!important;align-items:center!important;
-  justify-content:center!important;gap:4px!important;min-width:0!important;
- }
- #matches article.match.match-modern:not(.in-detail) .team-block:first-child{flex-direction:row!important}
- #matches article.match.match-modern:not(.in-detail) .team-block:last-child{flex-direction:row-reverse!important}
- #matches article.match.match-modern:not(.in-detail) .team-block strong{
-  display:block!important;min-width:0!important;max-width:calc(100% - 22px)!important;
-  overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
-  font-size:9px!important;line-height:1!important;text-align:left!important;
- }
- #matches article.match.match-modern:not(.in-detail) .team-logo,
- #matches article.match.match-modern:not(.in-detail) .team-placeholder{
-  width:19px!important;height:19px!important;min-width:19px!important;max-width:19px!important;
-  flex:0 0 19px!important;object-fit:contain!important;
- }
- #matches article.match.match-modern:not(.in-detail) .match-center{
-  display:flex!important;flex-direction:column!important;align-items:center!important;gap:0!important;min-width:0!important;
- }
- #matches article.match.match-modern:not(.in-detail) .match-clock{font-size:11px!important;line-height:1.1!important;white-space:nowrap!important}
- #matches article.match.match-modern:not(.in-detail) .match-center small{font-size:6px!important;line-height:1!important;margin-top:1px!important;white-space:nowrap!important;letter-spacing:-.15px!important}
- #matches article.match.match-modern:not(.in-detail) .match-actions,
- #matches article.match.match-modern:not(.in-detail) .analysis-preview,
- #matches article.match.match-modern:not(.in-detail) .pred,
- #matches article.match.match-modern:not(.in-detail) .lineup-panel,
- #matches article.match.match-modern:not(.in-detail) .liveStats{display:none!important}
- #matches article.match.match-modern:not(.in-detail) .mam-match-open{
-  position:absolute!important;right:4px!important;top:50%!important;left:auto!important;
-  transform:translateY(-50%)!important;display:grid!important;place-items:center!important;
-  width:25px!important;height:25px!important;min-width:25px!important;min-height:25px!important;
-  margin:0!important;padding:0!important;border-radius:7px!important;
-  background:#263b58!important;border:1px solid rgba(130,170,220,.45)!important;
-  color:#fff!important;font-size:0!important;line-height:0!important;
-  white-space:nowrap!important;overflow:hidden!important;box-shadow:none!important;
- }
- #matches article.match.match-modern:not(.in-detail) .mam-match-open::after{
-  content:"↗"!important;display:block!important;font-size:15px!important;line-height:1!important;
- }
- #matches article.match.match-modern.in-detail{height:auto!important;min-height:0!important;padding:10px!important;overflow:visible!important}
- #matches article.match.match-modern.in-detail .match-head{position:static!important;width:auto!important;display:flex!important;justify-content:space-between!important;padding-bottom:8px!important;border-bottom:1px solid rgba(140,170,210,.2)!important}
- #matches article.match.match-modern.in-detail .match-head .league-label{display:block!important}
- #matches article.match.match-modern.in-detail .match-versus{height:auto!important;min-height:64px!important;grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr)!important;padding:10px 0!important}
- #matches article.match.match-modern.in-detail .team-block{flex-direction:column!important}
- #matches article.match.match-modern.in-detail .team-logo,
- #matches article.match.match-modern.in-detail .team-placeholder{width:34px!important;height:34px!important;flex-basis:34px!important}
- #matches article.match.match-modern.in-detail .team-block strong{font-size:11px!important;max-width:100%!important;text-align:center!important;white-space:normal!important}
- #matches article.match.match-modern.in-detail .mam-match-open{display:none!important}
-}
-</style>
-
-
-<style id="mam-professional-controls-v1">
-/* Unified professional control system: stronger contrast, borders and navigation. */
-:root{
- --mam-ink:#17243a;
- --mam-blue:#174f9b;
- --mam-blue-deep:#123b73;
- --mam-border:#c8d3df;
- --mam-focus:#2878d8;
-}
-button,.mam-home-shortcut,.mam-bottom-nav button,.mam-nav-item{
- -webkit-tap-highlight-color:transparent;
- touch-action:manipulation;
-}
-button{
- border:1px solid #159b65!important;
- border-radius:13px!important;
- font-weight:800!important;
- box-shadow:0 3px 0 rgba(8,91,55,.18),0 7px 16px rgba(24,55,84,.10)!important;
-}
-button.secondary{
- border:1.5px solid #9aacc0!important;
- background:linear-gradient(180deg,#f8fafc,#e9eef4)!important;
- color:#20344d!important;
- box-shadow:0 2px 0 rgba(44,64,88,.12)!important;
-}
-button:focus-visible,a:focus-visible{
- outline:3px solid rgba(40,120,216,.38)!important;
- outline-offset:3px!important;
-}
-button:disabled{filter:grayscale(.12);box-shadow:none!important}
-.panel,.mam-standings-card,.mam-today-header,.mam-league-group{
- border:1.5px solid #d2dce6!important;
- box-shadow:0 7px 22px rgba(24,43,65,.075)!important;
-}
-input,select,.league-trigger{
- border:1.5px solid #bdcad8!important;
- box-shadow:inset 0 1px 2px rgba(20,40,60,.035)!important;
-}
-.mam-appbar{
- border:1.5px solid #c5d2df!important;
- box-shadow:0 7px 24px rgba(24,43,65,.10)!important;
-}
-.mam-menu-trigger,.mam-search-trigger{
- width:44px!important;height:44px!important;min-width:44px!important;
- border:1.5px solid #b8c7d7!important;border-radius:13px!important;
- background:linear-gradient(180deg,#fff,#edf2f7)!important;
- color:#183b64!important;font-size:22px!important;
- box-shadow:0 3px 0 rgba(30,58,88,.12)!important;
-}
-.mam-section-header{
- display:flex!important;align-items:center!important;gap:9px!important;
- padding:10px!important;margin:12px 0!important;
- border:1.5px solid #b9c9da!important;border-radius:17px!important;
- background:linear-gradient(135deg,#fff,#f0f5fa)!important;
- box-shadow:0 5px 18px rgba(24,43,65,.08)!important;
-}
-.mam-section-title{flex:1!important;min-width:0!important}
-.mam-section-title small{color:#58718e!important;font-weight:900!important;letter-spacing:1px!important}
-.mam-section-title strong{color:#142b47!important;font-size:15px!important}
-#mamSectionBack,#mamSectionRefresh{
- display:inline-flex!important;align-items:center!important;justify-content:center!important;
- gap:5px!important;min-height:43px!important;padding:0 12px!important;
- border:1.5px solid #aebfd1!important;border-radius:12px!important;
- background:linear-gradient(180deg,#fff,#eaf0f6)!important;
- color:#173b64!important;font-size:12px!important;font-weight:900!important;
- white-space:nowrap!important;box-shadow:0 2px 0 rgba(30,58,88,.13)!important;
-}
-#mamSectionBack{background:linear-gradient(180deg,#eaf3ff,#dceaff)!important;border-color:#8fb2dc!important}
-#mamSectionRefresh{
- background:linear-gradient(135deg,#147bca,#1555a4)!important;
- border-color:#104b91!important;color:#fff!important;
-}
-#mamSectionRefresh:active{transform:scale(.96)!important}
-#mamSectionRefresh:disabled{opacity:.72!important}
-.mam-match-tabs,.mam-today-tabs{
- border:1.5px solid #aebfd2!important;
- box-shadow:inset 0 1px rgba(255,255,255,.7),0 4px 12px rgba(30,55,80,.07)!important;
-}
-.mam-match-tabs button,.mam-today-tabs button{
- border:1px solid #c0ccda!important;
-}
-.mam-match-tabs button.active{
- border:1.5px solid #4b82d2!important;
- box-shadow:0 3px 10px rgba(49,100,178,.22)!important;
-}
-.mam-home-shortcut{
- border:1.5px solid #9eb4cc!important;
- box-shadow:0 4px 0 rgba(30,55,80,.10),0 8px 18px rgba(30,55,80,.09)!important;
-}
-.mam-bottom-nav{
- border-top:1.5px solid #c5d1dd!important;
- box-shadow:0 -7px 24px rgba(24,43,65,.12)!important;
- background:rgba(255,255,255,.97)!important;
-}
-.mam-bottom-nav button{
- border:1px solid transparent!important;border-radius:12px!important;
- color:#52647a!important;font-weight:800!important;
-}
-.mam-bottom-nav button.active{
- border:1.5px solid #b4cce8!important;
- background:#eaf3ff!important;color:#15539b!important;
- box-shadow:inset 0 0 0 1px rgba(255,255,255,.8)!important;
-}
-#matches .match.match-modern:not(.in-detail){
- border:1px solid #d4dee8!important;
- box-shadow:0 2px 8px rgba(25,45,68,.06)!important;
-}
-@media(max-width:600px){
- .mam-section-header{gap:6px!important;padding:8px!important}
- .mam-section-title strong{font-size:13px!important}
- #mamSectionBack,#mamSectionRefresh{min-height:41px!important;padding:0 9px!important;font-size:11px!important}
- .mam-menu-trigger,.mam-search-trigger{width:40px!important;height:40px!important;min-width:40px!important}
- .mam-bottom-nav{padding-bottom:env(safe-area-inset-bottom)!important}
-}
-@media(prefers-reduced-motion:no-preference){
- button,.mam-home-shortcut,.mam-bottom-nav button{transition:transform .14s ease,box-shadow .14s ease,filter .14s ease!important}
- button:active,.mam-home-shortcut:active,.mam-bottom-nav button:active{transform:translateY(1px) scale(.985)!important}
-}
-</style>
-
-<style id="mam-live-goal-events-v1">
-.match.in-detail .match-detail-tabs{grid-template-columns:repeat(6,minmax(0,1fr))!important}
-@media(max-width:600px){.match.in-detail .match-detail-tabs{grid-template-columns:repeat(6,minmax(0,1fr))!important}}
-.mam-goals-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 11px;color:#effaf4}
-.mam-goals-heading b{font-size:14px;font-weight:900}
-.mam-goals-heading span{font-size:10px;font-weight:900;letter-spacing:.7px;color:#8fe2bb;background:rgba(49,190,130,.12);border:1px solid rgba(93,208,155,.22);padding:5px 8px;border-radius:20px}
-.mam-goals-list{display:grid;gap:7px}
-.mam-goal-row{display:grid;grid-template-columns:38px 22px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:58px;padding:8px 10px;border-radius:12px;background:linear-gradient(110deg,#123528,#102a22);border:1px solid rgba(100,200,150,.17)}
-.mam-goal-minute{font-size:12px;font-weight:950;color:#d9f8e7;text-align:center}
-.mam-goal-icon{font-size:16px}
-.mam-goal-copy{display:grid;gap:3px;min-width:0}
-.mam-goal-copy b{font-size:12px;line-height:1.25;color:#f5fff9;overflow-wrap:anywhere}
-.mam-goal-copy small{font-size:10px;line-height:1.3;color:#a9cbb9;overflow-wrap:anywhere}
-.mam-goal-type{font-size:9px;font-weight:850;color:#c6e9d5;background:rgba(255,255,255,.06);padding:4px 6px;border-radius:7px;white-space:nowrap}
-.mam-goals-foot,.mam-goals-empty,.mam-goals-loading{padding:12px;border-radius:11px;background:rgba(255,255,255,.04);color:#a8c4b5;font-size:11px;line-height:1.5}
-.mam-goals-retry{margin-top:8px;min-height:36px;padding:7px 12px;border-radius:9px;background:#1d5b43;color:#f2fff8;font-size:11px;font-weight:850}
-@media(max-width:420px){.mam-goal-row{grid-template-columns:34px 18px minmax(0,1fr) auto;gap:6px;padding:7px 8px;min-height:53px}.mam-goal-copy b{font-size:11px}.mam-goal-copy small{font-size:9px}.mam-goal-type{font-size:8px;padding:4px 5px}}
-</style>
-
-<style id="mam-mobile-stats-one-screen-v1">
-
-/* 2026-11-16: Mobil canlı istatistikler — tüm metrikleri tek ekranda göster */
-@media(max-width:600px){
- .match.in-detail .match-detail-pane[data-pane="stats"]{padding:5px 6px 8px!important;margin:0 -10px!important;min-height:0!important}
- .match.in-detail .match-detail-pane[data-pane="stats"] .liveStats.mam-live-stats-view{
-  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:0 6px!important;padding:0!important;border-radius:8px!important;overflow:hidden!important;
- }
- .mam-live-stats-title{grid-column:1/-1!important;font-size:14px!important;line-height:1.15!important;padding:7px 9px!important}
- .mam-live-stat-row{
-  min-width:0!important;padding:6px 7px 5px!important;
-  border-bottom:1px solid #e5ebe7!important;background:#fff!important;
- }
- .mam-live-stat-values{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;gap:3px!important;font-size:11px!important;line-height:1.1!important}
- .mam-live-stat-label{font-size:8px!important;line-height:1.1!important;letter-spacing:0!important;overflow-wrap:anywhere!important}
- .mam-live-stat-track{height:3px!important;margin-top:4px!important;gap:2px!important}
- .mam-live-stats-foot{grid-column:1/-1!important;padding:5px 8px!important;font-size:8px!important;line-height:1.25!important}
-}
-@media(max-width:350px){
- .match.in-detail .match-detail-pane[data-pane="stats"] .liveStats.mam-live-stats-view{gap:0 3px!important}
- .mam-live-stat-row{padding:5px 4px 4px!important}
- .mam-live-stat-values{font-size:10px!important;gap:2px!important}
- .mam-live-stat-label{font-size:7px!important}
-}
-</style>
-
-<style id="mam-mobile-stats-contrast-fix-v1">
-
-/* Fix contrast in compact white statistic tiles: override older dark-theme !important colors */
-@media(max-width:600px){
- .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row .mam-live-stat-values,
- .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row .mam-live-stat-values b{
-  color:#102b20!important;
- }
- .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row .mam-live-stat-label{
-  color:#496456!important;font-weight:850!important;
- }
- .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-row{
-  background:#ffffff!important;
- }
- .match.in-detail .match-detail-pane[data-pane="stats"] .mam-live-stat-track{
-  background:#e7eee9!important;
- }
-}
-</style>
-
-
-
-<style id="mam-live-stats-final-layout-fix">
-
-/* Final live-stat layout fix: target the stats panel directly (not a specific pane wrapper) */
-@media(max-width:600px){
- .match.in-detail .mam-live-stats-view{
-  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:0 6px!important;padding:0!important;background:#ffffff!important;
-  color:#102b20!important;border:1px solid #dce7df!important;
-  border-radius:9px!important;overflow:hidden!important;
- }
- .match.in-detail .mam-live-stats-view .mam-live-stats-title{
-  grid-column:1/-1!important;display:block!important;
-  background:#eaf3ed!important;color:#173d2d!important;
-  font-size:14px!important;font-weight:900!important;
-  line-height:1.15!important;padding:9px 10px!important;
-  border-bottom:1px solid #d5e2d9!important;
- }
- .match.in-detail .mam-live-stats-view .mam-live-stat-row{
-  display:block!important;min-width:0!important;margin:0!important;
-  padding:7px 7px 6px!important;background:#ffffff!important;
-  color:#102b20!important;border:0!important;
-  border-bottom:1px solid #e5ebe7!important;
- }
- .match.in-detail .mam-live-stats-view .mam-live-stat-values{
-  display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;
-  align-items:center!important;gap:3px!important;
-  color:#102b20!important;font-size:11px!important;
-  font-weight:850!important;line-height:1.15!important;
- }
- .match.in-detail .mam-live-stats-view .mam-live-stat-values b{
-  color:#102b20!important;font-size:11px!important;font-weight:900!important;
- }
- .match.in-detail .mam-live-stats-view .mam-live-stat-label{
-  color:#496456!important;text-align:center!important;
-  font-size:8px!important;font-weight:850!important;
-  line-height:1.15!important;letter-spacing:0!important;
-  text-transform:uppercase!important;overflow-wrap:anywhere!important;
- }
- .match.in-detail .mam-live-stats-view .mam-live-stat-track{
-  display:flex!important;width:100%!important;height:4px!important;
-  margin-top:5px!important;gap:2px!important;background:#e7eee9!important;
-  border-radius:8px!important;overflow:hidden!important;
- }
- .match.in-detail .mam-live-stats-view .mam-live-stat-home{background:#078b4b!important}
- .match.in-detail .mam-live-stats-view .mam-live-stat-away{background:#e4d900!important}
- .match.in-detail .mam-live-stats-view .mam-live-stats-foot{
-  grid-column:1/-1!important;background:#f3f7f4!important;
-  color:#63756b!important;padding:6px 8px!important;
-  font-size:8px!important;line-height:1.25!important;
- }
-}
-.mam-hide-bottom-nav .mam-bottom-nav{display:none!important}
-
-/* MAM: scoped filter layout and de-duplicated home navigation. */
-@media (max-width: 600px) {
-  .mam-fixture-controls .mam-primary-filters {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    align-items: start !important;
-    gap: 12px !important;
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-  .mam-fixture-controls .mam-primary-filters > .mam-date-filter,
-  .mam-fixture-controls .mam-primary-filters > .league-picker {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-    min-width: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    position: relative !important;
-    align-self: start !important;
-  }
-  .mam-fixture-controls .mam-primary-filters label {
-    display: block !important;
-    position: static !important;
-    float: none !important;
-    transform: none !important;
-    width: 100% !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: 1.35 !important;
-    font-size: 12px !important;
-    white-space: nowrap !important;
-  }
-  .mam-fixture-controls #date,
-  .mam-fixture-controls #leagueTrigger {
-    box-sizing: border-box !important;
-    display: flex !important;
-    align-items: center !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    min-height: 46px !important;
-    height: 46px !important;
-    margin: 0 !important;
-    padding: 8px !important;
-    font-size: 12px !important;
-    line-height: 1.25 !important;
-  }
-  .mam-fixture-controls #date { display: block !important; }
-  .mam-fixture-controls #leagueCurrent {
-    min-width: 0 !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-  }
-  main.mam-screen-home #mamMatchTabs {
-    display: none !important;
-  }
-}
-@media (max-width: 350px) {
-  .mam-fixture-controls .mam-primary-filters { gap: 8px !important; }
-  .mam-fixture-controls #date,
-  .mam-fixture-controls #leagueTrigger { font-size: 11px !important; padding: 6px !important; }
-}
-
-/* Match kickoff / minute layout: dedicated time rail, no overlap with team badges. */
-@media (max-width:600px) {
- #matches article.match.match-modern:not(.in-detail) {
-   box-sizing:border-box!important;
-   position:relative!important;
-   padding:5px 34px 5px 72px!important;
-   min-height:52px!important;
-   height:52px!important;
-   overflow:hidden!important;
- }
- #matches article.match.match-modern:not(.in-detail) .match-head,
- .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-head {
-   position:absolute!important;
-   top:50%!important;
-   left:5px!important;
-   transform:translateY(-50%)!important;
-   display:block!important;
-   width:62px!important;
-   height:auto!important;
-   min-height:0!important;
-   margin:0!important;
-   padding:0!important;
-   border:0!important;
-   text-align:center!important;
-   overflow:hidden!important;
- }
- #matches article.match.match-modern:not(.in-detail) .match-head > span {
-   display:flex!important;
-   flex-direction:column!important;
-   flex-wrap:nowrap!important;
-   justify-content:center!important;
-   align-items:center!important;
-   gap:3px!important;
-   width:100%!important;
-   min-width:0!important;
- }
- #matches article.match.match-modern:not(.in-detail) .match-time,
- .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-time {
-   display:block!important;
-   width:100%!important;
-   font-size:10px!important;
-   line-height:1.1!important;
-   text-align:center!important;
-   white-space:nowrap!important;
-   overflow:hidden!important;
- }
- #matches article.match.match-modern:not(.in-detail) .mam-kickoff-time {
-   display:block!important;
-   width:100%!important;
-   color:#b7c8d9!important;
-   font-size:9px!important;
-   line-height:1.15!important;
-   font-weight:650!important;
-   white-space:nowrap!important;
-   text-align:center!important;
- }
- #matches article.match.match-modern:not(.in-detail) .match-versus,
- .mam-screen-live #matches article.match.match-modern:not(.in-detail) .match-versus {
-   display:grid!important;
-   grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr)!important;
-   gap:4px!important;
-   align-items:center!important;
-   min-height:40px!important;
-   height:40px!important;
- }
- #matches article.match.match-modern:not(.in-detail) .team-block {min-width:0!important}
- #matches article.match.match-modern:not(.in-detail) .team-block strong {
-   min-width:0!important;
-   overflow:hidden!important;
-   text-overflow:ellipsis!important;
-   white-space:nowrap!important;
- }
-}
-@media(max-width:360px) {
- #matches article.match.match-modern:not(.in-detail){padding-left:65px!important}
- #matches article.match.match-modern:not(.in-detail) .match-head{width:55px!important}
- #matches article.match.match-modern:not(.in-detail) .match-versus{grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr)!important;gap:2px!important}
-}
-
-/* Today is upcoming-only: avoid showing a second filter row offering live/finished inside Today. */
-main.mam-screen-today #mamTodayTabs{display:none!important}
-
-@media(max-width:600px) {
- #mamDateStrip .mam-date-chip{min-height:44px!important}
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail){
-  height:auto!important;
-  min-height:100px!important;
-  padding-right:50px!important;
- }
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-head{top:25px!important}
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-match-open{
-  top:25px!important;
-  width:44px!important;
-  height:44px!important;
-  min-width:44px!important;
-  min-height:44px!important;
- }
- #matches .mam-independent-favorites{margin:2px 0 3px!important}
-}
-@media(max-width:600px){
- body .mam-bottom-nav{grid-template-columns:repeat(7,minmax(44px,1fr))!important;overflow-x:auto}
-}
- .lineup-player-profile summary{min-height:44px;padding:11px;cursor:pointer}
- .lineup-player-profile dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}
- .lineup-player-profile dd{margin:0}
- #mamAuthGate a[hidden]{display:none!important}
- #mamAuthGate a:not([hidden]){display:block;padding:12px;min-height:44px;color:#80e9d2}
-</style>
-
-<style id="mamCompactMobile">
-@media (max-width: 600px) {
- body > main {padding-inline: max(10px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-right)) !important}
- body > main > .mam-favorite-shortcuts, .mam-appbar .mam-new-page-link,
- main.mam-screen-standings .mam-standings-intro {display:none !important}
- body > main .mam-appbar {gap:8px!important;min-height:52px!important;padding:4px 8px!important;border-radius:12px!important;box-shadow:none!important}
- body > main #mamMenuToggle, body > main #mamSearchToggle {display:flex!important;min-width:44px!important;min-height:44px!important;justify-content:center;align-items:center}
- body #mamDrawer.open, body #mamDrawerBackdrop:not([hidden]) {display:block!important;visibility:visible!important;pointer-events:auto!important}
- body #mamDrawer .mam-nav-item {min-height:44px!important;font-size:13px!important;text-decoration:none}
- /* Star buttons retain accessible names; no unexplained E/D visual suffixes. */
- .mam-independent-favorites [data-mam-star="1"]::after,
- .mam-independent-favorites [data-mam-star="2"]::after {content:none!important}
- body > main .mam-brand {flex:1;min-width:0;gap:5px!important}
- body > main .mam-brand span {font-size:12px!important;letter-spacing:.02em!important;white-space:normal!important}
- body .mam-bottom-nav {grid-template-columns:repeat(5,minmax(44px,1fr))!important;gap:3px!important;padding:3px!important;border-radius:12px!important}
- body .mam-bottom-nav button {min-height:46px!important;height:auto!important;font-size:10px!important}
- body .mam-bottom-nav button span {font-size:15px!important}
- body .mam-bottom-nav [data-mam-bottom="coupon"],body .mam-bottom-nav [data-mam-bottom="special"] {display:none!important}
- body > main .mam-match-tabs {gap:4px!important;padding:3px!important}
- body > main .mam-match-tabs button, body > main .mam-live-nav button,
- body > main .mam-section-header button {min-height:44px!important;padding:4px 6px!important;font-size:11px!important;box-shadow:none!important}
- body > main .mam-section-header, body > main #mamTodayHeader {margin:8px 0!important;padding:6px 8px!important;border-width:1px!important;border-radius:10px!important;box-shadow:none!important;min-height:44px!important}
- #mamSectionTitle,#mamTodayTitle {font-size:14px!important}
- #mamSectionEyebrow,#mamTodayHeader small {font-size:9px!important}
- #matches .mam-league-group {padding:4px!important;margin:7px 0!important;border-width:1px!important;border-radius:10px!important;box-shadow:none!important}
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) {
-  padding:4px 46px 0 52px!important;min-height:0!important;height:auto!important;
-  border-width:1px!important;border-radius:9px!important;box-shadow:none!important;
- }
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-head {left:2px!important;width:47px!important;top:23px!important}
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-versus {gap:3px!important;min-height:44px!important;height:auto!important;grid-template-columns:minmax(0,1fr) 43px minmax(0,1fr)!important}
- #matches article.match.match-modern:not(.in-detail) .team-block strong {font-size:11px!important;line-height:1.15!important;white-space:normal!important;overflow-wrap:anywhere!important;max-width:none!important}
- #matches article.match.match-modern:not(.in-detail) .match-center small {font-size:9px!important;line-height:1.15!important;white-space:normal!important;text-align:center}
- #matches article.match.match-modern:not(.in-detail) .match-clock {font-size:12px!important}
- #matches article.match.match-modern:not(.in-detail) .absences-summary {display:none!important}
- #matches article.match.match-modern:not(.in-detail) .mam-match-open {top:25px!important;right:1px!important;box-shadow:none!important}
- #matches .mam-independent-favorites {gap:0!important;margin:0!important;flex-wrap:nowrap!important;justify-content:center}
- .mam-independent-favorites button {flex:0 0 44px;min-width:44px!important;min-height:44px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
- .mam-independent-favorites .mam-star-label {display:none}
- .mam-independent-favorites .mam-star-glyph {font-size:17px}
- .mam-independent-favorites [aria-pressed="true"] .mam-star-glyph {color:#f4bd36}
- #matches .mam-fixture-row {padding:6px!important;gap:4px!important;border-width:1px!important;box-shadow:none!important}
- #mamStandingsScreen .mam-standings-group,#mamStandingsScreen .mam-standings-card,#mamFavoritePanel {margin:8px 0!important;padding:8px!important;border-width:1px!important;border-radius:11px!important;box-shadow:none!important}
- #mamStandingsScreen .mam-standings-search {margin:8px 0!important}
- #mamStandingsScreen .mam-standings-leagues {gap:5px!important}
- #mamStandingsScreen .mam-standings-leagues button {min-height:44px!important;padding:5px 7px!important;font-size:12px!important;line-height:1.25!important;white-space:normal!important;box-shadow:none!important}
- #mamStandingsScreen .mam-standings-table {min-width:0!important;width:100%!important}
- #mamStandingsScreen .mam-standings-table :is(th,td) {padding:5px 2px!important;font-size:10px!important}
- #mamStandingsScreen .mam-team-name-cell {white-space:normal!important;overflow-wrap:anywhere}
- #mamFavoritePanel h2,#mamFavoritePanel h3 {font-size:14px;margin:6px 0}
- #mamFavoritePanel li {font-size:13px;overflow-wrap:anywhere}
- #mamFavoritePanel button {min-height:44px!important;padding:4px 8px!important;font-size:12px!important}
- .match-detail-top strong {font-size:14px!important;overflow-wrap:anywhere;white-space:normal!important}
- .match.in-detail .match-detail-tabs {grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:3px!important}
- .match.in-detail .match-detail-tab {font-size:11px!important;min-height:44px!important;padding:4px!important}
- .match.in-detail .pred,.lineup-player-profile {font-size:13px!important;line-height:1.4!important}
- .match.in-detail .stat {padding:8px!important;border-width:1px!important;box-shadow:none!important}
- .match.in-detail .stat b {font-size:16px!important}
- #mamTeamHistoryScreen header strong {white-space:normal!important;overflow-wrap:anywhere}
- /* Reduce duplicated quick links while retaining navigation in the drawer. */
- main .mam-favorite-shortcuts, main .mam-quick-links {display:none!important}
- /* Avoid horizontal scrolling from seven fixed navigation slots. */
- body .mam-bottom-nav {overflow-x:hidden!important;min-width:0!important}
- body .mam-bottom-nav button {min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.15!important}
- /* Consistent compact typography on iPhone, without reducing touch targets. */
- body > main {font-size:13px!important;line-height:1.4!important}
- body > main h1 {font-size:21px!important;line-height:1.2!important;margin:10px 0 5px!important;letter-spacing:-.35px!important}
- body > main h2 {font-size:17px!important;line-height:1.25!important}
- body > main h3 {font-size:15px!important;line-height:1.3!important}
- body > main .sub, body > main .hint {font-size:12px!important;line-height:1.4!important}
- body > main .mam-section-header strong,
- body > main .mam-league-heading {font-size:13px!important;line-height:1.3!important}
- body > main .mam-appbar .mam-brand {font-size:13px!important;line-height:1.2!important}
- body > main .mam-live-nav-item, body > main .mam-match-tabs button {font-size:11px!important;line-height:1.2!important}
- #matches article.match.match-modern:not(.in-detail) .team-block strong {font-size:11px!important;line-height:1.25!important}
- #matches article.match.match-modern:not(.in-detail) .match-clock {font-size:12px!important;line-height:1.2!important}
- #matches article.match.match-modern:not(.in-detail) .league-label {font-size:10px!important;line-height:1.25!important}
- body > main .mam-bottom-nav button {font-size:10px!important;letter-spacing:0!important}
- #mamStandingsScreen .mam-standings-card-head h3 {font-size:15px!important}
- #mamFavoritePanel h2 {font-size:16px!important}
- #mamFavoritePanel h3 {font-size:14px!important}
- /* Long names wrap naturally instead of becoming a single truncated word. */
- #matches .team-block {min-width:0!important}
- #matches .team-block strong {overflow-wrap:break-word!important;word-break:normal!important}
-}
-</style>
-
-
-<style id="mamDenseMatchCards">
-/* Compact mobile score rows: team stars above the respective team, match star above score. */
-@media (max-width:600px) {
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) {
-  position:relative!important;min-height:92px!important;
-  padding:24px 46px 9px 52px!important;margin:5px 0!important;
-  border-radius:8px!important;
- }
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-head {
-  top:28px!important;left:2px!important;width:46px!important;
- }
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-versus {
-  min-height:51px!important;height:auto!important;padding:0!important;
-  grid-template-columns:minmax(0,1fr) 43px minmax(0,1fr)!important;
-  gap:3px!important;
- }
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-block {
-  gap:2px!important;min-width:0!important;
- }
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-logo {
-  width:22px!important;height:22px!important;
- }
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-block strong {
-  font-size:12px!important;line-height:1.22!important;
-  display:-webkit-box!important;-webkit-box-orient:vertical!important;
-  -webkit-line-clamp:2!important;overflow:hidden!important;
- }
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites {
-  position:absolute!important;top:0!important;left:52px!important;right:46px!important;
-  display:grid!important;grid-template-columns:minmax(0,1fr) 43px minmax(0,1fr)!important;
-  gap:3px!important;margin:0!important;align-items:start!important;
-  pointer-events:none!important;
- }
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites button {
-  pointer-events:auto!important;justify-self:center!important;
-  display:flex!important;align-items:flex-start!important;justify-content:center!important;
-  width:44px!important;height:44px!important;min-width:44px!important;
-  min-height:44px!important;padding:2px 0 0!important;
-  background:transparent!important;border:0!important;box-shadow:none!important;
- }
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-mam-star="1"] {grid-column:1!important;grid-row:1!important}
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-mam-star="0"] {grid-column:2!important;grid-row:1!important}
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-mam-star="2"] {grid-column:3!important;grid-row:1!important}
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-star-glyph {
-  font-size:16px!important;line-height:19px!important;color:#a7bdd5!important;
-  text-shadow:0 1px 2px #0b1427;
- }
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) [aria-pressed="true"] .mam-star-glyph {color:#ffd36d!important}
- #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-match-open {
-  top:26px!important;right:1px!important;min-height:44px!important;
- }
- #matches .mam-league-group {margin:5px 0!important;padding:4px!important}
- #matches .mam-league-heading {margin:2px 0 4px!important;padding:4px!important}
-}
-</style>
-
-<style id="mamCleanHome20261122">
-/* iPhone: fixtures first, developer diagnostics out of the consumer flow. */
-#mamApiDiagnostic {display:none!important}
-@media (max-width:600px) {
- body > main {padding-top:8px!important}
- body > main .mam-appbar {margin-bottom:7px!important;min-height:46px!important;padding:3px 8px!important}
- body > main .mam-fixture-controls {padding:8px!important;margin:5px 0 6px!important;border-radius:12px!important;box-shadow:none!important}
- body > main .mam-primary-filters {display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:7px!important;align-items:end!important;margin:0!important}
- body > main .mam-date-filter,body > main .league-picker {width:100%!important;min-width:0!important;margin:0!important}
- body > main .mam-date-filter label,body > main .league-picker label {font-size:10px!important;margin:0 0 3px!important;line-height:1.1!important}
- body > main #date,body > main #leagueTrigger {width:100%!important;min-width:0!important;height:44px!important;min-height:44px!important;margin:0!important;padding:7px 9px!important;font-size:12px!important;border-radius:10px!important}
- body > main #leagueCurrent {font-size:12px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
- body > main #mamDateStrip {display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;margin:6px 0 0!important;padding:0!important;overflow:visible!important}
- body > main #mamDateStrip .mam-date-chip {min-width:0!important;width:100%!important;min-height:44px!important;height:44px!important;padding:4px 2px!important;font-size:10px!important;border-radius:9px!important}
- body > main #mamDateStrip .mam-date-chip b {font-size:11px!important;margin:1px 0 0!important;line-height:1.15!important}
- body > main #load {min-height:44px!important;height:44px!important;margin:6px 0 0!important;padding:6px!important;font-size:12px!important;border-radius:9px!important}
- body > main #loadSuperLigFixtures {display:none!important}
- body > main #mamHomeShortcuts {display:none!important}
- body > main #mamMatchTabs {display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;margin:5px 0 7px!important;padding:0!important}
- body > main #mamMatchTabs button {min-width:0!important;min-height:44px!important;padding:6px 2px!important;font-size:11px!important;border-radius:9px!important;white-space:nowrap!important}
- body > main #status {margin:3px 0!important;padding:2px 0!important;font-size:11px!important;min-height:0!important}
- body > main #mamTodayHeader {margin:4px 0!important;padding:4px 2px!important}
- body > main #matches {margin-top:3px!important}
- body > main #matches .mam-league-heading {padding:5px 6px!important;margin:3px 0!important}
- body > main #matches article.match.match-modern.mam-has-favorites:not(.in-detail) {margin:4px 0!important}
-}
-</style>
-
-<style id="mamUltraCompactHeader20261122">
-@media(max-width:600px){
- body > main .mam-fixture-controls{padding:7px!important;margin:4px 0!important}
- body > main .mam-primary-filters{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:6px!important;align-items:end!important}
- body > main .mam-primary-filters .mam-date-filter,body > main .mam-primary-filters .league-picker{width:100%!important;min-width:0!important;height:auto!important;min-height:0!important}
- body > main .mam-primary-filters label{font-size:10px!important;line-height:1!important;margin:0 0 3px!important;padding:0!important}
- body > main .mam-primary-filters input#date,body > main .mam-primary-filters button#leagueTrigger{box-sizing:border-box!important;width:100%!important;max-width:100%!important;height:44px!important;min-height:44px!important;max-height:44px!important;padding:6px 8px!important;margin:0!important;border-radius:9px!important;font-size:12px!important;line-height:1.2!important}
- body > main #leagueCurrent,body > main #leagueCurrent *{font-size:12px!important;line-height:1.2!important}
- body > main #leagueCurrent .league-current-icon{display:none!important}
- body > main #mamDateStrip{margin:5px 0 0!important;gap:5px!important}
- body > main #mamDateStrip .mam-date-chip{height:44px!important;min-height:44px!important;padding:5px 2px!important;font-size:11px!important}
- body > main #mamDateStrip .mam-date-chip b{font-size:10px!important}
- body > main #load{display:none!important}
- body > main #status{font-size:11px!important;margin:3px 0!important}
-}
-</style>
-
 <script id="mamReferenceDateNavLogic">
 (function(){
  const date=document.getElementById("date"),label=document.getElementById("mamRefDateLabel");
@@ -8793,23 +8792,5 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
  document.addEventListener("DOMContentLoaded",sync,{once:true});
 })();
 </script>
-<style id="mamReferenceHomeSkin">
-@media(max-width:600px){
- body > main .mam-fixture-controls{padding:6px 8px!important;margin:3px 0 5px!important;border:0!important;background:transparent!important;box-shadow:none!important}
- body > main #mamReferenceDateNav{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr)!important;gap:4px!important;align-items:center!important;height:44px!important;margin:0 0 5px!important}
- body > main #mamReferenceDateNav button{height:44px!important;min-height:44px!important;padding:5px!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#b8c9e1!important;font-size:12px!important;white-space:nowrap!important}
- body > main #mamReferenceDateNav .mam-ref-date-center{height:44px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;margin:0!important;color:#f5f8ff!important;font-size:14px!important;font-weight:800!important;white-space:nowrap!important}
- body > main .mam-primary-filters{display:flex!important;justify-content:center!important;margin:0!important;gap:0!important}
- body > main .mam-primary-filters .mam-date-filter{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important}
- body > main .mam-primary-filters .league-picker{width:auto!important;max-width:100%!important;margin:0!important}
- body > main .mam-primary-filters .league-picker label{display:none!important}
- body > main .mam-primary-filters button#leagueTrigger{height:34px!important;min-height:34px!important;max-height:34px!important;width:auto!important;min-width:112px!important;padding:4px 12px!important;border-radius:17px!important;background:#223451!important;border:1px solid #465a7b!important;box-shadow:none!important;color:#f0f4ff!important}
- body > main #leagueCurrent,body > main #leagueCurrent *{font-size:12px!important}
- body > main #mamDateStrip{display:none!important}
- body > main #load{display:none!important}
- body > main #mamHomeShortcuts{display:none!important}
- body > main #mamMatchTabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;margin:5px 0!important}
- body > main #mamMatchTabs button{height:44px!important;min-height:44px!important;font-size:11px!important;padding:4px 1px!important}
- body > main #status{margin:2px 0!important;padding:0!important;font-size:10px!important}
-}
-</style>
+</body>
+</html>
