@@ -2743,6 +2743,34 @@ async function espnFixtures(date,includeAllLeagues=false){
  targets.sort((a,b)=>Number(b[0]==="203")-Number(a[0]==="203"));
  if(!targets.length)return [];
  const espnDate=String(date).replace(/-/g,"");
+ // Coalesce identical league/day reads across concurrent Live/Today refreshes.
+ // Never repeat 429 quota failures or malformed scoreboard payloads.
+ const pending=espnFixtures._pendingScoreboards||(espnFixtures._pendingScoreboards=new Map());
+ const readScoreboard=slug=>{
+  const key=slug+"|"+espnDate;
+  if(pending.has(key))return pending.get(key);
+  const task=(async()=>{
+   const endpoint="espn/"+slug+"/scoreboard?"+qs({dates:espnDate,limit:500});
+   for(let attempt=0;attempt<2;attempt++){
+    try{
+     const payload=await api(endpoint);
+     if(!payload||!Array.isArray(payload.events)){
+      const error=new Error("Invalid ESPN scoreboard events payload");
+      error.permanent=true;
+      throw error;
+     }
+     return payload;
+    }catch(error){
+     const reason=String(error?.message??error);
+     const transient=!error?.permanent&&/(?:\b408\b|\b502\b|\b503\b|\b504\b|timeout|temporar|network)/i.test(reason);
+     if(!transient||attempt===1)throw error;
+     await new Promise(resolve=>setTimeout(resolve,150));
+    }
+   }
+  })().finally(()=>pending.delete(key));
+  pending.set(key,task);
+  return task;
+ };
  const results=new Array(targets.length);
  let cursor=0;
  // iPhone/Safari ve Worker üzerinde çok sayıda eşzamanlı istek yerine kontrollü tarama.
@@ -2750,7 +2778,7 @@ async function espnFixtures(date,includeAllLeagues=false){
   while(cursor<targets.length){
    const index=cursor++,[leagueId,league]=targets[index];
    try{
-    const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:espnDate,limit:500}));
+    const payload=await readScoreboard(league.slug);
     const events=Array.isArray(payload.events)?payload.events:[];
     results[index]={status:"fulfilled",value:events.filter(event=>{
      const id=event?.id;
