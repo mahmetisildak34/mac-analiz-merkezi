@@ -116,3 +116,14 @@ test("ESPN summary event types retain goals, cards and substitutions from the ca
  assert.equal(eventKind({type:{text:"Red Card"}}),"Kırmızı kart");
  assert.equal(eventKind({type:{text:"Offside"}}),"");
 });
+
+test("ESPN player profiles show only published match statistics and preserve zero values",()=>{
+ const source=html.match(/function lineupPlayerProfiles\([\s\S]*?\n\}/)?.[0];
+ const render=require("node:vm").runInNewContext(source+"; lineupPlayerProfiles",{esc:String});
+ const {rosters}=require("./fixtures/espn-tur1-401888243-summary.json");
+ const goalkeeper=rosters[0].roster[0];
+ const profile=render([{player:{source:"espn",name:goalkeeper.athlete.displayName,stats:goalkeeper.stats}}]);
+ assert.match(profile,/Ertugrul Taskiran/);
+ assert.match(profile,/<dt>Yapılan faul<\/dt><dd>0<\/dd>/);
+ assert.match(render([{player:{source:"espn",name:goalkeeper.athlete.displayName}}]),/istatistiği paylaşmadı/);
+});

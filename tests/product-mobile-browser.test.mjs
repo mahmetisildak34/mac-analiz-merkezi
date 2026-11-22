@@ -78,6 +78,10 @@ async function verifyMainApp(context){
   await dialog.getByRole('button',{name:/Kadro/}).click();
   await dialog.getByText(/3-5-2 · 11 ilk 11/).waitFor();
   await dialog.getByText('Ertugrul Taskiran',{exact:true}).waitFor();
+  const profile=dialog.locator('.lineup-player-profile').filter({hasText:'Oyuncu: Ertugrul Taskiran'});
+  await profile.locator('summary').press('Enter');
+  await profile.getByText('Yapılan faul',{exact:true}).waitFor();
+  assert.equal(await profile.locator('dd').first().innerText(),'0');
   await dialog.getByRole('button',{name:'Yedekler',exact:true}).click();
   assert.equal(await dialog.locator('.lineup-bench-content li,.lineup-bench-content .lineup-bench-item').count(),10);
   await dialog.getByRole('button',{name:/Goztepe/}).click();
@@ -115,6 +119,12 @@ async function verifyMainApp(context){
   await table.locator('[data-standing-team="Galatasaray"]').waitFor();
   measurements.cachedStandingsMs=Math.round(performance.now()-standingsStart);
   assert.match(await main.locator('#mamStandingsSeason').innerText(),/2026-27/);
+  const profileRow=table.locator('[data-standing-team="Galatasaray"]');
+  await profileRow.press('Enter');
+  const teamProfile=main.getByRole('dialog',{name:'Galatasaray takım profili'});
+  await teamProfile.getByText(/1\. sıra.*31 puan/).waitFor();
+  await teamProfile.locator('#mamTeamHistoryBack').press('Escape');
+  assert.equal(await profileRow.evaluate(row=>row===document.activeElement),true);
   const season=main.locator('#mamStandingsSeasonSelect');
   await season.selectOption('2025');
   await table.locator('[data-standing-team="'+historical.children[0].standings.entries[0].team.displayName+'"]').waitFor();
@@ -257,6 +267,10 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
     await offlineMain.locator('#mamAuthGate').waitFor({state:'visible'});
     await offlineMain.getByText(/Cihazdaki favoriler korunuyor/).waitFor();
     assert.equal(await offlineMain.evaluate(()=>localStorage.getItem('mam_session_token')),'local-browser-acceptance');
+    await offlineMain.getByRole('link',{name:'Cihazdaki kayıtları aç'}).click();
+    await offlineMain.waitForURL('**/mobile/product-hub.html');
+    await offlineMain.locator('[data-tab="favorites"]').click();
+    await offlineMain.locator('#favTeams').getByText(/Fenerbahçe/).waitFor();
    }finally{await offlineMain.close();}
    await page.goto('about:blank');
    await page.goto(url);
@@ -266,7 +280,7 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    await table.getByText(/Galatasaray/).waitFor();
    assert.ok(await page.evaluate(()=>navigator.serviceWorker.controller!==null));
    await page.evaluate(async origin=>{
-    const cache=await caches.open('mam-main-shell-v1');
+    const cache=await caches.open('mam-main-shell-v2');
     await cache.put(origin+'/index.html',new Response('<h1>Old offline shell</h1>',{headers:{'content-type':'text/html'}}));
    },origin);
    server=startServer();
