@@ -53,3 +53,11 @@ test('ESPN summary preserves key events, published rosters and boxscore team sta
  assert.deepEqual(detail.statistics,[teamStats]);
  assert.equal(matchDetails({id:'missing'}).statistics,null);
 });
+
+test('kickoff reminders require a confirmed scheduled status',()=>{
+ const now=Date.parse('2026-11-22T12:00Z');
+ const kickoff='2026-11-22T12:05Z';
+ const statuses=[{type:{name:'STATUS_SCHEDULED',state:'pre'}},{type:{name:'STATUS_POSTPONED',state:'pre'}},'TBD','LIVE','STATUS_CANCELED',undefined];
+ const rows=statuses.map((status,i)=>({id:String(i),kickoff,status}));
+ assert.deepEqual(notificationCandidates(rows,rows.map(m=>m.id),{now}).map(m=>m.id),['0']);
+});

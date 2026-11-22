@@ -46,9 +46,15 @@ export function searchFootball({teams=[],leagues=[],matches=[]},query){
  const matchesQuery=x=>String(x.name??x.title??((x.homeTeamName??'')+' '+(x.awayTeamName??''))).toLocaleLowerCase('tr').includes(q);
  return {teams:teams.filter(matchesQuery),leagues:leagues.filter(matchesQuery),matches:matches.filter(matchesQuery)};
 }
+const kickoffStatuses=new Set(['NS','SCHEDULED','TIMED','STATUS_SCHEDULED','STATUS_TIMED']);
+function isScheduledKickoff(match){
+ const status=match?.status;
+ const code=status?.type?.name??status?.type?.state??status?.short??status;
+ return typeof code==='string'&&kickoffStatuses.has(code.trim().toUpperCase());
+}
 export function notificationCandidates(fixtures,favoriteIds,{now=Date.now(),windowMs=600000}={}){
  if(!Array.isArray(fixtures)||!Array.isArray(favoriteIds)||!Number.isFinite(now)||!Number.isFinite(windowMs)||windowMs<0)throw new TypeError('Invalid notifications');
- const ids=new Set(favoriteIds);return fixtures.filter(m=>ids.has(String(m.id))&&!['FT','AET','PEN','PST','POSTPONED','CANC','CANCELLED','ABD','ABANDONED'].includes(String(m.status?.type?.name??m.status?.short??m.status??'').toUpperCase())&&Number.isFinite(Date.parse(m.kickoff))&&Date.parse(m.kickoff)>=now&&Date.parse(m.kickoff)<=now+windowMs).map(m=>({id:String(m.id),type:'kickoff_soon',kickoff:m.kickoff}));
+ const ids=new Set(favoriteIds);return fixtures.filter(m=>ids.has(String(m.id))&&isScheduledKickoff(m)&&Number.isFinite(Date.parse(m.kickoff))&&Date.parse(m.kickoff)>=now&&Date.parse(m.kickoff)<=now+windowMs).map(m=>({id:String(m.id),type:'kickoff_soon',kickoff:m.kickoff}));
 }
 export function mobileNavigation(active){
  const tabs=['home','live','today','favorites','teams','leagues','search','settings'];return tabs.map(id=>({id,active:id===active,ariaCurrent:id===active?'page':undefined}));
