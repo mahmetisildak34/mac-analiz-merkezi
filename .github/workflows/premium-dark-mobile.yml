@@ -3,6 +3,12 @@ on:
   push:
     branches:
       - feature/premium-dark-red-iphone-20261123
+  pull_request:
+    paths:
+      - 'premium-dark-red.css'
+      - 'index.html'
+      - 'tests/premium-dark-*.test.cjs'
+      - '.github/workflows/premium-dark-mobile.yml'
   workflow_dispatch:
 jobs:
   premium-mobile:
