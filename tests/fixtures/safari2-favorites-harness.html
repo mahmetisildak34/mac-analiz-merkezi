@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Safari 2 – isolated favorites acceptance harness</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080f1e;color:#e5efff;font:14px system-ui}
+main{padding:14px 14px 100px;min-height:100vh}
+nav.mam-bottom-nav{position:fixed;z-index:10;bottom:0;left:0;right:0;padding:6px 3px 10px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;background:#0d1d33}
+nav.mam-bottom-nav button{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#162940;color:#edf4ff;border:0;padding:8px 0;font-size:9px}
+nav.mam-bottom-nav button span{display:block;font-size:15px}
+.mam-screen-favorites> :not(#mamSafariFavoritesScreen){display:none!important}
+#mamSafariFavoritesScreen[hidden],#mamSafariFavoritesDetail[hidden],#mamSafariFavoritesBody[hidden]{display:none!important}
+#mamSafariFavoritesScreen{padding:10px}
+.mam-safari-favorite-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid #456}
+.mam-safari-favorite-info{flex:1;min-width:0}.mam-safari-favorite-info small{display:block;overflow-wrap:anywhere}
+.mam-safari-favorite-actions{display:flex;gap:5px}
+button{cursor:pointer;min-height:36px}#mamSafariFavoritesScreen button{background:#224563;color:#fff;border:1px solid #395a7b;border-radius:8px}
+</style></head>
+<body>
+<main class="mam-screen-home">
+<section><h1>Maç listesi</h1><label>Lig <select id="league"><option value="all">Tüm ligler</option><option value="203">Süper Lig</option></select></label></section>
+<div id="matches">
+ <article class="match-modern" data-safari-fixture-id="espn-tur.1-401888243"><strong>Göztepe – Erzurumspor</strong></article>
+ <article class="match-modern" data-safari-fixture-id="api-88"><strong>Fenerbahçe – Galatasaray</strong></article>
+</div>
+</main>
+<nav class="mam-bottom-nav" aria-label="Alt gezinme">
+<button type="button" data-mam-bottom="home"><span>⌂</span>Ana Sayfa</button>
+<button type="button" data-mam-bottom="fixtures"><span>⚽</span>Maçlar</button>
+<button type="button" data-mam-bottom="analysis"><span>▥</span>Analiz</button>
+<button type="button" data-mam-bottom="standings"><span>🏆</span>Ligler</button>
+<button type="button" data-mam-bottom="coupon"><span>🎟</span>Kupon</button>
+<button type="button" data-mam-bottom="special"><span>⭐</span>Özel</button>
+<button type="button" data-mam-bottom="favorites"><span>☆</span>Favoriler</button>
+</nav>
+<script>
+let allMatches=[
+ {fixture:{id:"espn-tur.1-401888243",date:"2026-11-22T10:30:00Z",status:{short:"LIVE",elapsed:63}},league:{id:203,name:"Süper Lig"},
+ teams:{home:{id:10,name:"Göztepe"},away:{id:20,name:"Erzurumspor"}},goals:{home:1,away:0},
+ events:[{time:{elapsed:29},type:"Goal",player:{name:"Test Oyuncusu"}}]},
+ {fixture:{id:"api-88",date:"2026-11-21T18:00:00Z",status:{short:"FT",elapsed:90}},league:{id:203,name:"Süper Lig"},
+ teams:{home:{id:11,name:"Fenerbahçe"},away:{id:12,name:"Galatasaray"}},goals:{home:2,away:1}}
+];
+function setMamScreen(mode){document.querySelector("main").className="mam-screen-"+mode;}
+function renderMatches(){}
+window.updateFixture=()=>{allMatches[0]={...allMatches[0],goals:{home:2,away:0},fixture:{...allMatches[0].fixture,status:{short:"FT",elapsed:90}}};window.mamSafari2Favorites.refresh();};
+window.clearCurrent=()=>{allMatches=[];window.mamSafari2Favorites.refresh();};
+document.querySelector('[data-mam-bottom="favorites"]').addEventListener("click",()=>window.mamSafari2Favorites.open());
+</script>
+<script src="../../safari2-favorites-search.js"></script>
+</body></html>
