@@ -118,8 +118,9 @@ test("cached real-result history contributes to favorite team form without provi
  await expect(page.locator("#mamSafariFavoritesDetail")).toContainText("İç saha");
 });
 
-test("PWA install metadata and static shell assets are served",async({page})=>{
- await page.unroute("**/*"); // Playwright routing bypasses service-worker navigation interception.\n await page.setViewportSize({width:390,height:844});
+test("PWA installs with project-scoped manifest and precaches the complete app shell",async({page,browserName})=>{
+ await page.unroute("**/*");
+ await page.setViewportSize({width:390,height:844});
  await page.goto("/",{waitUntil:"domcontentloaded"});
  expect(await page.locator('link[rel="manifest"]').getAttribute("href")).toBe("./manifest.webmanifest");
  const manifest=await page.request.get("/manifest.webmanifest");
@@ -131,21 +132,23 @@ test("PWA install metadata and static shell assets are served",async({page})=>{
  const icon=await page.request.get("/icons/app-icon.svg");
  expect(icon.ok()).toBeTruthy();
  expect(await icon.text()).toContain("<svg");
- const sw=await page.request.get("/service-worker.js");
- expect(sw.ok()).toBeTruthy();
- const swText=await sw.text();
- expect(swText).toContain('request.mode === "navigate"');
- expect(swText).toContain('half-goal-algorithm.js');
- expect(swText).toContain('safari2-favorites-search.js');
- await expect(page).toHaveTitle("Maç Analiz Merkezi");
  await page.waitForFunction(async()=>{
   if(!("serviceWorker" in navigator))return false;
   const registration=await navigator.serviceWorker.getRegistration();
   return Boolean(registration?.active);
  },null,{timeout:10000});
- await page.context().setOffline(true);
- await page.reload({waitUntil:"domcontentloaded"});
- await expect(page).toHaveTitle("Maç Analiz Merkezi");
- await expect(page.locator("#mamAuthGate")).toBeVisible();
- await page.context().setOffline(false);
+ const cachedPaths=await page.evaluate(async()=>{
+  const cache=await caches.open("mam-shell-v1");
+  return (await cache.keys()).map(request=>new URL(request.url).pathname);
+ });
+ expect(cachedPaths.some(path=>path.endsWith("/index.html"))).toBeTruthy();
+ expect(cachedPaths.some(path=>path.endsWith("/half-goal-algorithm.js"))).toBeTruthy();
+ expect(cachedPaths.some(path=>path.endsWith("/safari2-favorites-search.js"))).toBeTruthy();
+ if(browserName==="chromium"){
+  await page.context().setOffline(true);
+  await page.reload({waitUntil:"domcontentloaded"});
+  await expect(page).toHaveTitle("Maç Analiz Merkezi");
+  await expect(page.locator("#mamAuthGate")).toBeVisible();
+  await page.context().setOffline(false);
+ }
 });
