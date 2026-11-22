@@ -3304,13 +3304,7 @@ async function loadLiveMatchesNow(){
  const liveStatuses=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE","IN_PLAY","PAUSED"]);
  const isLive=match=>liveStatuses.has(String(match?.fixture?.status?.short||"").toUpperCase());
  // Eski canlı statüsünde kalmış maçları gerçek canlı akış gibi göstermeyelim.
- const isRecentLive=match=>{
-  if(!isLive(match))return false;
-  const kickoff=Date.parse(match?.fixture?.date||"");
-  if(!Number.isFinite(kickoff))return false;
-  const age=Date.now()-kickoff;
-  return age>=-20*60*1000&&age<=4*60*60*1000;
- };
+ const isRecentLive=match=>mamIsCrediblyLive(match,Date.now());
  // Önceki ekran ve cihaz önbelleği yalnızca yakın zamanda başlamış maçlardan oluşturulur.
  const liveById=new Map();
  previousMatches.filter(isRecentLive).forEach(match=>liveById.set(String(match.fixture?.id??match.id),match));
@@ -4706,6 +4700,23 @@ function mamIstanbulDay(value){
  const get=type=>parts.find(part=>part.type===type)?.value||"";
  return get("year")+"-"+get("month")+"-"+get("day");
 }
+function mamIsCrediblyLive(match,now=Date.now(),fresh=false){
+ const status=mamCanonicalMatchStatus(match);
+ if(!["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(status))return false;
+ const kickoff=Date.parse(match?.fixture?.date||"");
+ const age=now-kickoff;
+ // Fresh provider responses can prove an extended, interrupted or resumed match is active.
+ // Cached LIVE labels alone cannot establish that a fixture is still in progress.
+ const extended=["ET","BT","P","SUSP","INT"].includes(status);
+ const elapsed=Number(match?.fixture?.status?.elapsed);
+ const hasProgress=Number.isFinite(elapsed)&&elapsed>=0;
+ if(fresh&&(extended||hasProgress))return true;
+ if(!Number.isFinite(kickoff)||age< -20*60*1000)return false;
+ if(age<=4*60*60*1000)return true;
+ // Explicit provider update timestamps can substantiate an older live fixture.
+ const updated=Date.parse(match?.fixture?.status?.updated||match?.fixture?.updated||match?.updatedAt||"");
+ return Number.isFinite(updated)&&updated<=now&&now-updated<=20*60*1000&&(extended||hasProgress);
+}
 function mamIsFutureUnplayed(match,now=Date.now()){
  const status=mamCanonicalMatchStatus(match);
  const stamp=Date.parse(match?.fixture?.date||"");
@@ -4716,12 +4727,7 @@ function renderMatches(){
  // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
  let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
  const liveCodes=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
- if(mamScreenMode==="live")list=list.filter(m=>{
-  if(!liveCodes.has(mamCanonicalMatchStatus(m)))return false;
-  const kickoff=Date.parse(m.fixture?.date||"");
-  // A provider can leave a fixture in LIVE long after full time.
-  return Number.isFinite(kickoff)&&Date.now()-kickoff>=-20*60*1000&&Date.now()-kickoff<=4*60*60*1000;
- });
+ if(mamScreenMode==="live")list=list.filter(m=>mamIsCrediblyLive(m,Date.now()));
  const mamNow=Date.now();
  const mamTodayKey=mamIstanbulDay(new Date(mamNow).toISOString());
  if(mamScreenMode==="upcoming")list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)>mamTodayKey);
