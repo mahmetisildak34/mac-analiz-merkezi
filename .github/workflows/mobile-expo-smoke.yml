@@ -26,7 +26,7 @@ jobs:
       - name: Install Expo dependencies
         run: npm install --no-audit --no-fund
       - name: Test persistent match and team favorites
-        run: node --test favorites.test.cjs
+        run: node --test ../tests/safari2-mobile-favorites.test.mjs
       - name: Validate Expo app configuration
         run: npx expo config --type public --json > /tmp/expo-config.json
       - name: Export iOS JavaScript bundle
