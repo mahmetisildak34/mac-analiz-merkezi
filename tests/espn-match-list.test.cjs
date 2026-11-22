@@ -70,3 +70,10 @@ test('today upcoming excludes already-started and finished fixtures', () => {
   assert.equal(helpers.mamIsFutureUnplayed(fixture(902, 'FT', '2026-11-22T22:00:00Z'), now), false);
   assert.equal(helpers.mamIsFutureUnplayed(fixture(903, 'NS', '2026-11-22T22:00:00Z'), now), true);
 });
+
+test('same fixture ID with missing opponent identity remains separate', () => {
+ const first = fixture(920, 'NS', '2026-11-22T16:00:00Z');
+ const second = fixture(920, 'NS', '2026-11-22T16:00:00Z');
+ second.teams.away.name = '';
+ assert.equal(helpers.mamDeduplicateFixtures([first,second]).length,2);
+});
