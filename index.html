@@ -3660,7 +3660,7 @@ async function loadMatches(){
   if(Array.isArray(instantCache?.matches)&&instantCache.matches.length&&Number(instantCache.time)>Date.now()-10*60*1000){
    allMatches=instantCache.matches;
    renderMatches();
-   $("status").textContent="Son 10 dakika içinde alınan kayıtlı fikstür gösteriliyor · güncel veriler kontrol ediliyor...";
+   $("status").textContent="Maçlar yükleniyor…";
   }
  }catch(_){}
  try{
@@ -3702,7 +3702,7 @@ async function loadMatches(){
     try{localStorage.setItem(fixtureCacheKey,JSON.stringify({time:Date.now(),matches:freshMatches}));}catch(e){}
    }else{
     // API-Football başarılı yanıt verse bile boş fikstürde yedek kaynakları dene.
-    $("status").textContent="API-Football bu tarih için maç döndürmedi. ESPN yedek fikstürü deneniyor...";
+    $("status").textContent="Maçlar yükleniyor…";
     let alternative=[];
     let alternativeSource="";
     window.mamLastFixtureFallbackErrors=[];
@@ -3715,7 +3715,7 @@ async function loadMatches(){
      console.warn("ESPN boş fikstür yedeği:",espnError);
     }
     if(!alternative.length){
-     $("status").textContent="ESPN sonuç vermedi. Football-data.org yedek kaynağı deneniyor...";
+     $("status").textContent="Maçlar yükleniyor…";
      try{
       alternative=await footballDataFixtures(date,mamScreenMode==="upcoming"?(()=>{const end=new Date(date+"T12:00:00");end.setDate(end.getDate()+30);return end.toISOString().slice(0,10);})():date);
       if(alternative.length)alternativeSource="Football-data.org (yedek kaynak)";
@@ -3735,7 +3735,7 @@ async function loadMatches(){
    // Bu blok yalnızca API-Football fikstür isteğinin hatasını yakalar.
    // Hata metni sağlayıcıya göre değişebildiğinden regex ile filtreleme yapma:
    // kota, 403, ağ, zaman aşımı veya Worker hatalarının tamamında yedeğe geç.
-   $("status").textContent="API-Football kotası/tarih erişimi kullanılamıyor. ESPN büyük lig fikstürleri deneniyor...";
+   $("status").textContent="Maçlar yükleniyor…";
    let alternative=[];
    let alternativeSource="";
    let espnFailure="ESPN bu tarih için maç döndürmedi.";
@@ -3748,7 +3748,7 @@ async function loadMatches(){
     console.warn("ESPN fikstürü alınamadı:",espnError);
    }
    if(!alternative.length){
-    $("status").textContent="ESPN sonuç vermedi. Football-data.org yedek kaynağı deneniyor...";
+    $("status").textContent="Maçlar yükleniyor…";
     try{
      alternative=await footballDataFixtures(date,mamScreenMode==="upcoming"?(()=>{const end=new Date(date+"T12:00:00");end.setDate(end.getDate()+30);return end.toISOString().slice(0,10);})():date);
      if(alternative.length)alternativeSource="Football-data.org";
