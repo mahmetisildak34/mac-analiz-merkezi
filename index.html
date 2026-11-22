@@ -4759,6 +4759,28 @@ function mamDeduplicateFixtures(matches){
   .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
   .replace(/\b(?:fc|afc|fk|sk|sc|spor|kulubu|kulübü|club)\b/g,"")
   .replace(/[^a-z0-9]/g,"");
+ // A replacement character in one provider's team name should not create a
+ // second fixture when league, kickoff and the other characters agree.
+ // Keep this strict: never collapse two genuinely different opponents.
+ const teamMatches=(rawA,rawB)=>{
+  const a=normalizeTeam(rawA),b=normalizeTeam(rawB);
+  if(!a||!b)return false;
+  if(a===b)return true;
+  const damaged=value=>String(value??"").includes("\uFFFD");
+  if(!damaged(rawA)&&!damaged(rawB))return false;
+  const normalizeDamaged=value=>String(value??"").toLocaleLowerCase("tr-TR").normalize("NFD")
+   .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
+   .replace(/\b(?:fc|afc|fk|sk|sc|spor|kulubu|kulübü|club)\b/g,"")
+   .replace(/[^a-z0-9\uFFFD]/g,"");
+  const left=normalizeDamaged(rawA),right=normalizeDamaged(rawB);
+  const attempt=(pattern,plain)=>{
+   const holes=(pattern.match(/\uFFFD/g)||[]).length;
+   if(holes!==1||pattern.replace(/\uFFFD/g,"").length<5||plain.length<6)return false;
+   const expression="^"+pattern.replace(/\uFFFD/g,"[a-z]{1,2}")+"$";
+   return new RegExp(expression).test(plain);
+  };
+  return attempt(left,right)||attempt(right,left);
+ };
  const statusRank=match=>{
   const status=mamCanonicalMatchStatus(match);
   if(["FT","AET","PEN","CANC","PST","ABD","AWD","WO"].includes(status))return 3;
@@ -4773,12 +4795,12 @@ function mamDeduplicateFixtures(matches){
   const homeB=normalizeTeam(b?.teams?.home?.name),awayB=normalizeTeam(b?.teams?.away?.name);
   // An identical ID is not enough when both providers explicitly disagree on the teams.
   if(idA&&idB&&idA===idB){
-   if(!homeA||!homeB||!awayA||!awayB||homeA!==homeB||awayA!==awayB)return false;
+   if(!homeA||!homeB||!awayA||!awayB||!teamMatches(a?.teams?.home?.name,b?.teams?.home?.name)||!teamMatches(a?.teams?.away?.name,b?.teams?.away?.name))return false;
    const timeA=Date.parse(a?.fixture?.date||""),timeB=Date.parse(b?.fixture?.date||"");
    return !Number.isFinite(timeA)||!Number.isFinite(timeB)||Math.abs(timeA-timeB)<=10*60*1000;
   }
   if(!leagueA||!leagueB)return false;
-  if(!homeA||!awayA||homeA!==homeB||awayA!==awayB)return false;
+  if(!homeA||!awayA||!homeB||!awayB||!teamMatches(a?.teams?.home?.name,b?.teams?.home?.name)||!teamMatches(a?.teams?.away?.name,b?.teams?.away?.name))return false;
   const first=Date.parse(a?.fixture?.date||""),second=Date.parse(b?.fixture?.date||"");
   return Number.isFinite(first)&&Number.isFinite(second)&&Math.abs(first-second)<=10*60*1000;
  };
@@ -4787,7 +4809,17 @@ function mamDeduplicateFixtures(matches){
   if(!match||typeof match!=="object")continue;
   const index=unique.findIndex(existing=>sameFixture(existing,match));
   if(index<0)unique.push(match);
-  else if(statusRank(match)>statusRank(unique[index]))unique[index]=match;
+  else {
+   const current=unique[index];
+   const quality=m=>{
+    const text=[m?.teams?.home?.name,m?.teams?.away?.name].join("");
+    const clean=!text.includes("\uFFFD");
+    const validScore=m?.goals?.home!=null&&m?.goals?.away!=null;
+    const espn=String(m?.fixture?.id||"").startsWith("espn-");
+    return statusRank(m)*100+(clean?20:0)+(validScore?10:0)+(espn?2:0);
+   };
+   if(quality(match)>quality(current))unique[index]=match;
+  }
  }
  return unique;
 }
