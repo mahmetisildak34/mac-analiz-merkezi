@@ -4830,7 +4830,7 @@ function renderMatches(){
   list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)===selectedDay);
   const status=m=>mamCanonicalMatchStatus(m);
   const dayMatches=allMatches.filter(m=>mamIstanbulDay(m.fixture?.date)===selectedDay);
-  const counts={all:dayMatches.length,live:dayMatches.filter(m=>mamIsCrediblyLive(m,mamNow)).length,upcoming:dayMatches.filter(m=>mamIsFutureUnplayed(m,mamNow)).length,finished:dayMatches.filter(m=>["FT","AET","PEN","AWD","WO"].includes(status(m))).length};
+  const counts={all:dayMatches.filter(m=>mamIsFutureUnplayed(m,mamNow)).length,live:dayMatches.filter(m=>mamIsCrediblyLive(m,mamNow)).length,upcoming:dayMatches.filter(m=>mamIsFutureUnplayed(m,mamNow)).length,finished:dayMatches.filter(m=>["FT","AET","PEN","AWD","WO"].includes(status(m))).length};
   $("mamTodayAllCount").textContent=counts.all;$("mamTodayLiveCount").textContent=counts.live;$("mamTodayUpcomingCount").textContent=counts.upcoming;$("mamTodayFinishedCount").textContent=counts.finished;
   $("mamTodayTabs")?.querySelectorAll("[data-today-filter]").forEach(tab=>{const active=tab.dataset.todayFilter===mamTodayFilter;tab.classList.toggle("active",active);tab.setAttribute("aria-selected",String(active));});
  }
