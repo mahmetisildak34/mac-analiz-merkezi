@@ -31,7 +31,7 @@ async function open(browserType){
 }
 for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
  test(name+' mobile favorites, refresh, search, details and navigation',async()=>{
-  const {browser,page}=await open(type);
+  const {browser,context,page}=await open(type);
   try{
    await page.locator('#homeList [data-favmatch="101"]').click();
    await page.locator('[data-tab="favorites"]').click();
@@ -59,7 +59,7 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
     stats:Object.entries({gamesPlayed:12,losses:1,pointDifferential:13,points:31,ties:1,wins:10,rank:1}).map(([name,value])=>({name,value}))
    }]}}]};
    let requests=0;
-   await page.route('https://site.api.espn.com/apis/v2/sports/soccer/*/standings',route=>{
+   await page.route('https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/espn/*/standings',route=>{
     requests++;
     const url=route.request().url();
     if(url.includes('/tur.1/'))return route.fulfill({json:standings,headers:{'access-control-allow-origin':'*'}});
@@ -75,6 +75,28 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    await page.locator('#espnLeague').selectOption('eng.1');
    await table.getByText(/puan tablosuna ulaşılamadı/).waitFor();
    await page.locator('#espnLeague').selectOption('tur.1');
+   await table.getByText(/Galatasaray/).waitFor();
+   assert.equal(requests,3);
+   const metrics=await page.evaluate(async()=>{
+    const navigation=performance.getEntriesByType('navigation')[0];
+    const start=performance.now();
+    document.querySelector('[data-tab="search"]').click();
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    return {openingMs:Math.round(navigation.domContentLoadedEventEnd),transitionMs:Math.round(performance.now()-start)};
+   });
+   assert.ok(metrics.openingMs>0&&metrics.openingMs<5000);
+   assert.ok(metrics.transitionMs<500);
+   console.log(name+' mobile timing '+JSON.stringify(metrics));
+   assert.equal(await page.locator('.nav [aria-current="page"]').count(),1);
+   assert.equal(await page.locator('.nav button').evaluateAll(buttons=>buttons.every(button=>button.getBoundingClientRect().height>=44&&button.textContent.trim())),true);
+   await page.locator('#query').focus();
+   assert.equal(await page.locator('#query').evaluate(input=>document.activeElement===input&&getComputedStyle(input).outlineStyle!=='none'),true);
+   await page.waitForFunction(()=>Boolean(navigator.serviceWorker.controller));
+   await context.setOffline(true);
+   await page.reload();
+   await page.locator('[data-tab="favorites"]').click();
+   assert.match(await page.locator('#favTeams').innerText(),/Fenerbahçe/);
+   await page.locator('[data-tab="leagues"]').click();
    await table.getByText(/Galatasaray/).waitFor();
    assert.equal(requests,3);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);

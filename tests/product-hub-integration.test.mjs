@@ -11,7 +11,7 @@ test('product hub exposes nine feature areas and responsive navigation',()=>{
 test('product hub limits external requests to public ESPN standings',()=>{
  assert.match(html,/type="file"/);assert.match(html,/localStorage/);
  assert.equal([...html.matchAll(/fetch\s*\(/g)].length,1);
- assert.match(html,/fetch\('https:\/\/site\.api\.espn\.com\/apis\/v2\/sports\/soccer\/'.+\/standings/);
+ assert.match(html,/fetch\('https:\/\/odd-sunset-6c83\.m-ahmetisildak34\.workers\.dev\/api\/espn\/'.+\/standings/);
  assert.doesNotMatch(html,/Notification\.requestPermission/);
 });
 test('main app links to product hub without replacing existing rendering',()=>{
@@ -215,4 +215,17 @@ test('mobile standings catalog covers the main scoreboard ESPN competitions',asy
  const mapping=app.split('const ESPN_LEAGUES={')[1].split('\n};')[0];
  const slugs=new Set([...mapping.matchAll(/slug:"([^"]+)"/g)].map(match=>match[1]));
  assert.deepEqual(new Set(espnCompetitions.keys()),slugs);
+});
+
+
+test('PWA manifest installs the mobile hub with bundled icons and an isolated service worker',()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../mobile/manifest.webmanifest',import.meta.url),'utf8'));
+ assert.equal(manifest.start_url,'./product-hub.html');
+ assert.equal(manifest.display,'standalone');
+ for(const icon of manifest.icons){
+  const buf=readFileSync(new URL('../mobile/'+icon.src,import.meta.url));
+  assert.equal(buf.readUInt32BE(16),Number(icon.sizes.split('x')[0]));
+  assert.equal(buf.readUInt32BE(20),Number(icon.sizes.split('x')[1]));
+ }
+ assert.match(html,/navigator\.serviceWorker\.register\('\.\/sw\.js'\)/);
 });

@@ -72,3 +72,23 @@ test("fresh terminal ESPN statuses suppress old live entries within the same lea
  assert.match(html,/const freshPairs=new Set\(fallback\.map\(matchPair\)\)/);
  assert.match(html,/recentCachedLive\.forEach\(match=>\{const key=matchPair\(match\);if\(!freshPairs\.has\(key\)\)/);
 });
+
+test("ESPN tur.1 scoreboard captured on 22 November keeps all four full-time results out of live",async()=>{
+ const source=html.match(/function mamEspnStatus\([\s\S]*?\n\}/)?.[0];
+ const status=require("node:vm").runInNewContext(source+"; mamEspnStatus");
+ const {isLiveMatch,isIstanbulToday}=await import("../mobile/product-features.mjs");
+ const captured=[
+  ["401888243","2026-11-22T10:30Z"],
+  ["401888248","2026-11-22T13:00Z"],
+  ["401888246","2026-11-22T13:00Z"],
+  ["401888249","2026-11-22T16:00Z"]
+ ];
+ const type={state:"post",name:"STATUS_FULL_TIME",completed:true};
+ const localMidnight=Date.parse("2026-11-22T21:00:00Z");
+ for(const [id,date] of captured){
+  assert.equal(status(type),"FT",id);
+  assert.equal(isLiveMatch({status:{type}}),false,id);
+  assert.equal(isIstanbulToday({date},localMidnight-1),true,id);
+  assert.equal(isIstanbulToday({date},localMidnight),false,id);
+ }
+});
