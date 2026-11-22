@@ -7,7 +7,14 @@ permissions:
   contents: read
 jobs:
   mobile:
+    name: Mobile (${{ matrix.engine }})
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, webkit]
     runs-on: ubuntu-24.04
+    env:
+      MAM_BROWSER: ${{ matrix.engine }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -18,23 +25,25 @@ jobs:
       - name: Trusted Poisson v1.2 acceptance tests
         run: node --test tests/trusted-goal-poisson.test.mjs tests/archive-poisson-client.test.mjs
       - run: npm install --no-save --ignore-scripts playwright@1.51.1
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps "$MAM_BROWSER"
       - name: Offline browser checks
         run: |
           mkdir -p mobile-results
           node <<'JS'
-          const {chromium}=require('playwright');
+          const {chromium,webkit,devices}=require('playwright');
           const fs=require('fs');
           (async()=>{
-            const browser=await chromium.launch();
+            const engine=process.env.MAM_BROWSER;
+            const browser=await {chromium,webkit}[engine].launch();
+            const device=devices[engine==='webkit'?'iPhone 13':'Pixel 7'];
             const results=[];
             try {
               for(const width of [320,360,375,390,414,430]){
-                const context=await browser.newContext({viewport:{width,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block',offline:true});
+                const context=await browser.newContext({...device,viewport:{width,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block',offline:true});
                 const page=await context.newPage();
                 await context.route('**/*',async route=>{
                   const url=new URL(route.request().url());
-                  const local={'/index.html':['index.html','text/html; charset=utf-8'],'/half-goal-algorithm.js':['half-goal-algorithm.js','application/javascript; charset=utf-8'],'/trusted-goal-poisson.js':['trusted-goal-poisson.js','application/javascript; charset=utf-8']};
+                  const local={'/index.html':['index.html','text/html; charset=utf-8'],'/half-goal-algorithm.js':['half-goal-algorithm.js','application/javascript; charset=utf-8'],'/trusted-goal-poisson.js':['trusted-goal-poisson.js','application/javascript; charset=utf-8'],'/archive-poisson-client.js':['archive-poisson-client.js','application/javascript; charset=utf-8']};
                   const asset=local[url.pathname];
                   if(url.origin==='https://mam-test.invalid'&&route.request().method()==='GET'&&!url.search&&asset){
                     return route.fulfill({status:200,contentType:asset[1],body:fs.readFileSync(asset[0],'utf8')});
@@ -179,5 +188,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: isolated-mobile-results
+          name: isolated-mobile-results-${{ matrix.engine }}
           path: mobile-results/
