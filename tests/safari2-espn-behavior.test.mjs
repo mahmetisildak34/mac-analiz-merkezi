@@ -57,3 +57,12 @@ test('canceled and postponed ESPN events stay non-final even if provider sets co
  const result=await context.__espn.espnFixtures('2026-11-23');
  assert.deepEqual(Array.from(result,m=>m.fixture.status.short),['CANC','PST','FT']);
 });
+
+test('ESPN fixtures without real event identifiers are excluded',async()=>{
+ context.$=()=>({value:'203'});
+ const missing=event('temporary',{state:'pre'});
+ delete missing.id;
+ context.api=async()=>({events:[missing,event(null,{state:'pre'}),event('',{state:'pre'}),event('valid-id',{state:'pre'})]});
+ const result=await context.__espn.espnFixtures('2026-11-23');
+ assert.deepEqual(Array.from(result,m=>m.fixture.id),['espn-tur.1-valid-id']);
+});
