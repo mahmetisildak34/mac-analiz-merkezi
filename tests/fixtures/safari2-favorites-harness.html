@@ -42,7 +42,7 @@ let allMatches=[
 ];
 function setMamScreen(mode){document.querySelector("main").className="mam-screen-"+mode;}
 function renderMatches(){}
-window.updateFixture=()=>{allMatches[0]={...allMatches[0],goals:{home:2,away:0},fixture:{...allMatches[0].fixture,status:{short:"FT",elapsed:90}}};window.mamSafari2Favorites.refresh();};
+window.updateFixture=()=>{allMatches[0]={...allMatches[0],goals:{home:2,away:0},fixture:{...allMatches[0].fixture,status:{short:"FT",elapsed:90}}};window.dispatchEvent(new CustomEvent("mam:fresh-live",{detail:{checkedAt:Date.now(),count:1}}));window.mamSafari2Favorites.refresh();};
 window.clearCurrent=()=>{allMatches=[];window.mamSafari2Favorites.refresh();};
 document.querySelector('[data-mam-bottom="favorites"]').addEventListener("click",()=>window.mamSafari2Favorites.open());
 </script>
