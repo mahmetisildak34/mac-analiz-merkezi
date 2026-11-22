@@ -191,16 +191,16 @@ jobs:
 
                   for(const mode of ['today','live','finished','upcoming','standings']){
                     const navigation=mode==='standings'?'[data-mam-bottom="standings"]':'[data-mam-action="'+mode+'"]';
-                    await page.locator(navigation).click({timeout:5000});
+                    await page.locator(navigation).tap({timeout:5000});
                     await page.locator('main.mam-screen-'+mode).waitFor({state:'visible',timeout:5000});
                     checks['screen_'+mode]=await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth);
                     await page.screenshot({path:'mobile-results/'+width+'-'+mode+'.png'});
-                    await page.locator('#mamSectionBack').click({timeout:5000});
+                    await page.locator('#mamSectionBack').tap({timeout:5000});
                     await page.locator('main.mam-screen-home').waitFor({state:'visible',timeout:5000});
                   }
                   checks.backHome=await page.locator('main.mam-screen-home').isVisible();
                   const oldDate=await page.locator('#date').inputValue();
-                  await page.locator('[data-day-offset="1"]').click({timeout:5000});
+                  await page.locator('[data-day-offset="1"]').tap({timeout:5000});
                   checks.dateChanged=oldDate!==(await page.locator('#date').inputValue());
                   const nav=await page.locator('.mam-bottom-nav').boundingBox();
                   checks.navigationWithinViewport=Boolean(nav&&nav.x>=0&&nav.x+nav.width<=width+1&&nav.y>=0&&nav.y+nav.height<=845);
@@ -214,7 +214,7 @@ jobs:
                       league:{id:203,name:'Süper Lig',country:'Türkiye'},teams,goals}];
                     renderMatches();
                   },finishedSummary);
-                  await page.locator('#matches .mam-match-open').click({timeout:5000});
+                  await page.locator('#matches .mam-match-open').tap({timeout:5000});
                   const detail=page.locator('.match-detail-overlay');
                   await detail.waitFor({state:'visible',timeout:5000});
                   checks.finishedDetail=await detail.locator('[data-pane="overview"][role="tabpanel"]').isVisible();
@@ -240,7 +240,7 @@ jobs:
                   await page.screenshot({path:'mobile-results/'+width+'-match-lineup.png'});
                   checks.finishedOtherTabs=await (await visiblePane('form')).isVisible()&&
                     await (await visiblePane('absences')).isVisible()&&await (await visiblePane('analysis')).isVisible();
-                  await detail.locator('.match-detail-close').click({timeout:5000});
+                  await detail.locator('.match-detail-close').tap({timeout:5000});
                   checks.matchDetailBack=await detail.isHidden()&&await page.locator('#matches .mam-match-open').isVisible();
                 } catch(e){errors.push(e.stack||e.message);}
                 Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===75&&Object.values(checks).every(Boolean)&&errors.length===0});
