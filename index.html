@@ -4716,7 +4716,12 @@ function renderMatches(){
  // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
  let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
  const liveCodes=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
- if(mamScreenMode==="live")list=list.filter(m=>liveCodes.has(mamCanonicalMatchStatus(m)));
+ if(mamScreenMode==="live")list=list.filter(m=>{
+  if(!liveCodes.has(mamCanonicalMatchStatus(m)))return false;
+  const kickoff=Date.parse(m.fixture?.date||"");
+  // A provider can leave a fixture in LIVE long after full time.
+  return Number.isFinite(kickoff)&&Date.now()-kickoff>=-20*60*1000&&Date.now()-kickoff<=4*60*60*1000;
+ });
  const mamNow=Date.now();
  const mamTodayKey=mamIstanbulDay(new Date(mamNow).toISOString());
  if(mamScreenMode==="upcoming")list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)>mamTodayKey);
