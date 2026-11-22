@@ -79,3 +79,12 @@ test("goal alerts reject null and invalid previous score baselines",()=>{
  assert.match(source,/Number\.isInteger\(Number\(old\.home\)\)/);
  assert.match(source,/Number\(old\.home\)>=0&&Number\(old\.away\)>=0/);
 });
+
+test("all live scoreboard fallback paths remain read-only",()=>{
+ const start=html.indexOf("async function loadLiveMatchesNow(){");
+ const end=html.indexOf("function ",start+35);
+ const liveRefresh=html.slice(start,end>start?end:undefined);
+ assert.ok(liveRefresh.includes("footballDataLiveFixtures()"));
+ assert.ok(liveRefresh.includes("mamSportScoreLiveFixtures()"));
+ assert.doesNotMatch(liveRefresh,/await mamSaveMatchesToD1\(allMatches\)/);
+});
