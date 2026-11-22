@@ -201,3 +201,8 @@ test('published ESPN standings preserve team name when displayName is absent',as
  assert.equal(groups[0].rows[0].points,27);
  assert.equal(groups[0].rows[0].played,null);
 });
+
+test('mobile hub preserves ESPN date when kickoff is absent',()=>{
+ assert.match(html,/kickoff:m\.kickoff\?\?m\.date\?\?fixture\.date/);
+ assert.match(html,/isIstanbulToday\(m\)/);
+});
