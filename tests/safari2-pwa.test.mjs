@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
+import {Script} from "node:vm";
 
 const manifest=JSON.parse(await readFile(new URL("../manifest.webmanifest",import.meta.url),"utf8"));
 const worker=await readFile(new URL("../service-worker.js",import.meta.url),"utf8");
@@ -16,6 +17,13 @@ test("PWA manifest is scoped to the GitHub Pages project path and installable",(
  assert.match(html,/<link rel="manifest" href="\.\/manifest\.webmanifest">/);
  assert.match(html,/apple-mobile-web-app-capable/);
  assert.match(html,/serviceWorker\.register\("\.\/service-worker\.js", \{scope:"\.\/"\}\)/);
+});
+
+test("service worker is syntactically valid and precaches both local app modules",()=>{
+ assert.doesNotThrow(()=>new Script(worker));
+ assert.match(worker,/half-goal-algorithm\\.js/);
+ assert.match(worker,/safari2-favorites-search\\.js/);
+ assert.doesNotMatch(worker,/\\\\n/);
 });
 
 test("offline shell caches only same-origin static assets, never API responses",()=>{
