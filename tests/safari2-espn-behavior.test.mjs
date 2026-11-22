@@ -25,7 +25,8 @@ test('every configured ESPN slug produces an isolated fixture with correct leagu
   return {events:[event(slug,{state:'post',completed:true,detail:'Full Time'})]};
  };
  const result=await context.__espn.espnFixtures('2026-11-23',true);
- const unique=new Map(leagues.map(([id,league])=>[league.slug,id]));
+ const unique=new Map();
+ for(const [id,league] of leagues)if(!unique.has(league.slug))unique.set(league.slug,id);
  assert.equal(result.length,unique.size);
  assert.equal(calls.length,unique.size);
  for(const match of result){
