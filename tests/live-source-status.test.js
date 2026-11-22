@@ -66,3 +66,19 @@ test("ESPN unavailable statuses cannot enter today or finished as scheduled or c
  ],"203",{slug:"tur.1"});
  assert.deepEqual(Array.from(fixtures,m=>m.fixture.status.short),["PST","CANC","SUSP","NS","HT","FT"]);
 });
+
+test("opening a completed match does not redirect to pre-match analysis",()=>{
+ const begin=html.indexOf("function activateMamFixture(");
+ const end=html.indexOf("function openMamMatchDetail(",begin);
+ let opened=0;
+ const activate=vm.runInNewContext(html.slice(begin,end)+";activateMamFixture",{
+  mamActiveMatch:null, makeMamDetailTab(){}, openMamMatchDetail(){opened++;}
+ });
+ for(const hasProviderStats of [false,true]){
+  activate({dataset:{fixtureCompleted:"true"},querySelector(selector){
+   assert.doesNotMatch(selector,/data-pane="analysis"/);
+   return hasProviderStats&&selector===".finishedStatsBtn"?{}:null;
+  }});
+ }
+ assert.equal(opened,2);
+});
