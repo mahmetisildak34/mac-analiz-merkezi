@@ -4,7 +4,9 @@ import {
   Text, TouchableOpacity, View, RefreshControl
 } from "react-native";
 
-const API_BASE = "https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api";
+import { istanbulMatchDate, matchApiBase } from "./match-source.mjs";
+
+const API_BASE = matchApiBase(process.env.EXPO_PUBLIC_MAM_API_BASE);
 
 export default function App() {
   const [tab, setTab] = useState("live");
@@ -17,9 +19,10 @@ export default function App() {
     setLoading(true);
     setError("");
     try {
+      if (!API_BASE) throw new Error("Maç veri kaynağı yapılandırılmadı.");
       const endpoint = selectedTab === "live"
         ? "/fixtures?live=all"
-        : "/fixtures?date=" + new Date().toISOString().slice(0, 10) + "&timezone=Europe/Istanbul";
+        : "/fixtures?date=" + istanbulMatchDate(new Date()) + "&timezone=Europe/Istanbul";
       const response = await fetch(API_BASE + endpoint);
       const data = await response.json();
       if (!response.ok || (data.errors && Object.keys(data.errors).length)) {
