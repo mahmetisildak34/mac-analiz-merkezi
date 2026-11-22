@@ -27,6 +27,7 @@ App Store / Play Store gönderiminden önce sahibin onayladığı iOS `bundleIde
 - Yalnızca uygulamanın Worker API uç noktası kullanılır: `/api/fixtures?live=all&timezone=Europe/Istanbul` ve `/api/fixtures?date=YYYY-MM-DD&timezone=Europe/Istanbul`.
 - Tarih filtresi İstanbul takvim gününü kullanır; Bugün ekranı yalnızca henüz başlamamış maçları, Canlı ekranı ise güvenilir canlı durumları gösterir.
 - İstekler zaman aşımına ve iptal sinyaline sahiptir. Aynı anda eski sekmeden gelen yanıt yeni sekmenin verisini ezemez.
+- Favori maçlar cihazın yerel AsyncStorage alanında saklanır; yıldız düğmesiyle eklenir/çıkarılır ve Favoriler sekmesinde gösterilir. API'den gelen daha yeni maç verisi kayıtlı favori kartını günceller.
 - Bozuk JSON, beklenmeyen yanıt, kota sınırı ve bağlantı hataları başarı gibi gösterilmez. Yenileme başarısız olursa aynı sekmedeki son başarılı liste korunur ve eski olduğu belirtilir.
 - Testler gerçek Worker'a veya API-Football'a istek göndermez; sahte yanıtlarla çalışır.
 
