@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 const html=readFileSync(new URL('../mobile/product-hub.html',import.meta.url),'utf8');
 const app=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-test('product hub exposes seven feature areas and responsive navigation',()=>{
- for(const id of ['home','favorites','teams','leagues','search','settings','details'])assert.match(html,new RegExp('id="'+id+'"'));
+test('product hub exposes eight feature areas and responsive navigation',()=>{
+ for(const id of ['home','live','favorites','teams','leagues','search','settings','details'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/aria-label="Alt gezinme"/);assert.match(html,/env\(safe-area-inset-bottom\)/);
 });
 test('product hub uses local data only, not live APIs or notification permissions',()=>{
@@ -155,4 +155,11 @@ test('ESPN rosters and boxscore player groups remain available without inventing
  assert.match(html,/rosters:m\.rosters/);
  assert.match(html,/lineup\.athletes/);
  assert.match(html,/entry\.athlete\?\.displayName/);
+});
+
+test('live tab shows only explicit in-progress match states and does not invent fixtures',()=>{
+ assert.match(html,/id="live" data-view/);
+ assert.match(html,/data-tab="live"/);
+ assert.match(html,/liveStatuses\.has\(String\(m\.status\)\.toUpperCase\(\)\)/);
+ assert.match(html,/Şu anda doğrulanmış canlı maç bulunamadı/);
 });
