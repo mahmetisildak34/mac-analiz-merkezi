@@ -162,11 +162,16 @@
   const matches=rows.filter(item=>item.kind==="match"),teams=rows.filter(item=>item.kind==="team");
   const renderRow=item=>{
    const idx=favorites.indexOf(item),current=findMatch(item);
-   const score=current?visibleScore(current):item.snapshot?.home!=null&&item.snapshot?.away!=null?clean(item.snapshot.home)+" – "+clean(item.snapshot.away):"Skor yok";
-   const status=current?fixtureStatus(current):clean(item.snapshot?.status)||"Durum bilinmiyor";
+   // A reloaded page may initially contain an older cached scoreboard. Only a
+   // provider-verified live refresh may replace the persisted favorite snapshot.
+   const currentVerifiedAt=Number(current?._mamLastVerifiedAt)||0;
+   const snapshotVerifiedAt=Number(item.snapshot?.savedAt)||0;
+   const useCurrent=Boolean(current&&(currentVerifiedAt>0||!item.snapshot));
+   const score=useCurrent?visibleScore(current):item.snapshot?.home!=null&&item.snapshot?.away!=null?clean(item.snapshot.home)+" – "+clean(item.snapshot.away):current?visibleScore(current):"Skor yok";
+   const status=useCurrent?fixtureStatus(current):clean(item.snapshot?.status)|| (current?fixtureStatus(current):"Durum bilinmiyor");
    const when=Date.parse((current?.fixture?.date)||item.date||"");
    const kick=Number.isFinite(when)?new Date(when).toLocaleString("tr-TR",{timeZone:"Europe/Istanbul",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"Tarih bilinmiyor";
-   const description=item.kind==="team"?"Takım profili":(current?"Güncel yüklenen veri":"Son kaydedilen veri · yeni skor doğrulanmadı")+" · "+kick+" · "+status+" · "+score;
+   const description=item.kind==="team"?"Takım profili":(useCurrent?"Güncel sağlayıcı doğrulaması":"Son kaydedilen veri · yeniden sağlayıcı doğrulaması bekleniyor")+" · "+kick+" · "+status+" · "+score;
    return '<article class="mam-safari-favorite-row"><div class="mam-safari-favorite-info"><strong>'+esc(item.name)+'</strong><small>'+esc(item.leagueName||item.league)+' · '+esc(description)+'</small></div><div class="mam-safari-favorite-actions"><button type="button" data-fav-open="'+idx+'">Detay</button><button type="button" data-fav-remove="'+idx+'" aria-label="'+esc(item.name)+' favorilerden çıkar">Kaldır</button></div></article>';
   };
   root.innerHTML=rows.length?'<h3>Favori maçlar ('+matches.length+')</h3>'+ (matches.length?matches.map(renderRow).join(""):'<p>Henüz favori maç yok.</p>')+'<h3>Favori takımlar ('+teams.length+')</h3>'+(teams.length?teams.map(renderRow).join(""):'<p>Henüz favori takım yok.</p>'):'<div class="mam-safari-empty">Henüz favori eklenmedi. Maç kartlarındaki ☆ Maç, ☆ Ev ve ☆ Dep düğmelerini kullanabilirsin.</div>';
