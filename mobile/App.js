@@ -4,8 +4,8 @@ import {
   Text, TouchableOpacity, View, RefreshControl
 } from "react-native";
 
-const API_BASE = "https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api";
-const {istanbulDay, statusLabel, isCrediblyLive, visibleMatches} = require("./match-rules");
+const {statusLabel, isCrediblyLive} = require("./match-rules");
+const {fetchFixtures} = require("./api-client");
 
 export default function App() {
   const [tab, setTab] = useState("live");
@@ -13,39 +13,48 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [updated, setUpdated] = useState("");
+  const [stale, setStale] = useState(false);
   const latestRequest = useRef(0);
+  const activeController = useRef(null);
 
   const loadMatches = useCallback(async (selectedTab = tab) => {
     const requestId = ++latestRequest.current;
+    activeController.current?.abort();
+    const controller = new AbortController();
+    activeController.current = controller;
     setLoading(true);
     setError("");
     try {
-      const endpoint = selectedTab === "live"
-        ? "/fixtures?live=all&timezone=Europe/Istanbul"
-        : "/fixtures?date=" + istanbulDay(new Date()) + "&timezone=Europe/Istanbul";
-      const response = await fetch(API_BASE + endpoint);
-      const data = await response.json();
-      if (!response.ok || (data.errors && Object.keys(data.errors).length)) {
-        const message = data.errors?.rateLimit
-          ? "API istek sınırına ulaşıldı. Biraz sonra tekrar dene."
-          : "Maç verisi şu anda alınamadı.";
-        throw new Error(message);
-      }
+      const result = await fetchFixtures({tab:selectedTab,signal:controller.signal});
       if (requestId === latestRequest.current) {
-        setMatches(visibleMatches(data.response, selectedTab, Date.now()));
-        setUpdated(new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" }));
+        setMatches(result.matches);
+        setUpdated(new Date(result.updatedAt).toLocaleTimeString("tr-TR", {
+          hour:"2-digit", minute:"2-digit", timeZone:"Europe/Istanbul"
+        }));
+        setStale(false);
       }
     } catch (e) {
-      if (requestId === latestRequest.current) {
+      if (requestId === latestRequest.current && e?.kind !== "aborted") {
         setError(e.message || "Bağlantı hatası. Tekrar deneyebilirsin.");
-        setMatches([]);
+        // Keep the last successful response visible, but label it as stale.
+        setStale(true);
       }
     } finally {
-      if (requestId === latestRequest.current) setLoading(false);
+      if (requestId === latestRequest.current) {
+        setLoading(false);
+        if (activeController.current === controller) activeController.current = null;
+      }
     }
   }, [tab]);
 
-  useEffect(() => { loadMatches(tab); }, [tab]);
+  useEffect(() => {
+    loadMatches(tab);
+    return () => {
+      latestRequest.current += 1;
+      activeController.current?.abort();
+      activeController.current = null;
+    };
+  }, [tab, loadMatches]);
 
   const statusText = fixture => statusLabel({fixture});
 
@@ -105,7 +114,7 @@ export default function App() {
       <View style={styles.sectionHead}>
         <View>
           <Text style={styles.sectionTitle}>{tab === "live" ? "Şu anda oynananlar" : "Bugünün maçları"}</Text>
-          <Text style={styles.sectionSub}>{updated ? "Son güncelleme " + updated : "Güncel maç verileri"}</Text>
+          <Text style={styles.sectionSub}>{updated ? (stale ? "Son başarılı veri " + updated + " · bağlantı sorunu" : "Son güncelleme " + updated) : "Güncel maç verileri"}</Text>
         </View>
         <TouchableOpacity onPress={() => loadMatches(tab)} style={styles.refreshButton}>
           <Text style={styles.refreshText}>↻ Yenile</Text>
