@@ -3311,8 +3311,10 @@ function mamNotifyLiveGoalChanges(matches){
  const notifications=[];
  for(const match of matches){
   const id=String(match?.fixture?.id??"");
-  const home=Number(match?.goals?.home),away=Number(match?.goals?.away);
-  if(!id||!Number.isFinite(home)||!Number.isFinite(away))continue;
+  const rawHome=match?.goals?.home,rawAway=match?.goals?.away;
+  if(!id||rawHome==null||rawAway==null||rawHome===""||rawAway==="")continue;
+  const home=Number(rawHome),away=Number(rawAway);
+  if(!Number.isInteger(home)||!Number.isInteger(away)||home<0||away<0)continue;
   const old=previous[id];
   if(old&&Number.isFinite(Number(old.home))&&Number.isFinite(Number(old.away))){
    if(home>Number(old.home))notifications.push({match,side:"home",score:home+" – "+away});
