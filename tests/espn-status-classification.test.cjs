@@ -32,6 +32,9 @@ const cases = [
   ['abandoned', { state: 'post', detail: 'Abandoned' }, 'ABD'],
   ['suspended', { state: 'in', detail: 'Suspended' }, 'SUSP'],
   ['missing state with explicit live label', { detail: 'Live' }, 'LIVE'],
+  ['missing state without evidence is unknown', {}, 'UNKNOWN'],
+  ['unrecognized ESPN state cannot be scheduled', { state: 'mystery', detail: 'Unknown' }, 'UNKNOWN'],
+  ['pre-match still scheduled without detail', { state: 'pre' }, 'NS'],
 ];
 for (const [name, type, expected] of cases) {
   test('ESPN status: ' + name, () => assert.equal(classify(type), expected));
