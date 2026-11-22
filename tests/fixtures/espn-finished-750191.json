@@ -1,0 +1,94 @@
+{
+  "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/summary?event=750191",
+  "header": {
+    "competitions": [
+      {
+        "id": "750191",
+        "date": "2026-04-26T17:00Z",
+        "status": {
+          "type": {
+            "id": "28",
+            "name": "STATUS_FULL_TIME",
+            "state": "post",
+            "completed": true,
+            "description": "Full Time",
+            "detail": "FT",
+            "shortDetail": "FT"
+          }
+        },
+        "competitors": [
+          {
+            "homeAway": "home",
+            "team": {
+              "id": "432",
+              "displayName": "Galatasaray"
+            },
+            "score": "3"
+          },
+          {
+            "homeAway": "away",
+            "team": {
+              "id": "436",
+              "displayName": "Fenerbahce"
+            },
+            "score": "0"
+          }
+        ]
+      }
+    ]
+  },
+  "boxscore": {
+    "teams": [
+      {
+        "homeAway": "home",
+        "team": {
+          "id": "432",
+          "displayName": "Galatasaray"
+        },
+        "statistics": [
+          {
+            "name": "wonCorners",
+            "displayValue": "6"
+          },
+          {
+            "name": "possessionPct",
+            "displayValue": "63"
+          },
+          {
+            "name": "totalShots",
+            "displayValue": "21"
+          },
+          {
+            "name": "shotsOnTarget",
+            "displayValue": "8"
+          }
+        ]
+      },
+      {
+        "homeAway": "away",
+        "team": {
+          "id": "436",
+          "displayName": "Fenerbahce"
+        },
+        "statistics": [
+          {
+            "name": "wonCorners",
+            "displayValue": "4"
+          },
+          {
+            "name": "possessionPct",
+            "displayValue": "37"
+          },
+          {
+            "name": "totalShots",
+            "displayValue": "5"
+          },
+          {
+            "name": "shotsOnTarget",
+            "displayValue": "1"
+          }
+        ]
+      }
+    ]
+  }
+}

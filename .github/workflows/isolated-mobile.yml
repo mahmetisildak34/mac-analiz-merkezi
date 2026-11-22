@@ -33,6 +33,7 @@ jobs:
           const {chromium,webkit,devices}=require('playwright');
           const fs=require('fs');
           const http=require('http');
+          const finishedSummary=JSON.parse(fs.readFileSync('tests/fixtures/espn-finished-750191.json','utf8'));
           const origin='http://127.0.0.1:4173';
           const assets=new Map([
             ['/index.html','text/html; charset=utf-8'],
@@ -62,6 +63,9 @@ jobs:
                   if(route.request().method()==='GET'&&route.request().headers().authorization==='Bearer offline-test-token')return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':origin},body:JSON.stringify({ok:true})});
                   return route.abort();
                 });
+                await context.route('https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/espn/tur.1/summary?event=750191',route=>route.fulfill({
+                  status:200,contentType:'application/json',headers:{'access-control-allow-origin':origin},body:JSON.stringify(finishedSummary)
+                }));
                 const errors=[];
                 page.on('pageerror',e=>errors.push(e.stack || e.message));
                 await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
@@ -197,8 +201,30 @@ jobs:
                   checks.dateChanged=oldDate!==(await page.locator('#date').inputValue());
                   const nav=await page.locator('.mam-bottom-nav').boundingBox();
                   checks.navigationWithinViewport=Boolean(nav&&nav.x>=0&&nav.x+nav.width<=width+1&&nav.y>=0&&nav.y+nav.height<=845);
+                  await page.locator('[data-mam-action="finished"]').click({timeout:5000});
+                  await page.waitForFunction(()=>!window.mamLoadMatchesBusy);
+                  await page.evaluate(summary=>{
+                    const event=summary.header.competitions[0];
+                    const teams=Object.fromEntries(event.competitors.map(row=>[row.homeAway,{id:row.team.id,name:row.team.displayName}]));
+                    const goals=Object.fromEntries(event.competitors.map(row=>[row.homeAway,Number(row.score)]));
+                    allMatches=[{fixture:{id:'espn-tur.1-'+event.id,date:event.date,status:{short:'FT'}},
+                      league:{id:203,name:'Süper Lig',country:'Türkiye'},teams,goals}];
+                    renderMatches();
+                  },finishedSummary);
+                  await page.locator('#matches .mam-match-open').click({timeout:5000});
+                  const detail=page.locator('.match-detail-overlay');
+                  await detail.waitFor({state:'visible',timeout:5000});
+                  checks.finishedDetail=await detail.locator('[data-pane="overview"][role="tabpanel"]').isVisible();
+                  await page.screenshot({path:'mobile-results/'+width+'-match-detail.png'});
+                  await detail.locator('[data-pane="stats"][role="tab"]').click({timeout:5000});
+                  await detail.getByText('Toplam şut',{exact:true}).waitFor({state:'visible',timeout:7000});
+                  const stats=await detail.locator('.liveStats').innerText();
+                  checks.finishedProviderStats=stats.includes('21')&&stats.includes('Kaynak: ESPN')&&!stats.includes('Model xG');
+                  await page.screenshot({path:'mobile-results/'+width+'-match-statistics.png'});
+                  await detail.locator('.match-detail-close').click({timeout:5000});
+                  checks.matchDetailBack=await detail.isHidden()&&await page.locator('#matches .mam-match-open').isVisible();
                 } catch(e){errors.push(e.stack||e.message);}
-                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===69&&Object.values(checks).every(Boolean)&&errors.length===0});
+                Object.assign(results[results.length-1],{checks,pass:results[results.length-1].pass&&Object.keys(checks).length===72&&Object.values(checks).every(Boolean)&&errors.length===0});
                 await context.close();
               }
             } finally {await browser.close();server.close();fs.writeFileSync('mobile-results/results.json',JSON.stringify(results,null,2));for(const result of results)console.log(JSON.stringify(result,null,2));}

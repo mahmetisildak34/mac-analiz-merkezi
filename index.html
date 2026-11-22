@@ -3665,13 +3665,15 @@ function mamLiveStatRows(rows){
  }).join("");
 }
 async function loadLiveStats(button,forceRefresh=false){
+ const completed=button.classList.contains("finishedStatsBtn");
+ const statsLabel=completed?"📊 Maç istatistikleri":"📊 Canlı istatistikler";
  const fixtureId=String(button.dataset.liveId||"");
  const source=String(button.dataset.liveSource||"api");
  const leagueSlug=String(button.dataset.liveLeague||"");
  const panel=document.getElementById(button.dataset.livePanel||("live-stats-"+fixtureId));
  if(!panel||!fixtureId)return;
- if(!forceRefresh&&!panel.hidden){panel.hidden=true;button.textContent="📊 Canlı istatistikler";return;}
- panel.hidden=false;panel.innerHTML='<div class="small">Canlı istatistikler alınıyor…</div>';
+ if(!forceRefresh&&!panel.hidden){panel.hidden=true;button.textContent=statsLabel;return;}
+ panel.hidden=false;panel.innerHTML='<div class="small">Maç istatistikleri alınıyor…</div>';
  button.disabled=true;
  try{
   let homeTeam,awayTeam,statsRows=[],sourceLabel,payload=null,statsCrossCheckNote="";
@@ -3684,6 +3686,15 @@ async function loadLiveStats(button,forceRefresh=false){
   }else if(source==="espn"){
    if(!/^\d+$/.test(fixtureId)||!leagueSlug)throw new Error("ESPN maç bilgisi eksik.");
    payload=await api("espn/"+leagueSlug+"/summary?"+qs({event:fixtureId}));
+   if(completed){
+    const competition=payload.header?.competitions?.[0];
+    const sides=new Map((competition?.competitors||[]).map(team=>[team.homeAway,team]));
+    if(String(competition?.id)!==fixtureId||competition?.status?.type?.completed!==true||
+       String(sides.get("home")?.team?.id)!==button.dataset.liveHomeId||
+       String(sides.get("away")?.team?.id)!==button.dataset.liveAwayId){
+     throw new Error("Tamamlanmış maçın ESPN kimliği doğrulanamadı.");
+    }
+   }
    const normalize=value=>String(value||"").toLowerCase().replace(/[^a-z0-9]/g,"");
    const labelFor=name=>{
     const k=normalize(name);
@@ -3708,6 +3719,10 @@ async function loadLiveStats(button,forceRefresh=false){
     ...(Array.isArray(payload.competitions?.[0]?.competitors)?payload.competitions[0].competitors:[])
    ];
    let home=candidates.find(x=>x.homeAway==="home"),away=candidates.find(x=>x.homeAway==="away");
+   if(completed&&(String(home?.team?.id)!==button.dataset.liveHomeId||
+      String(away?.team?.id)!==button.dataset.liveAwayId)){
+    throw new Error("ESPN istatistiklerinin takım kimlikleri eşleşmedi.");
+   }
    const mapStats=team=>{
     const map={};
     for(const stat of (team?.statistics||[])){
@@ -3740,7 +3755,7 @@ async function loadLiveStats(button,forceRefresh=false){
    awayTeam=away?.team?.displayName||button.dataset.liveAwayName||"Deplasman";
    const labels=[...new Set([...Object.keys(h),...Object.keys(a)])];
    statsRows=labels.map(label=>[label,h[label]??"—",a[label]??"—"]);
-   if(!statsRows.length)throw new Error("ESPN bu maç için henüz canlı takım istatistiği yayınlamıyor. Skor ve dakika akışı ayrı kaynaktan geliyor.");
+   if(!statsRows.length)throw new Error("ESPN bu maç için takım istatistiği paylaşmadı.");
    sourceLabel=payload?._mamStale?"ESPN · son başarılı kayıt":"ESPN";
   }else{
    if(!/^\d+$/.test(fixtureId))throw new Error("API-Football maç kimliği geçersiz.");
@@ -3898,7 +3913,7 @@ async function loadLiveStats(button,forceRefresh=false){
    }
   }
   const hasRealXg=statsRows.some(row=>row[0]==="Gerçek xG");
-  if(!hasRealXg){
+  if(!hasRealXg&&!completed){
    const numericStat=(label,index)=>{
     const row=statsRows.find(x=>x[0]===label);
     if(!row)return 0;
@@ -3912,11 +3927,13 @@ async function loadLiveStats(button,forceRefresh=false){
   }
   panel.classList.add("mam-live-stats-view");
   const rows=mamLiveStatRows(statsRows);
-  panel.innerHTML='<div class="mam-live-stats-title">Genel İstatistikler</div>'+(rows||'<div class="mam-live-stats-foot">Bu karşılaşma için sağlayıcı henüz istatistik paylaşmadı. Maç devam ederken tekrar kontrol edebilirsin.</div>')+'<div class="mam-live-stats-foot">Kaynak: '+sourceLabel+'. Panel açıkken maç sürerken 60 saniyede bir yenilenir.'+(!hasRealXg?' Model xG yaklaşık hesaplamadır; gerçek sağlayıcı xG verisi değildir.':' Gerçek xG sağlayıcıdan alınmıştır.')+(statsCrossCheckNote?" "+esc(statsCrossCheckNote):"")+'</div>';
-  await mamPersistLiveStatsToD1(fixtureId,sourceLabel,statsRows);
+  panel.innerHTML='<div class="mam-live-stats-title">Genel İstatistikler</div>'+(rows||'<div class="mam-live-stats-foot">Bu karşılaşma için sağlayıcı henüz istatistik paylaşmadı. Maç devam ederken tekrar kontrol edebilirsin.</div>')+'<div class="mam-live-stats-foot">Kaynak: '+sourceLabel+'.'+(completed?'':' Panel açıkken maç sürerken 60 saniyede bir yenilenir.')+(hasRealXg?' Gerçek xG sağlayıcıdan alınmıştır.':completed?'':' Model xG yaklaşık hesaplamadır; gerçek sağlayıcı xG verisi değildir.')+(statsCrossCheckNote?" "+esc(statsCrossCheckNote):"")+'</div>';
+  if(!completed)await mamPersistLiveStatsToD1(fixtureId,sourceLabel,statsRows);
  }catch(primaryError){
   // SportScore zaten doğrudan denenmiştir; diğer kaynaklarda yedek olarak kullanılır.
-  if(source==="sportscore"){
+  if(completed){
+   panel.innerHTML='<span class="error">'+esc(String(primaryError.message||primaryError))+'</span>';
+  }else if(source==="sportscore"){
    panel.innerHTML='<span class="error">SportScore istatistikleri alınamadı: '+esc(String(primaryError.message||primaryError))+'</span>';
   }else try{
    const backup=await mamSportScoreLiveStats(button);
@@ -3928,7 +3945,7 @@ async function loadLiveStats(button,forceRefresh=false){
    panel.innerHTML='<span class="error">'+esc(String(primaryError.message||primaryError))+' SportScore yedeği: '+esc(String(backupError.message||backupError))+'</span>';
   }
  }
- finally{button.disabled=false;button.textContent=panel.hidden?"📊 Canlı istatistikler":"İstatistikleri gizle";}
+ finally{button.disabled=false;button.textContent=panel.hidden?statsLabel:"İstatistikleri gizle";}
 }
 
 
@@ -4542,7 +4559,7 @@ function openMamMatchDetail(article){
  const liveButton=article.querySelector(".liveStatsBtn");
  if(liveButton){mamSeedVisibleMatchClock(liveButton);try{const rawId=String(liveButton.dataset.liveId||"");const source=String(liveButton.dataset.liveSource||"");const league=String(liveButton.dataset.liveLeagueId||"");const match=allMatches.find(m=>String(m.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId&&String(m.league?.id||"")===league)||null;localStorage.setItem("mam_open_live_detail",JSON.stringify({id:rawId,source,league,tab:"stats",match}));}catch(_){}}
  try{history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
- const first=liveButton?(article.querySelector('.match-detail-tab[data-pane="stats"]')||article.querySelector(".match-detail-tab")):(article.querySelector('.match-detail-tab[data-pane="analysis"]')||article.querySelector(".match-detail-tab"));
+ const first=article.querySelector(".finishedStatsBtn")?article.querySelector('.match-detail-tab[data-pane="overview"]'):liveButton?(article.querySelector('.match-detail-tab[data-pane="stats"]')||article.querySelector(".match-detail-tab")):(article.querySelector('.match-detail-tab[data-pane="analysis"]')||article.querySelector(".match-detail-tab"));
  if(first)first.click();
  if(liveButton)refreshOpenLiveScore();
 }
@@ -4553,6 +4570,7 @@ function makeMamDetailTab(article){
  const analysisButton=actions?.querySelector(".predBtn")||null;
  const statusLabel=actions?.querySelector(".small")||null;
  const liveButton=article.querySelector(".liveStatsBtn");
+ const statsButton=liveButton||article.querySelector(".finishedStatsBtn");
  const livePanel=article.querySelector(".liveStats");
  const lineupButton=article.querySelector(".lineupBtn");
  const lineupPanel=article.querySelector(".lineup-panel");
@@ -4587,7 +4605,7 @@ function makeMamDetailTab(article){
    if(def.id==="form"&&formButton.dataset.loaded!=="1"&&!formButton.disabled)formButton.click();
    if(def.id==="lineup"&&lineupButton&&!lineupButton.disabled&&lineupButton.dataset.loaded!=="1")lineupButton.click();
    if(def.id==="absences"&&absencesButton&&!absencesButton.disabled)absencesButton.click();
-   if(def.id==="stats"&&liveButton&&!liveButton.disabled)liveButton.click();
+   if(def.id==="stats"&&statsButton&&!statsButton.disabled&&(statsButton===liveButton||livePanel?.hidden))statsButton.click();
    if(def.id==="analysis"){
     const liveAnalysis=article.querySelector(".liveAnalyzeBtn");
     if(liveAnalysis&&!liveAnalysis.disabled)liveAnalysis.click();
@@ -4616,9 +4634,9 @@ function makeMamDetailTab(article){
  if(absencesButton)sections.absences.appendChild(absencesButton);
  if(absencesPanel)sections.absences.appendChild(absencesPanel);
  if(!lineupButton&&!lineupPanel)sections.lineup.innerHTML='<div class="match-detail-note">Bu maç için kadro verisi henüz mevcut değil.</div>';
- if(liveButton)sections.stats.appendChild(liveButton);
+ if(statsButton)sections.stats.appendChild(statsButton);
  if(livePanel)sections.stats.appendChild(livePanel);
- if(!liveButton&&!livePanel)sections.stats.innerHTML='<div class="match-detail-note">Canlı istatistikler yalnızca maç başladıktan sonra ve veri sağlayıcısı paylaşırsa gösterilir.</div>';
+ if(!statsButton&&!livePanel)sections.stats.innerHTML='<div class="match-detail-note">Canlı istatistikler yalnızca maç başladıktan sonra ve veri sağlayıcısı paylaşırsa gösterilir.</div>';
  if(analysisButton)sections.analysis.appendChild(analysisButton);
  if(prediction)sections.analysis.appendChild(prediction);
  else if(!analysisButton)sections.analysis.innerHTML='<div class="match-detail-note">Maç tamamlandığı için maç önü tahmini üretilmez.</div>';
@@ -4626,7 +4644,7 @@ function makeMamDetailTab(article){
  const open=document.createElement("button");open.type="button";open.className="mam-match-open";
  const kickoff=Date.parse(analysisButton?.dataset.kickoff||"");
  const started=(Number.isFinite(kickoff)&&kickoff>0&&Date.now()>=kickoff)||["1H","HT","2H","ET","P","LIVE","INPLAY"].includes(String(analysisButton?.dataset.status||"").toUpperCase());
- open.textContent=started?"Canlı maç detayını aç  →":"🎯 Maç önü analizini yap";
+ open.textContent=!analysisButton&&!liveButton?"Maç detaylarını aç":started?"Canlı maç detayını aç  →":"🎯 Maç önü analizini yap";
  open.addEventListener("click",()=>activateMamFixture(article));
  article.appendChild(open);
  formButton.addEventListener("click",()=>loadMamMatchForm(formButton,formButton.dataset.loaded==="1"));
@@ -4990,7 +5008,7 @@ function renderMatches(){
    ${isFinishedStatus?'<div class="analysis-preview">✓ Gerçekleşen sonuç: <b>'+esc(g.home)+' – '+esc(g.away)+'</b>. Maç önü tahmini bu karşılaşma için artık üretilemez.</div>':""}
 
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isSportScore?rawId.slice("sportscore-".length):isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-minute="'+esc(effectiveElapsed??"")+'" data-live-home-score="'+esc(g.home??0)+'" data-live-away-score="'+esc(g.away??0)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
-   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
+   ${(isLiveStatus||(isFinishedStatus&&/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))))&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="'+(isFinishedStatus?"finishedStatsBtn":"liveStatsBtn")+' secondary" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(f.date?.slice(0,10))+'" data-live-home-id="'+esc(t.home?.id)+'" data-live-away-id="'+esc(t.away?.id)+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 '+(isFinishedStatus?"Maç istatistikleri":"Canlı istatistikler")+'</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
    <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(f.date?.slice(0,10))}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
    <div class="absences-summary" id="absences-summary-${esc(f.id)}">Eksikler otomatik kontrol ediliyor…</div>
@@ -5007,7 +5025,7 @@ function renderMatches(){
  document.querySelectorAll(".lineupBtn").forEach(b=>{
   b.addEventListener("click",()=>loadLineups(b));
  });
- document.querySelectorAll(".liveStatsBtn").forEach(b=>{
+ document.querySelectorAll(".liveStatsBtn,.finishedStatsBtn").forEach(b=>{
   b.addEventListener("click",()=>loadLiveStats(b));
  });
  document.querySelectorAll(".liveAnalyzeBtn").forEach(b=>b.addEventListener("click",()=>analyzeLiveMatch(b)));
