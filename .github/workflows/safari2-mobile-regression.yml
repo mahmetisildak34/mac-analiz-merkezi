@@ -1,0 +1,18 @@
+name: Safari 2 mobile regression
+on:
+  push:
+    branches:
+      - feature/safari2-mobile-ux-20261122
+  workflow_dispatch:
+jobs:
+  node-regressions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Safari 2 Node regressions
+        run: node --test tests/safari2-mobile-card.test.mjs tests/safari2-today-filter.test.mjs
