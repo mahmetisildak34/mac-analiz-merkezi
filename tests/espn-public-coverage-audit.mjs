@@ -13,7 +13,9 @@ async function read(url){
  try{
   const response=await fetch(url,{signal:AbortSignal.timeout(8000),credentials:'omit',headers:{Accept:'application/json'}});
   if(!response.ok)return {error:'HTTP '+response.status};
-  return {value:await response.json(),ms:Math.round(performance.now()-start)};
+  const value=await response.json();
+  if(!value||typeof value!=="object"||Array.isArray(value))return {error:"Invalid ESPN payload"};
+  return {value,ms:Math.round(performance.now()-start)};
  }catch(error){return {error:String(error.message)};}
 }
 function matchState(event){
@@ -55,8 +57,20 @@ async function audit([league,name]){
   const groups=parseEspnStandings(standings.value);
   standingsResult=standings.error?{error:standings.error}:{rows:groups.reduce((n,group)=>n+group.rows.length,0),season:standings.value?.season?.displayName??null,ms:standings.ms};
  }catch(error){standingsResult={error:String(error.message)};}
- const withTeams=events.filter(event=>list(event.competitions?.[0]?.competitors).some(row=>row.homeAway==='home')&&list(event.competitions?.[0]?.competitors).some(row=>row.homeAway==='away'));
- const withLogos=withTeams.filter(event=>list(event.competitions?.[0]?.competitors).every(row=>row.team?.logo||list(row.team?.logos).some(logo=>logo.href)));
+ const year=Number(standings.value?.season?.year);
+ if(standingsResult.rows>0&&Number.isInteger(year)){
+  const selected=await read(standingsSite+league+'/standings?season='+year);
+  try{
+   standingsResult.selectedSeason=selected.error?{error:selected.error}:{
+    year,confirmed:Number(selected.value?.season?.year)===year&&parseEspnStandings(selected.value).length>0
+   };
+  }catch(error){standingsResult.selectedSeason={error:String(error.message)};}
+ }
+ const withTeams=events.filter(event=>{
+  const competitors=list(event.competitions?.[0]?.competitors);
+  return ['home','away'].every(side=>competitors.some(row=>row?.homeAway===side&&(row.team?.displayName||row.team?.name)));
+ });
+ const withLogos=withTeams.filter(event=>list(event.competitions?.[0]?.competitors).every(row=>row.team?.logo||list(row.team?.logos).some(logo=>logo?.href)));
  return {
   league,name,days:Object.fromEntries(days.map((day,index)=>[day,dayResult(boards[index])])),
   teams:withTeams.length,logos:withLogos.length,eventId:sample?.id??null,

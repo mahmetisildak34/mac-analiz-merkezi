@@ -69,6 +69,12 @@ async function verifyMainApp(context){
   const dialog=main.getByRole('dialog',{name:/Erzurum BB/});
   await dialog.waitFor();
   measurements.detailMs=Math.round(performance.now()-detailStart);
+  await dialog.getByRole('button',{name:'⚽ Detay'}).click();
+  const profileLink=dialog.getByRole('button',{name:'Erzurum BB takım profili'});
+  await profileLink.click();
+  const fromDetail=main.getByRole('dialog',{name:'Erzurum BB takım profili',exact:true});
+  await fromDetail.locator('#mamTeamHistoryBack').press('Escape');
+  assert.equal(await profileLink.evaluate(button=>button===document.activeElement),true);
   await dialog.getByRole('button',{name:/Olaylar/}).click();
   const events=dialog.locator('.match-detail-pane[data-pane="goals"]');
   await events.getByText('Sarı kart',{exact:true}).first().waitFor();
@@ -162,6 +168,8 @@ async function verifyMainApp(context){
   assert.equal(await main.locator('#matches article.match').count(),0);
   await main.setViewportSize({width:320,height:720});
   assert.equal(await main.locator('.mam-bottom-nav button').evaluateAll(buttons=>buttons.every(button=>button.getBoundingClientRect().height>=44&&button.getBoundingClientRect().width>=44)),true);
+  assert.equal(await main.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
+  await main.setViewportSize({width:430,height:932});
   assert.equal(await main.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
   await main.evaluate(saved=>{localStorage.setItem('mam-product-hub-v1',saved);localStorage.removeItem('mam_app_view_state');},initialFavorites);
  }finally{await main.close();}
