@@ -2418,6 +2418,20 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
  body > main #status{margin:2px 0!important;padding:0!important;font-size:10px!important}
 }
 </style>
+<style id="mamScreenSeparationFix">
+/* Avoid legacy favorites panel overlaying unrelated screen content. */
+main:not(.mam-screen-home) #mamFavoritePanel:not([data-force-visible]){display:none!important}
+main.mam-screen-upcoming #mamHomeShortcuts,
+main.mam-screen-live #mamHomeShortcuts,
+main.mam-screen-finished #mamHomeShortcuts,
+main.mam-screen-today #mamHomeShortcuts,
+main.mam-screen-standings #mamHomeShortcuts{display:none!important}
+main.mam-screen-upcoming .mam-home-intro,
+main.mam-screen-live .mam-home-intro,
+main.mam-screen-finished .mam-home-intro,
+main.mam-screen-today .mam-home-intro,
+main.mam-screen-standings .mam-home-intro{display:none!important}
+</style>
 </head>
 <body>
 
@@ -3636,7 +3650,7 @@ async function loadMatches(){
  window.mamLoadMatchesBusy=true;
  window.mamLastFixtureRefreshAt=Date.now();
  button.disabled=true;
- $("status").textContent="Fikstür alınıyor...";
+ $("status").textContent="Maçlar yükleniyor…";
  // Keep the currently rendered matches visible while fresh data loads.
  const fixtureCacheKey="mam_fixture_cache_v3_"+date+"_"+mamScreenMode+"_"+$("league").value;
  const previousMatches=allMatches.slice();
@@ -3825,9 +3839,9 @@ async function loadMatches(){
   renderMatches();
   if(!allMatches.length){
    const detail=window.mamLastFixtureFallbackErrors?.length?" Denenen kaynaklar: "+window.mamLastFixtureFallbackErrors.join(" | "):"";
-   $("status").textContent="Bu tarih için maç bulunamadı. Kaynak: "+source+"."+detail;
+   $("status").textContent="Bu tarih için maç bulunamadı.";
   }else{
-   $("status").textContent=allMatches.length+" maç bulundu. Kaynak: "+source+".";
+   $("status").textContent=allMatches.length+" maç yüklendi.";
   }
  }catch(e){
   // A failed refresh must never erase the last known-good fixture snapshot.
@@ -5601,6 +5615,9 @@ window.addEventListener("popstate",()=>{if(mamActiveMatch)closeMamMatchDetail();
 let mamScreenMode="home";
 let mamTodayFilter="all";
 function setMamScreen(mode){
+ const favoritePanel=document.getElementById("mamFavoritePanel");
+ if(favoritePanel&&mode!=="favorites"){favoritePanel.hidden=true;favoritePanel.style.display="none";document.getElementById("mamFavoriteBottom")?.setAttribute("aria-expanded","false");}
+
  document.body.classList.toggle("mam-hide-bottom-nav",mode==="special-archive");
  if(mode==="special"||mode==="special-archive"){
   mamScreenMode=mode;
