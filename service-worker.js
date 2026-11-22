@@ -5,7 +5,9 @@ const SHELL = [
   BASE.href,
   new URL("index.html", BASE).href,
   new URL("manifest.webmanifest", BASE).href,
-  new URL("icons/app-icon.svg", BASE).href,\n  new URL("half-goal-algorithm.js", BASE).href,\n  new URL("safari2-favorites-search.js", BASE).href
+  new URL("icons/app-icon.svg", BASE).href,
+  new URL("half-goal-algorithm.js", BASE).href,
+  new URL("safari2-favorites-search.js", BASE).href
 ];
 
 self.addEventListener("install", event => {
