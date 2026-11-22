@@ -182,3 +182,13 @@ test('ESPN structured match status survives hub normalization for live filtering
  assert.match(html,/typeof m\.status==='string'\?m\.status:m\.status\?\.type\?\.name/);
  assert.doesNotMatch(html,/status:String\(m\.status\?\?fixture\.status/);
 });
+
+test('ESPN summary plays survive empty event arrays and navigation covers visible tabs',async()=>{
+ const {matchDetails,mobileNavigation}=await import('../mobile/product-features.mjs');
+ const plays=[{clock:{displayValue:'09:00'},text:'Goal'}];
+ assert.deepEqual(matchDetails({id:'x',events:[],plays}).events,plays);
+ assert.deepEqual(matchDetails({id:'x',events:{response:[]},plays}).events,plays);
+ assert.deepEqual(matchDetails({id:'x',events:{plays:[]},plays}).events,plays);
+ assert.deepEqual(mobileNavigation('today').filter(x=>x.active).map(x=>x.id),['today']);
+ assert.ok(mobileNavigation('teams').some(x=>x.id==='teams'&&x.ariaCurrent==='page'));
+});
