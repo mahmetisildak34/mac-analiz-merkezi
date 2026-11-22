@@ -1,0 +1,30 @@
+name: Independent product hub regression
+on:
+  push:
+    branches:
+      - feature/independent-product-features-20261122
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  product-hub:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check product module syntax
+        run: node --check mobile/product-features.mjs
+      - name: Run independent product regression
+        run: |
+          set -o pipefail
+          node --test tests/product-hub-integration.test.mjs 2>&1 | tee product-regression.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            echo "::group::FAILED TESTS — exact names and assertion locations"
+            grep -n -E '^not ok |^  (error:|stack:|operator:|expected:|actual:)|^    at ' product-regression.log || true
+            echo "::endgroup::"
+          fi
+          exit "$result"

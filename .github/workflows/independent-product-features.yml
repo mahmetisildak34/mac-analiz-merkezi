@@ -1,0 +1,41 @@
+name: Independent product feature regression
+on:
+  push:
+    branches:
+      - feature/independent-product-features-20261122
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  product-features:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run independent product regression tests
+        run: |
+          set -o pipefail
+          node --test tests/*.test.js tests/product-features.test.mjs tests/product-hub-integration.test.mjs tests/main-favorites-integration.test.mjs 2>&1 | tee product-regression.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            echo "::group::FAILED TESTS — exact names and assertion locations"
+            grep -n -E '^not ok |^  (error:|stack:|operator:|expected:|actual:)|^    at ' product-regression.log || true
+            echo "::endgroup::"
+          fi
+          exit "$result"
+      - name: Validate product module syntax
+        run: |
+          node test/app-integrity.test.cjs
+          node --check mobile/product-features.mjs
+          node --check mobile/main-favorites.mjs
+      - name: Audit public ESPN scoreboards without credentials or writes
+        run: node tests/espn-public-coverage-audit.mjs
+      - name: Install isolated browser test runner
+        run: npm install --no-save --no-package-lock playwright@1.58.2
+      - name: Install Chromium and WebKit with system dependencies
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run real mobile browser acceptance
+        run: node --test tests/product-mobile-browser.test.mjs

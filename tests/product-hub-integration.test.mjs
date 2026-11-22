@@ -1,0 +1,246 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+const html=readFileSync(new URL('../mobile/product-hub.html',import.meta.url),'utf8');
+const app=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+test('product hub exposes nine feature areas and responsive navigation',()=>{
+ for(const id of ['home','live','today','favorites','teams','leagues','search','settings','details'])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(html,/aria-label="Alt gezinme"/);assert.match(html,/env\(safe-area-inset-bottom\)/);
+});
+test('product hub limits external requests to public ESPN standings',()=>{
+ assert.match(html,/type="file"/);assert.match(html,/localStorage/);
+ assert.doesNotMatch(html,/fetch\s*\(/);
+ const client=readFileSync(new URL('../mobile/espn-standings.mjs',import.meta.url),'utf8');
+ assert.match(html,/import \{loadEspnStandings\} from '\.\/espn-standings.mjs'/);
+ assert.match(client,/workers\.dev\/api\/espn\//);
+ assert.match(client,/credentials:'omit'/);
+ assert.doesNotMatch(html,/Notification\.requestPermission/);
+});
+test('main app links to product hub without replacing existing rendering',()=>{
+ assert.match(app,/href="\.\/mobile\/product-hub\.html"/);
+ assert.match(app,/function renderMatches\(\)/);
+});
+test('product hub module script is syntactically valid',()=>{
+ const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
+ assert.ok(script,'module script present');
+ const check=spawnSync(process.execPath,['--check','--input-type=module'],{input:script,encoding:'utf8'});assert.equal(check.status,0,check.stderr);
+});
+
+test('main app shares already loaded matches and hub automatically consumes them',()=>{
+ assert.match(app,/mam_product_hub_fixtures_v1/);
+ assert.match(app,/safeRows\.length\) localStorage\.setItem/);
+ assert.match(html,/function loadSharedFixtures\(\)/);
+ assert.match(html,/loadSharedFixtures\(\);show\('home'\)/);
+ assert.match(html,/24\*60\*60\*1000/);
+});
+
+test('search links teams to profile and team profile lists actual fixture cards',()=>{
+ assert.match(html,/found\.teams\.map\(teamCard\)/);
+ assert.match(html,/p\.past\.slice\(0,5\)\.map\(matchCard\)/);
+ assert.match(html,/p\.future\.slice\(0,5\)\.map\(matchCard\)/);
+});
+test('in-app reminders are opt-in, deduplicated and do not request push permission',()=>{
+ assert.match(html,/id="notifyCheck"/);
+ assert.match(html,/SEEN_KEY/);
+ assert.match(html,/seenAlerts\.includes\(x\.id\+'\\|'\+x\.kickoff\)/);
+ assert.doesNotMatch(html,/Notification\.requestPermission/);
+});
+
+test('search team selection navigates to the visible profile view',()=>{assert.match(html,/if\(b\.dataset\.team\)\{show\('teams'\)/);});
+test('partial standings include W D L and scored and conceded goals',()=>{assert.match(html,/r\.wins\+'G '/);assert.match(html,/r\.draws\+'B '/);assert.match(html,/r\.losses\+'M · '/);assert.match(html,/r\.goalsFor\+':'\+r\.goalsAgainst/);});
+
+test('match detail displays available statistics values without claiming independent verification',()=>{
+ assert.match(html,/function renderStatistics\(statistics\)/);
+ assert.match(html,/renderStatistics\(d\.statistics\)/);
+ assert.match(html,/Kaynaklar arası bağımsız doğrulama yok/);
+ assert.match(html,/function renderStatValue\(value\)/);
+});
+test('mobile detail back navigation and accessibility affordances exist',()=>{
+ assert.match(html,/id="detailsBack"/);
+ assert.match(html,/detailsBack'\)\.addEventListener\('click'/);
+ assert.match(html,/prefers-reduced-motion:reduce/);
+ assert.match(html,/select:focus-visible,a:focus-visible/);
+});
+
+test('fixture cards format kickoff in Istanbul rather than raw UTC',()=>{
+ assert.match(html,/timeZone:'Europe\/Istanbul'/);
+ assert.match(html,/Number\.isFinite\(Date\.parse\(m\.kickoff\)\)/);
+});
+test('event detail supports API-Football nested elapsed minute, team and player',()=>{
+ assert.match(html,/x\.time\?\.elapsed/);
+ assert.match(html,/x\.team\?\.name/);
+ assert.match(html,/x\.player\?\.name/);
+});
+
+test('bounded fixture snapshot retains matches across league groups',()=>{
+ assert.match(app,/const groups=new Map\(\)/);
+ assert.match(app,/match\?\.league\?\.id/);
+ assert.match(app,/for\(const group of groups\.values\(\)\)/);
+ assert.match(app,/selected\.length<1000/);
+});
+
+test('partial computed standings are not presented as official league standings',()=>{
+ assert.match(html,/Resmî lig puan durumu değildir/);
+ assert.match(html,/Yalnızca yüklenen maçlardan hesaplanan geçici tablo/);
+});
+
+test('ESPN team and boxscore statistics arrays are recognized in detail renderer',()=>{
+ assert.match(html,/Array\.isArray\(statistics\.teams\)/);
+ assert.match(html,/Array\.isArray\(statistics\.boxscore\?\.teams\)/);
+ assert.match(html,/independentCrossSourceVerification/);
+});
+
+test('ESPN displayValue statistics are preserved in match detail rendering',()=>{
+ assert.match(html,/stat\?\.value\?\?stat\?\.displayValue\?\?stat\?\.home/);
+});
+
+test('mobile match details preserve and render available lineup players without inventing squads',()=>{
+ assert.match(html,/lineups:m\.lineups/);
+ assert.match(html,/d\.lineups\.length/);
+ assert.match(html,/lineup\.startXI/);
+ assert.match(html,/lineup\.substitutes/);
+ assert.match(html,/Kadro verisi yok/);
+});
+
+test('match detail supports wrapped event arrays without inventing events',()=>{
+ const features=readFileSync(new URL('../mobile/product-features.mjs',import.meta.url),'utf8');
+ assert.match(features,/match\.events\?\.response/);
+ assert.match(features,/match\.events\?\.plays/);
+ assert.match(features,/eventSources\.find\(x=>Array\.isArray\(x\)&&x\.length>0\)/);
+ assert.match(features,/const events=sourceEvents\.filter\([^\n]+\)\.sort/);
+});
+
+test('ESPN play text and object event types render as readable labels',()=>{
+ assert.match(html,/x\.text\?\?x\.shortText\?\?x\.detail/);
+ assert.match(html,/typeof x\.type==='string'\?x\.type:x\.type\?\.text/);
+});
+
+test('ESPN clock-based play sorting handles minute:second without losing legacy elapsed time',()=>{
+ const features=readFileSync(new URL('../mobile/product-features.mjs',import.meta.url),'utf8');
+ assert.match(features,/e\?\.clock\?\.displayValue\?\?e\?\.clock/);
+ assert.ok(features.includes("raw.split(':')"));
+});
+
+test('ESPN published standings parser keeps group, season, ranks and missing stats',async()=>{
+ const {parseEspnStandings}=await import('../mobile/product-features.mjs');
+ const groups=parseEspnStandings({season:{displayName:'2026-27'},children:[{name:'Group A',standings:{entries:[{team:{id:'7',displayName:'Club'},stats:[{name:'rank',value:2},{name:'points',value:14}]}]}}]});
+ assert.equal(groups[0].name,'Group A');assert.equal(groups[0].season,'2026-27');assert.equal(groups[0].rows[0].rank,2);assert.equal(groups[0].rows[0].points,14);assert.equal(groups[0].rows[0].played,null);
+ assert.deepEqual(parseEspnStandings({}),[]);
+});
+
+test('published ESPN standings import is local and remains separate from computed standings',()=>{
+ assert.match(html,/id="standingsFile"/);
+ assert.match(html,/parseEspnStandings\(JSON\.parse\(await file\.text\(\)\)\)/);
+ assert.match(html,/Yüklenen ESPN biçimli JSON \(kaynak bağımsız doğrulanmadı\)/);
+ assert.match(html,/Resmî lig puan durumu değildir/);
+});
+
+test('ESPN standings array variant preserves official published points',async()=>{
+ const {parseEspnStandings}=await import('../mobile/product-features.mjs');
+ const groups=parseEspnStandings({standings:[{name:'League',entries:[{team:{id:'11',displayName:'Home'},stats:[{name:'points',value:9}]}]}]});
+ assert.equal(groups.length,1);assert.equal(groups[0].rows[0].points,9);
+});
+
+test('ESPN event clocks render without an invented minute suffix',()=>{
+ assert.match(html,/x\.clock\?\.displayValue/);
+ assert.match(html,/typeof x\.clock==='string'/);
+});
+
+test('top-level ESPN summary plays survive normalization and are sorted',async()=>{
+ const {matchDetails}=await import('../mobile/product-features.mjs');
+ const result=matchDetails({id:'espn-1',plays:[{clock:{displayValue:'20:00'},text:'Second'},{clock:{displayValue:'04:30'},text:'First'}]});
+ assert.deepEqual(result.events.map(e=>e.text),['First','Second']);
+ assert.match(html,/plays:m\.plays/);
+});
+
+test('ESPN rosters and boxscore player groups remain available without inventing lineups',async()=>{
+ const {matchDetails}=await import('../mobile/product-features.mjs');
+ assert.equal(matchDetails({id:'1',rosters:[{team:{name:'Club'},roster:[{athlete:{displayName:'Player'}}]}]}).lineups.length,1);
+ assert.equal(matchDetails({id:'2',boxscore:{players:[{team:{name:'Club'},athletes:[{athlete:{displayName:'Player'}}]}]}}).lineups.length,1);
+ assert.match(html,/rosters:m\.rosters/);
+ assert.match(html,/lineup\.athletes/);
+ assert.match(html,/entry\.athlete\?\.displayName/);
+});
+
+test('live tab shows only explicit in-progress match states and does not invent fixtures',()=>{
+ assert.match(html,/id="live" data-view/);
+ assert.match(html,/data-tab="live"/);
+ assert.match(html,/list\.filter\(isLiveMatch\)/);
+ assert.match(html,/Şu anda doğrulanmış canlı maç bulunamadı/);
+});
+
+test('ESPN live states and Istanbul today split do not misclassify kickoff or postponed matches',async()=>{
+ const {isLiveMatch,isIstanbulToday}=await import('../mobile/product-features.mjs');
+ assert.equal(isLiveMatch({status:'STATUS_IN_PROGRESS'}),true);
+ assert.equal(isLiveMatch({status:{type:{name:'STATUS_HALFTIME'}}}),true);
+ assert.equal(isLiveMatch({status:'PST'}),false);
+ assert.equal(isLiveMatch({status:'NS'}),false);
+ const now=Date.parse('2026-11-22T22:30:00Z');
+ assert.equal(isIstanbulToday({kickoff:'2026-11-22T21:30:00Z'},now),true);
+ assert.equal(isIstanbulToday({kickoff:'2026-11-22T20:30:00Z'},now),false);
+ assert.match(html,/id="today" data-view/);
+ assert.match(html,/data-tab="today"/);
+ assert.match(html,/isIstanbulToday\(m,day\)&&!isLiveMatch\(m\)/);
+});
+
+test('ESPN structured match status survives hub normalization for live filtering',()=>{
+ assert.match(html,/typeof m\.status==='string'\?m\.status:m\.status\?\.type\?\.name/);
+ assert.doesNotMatch(html,/status:String\(m\.status\?\?fixture\.status/);
+});
+
+test('ESPN summary plays survive empty event arrays and navigation covers visible tabs',async()=>{
+ const {matchDetails,mobileNavigation}=await import('../mobile/product-features.mjs');
+ const plays=[{clock:{displayValue:'09:00'},text:'Goal'}];
+ assert.deepEqual(matchDetails({id:'x',events:[],plays}).events,plays);
+ assert.deepEqual(matchDetails({id:'x',events:{response:[]},plays}).events,plays);
+ assert.deepEqual(matchDetails({id:'x',events:{plays:[]},plays}).events,plays);
+ assert.deepEqual(mobileNavigation('today').filter(x=>x.active).map(x=>x.id),['today']);
+ assert.ok(mobileNavigation('teams').some(x=>x.id==='teams'&&x.ariaCurrent==='page'));
+});
+
+test('published ESPN standings preserve team name when displayName is absent',async()=>{
+ const {parseEspnStandings}=await import('../mobile/product-features.mjs');
+ const groups=parseEspnStandings({standings:{entries:[{team:{id:'34',name:'Fenerbahçe'},stats:[{name:'points',value:27}]}]}});
+ assert.equal(groups[0].rows[0].name,'Fenerbahçe');
+ assert.equal(groups[0].rows[0].points,27);
+ assert.equal(groups[0].rows[0].played,null);
+});
+
+test('mobile hub preserves ESPN date when kickoff is absent',()=>{
+ assert.match(html,/kickoff:m\.kickoff\?\?m\.date\?\?fixture\.date/);
+ assert.match(html,/isIstanbulToday\(m,day\)/);
+});
+
+
+test('mobile standings catalog covers the main scoreboard ESPN competitions',async()=>{
+ const {espnCompetitions}=await import('../mobile/product-features.mjs');
+ const mapping=app.split('const ESPN_LEAGUES={')[1].split('\n};')[0];
+ const slugs=new Set([...mapping.matchAll(/slug:"([^"]+)"/g)].map(match=>match[1]));
+ assert.deepEqual(new Set(espnCompetitions.keys()),slugs);
+});
+
+
+test('PWA manifest installs the mobile hub with bundled icons and an isolated service worker',()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../mobile/manifest.webmanifest',import.meta.url),'utf8'));
+ assert.equal(manifest.start_url,'./product-hub.html');
+ assert.equal(manifest.display,'standalone');
+ for(const icon of manifest.icons){
+  const buf=readFileSync(new URL('../mobile/'+icon.src,import.meta.url));
+  assert.equal(buf.readUInt32BE(16),Number(icon.sizes.split('x')[0]));
+  assert.equal(buf.readUInt32BE(20),Number(icon.sizes.split('x')[1]));
+ }
+ assert.match(html,/navigator\.serviceWorker\.register\('\.\/sw\.js',\{updateViaCache:'none'\}\)/);
+});
+
+test('root PWA starts at the main app and uses its own static cache namespace',()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../manifest.webmanifest',import.meta.url),'utf8'));
+ const worker=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
+ assert.equal(manifest.start_url,'./');
+ assert.equal(manifest.scope,'./');
+ assert.equal(manifest.display,'standalone');
+ assert.match(app,/rel="manifest" href="\.\/manifest\.webmanifest"/);
+ assert.match(worker,/mam-main-shell-/);
+ assert.doesNotMatch(worker,/api\//);
+ for(const icon of manifest.icons)assert.ok(readFileSync(new URL('../'+icon.src,import.meta.url)).length>0);
+});
