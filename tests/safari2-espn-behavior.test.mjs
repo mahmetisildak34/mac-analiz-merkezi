@@ -50,3 +50,10 @@ test('postponed and canceled matches are not mapped to scheduled',async()=>{
  const result=await context.__espn.espnFixtures('2026-11-23');
  assert.deepEqual(Array.from(result,m=>m.fixture.status.short),['PST','CANC','NS']);
 });
+
+test('canceled and postponed ESPN events stay non-final even if provider sets completed',async()=>{
+ context.$=()=>({value:'203'});
+ context.api=async()=>({events:[event('canceled-post',{state:'post',completed:true,detail:'Cancelled'}),event('postponed-post',{state:'post',completed:true,detail:'Postponed'}),event('finished',{state:'post',completed:true,detail:'Full Time'})]});
+ const result=await context.__espn.espnFixtures('2026-11-23');
+ assert.deepEqual(Array.from(result,m=>m.fixture.status.short),['CANC','PST','FT']);
+});
