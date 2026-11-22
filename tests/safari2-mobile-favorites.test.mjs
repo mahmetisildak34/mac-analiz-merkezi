@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {normalizeFavorites,toggleFavorite,mergeFavoriteUpdates} from "../mobile/favorites.js";
+import {normalizeFavorites,toggleFavorite,mergeFavoriteUpdates,normalizeTeamFavorites,toggleTeamFavorite} from "../mobile/favorites.js";
 
 const match=(id,home="Göztepe",away="Erzurumspor",homeGoals=1)=>({
  fixture:{id,status:{short:"FT"}},teams:{home:{name:home},away:{name:away}},goals:{home:homeGoals,away:0}
@@ -31,4 +31,18 @@ test("cross-league fixture IDs remain independently addressable as strings",()=>
  const rows=normalizeFavorites([match(1),match("1")]);
  assert.equal(rows.length,1);
  assert.equal(toggleFavorite(rows,match("2")).favorites.length,2);
+});
+
+test("team favorites deduplicate stable IDs and normalize Turkish names",()=>{
+ const first=toggleTeamFavorite([], {name:"Iğdır FK",id:203});
+ assert.equal(first.added,true);
+ assert.equal(normalizeTeamFavorites([{name:"Iğdır FK"},{name:"Iğdır-FK"}]).length,1);
+ const removed=toggleTeamFavorite(first.favorites,{name:"Iğdır FK",id:203});
+ assert.equal(removed.favorites.length,0);
+});
+
+test("team favorites reject empty names and retain distinct provider IDs",()=>{
+ assert.equal(toggleTeamFavorite([],{}).changed,false);
+ const rows=normalizeTeamFavorites([{name:"Göztepe",id:1},{name:"Göztepe",id:2}]);
+ assert.equal(rows.length,2);
 });
