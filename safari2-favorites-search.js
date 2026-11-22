@@ -79,6 +79,18 @@
   return norm(m.teams?.home?.name)===norm(item.homeName)&&norm(m.teams?.away?.name)===norm(item.awayName)&&
    Number.isFinite(Date.parse(m.fixture?.date||""))&&Math.abs(Date.parse(m.fixture.date)-Date.parse(item.date))<=10*60*1000;
  });
+ function verifiedMatch(item){
+  const loaded=findMatch(item);if(!loaded||item.kind!=="match"||!item.snapshot)return loaded;
+  const snapshot=item.snapshot;
+  const sameData=fixtureStatus(loaded)===clean(snapshot.status)&&
+   String(loaded.goals?.home??"")===String(snapshot.home??"")&&
+   String(loaded.goals?.away??"")===String(snapshot.away??"");
+  const providerTime=Date.parse(loaded.fixture?.status?.updated||"");
+  const loadedAt=Math.max(Number(loaded._mamLastVerifiedAt)||0,Number.isFinite(providerTime)?providerTime:0);
+  const savedAt=Number(snapshot.savedAt)||0;
+  // An un-timestamped older page cache must not overwrite a newer checked live score.
+  return sameData||!savedAt||loadedAt>=savedAt?loaded:null;
+ }
  function showMatch(item){
   const m=findMatch(item);
   if(!m){$("mamSafariPanel").textContent="Bu kayıt mevcut yüklenen maçlarda bulunamadı. İlgili ligi ve tarihi seçip tekrar deneyin.";return}
@@ -130,7 +142,7 @@
   }
  }
  function showDetail(item){
-  const loaded=findMatch(item),m=loaded||snapshotMatch(item),panel=!favoritesScreen.hidden?$("mamSafariFavoritesDetail"):$("mamSafariPanel");panel.hidden=false;
+  const loaded=verifiedMatch(item),m=loaded||snapshotMatch(item),panel=!favoritesScreen.hidden?$("mamSafariFavoritesDetail"):$("mamSafariPanel");panel.hidden=false;
   if(!favoritesScreen.hidden){$("mamSafariFavoritesBody").hidden=true;}
   if(!m){panel.textContent="Bu maç için yüklenmiş veya kayıtlı ayrıntı yok.";return}
   const date=Date.parse(m.fixture?.date||"");
@@ -161,7 +173,7 @@
   const rows=favorites.slice().reverse();
   const matches=rows.filter(item=>item.kind==="match"),teams=rows.filter(item=>item.kind==="team");
   const renderRow=item=>{
-   const idx=favorites.indexOf(item),current=findMatch(item);
+   const idx=favorites.indexOf(item),current=verifiedMatch(item);
    // A reloaded page may initially contain an older cached scoreboard. Only a
    // provider-verified live refresh may replace the persisted favorite snapshot.
    const currentVerifiedAt=Number(current?._mamLastVerifiedAt)||0;
