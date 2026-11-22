@@ -19,6 +19,8 @@ jobs:
         run: node --test tests/product-features.test.mjs tests/product-hub-integration.test.mjs tests/main-favorites-integration.test.mjs
       - name: Validate product module syntax
         run: node --check mobile/product-features.mjs && node --check mobile/main-favorites.mjs
+      - name: Audit public ESPN scoreboards without credentials or writes
+        run: node tests/espn-public-coverage-audit.mjs
       - name: Install isolated browser test runner
         run: npm install --no-save --no-package-lock playwright@1.58.2
       - name: Install Chromium and WebKit with system dependencies
