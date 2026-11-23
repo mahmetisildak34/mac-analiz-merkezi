@@ -4090,9 +4090,10 @@ async function warmLiveTeamHistories(matches){
 async function footballDataLiveFixtures(){
  const data=await api("football-data/matches?"+qs({status:"IN_PLAY,PAUSED,LIVE"}));
  const idMap={"PL":"39","PD":"140","BL1":"78","SA":"135","FL1":"61","CL":"2","EL":"3","DED":"88","PPL":"94","BSA":"71","WC":"1"};
- return (Array.isArray(data.matches)?data.matches:[]).map(m=>({
+ if(!Array.isArray(data?.matches))throw new Error("Football-data.org canlı yayın yanıtı geçersiz.");
+ return data.matches.map(m=>({
   mamSource:"FOOTBALL_DATA",
-  fixture:{id:"football-data-"+m.id,date:m.utcDate,status:{short:String(m.status||"IN_PLAY"),displayClock:m.minute==null?"":String(m.minute)+"′"}},
+  fixture:{id:"football-data-"+m.id,date:mamExplicitUtc(m.utcDate),status:{short:String(m.status||""),displayClock:m.minute==null?"":String(m.minute)+"′"}},
   league:{id:idMap[m.competition?.code]||String(m.competition?.id||""),name:m.competition?.name||"Football-data.org",country:m.area?.name||""},
   teams:{
    home:{id:m.homeTeam?.id==null?null:String(m.homeTeam.id),name:m.homeTeam?.name||"",logo:m.homeTeam?.crest||""},
@@ -4111,7 +4112,8 @@ async function mamSportScoreLiveFixtures(force=false){
  const response=await fetch(url,{headers:{Accept:"application/json"},cache:"no-store"});
  if(!response.ok)throw new Error("SportScore canlı fikstür HTTP "+response.status);
  const payload=await response.json();
- const rows=Array.isArray(payload.matches)?payload.matches:Array.isArray(payload.fixtures)?payload.fixtures:Array.isArray(payload.data)?payload.data:Array.isArray(payload.response)?payload.response:[];
+ const rows=[payload?.matches,payload?.fixtures,payload?.data,payload?.response].find(Array.isArray);
+ if(!rows)throw new Error("SportScore canlı yayın yanıtı geçersiz.");
  const norm=value=>String(value||"").toLowerCase().replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
  const minute=value=>{const m=String(value||"").match(/(?:^|\D)(\d{1,3})(?:\s*\+\s*(\d{1,2}))?\s*['′]?/);return m?Number(m[1]):null;};
  const number=value=>value===null||value===undefined||value===""?null:(Number.isFinite(Number(value))?Number(value):null);
@@ -4134,9 +4136,11 @@ async function mamSportScoreLiveFixtures(force=false){
   const competitionName=typeof competition==="string"?competition:String(competition.name||competition.title||competition.slug||"SportScore");
   const hs=number(item.home_score??item.homeScore??item.score?.home??item.goals?.home);
   const as=number(item.away_score??item.awayScore??item.score?.away??item.goals?.away);
-  const kickoff=item.time||item.date||item.utc_date||item.fixture?.date||new Date().toISOString();
+  const candidates=[mamExplicitUtc(item.utc_date),item.date,item.fixture?.date,item.time];
+  const kickoff=candidates.find(value=>Number.isFinite(mamFixtureInstant(value)));
+  const scheduledDay=candidates.find(value=>typeof value==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(value));
   const clock=item.status_text||item.statusText||item.elapsed||item.minute||"";
-  return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff,status:{short,elapsed:minute(clock),displayClock:String(clock)}},league:{id:String(item.competition_id||item.league_id||competition.id||"sportscore"),name:competitionName,country:String(item.country||competition.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug};
+  return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff||scheduledDay||null,timeUnknown:!kickoff,status:{short,elapsed:minute(clock),displayClock:String(clock)}},league:{id:String(item.competition_id||item.league_id||competition.id||"sportscore"),name:competitionName,country:String(item.country||competition.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug};
  }).filter(Boolean);
  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
  return matches;

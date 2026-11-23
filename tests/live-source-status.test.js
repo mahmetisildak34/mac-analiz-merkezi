@@ -55,7 +55,7 @@ test("ESPN archive write cannot block rendering of its live matches",()=>{
 });
 
 test("fallback providers normalize only active match states",()=>{
- assert.match(html,/footballDataLiveFixtures\(\)[\s\S]*?status:\{short:String\(m\.status\|\|"IN_PLAY"\)/);
+ assert.match(html,/footballDataLiveFixtures\(\)[\s\S]*?status:\{short:String\(m\.status\|\|""\)/);
  assert.match(html,/\["HT","ET","P","SUSP","LIVE"\]\.includes\(short\)/);
 });
 
@@ -270,4 +270,27 @@ test("duplicate source rows preserve fixture identity and protect a verified fin
  assert.equal(result[0].fixture.status.short,"FT");
  assert.equal(result[0].goals.home,2);
  assert.equal(result[0].goals.away,1);
+});
+
+test("fallback sources reject malformed live feeds and do not invent a kickoff or live status",async()=>{
+ const methods=["mamExplicitUtc","mamFixtureInstant","footballDataLiveFixtures","mamSportScoreLiveFixtures"];
+ const js=methods.map(name=>html.match(new RegExp("(?:async )?function "+name+"\\([\\s\\S]*?\\n\\}"))[0]).join("\n");
+ let footballData={},sportScore={};
+ const {footballDataLiveFixtures,sportScoreLiveFixtures}=require("node:vm").runInNewContext(js+";({footballDataLiveFixtures,sportScoreLiveFixtures:mamSportScoreLiveFixtures})",{
+  WORKER:"https://example.test",qs:x=>new URLSearchParams(x),api:async()=>footballData,
+  fetch:async()=>({ok:true,json:async()=>sportScore}),
+  localStorage:{getItem:()=>null,setItem:()=>{}}
+ });
+ await assert.rejects(footballDataLiveFixtures(),/geçersiz/);
+ await assert.rejects(sportScoreLiveFixtures(),/geçersiz/);
+ footballData={matches:[{id:1,utcDate:"2026-11-23T17:00:00",homeTeam:{name:"Ev"},awayTeam:{name:"Rakip"}}]};
+ const [footballMatch]=await footballDataLiveFixtures();
+ assert.equal(footballMatch.fixture.status.short,"");
+ assert.equal(footballMatch.fixture.date,"2026-11-23T17:00:00Z");
+ sportScore={matches:[{id:1,status:"live",time:"20:00",home:"Ev",away:"Rakip"},
+  {id:2,status:"live",utc_date:"2026-11-23 17:00:00",home:"Ev",away:"Rakip"}]};
+ const [unknown,confirmed]=await sportScoreLiveFixtures();
+ assert.equal(unknown.fixture.date,null);
+ assert.equal(unknown.fixture.timeUnknown,true);
+ assert.equal(confirmed.fixture.date,"2026-11-23T17:00:00Z");
 });

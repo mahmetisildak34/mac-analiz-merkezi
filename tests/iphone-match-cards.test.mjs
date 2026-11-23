@@ -120,6 +120,7 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
      if(url.origin===location.origin)return native(input,options);
      if(url.pathname==="/auth/check")return Promise.resolve(new Response('{"ok":true}'));
      if(window.testScoreboard.unavailable)return Promise.reject(new TypeError("Simulated provider failure"));
+     if(url.pathname.includes("football-data/matches"))return Promise.resolve(Response.json({matches:[]}));
      if(url.pathname.includes("/summary"))return Promise.resolve(Response.json({keyEvents:window.testScoreboard.events||[]}));
      if(url.pathname.includes("/scoreboard")){
       const {status,goals}=window.testScoreboard;
@@ -173,6 +174,13 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
    assert.match(await detail.locator(".match-time").innerText(),/29'/);
    await events.getByText("Tarayıcı Test Oyuncusu",{exact:true}).waitFor();
    await detail.locator(".match-detail-close").click();
+   await page.locator('[data-match-mode="live"]').click();
+   await card.locator(".match-clock").getByText("2 – 0",{exact:true}).waitFor();
+   await page.evaluate(()=>{window.testScoreboard.unavailable=true;});
+   await page.clock.fastForward(31_000);
+   await page.locator("#status").getByText(/Son alınan skorlar gösteriliyor/).waitFor();
+   await card.locator(".match-clock").getByText("2 – 0",{exact:true}).waitFor();
+   await page.evaluate(()=>{window.testScoreboard.unavailable=false;});
 
    await page.locator('[data-match-mode="finished"]').click();
    await page.clock.fastForward(31_000);
@@ -185,6 +193,10 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
    });
    await page.clock.fastForward(31_000);
    await card.locator(".match-clock").getByText("2 – 1",{exact:true}).waitFor({timeout:8000});
+   await page.locator('[data-match-mode="live"]').click();
+   await page.locator("#status").getByText(/doğrulanmış canlı maç bulunamadı/).waitFor();
+   await card.waitFor({state:"hidden"});
+   assert.equal(await page.evaluate(()=>localStorage.getItem("mam_live_matches_cache_v1")),null);
    await page.locator('[data-match-mode="today"]').click();
    await page.waitForFunction(()=>!window.mamLoadMatchesBusy);
    await page.clock.setSystemTime(new Date("2026-11-23T21:01:00Z"));
