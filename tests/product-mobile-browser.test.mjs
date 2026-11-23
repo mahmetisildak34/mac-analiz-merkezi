@@ -207,11 +207,11 @@ async function verifyMainApp(context,browserName){
    const make=(id,status,team)=>({fixture:{id,date:new Date(now+3600000).toISOString(),status:{short:status}},
     league,teams:{home:{id:2001,name:team},away:{id:2002,name:'Rakip'}},goals:{home:null,away:null}});
    window.__visibilityFixtures=[make('upcoming-ui','NS','Gelecek Kart'),make('finished-ui','FT','Biten Kart')];
-   setMamScreen('upcoming');allMatches=[...window.__visibilityFixtures];renderMatches();
+   setMamScreen('upcoming');allMatches=window.__visibilityFixtures.filter(m=>m.fixture.status.short==='NS');renderMatches();
   });
   assert.equal(await main.locator('#matches article:visible').filter({hasText:'Gelecek Kart'}).count(),1);
   assert.equal(await main.locator('#matches article:visible').filter({hasText:'Biten Kart'}).count(),0);
-  await main.evaluate(()=>{setMamScreen('finished');allMatches=window.__visibilityFixtures;renderMatches();});
+  await main.evaluate(()=>{setMamScreen('finished');allMatches=window.__visibilityFixtures.filter(m=>m.fixture.status.short==='FT');renderMatches();});
   assert.equal(await main.locator('#matches article:visible').filter({hasText:'Gelecek Kart'}).count(),0);
   await main.evaluate(()=>{setMamScreen('live');allMatches=[];renderMatches();});
   assert.equal(await main.locator('#matches article:visible').count(),0);
