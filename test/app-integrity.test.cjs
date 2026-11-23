@@ -136,7 +136,7 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
 // Today must include all provider-confirmed states for the selected Istanbul date.
 {
  const today=blockAfter(html,' if(mamScreenMode==="today"){','\n // Today\'s scoreboard order:');
- assert.match(today,/mamIstanbulDay\\(m\\.fixture\\?\\.date\\)===selectedDay/);
+ assert.ok(today.includes("mamIstanbulDay(m.fixture?.date)===selectedDay"),"Today must match Istanbul calendar day");
  assert.match(today,/mamTodayFilter==="live"/);
  assert.match(today,/mamTodayFilter==="finished"/);
  assert.match(today,/mamTodayFilter==="upcoming"/);
