@@ -75,6 +75,21 @@ async function audit([league,name]){
   }
  }
  const detail=sample?.id?await read(base+'/summary?event='+encodeURIComponent(sample.id)):null;
+ // A provider-published team ID is required; never match teams by names.
+ const competitors=list(sample?.competitions?.[0]?.competitors);
+ const team=competitors.find(row=>row?.homeAway==='home'&&row.team?.id)?.team;
+ const teamId=team?.id==null?null:String(team.id);
+ const teamSchedule=teamId?await read(base+'/teams/'+encodeURIComponent(teamId)+'/schedule'):null;
+ const scheduleEvents=list(teamSchedule?.value?.events);
+ const scheduleStates={scheduled:0,finished:0,live:0,other:0,unknown:0};
+ for(const event of scheduleEvents)scheduleStates[matchState(event)]++;
+ const teamHistory=teamId?{
+  teamId,teamName:team.displayName??team.name??null,
+  error:teamSchedule?.error??null,events:scheduleEvents.length,
+  states:scheduleStates,
+  distinctIds:new Set(scheduleEvents.map(event=>String(event.id??'')).filter(Boolean)).size,
+  matchedTeam:scheduleEvents.some(event=>list(event?.competitions?.[0]?.competitors).some(row=>String(row.team?.id??'')===teamId))
+ }:null;
  const standings=await read(standingsSite+league+'/standings');
  let standingsResult;
  try{
@@ -98,7 +113,7 @@ async function audit([league,name]){
  return {
   league,name,days:Object.fromEntries(days.map((day,index)=>[day,dayResult(boards[index])])),
   teams:withTeams.length,logos:withLogos.length,eventId:sample?.id??null,
-  detail:summarize(detail),archive,standings:standingsResult,
+  detail:summarize(detail),teamHistory,archive,standings:standingsResult,
   active:events.filter(event=>matchState(event)==='live').map(event=>({id:event.id,status:event.status?.type?.name,clock:event.status?.displayClock,scores:list(event.competitions?.[0]?.competitors).map(row=>[row.homeAway,row.score])}))
  };
 }
