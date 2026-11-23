@@ -110,3 +110,24 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
  assert.ok(!live.includes("mamSaveMatchesToD1(allMatches)"),"Live refresh must never write the entire fixture snapshot");
  assert.ok(live.includes("combinedLive.length+\" canlı maç"),"Live count must not include preserved non-live fixtures");
 }
+
+
+// Directory profile IDs must win over provider-specific fixture IDs for the same club.
+{
+ const start=html.indexOf(" function teams(){",html.indexOf('id="mamTeamSearchLogic"'));
+ const end=html.indexOf(" function draw(){",start);
+ assert.ok(start!==-1&&end>start,"Team-search data merger must exist");
+ const source=html.slice(start,end);
+ const ctx={
+  allMatches:[{league:{name:"Premier League",country:"England"},teams:{home:{id:42,name:"Arsenal"},away:{id:-1,name:"Test Club"}}}],
+  directory:new Map([["espn:eng.1:359",{id:"espn:eng.1:359",name:"Arsenal",league:"Premier League",country:"England"}]]),
+  FALLBACK_TEAMS:[],
+  read:()=>({}),
+  normalize:value=>String(value||"").toLocaleLowerCase("tr-TR"),
+ };
+ vm.runInNewContext(source+"\n globalThis.mergeTeams=teams;",ctx);
+ const merged=ctx.mergeTeams();
+ const arsenal=Array.from(merged).filter(team=>team.name==="Arsenal");
+ assert.equal(arsenal.length,1,"Search should not duplicate the same team");
+ assert.equal(arsenal[0].id,"espn:eng.1:359","ESPN profile identity must supersede fixture-only ID");
+}
