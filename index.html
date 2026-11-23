@@ -4217,7 +4217,8 @@ async function loadLiveMatchesNow(){
  let fallbackSchedule=[];
  const publishLiveSnapshot=liveRows=>{
   const byId=new Map();
-  for(const match of (fallbackSchedule.length?fallbackSchedule:allMatches)){
+  // Preserve already loaded past and future fixtures when today's ESPN snapshot arrives.
+  for(const match of [...allMatches,...fallbackSchedule]){
    if(isLive(match))continue;
    const id=String(match?.fixture?.id??match?.id??"");
    if(id)byId.set(id,match);
