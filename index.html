@@ -8988,7 +8988,10 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   const unique=new Map();
   for(const team of map.values()){
    const key=normalize(team.name)+'|'+normalize(team.league);
-   if(!unique.has(key))unique.set(key,team);
+   const current=unique.get(key);
+   // A verified ESPN directory identity must replace a fixture-only identity.
+   // Otherwise team profiles may open using an unrelated provider's numeric ID.
+   if(!current||(String(team.id).startsWith('espn:')&&!String(current.id).startsWith('espn:')))unique.set(key,team);
   }
   return [...unique.values()].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
  }
