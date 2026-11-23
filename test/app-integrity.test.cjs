@@ -140,5 +140,5 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
  assert.match(today,/mamTodayFilter==="live"/);
  assert.match(today,/mamTodayFilter==="finished"/);
  assert.match(today,/mamTodayFilter==="upcoming"/);
- assert.doesNotMatch(today,/list=list\\.filter\\(m=>mamIsFutureUnplayed\\(m,mamNow\\)&&/);
+ assert.ok(!today.includes("list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&"),"Today must not discard already started fixtures");
 }
