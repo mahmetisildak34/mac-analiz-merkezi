@@ -19,7 +19,7 @@ async function loadWorkerModels(checkout) {
   const { predictTrustedGoals } = await import(file("trusted-goal-poisson.js"));
   const { estimateRates, fitRho, scoreGrid, exactScoreProbability } = await import(file("research/poisson-v14.mjs"));
 
-  function createLeague(testStart) {
+  function createLeague(testStart, { detailed = false } = {}) {
     const history = [];
     const training = [];
     let rho;
@@ -29,7 +29,7 @@ async function loadWorkerModels(checkout) {
       const rates = estimateRates(history, target);
       if (target.kickoff < testStart) return { rates };
       if (rho === undefined) rho = fitRho(training, testStart);
-      if (!rates || rho === null) return { models: null };
+      if (!detailed && (!rates || rho === null)) return { models: null };
       const models = {};
       const args = {
         ...target, as_of: target.kickoff, max_goals: 20,
@@ -38,15 +38,22 @@ async function loadWorkerModels(checkout) {
       };
       for (const version of ["1.2", "1.3"]) {
         const model = predictTrustedGoals(history, { ...args, model_version: version });
-        if (!model.available) return { models: null };
+        if (!model.available) {
+          if (detailed) continue;
+          return { models: null };
+        }
         const p = model.probabilities;
         models[`Worker v${version}`] = {
           probabilities: [p.home_win, p.draw, p.away_win],
           over25: p.over_2_5, btts: p.btts_yes,
-          scores: model.most_likely_scores.map(({ home, away }) => [home, away])
+          scores: model.most_likely_scores.map(({ home, away, probability }) =>
+            detailed ? [home, away, probability] : [home, away]),
+          ...(detailed && { rates: [model.lambda_home, model.lambda_away],
+            venueMatches: [model.home_samples, model.away_samples] })
         };
       }
 
+      if (!rates || rho === null) return { models };
       const p = scoreGrid(rates.home, rates.away, rho);
       // The rate bounds keep the mode at or below 20. Add room for the other top scores.
       const scores = [];
@@ -58,7 +65,8 @@ async function loadWorkerModels(checkout) {
       scores.sort((a, b) => b.p - a.p || a.home - b.home || a.away - b.away);
       models["Worker v1.4"] = {
         probabilities: [p.home, p.draw, p.away], over25: p.over25, btts: p.btts,
-        scores: scores.slice(0, 5).map(({ home, away }) => [home, away])
+        scores: scores.slice(0, 5).map(({ home, away, p }) => detailed ? [home, away, p] : [home, away]),
+        ...(detailed && { rates: [rates.home, rates.away], venueMatches: [rates.homeSample, rates.awaySample], rho })
       };
       return { models };
     }

@@ -25,7 +25,7 @@ function frontendRates(home, away) {
   return [rate(h.gf, a.ga), rate(a.gf, h.ga)];
 }
 
-function legacyMarkets(home, away) {
+function legacyMarkets(home, away, detailed = false) {
   // Mirrors the pre-match calculation in index.html, including the 0–10/0–7 limits.
   const probabilities = [0, 0, 0];
   const scores = [];
@@ -40,15 +40,16 @@ function legacyMarkets(home, away) {
   const over25 = Math.max(0, Math.min(1, 1 - [0, 1, 2].reduce((sum, goals) => sum + poisson(total, goals), 0)));
   const btts = (1 - Math.exp(-home)) * (1 - Math.exp(-away));
   scores.sort((a, b) => b.p - a.p);
-  return { probabilities, over25, btts, scores: scores.slice(0, 5).map(({ h, a }) => [h, a]) };
+  return { probabilities, over25, btts,
+    scores: scores.slice(0, 5).map(({ h, a, p }) => detailed ? [h, a, p] : [h, a]) };
 }
 
-function normalizedMarkets(home, away) {
+function normalizedMarkets(home, away, detailed = false) {
   const m = markets(home, away);
   return {
     probabilities: [m.homeWin, m.draw, m.awayWin],
     over25: m.over25, btts: m.btts,
-    scores: m.topScores.map(score => [score.home, score.away])
+    scores: m.topScores.map(score => detailed ? [score.home, score.away, score.probability] : [score.home, score.away])
   };
 }
 

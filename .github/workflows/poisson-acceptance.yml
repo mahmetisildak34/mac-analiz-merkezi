@@ -20,7 +20,7 @@ jobs:
       - name: Test Poisson, chronological backtest and application regressions
         run: >-
           node --test test/app-integrity.test.cjs tests/*.test.js
-          tests/{poisson-probabilities,backtest-poisson,poisson-evaluation,poisson-prospective,premium-dark-mobile}.test.cjs
+          tests/{poisson-probabilities,backtest-poisson,poisson-evaluation,poisson-prospective,poisson-shadow,premium-dark-mobile}.test.cjs
           tests/{favorites-bottom-nav-regression,main-favorites-integration,product-features,product-hub-integration}.test.mjs
 
   iphone-acceptance:

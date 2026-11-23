@@ -1,0 +1,286 @@
+// Isolated five-model capture and settlement. All provider traffic goes to public read endpoints.
+const { execFileSync } = require("node:child_process");
+const { readFile } = require("node:fs/promises");
+const { resolve } = require("node:path");
+const { parseArgs } = require("node:util");
+const { cleanArchive } = require("./poisson-football-data.cjs");
+const { loadWorkerModels } = require("./poisson-worker-models.cjs");
+const { summarize } = require("./backtest-poisson.cjs");
+const { pairedComparison } = require("./poisson-evaluation.cjs");
+const { evaluateProspective } = require("./poisson-prospective.cjs");
+const { normalizeName, predictGroup, preparePeriod } = require("./poisson-shadow-models.cjs");
+const { digest, models, openLedger, timestamp } = require("./poisson-shadow-ledger.cjs");
+const {
+  boardEvents, boardUrl, finishStatus, fixture, istanbulDay, readSource, scheduled, summaryUrl, verifiedHalf
+} = require("./poisson-shadow-espn.cjs");
+
+const leagues = { "tur.1": "T1", "eng.1": "E0", "ger.1": "D1", "esp.1": "SP1", "ita.1": "I1", "fra.1": "F1" };
+const now = () => new Date().toISOString();
+const sourceProof = ({ url, sha256, capturedAt }) => ({ url, sha256, capturedAt });
+const daysBetween = (ms, days) => Array.from({ length: days }, (_, i) => istanbulDay(ms + i * 86400000));
+const seasonOf = date => Number(date.slice(0, 4)) - Number(date.slice(5, 7) < "07");
+
+async function runBatched(items, work) {
+  const completed = [];
+  for (let start = 0; start < items.length; start += 8) {
+    completed.push(...await Promise.all(items.slice(start, start + 8).map(work)));
+  }
+  return completed;
+}
+
+function providers() {
+  const requests = new Map();
+  const failures = [];
+  async function get(url) {
+    if (!requests.has(url)) requests.set(url, readSource(url).catch(error => {
+      failures.push({ url, error: error.message });
+      return null;
+    }));
+    return requests.get(url);
+  }
+  async function board(league, day) {
+    const url = boardUrl(league, day);
+    const source = await get(url);
+    if (!source) return null;
+    try { return { source, events: boardEvents(source, league) }; }
+    catch (error) { failures.push({ url, error: error.message }); return null; }
+  }
+  return { get, board, failures };
+}
+
+async function leagueInputs(league, day, worker, provider) {
+  const season = seasonOf(day);
+  const start = `${season}-07-01`;
+  const code = leagues[league];
+  const sources = await Promise.all([season - 1, season].map(async year => {
+    const label = `${String(year).slice(-2)}${String(year + 1).slice(-2)}`;
+    const url = `https://www.football-data.co.uk/mmz4281/${label}/${code}.csv`;
+    const source = await provider.get(url);
+    return source && { ...source, name: `${label}-${code}.csv`, league: code, season: year };
+  }));
+  if (sources.some(source => !source)) return null;
+  const { fixtures } = cleanArchive(sources);
+  const rows = fixtures.filter(row => row.day < day);
+  const periods = Object.fromEntries(["full", "half"].map(period => [period, preparePeriod(rows, worker, start, period)]));
+  return { sources, rows, periods, trainingCutoff: start };
+}
+
+async function capture(ledger, worker, revisions, provider, days) {
+  const beganAt = now();
+  const day = istanbulDay(timestamp(beganAt));
+  const dates = daysBetween(timestamp(beganAt), days);
+  const booked = new Set((await ledger.list()).map(r => r.fixture.key));
+  const decisions = [];
+  const inputs = new Map();
+  const boardRequests = Object.keys(leagues).flatMap(league => dates.map(date => [league, date]));
+  const boards = await runBatched(boardRequests, async ([league, date]) =>
+    ({ league, date, board: await provider.board(league, date) }));
+  for (const { league, date, board } of boards) {
+    if (!board) continue;
+    for (const event of board.events) {
+      const game = fixture(event, league);
+      if (!game || game.istanbulDay !== date || !scheduled(event, board.source.capturedAt)) continue;
+      if (board.events.filter(item => item?.id === game.id).length !== 1) {
+        decisions.push({ fixtureKey: game.key, status: "duplicate_provider_identity" });
+        continue;
+      }
+      if (booked.has(game.key)) {
+        decisions.push({ fixtureKey: game.key, status: "already_recorded" });
+        continue;
+      }
+      if (!inputs.has(league)) {
+        try { inputs.set(league, await leagueInputs(league, day, worker, provider)); }
+        catch (error) { inputs.set(league, null); provider.failures.push({ league, error: error.message }); }
+      }
+      const history = inputs.get(league);
+      if (!history) {
+        decisions.push({ fixtureKey: game.key, status: "missing_history_source" });
+        continue;
+      }
+      const sourceAt = [board.source, ...history.sources].map(s => s.capturedAt).sort().at(-1);
+      if (timestamp(now()) >= timestamp(game.kickoff)) {
+        decisions.push({ fixtureKey: game.key, status: "late_capture" });
+        continue;
+      }
+      const p = predictGroup(game, sourceAt, history.periods, revisions);
+      if (!p.models) {
+        decisions.push({ fixtureKey: game.key, status: p.reason, available: p.available ?? [] });
+        continue;
+      }
+      const snapshot = await ledger.snapshot({
+        fixtureKey: game.key, eventSha256: game.eventSha256, sourceAt, originalEvent: event,
+        sources: [board.source, ...history.sources].map(sourceProof), historyBeforeIstanbulDay: day,
+        trainingCutoff: history.trainingCutoff, archiveTeams: [p.home, p.away],
+        inputs: history.rows.map(({ id, league, season, day, home, away, hg, ag, half }) =>
+          ({ id, league, season, day, home, away, hg, ag, half }))
+      });
+      let saved;
+      try { saved = await ledger.append({ fixture: game, sourceAt, snapshotSha256: snapshot.sha256, models: p.models }); }
+      catch (error) {
+        if (timestamp(now()) >= timestamp(game.kickoff)) {
+          decisions.push({ fixtureKey: game.key, status: "late_capture" });
+          continue;
+        }
+        throw error;
+      }
+      booked.add(game.key);
+      decisions.push({ fixtureKey: game.key, status: saved.created ? "recorded" : "already_recorded" });
+    }
+  }
+  return decisions;
+}
+
+async function findResult(original, provider) {
+  const board = await provider.board(original.league, original.istanbulDay);
+  if (!board) return { status: "source_unavailable" };
+  const events = board.events.filter(event => event?.id === original.id);
+  if (events.length !== 1) {
+    const summary = await provider.get(summaryUrl(original.league, original.id));
+    if (summary && events.length === 0) {
+      let header;
+      try { header = JSON.parse(summary.bytes).header; }
+      catch (error) { provider.failures.push({ url: summary.url, error: error.message }); }
+      const c = header?.competitions?.length === 1 ? header.competitions[0] : null;
+      if (c && header.league?.slug === original.league) {
+        const result = finishStatus(original, { id: header.id, date: c.date, status: c.status, competitions: [c] },
+          original.league, summary.capturedAt);
+        if (["cancelled", "postponed", "awarded", "rescheduled", "pending"].includes(result.status)) {
+          return { status: result.status, summary: sourceProof(summary) };
+        }
+      }
+    }
+    return { status: "event_not_verified" };
+  }
+  const event = events[0];
+  const checked = finishStatus(original, event, original.league, board.source.capturedAt);
+  const evidence = { ...checked, fixtureKey: original.key, observedAt: board.source.capturedAt,
+    boardSha256: board.source.sha256, scoreboard: sourceProof(board.source), resultEventSha256: digest(event) };
+  if (checked.status !== "completed") return evidence;
+  const summary = await provider.get(summaryUrl(original.league, original.id));
+  if (!summary) return { ...evidence, half: null };
+  try {
+    const payload = JSON.parse(summary.bytes);
+    const c = payload.header?.competitions?.[0];
+    const summaryEvidence = c && payload.header?.league?.slug === original.league && finishStatus(original, {
+      id: payload.header.id, date: c.date, status: c.status, competitions: payload.header.competitions
+    }, original.league, summary.capturedAt);
+    const proof = { ...evidence, summarySha256: summary.sha256, summary: sourceProof(summary) };
+    if (summaryEvidence && (summaryEvidence.status === "awarded" || (summaryEvidence.status === "completed" &&
+        summaryEvidence.full.some((score, i) => score !== checked.full[i])))) {
+      return { ...proof, status: "result_conflict", full: null, half: null };
+    }
+    return { ...proof, half: verifiedHalf(original, checked.full, payload) };
+  } catch (error) {
+    provider.failures.push({ url: summary.url, error: error.message });
+    return { ...evidence, half: null };
+  }
+}
+
+async function settle(records, provider, ledger) {
+  return runBatched(records, async record => {
+    const evidence = await findResult(record.fixture, provider);
+    if (evidence.status === "completed") {
+      try { await ledger.outcome(record, evidence); }
+      catch (error) {
+        if (error.message === "Conflicting immutable result") return { fixtureKey: record.fixture.key, status: "result_conflict" };
+        throw error;
+      }
+    }
+    return { fixtureKey: record.fixture.key, ...evidence };
+  });
+}
+
+function compare(records, outcomes, period) {
+  const verified = new Map(outcomes.filter(o => o.status === "completed" && o[period]).map(o => [o.fixtureKey, o]));
+  const rows = records.flatMap(record => {
+    const f = record.fixture;
+    const score = verified.get(f.key)?.[period];
+    if (!score || !models.every(model => record.models[model][period])) return [];
+    return [{ league: f.league, season: seasonOf(f.istanbulDay), day: f.istanbulDay,
+      match: { hg: score[0], ag: score[1] },
+      models: Object.fromEntries(models.map(name => [name, record.models[name][period]])) }];
+  });
+  function summary(group) {
+    const blocks = new Set(group.map(row => `${row.season}:${Math.floor(Date.parse(row.day) / (28 * 86400000))}`)).size;
+    // Pilot reporting is descriptive until the archive has several independent periods.
+    const inferenceReady = group.length >= 100 && blocks >= 8;
+    return { matches: group.length, blocks, inferenceReady,
+      models: Object.fromEntries(models.map(name => [name, summarize(group, name)])),
+      pairs: inferenceReady ? models.flatMap((name, i) =>
+        models.slice(0, i).map(baseline => pairedComparison(group, name, baseline))) : [] };
+  }
+  return { overall: summary(rows), leagues: Object.fromEntries(Object.keys(leagues).map(league =>
+    [league, summary(rows.filter(row => row.league === league))])) };
+}
+
+async function legacyAudit(path, provider) {
+  const archive = JSON.parse(await readFile(path));
+  const forecasts = archive.predictions;
+  const pairs = await runBatched(forecasts, async row => {
+    const [id, , kickoff, home, away, providerId] = row;
+    const league = providerId.split(":")[1];
+    const day = istanbulDay(timestamp(kickoff));
+    const board = await provider.board(league, day);
+    const events = board?.events.filter(e => e?.id === id) ?? [];
+    const real = events.length === 1 ? fixture(events[0], league) : null;
+    const namesMatch = real && normalizeName(real.home.name) === normalizeName(home) &&
+      normalizeName(real.away.name) === normalizeName(away) && timestamp(real.kickoff) === timestamp(kickoff);
+    return { league, id, board, event: namesMatch ? events[0] : null,
+      evidence: namesMatch ? await findResult(real, provider) : { status: "event_not_verified" } };
+  });
+  const boards = new Map();
+  for (const { league, event, evidence } of pairs) {
+    if (evidence.status !== "completed") continue;
+    if (!boards.has(league)) boards.set(league, { leagues: [{ slug: league }], events: [] });
+    boards.get(league).events.push(event);
+  }
+  const report = evaluateProspective(archive, boards, now());
+  return { ...report, results: pairs.map(({ league, id, evidence }) => ({ league, id, ...evidence })) };
+}
+
+async function main() {
+  const { values } = parseArgs({ options: {
+    mode: { type: "string", default: "disabled" }, archive: { type: "string" },
+    "worker-checkout": { type: "string" }, days: { type: "string", default: "7" },
+    restore: { type: "string" }, bundle: { type: "boolean", default: false }
+  } });
+  const { mode } = values;
+  if (mode === "disabled") {
+    console.log(JSON.stringify({ mode, liveDefault: "Worker v1.2" }));
+    return;
+  }
+  if (!["capture", "settle", "cycle"].includes(mode) || !values.archive || !values["worker-checkout"]) {
+    throw new Error("Use --mode capture|settle|cycle --archive ISOLATED_DIR --worker-checkout CLEAN_WORKER_DIR [--days 7]");
+  }
+  const days = Number(values.days);
+  if (!Number.isSafeInteger(days) || days < 1 || days > 14) throw new Error("Days must be between 1 and 14");
+  const front = execFileSync("git", ["-C", __dirname, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  if (execFileSync("git", ["-C", __dirname, "status", "--porcelain", "--untracked-files=no"], { encoding: "utf8" }).trim()) {
+    throw new Error("Use a clean frontend checkout so forecast revisions are auditable");
+  }
+  const worker = await loadWorkerModels(values["worker-checkout"]);
+  const ledger = openLedger(resolve(values.archive));
+  if (values.restore) {
+    const previous = JSON.parse(await readFile(resolve(values.restore)));
+    await ledger.restore(previous.archive);
+  }
+  const provider = providers();
+  const decisions = mode === "settle" ? [] : await capture(ledger, worker, { front, worker: worker.revision }, provider, days);
+  const records = await ledger.list();
+  const outcomes = mode === "capture" ? [] : await settle(records, provider, ledger);
+  const legacy = mode === "capture" ? null : await legacyAudit(resolve(values["worker-checkout"],
+    "research/real-pre-match-forecast-evidence-2026-11-22.json"), provider);
+  console.log(JSON.stringify({
+    schemaVersion: 1, mode, reportedAt: now(), liveDefault: "Worker v1.2",
+    revisions: { front, worker: worker.revision }, captureDecisions: decisions, sourceFailures: provider.failures,
+    records: records.map(({ fixture, recordedAt, sourceAt, sha256, snapshotSha256, models: p }) => ({
+      fixture, recordedAt, sourceAt, sha256, snapshotSha256, firstHalfModels: models.filter(name => p[name].half)
+    })),
+    outcomes, storedOutcomes: (await ledger.results()).length, legacyV12: legacy,
+    prospective: { full: compare(records, outcomes, "full"), half: compare(records, outcomes, "half") },
+    ...(values.bundle && { archive: await ledger.bundle() })
+  }, null, 2));
+}
+
+if (require.main === module) main().catch(error => { console.error(error.message); process.exitCode = 1; });
+module.exports = { compare, findResult, leagueInputs };
