@@ -204,7 +204,7 @@ async function verifyMainApp(context,browserName){
   await main.evaluate(()=>{
    const now=Date.now();
    const league={id:'39',name:'Premier League',country:'England'};
-   const make=(id,status,team)=>({fixture:{id,date:new Date(now+3600000).toISOString(),status:{short:status}},
+   const make=(id,status,team)=>({fixture:{id,date:new Date(now+2*86400000).toISOString(),status:{short:status}},
     league,teams:{home:{id:2001,name:team},away:{id:2002,name:'Rakip'}},goals:{home:null,away:null}});
    window.__visibilityFixtures=[make('upcoming-ui','NS','Gelecek Kart'),make('finished-ui','FT','Biten Kart')];
    setMamScreen('upcoming');allMatches=window.__visibilityFixtures.filter(m=>m.fixture.status.short==='NS');renderMatches();
