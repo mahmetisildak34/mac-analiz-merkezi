@@ -23,7 +23,7 @@ async function getSource(sample){
    sides.length===2&&sides.every(c=>/^\\d+$/.test(String(c.team?.id||''))&&c.team?.displayName)&&
    sides.some(c=>c.homeAway==='home')&&sides.some(c=>c.homeAway==='away');
  });
- assert.ok(event,'No public ESPN upcoming event found for '+sample.slug+' on '+sample.day);
+ assert.ok(event,'No public ESPN upcoming event found for '+sample.slug+' on '+sample.day+'; records='+JSON.stringify((board.events||[]).slice(0,4).map(e=>({id:e.id,date:e.date,state:e.status?.type?.state,competitors:e.competitions?.[0]?.competitors?.map(c=>({homeAway:c.homeAway,id:c.team?.id,name:c.team?.displayName||c.team?.name}))}))));
  const home=event.competitions[0].competitors.find(x=>x.homeAway==='home');
  const away=event.competitions[0].competitors.find(x=>x.homeAway==='away');
  return {...sample,event,board,home,away,url};
