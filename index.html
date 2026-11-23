@@ -3683,7 +3683,15 @@ async function espnFixtures(date,includeAllLeagues=false,endDate=date,istanbulWi
  return sorted;
 }
 
-const mamFixtureTeamKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
+const mamFixtureTeamKey=value=>{
+ const key=String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
+ // Explicit provider aliases only; never use broad fuzzy matching between unrelated clubs.
+ const aliases={
+  istanbulbasaksehir:"basaksehir",istanbulbasaksehirspor:"basaksehir",
+  stanbulbaakehr:"basaksehir",istanbulbaakehr:"basaksehir",basakehr:"basaksehir",\n  arcaorum:"corum",arcaorumspor:"corum",orum:"corum",\n  caykurrizespor:"rizespor",caykurrzespor:"rizespor",\n  kasimpasa:"kasimpasa",kasmpasa:"kasimpasa"
+ };
+ return aliases[key]||key;
+};
 function mamFixturePair(match){
  const league=String(match.league?.id??"");
  const home=mamFixtureTeamKey(match.teams?.home?.name),away=mamFixtureTeamKey(match.teams?.away?.name);
