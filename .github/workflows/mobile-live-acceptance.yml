@@ -19,6 +19,32 @@ jobs:
           node --test test/app-integrity.test.cjs tests/*.test.js
           tests/{favorites-bottom-nav-regression,main-favorites-integration,product-features,product-hub-integration}.test.mjs
           tests/premium-dark-mobile.test.cjs
+  espn-extended-coverage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check public ESPN archive and team fixture coverage
+        run: |
+          set -o pipefail
+          node --check tests/espn-public-coverage-audit.mjs
+          node tests/espn-public-coverage-audit.mjs --archive | tee espn-extended-coverage.jsonl
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const rows=fs.readFileSync('espn-extended-coverage.jsonl','utf8').trim().split('\\n').map(JSON.parse);
+            if(rows.length!==49||new Set(rows.map(r=>r.league)).size!==49)process.exit(1);
+            console.log('49 unique ESPN competitions audited; availability is reported per feature.');
+          "
+      - name: Retain per-league source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: espn-49-league-extended-coverage
+          path: espn-extended-coverage.jsonl
+          if-no-files-found: warn
   iphone-acceptance:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
