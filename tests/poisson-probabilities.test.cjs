@@ -26,3 +26,24 @@ test("over 2.5 and BTTS match analytical formulas",()=>{
   near(m.over25,1-Math.exp(-total)*(1+total+total*total/2));
   near(m.btts,(1-Math.exp(-h))*(1-Math.exp(-a)));
 });
+
+test("tiny rates preserve the upper-tail and both-teams-to-score probabilities", () => {
+  const m = markets(1e-12, 2e-12);
+  assert.ok(Math.abs(m.over25 / (4.5e-36) - 1) < 1e-10);
+  assert.ok(Math.abs(m.btts / (2e-24) - 1) < 1e-10);
+  assert.ok(m.over15 > m.over25 && m.over25 > m.over35 && m.over35 > 0);
+});
+
+test("goal thresholds match the frontend and high-rate score modes are retained", () => {
+  const realistic = markets(2, 1.5);
+  near(realistic.over15, 1 - poisson(3.5, 0) - poisson(3.5, 1));
+  near(realistic.over35, 1 - [0, 1, 2, 3].reduce((sum, goal) => sum + poisson(3.5, goal), 0));
+  const high = markets(100, 80);
+  near(high.homeWin + high.draw + high.awayWin, 1);
+  assert.ok([99, 100].includes(high.topScores[0].home));
+  assert.ok([79, 80].includes(high.topScores[0].away));
+  near(high.topScores[0].probability, poisson(100, 100) * poisson(80, 80));
+  assert.equal(poisson(100, Number.MAX_SAFE_INTEGER), 0);
+  assert.throws(() => distribution(1, "0.1"), RangeError);
+  assert.throws(() => poisson(1, Number.MAX_SAFE_INTEGER + 1), RangeError);
+});

@@ -1,0 +1,39 @@
+name: Pre-match Poisson acceptance
+
+on:
+  push:
+    branches:
+      - feature/poisson-probability-hardening-20261123
+
+permissions:
+  contents: read
+
+jobs:
+  poisson-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test Poisson, chronological backtest and application regressions
+        run: >-
+          node --test test/app-integrity.test.cjs tests/*.test.js
+          tests/{poisson-probabilities,backtest-poisson,premium-dark-mobile}.test.cjs
+          tests/{favorites-bottom-nav-regression,main-favorites-integration,product-features,product-hub-integration}.test.mjs
+
+  iphone-acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium and WebKit
+        run: |
+          npm install --no-save --no-package-lock playwright@1.58.2
+          npx playwright install --with-deps chromium webkit
+      - name: Verify the premium theme and mobile app
+        run: node --test tests/premium-dark-browser.test.cjs tests/product-mobile-browser.test.mjs
