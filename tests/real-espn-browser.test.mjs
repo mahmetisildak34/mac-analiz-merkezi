@@ -27,7 +27,7 @@ function fixture(event,league){
  const code=state==="post"||status.completed===true?"FT":state==="in"?"LIVE":"NS";
  const score=team=>{
   const raw=team?.score&&typeof team.score==="object"?team.score.value??team.score.displayValue:team?.score;
-  return code==="NS"||raw==null||raw===""||!/^\\d+$/.test(String(raw))?null:Number(raw);
+  return code==="NS"||raw==null||raw===""||!Number.isSafeInteger(Number(raw))||Number(raw)<0?null:Number(raw);
  };
  return {fixture:{id:"espn-"+slug+"-"+event.id,date:event.date,status:{short:code}},
   league:{id,name,country},teams:{home:{id:Number(home.team.id)||-1,name:home.team.displayName,logo:home.team.logo||""},away:{id:Number(away.team.id)||-1,name:away.team.displayName,logo:away.team.logo||""}},
