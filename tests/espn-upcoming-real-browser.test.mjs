@@ -19,8 +19,9 @@ async function getSource(sample){
  const board=await result.json();
  const event=(board.events||[]).find(e=>{
   const sides=e.competitions?.[0]?.competitors||[];
-  return e.status?.type?.state==='pre'&&Date.parse(e.date)>now&&
-   sides.length===2&&sides.every(c=>/^\\d+$/.test(String(c.team?.id||''))&&c.team?.displayName)&&
+  const state=e.status?.type?.state??e.competitions?.[0]?.status?.type?.state;
+  return state==='pre'&&Date.parse(e.date)>now&&
+   sides.length===2&&sides.every(c=>/^[0-9]+$/.test(String(c.team?.id||''))&&(c.team?.displayName||c.team?.name))&&
    sides.some(c=>c.homeAway==='home')&&sides.some(c=>c.homeAway==='away');
  });
  assert.ok(event,'No public ESPN upcoming event found for '+sample.slug+' on '+sample.day+'; records='+JSON.stringify((board.events||[]).slice(0,4).map(e=>({id:e.id,date:e.date,state:e.status?.type?.state,competitors:e.competitions?.[0]?.competitors?.map(c=>({homeAway:c.homeAway,id:c.team?.id,name:c.team?.displayName||c.team?.name}))}))));
