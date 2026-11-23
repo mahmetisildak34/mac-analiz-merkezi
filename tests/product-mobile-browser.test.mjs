@@ -383,8 +383,13 @@ async function verifyMainApp(context,browserName){
       if(!before){
        await visual.locator('#mamMenuToggle').click();
        await visual.getByRole('button',{name:'Özel analizler'}).waitFor();
-       await visual.getByRole('link',{name:'Takım ara'}).waitFor();
+       await visual.getByRole('button',{name:'Maç listesi',exact:true}).waitFor();
        await visual.locator('#mamMenuClose').click();
+       await visual.getByRole('button',{name:'Takım ara',exact:true}).click();
+       const search=visual.getByRole('dialog',{name:'Takım ve lig arama'});
+       await search.locator('#mamTeamSearchInput').waitFor();
+       await search.getByRole('button',{name:'Aramayı kapat'}).click();
+       await search.waitFor({state:'hidden'});
       }
      }
     }

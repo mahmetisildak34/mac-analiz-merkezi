@@ -55,6 +55,11 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
      const card=page.locator("#matches article.match").filter({hasText:expected}).first();
      await card.waitFor({state:"visible",timeout:7000});
      assert.equal(await card.locator("[data-mam-star]:visible").count(),1);
+     assert.equal(await card.evaluate(el=>{
+      const cardBounds=el.getBoundingClientRect();
+      const button=el.querySelector(".mam-match-open").getBoundingClientRect();
+      return button.width>=44&&button.height>=44&&button.top>=cardBounds.top&&button.right<=cardBounds.right;
+     }),true,"The full detail button must be inside the card");
      if(mode==="upcoming"){
       const kickoff=new Intl.DateTimeFormat("tr-TR",{timeZone:"Europe/Istanbul",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(rows.future.fixture.date));
       assert.equal((await card.innerText()).split(kickoff).length,2);

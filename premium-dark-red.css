@@ -135,6 +135,7 @@ body .team-crest:has(.team-logo) .team-placeholder{visibility:hidden}
  body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-type="team"]{display:none!important}
  body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-type="match"]{align-items:center!important;padding:0!important}
  body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-match-open{
-  position:static!important;grid-column:3;grid-row:1;min-width:44px!important;min-height:44px!important;align-self:center;
+  position:static!important;transform:none!important;grid-column:3;grid-row:1;
+  width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;align-self:center;
  }
 }
