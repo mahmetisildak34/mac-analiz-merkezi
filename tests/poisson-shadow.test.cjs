@@ -327,3 +327,33 @@ test("concurrent duplicate outcomes seal one result per period and half conflict
   assert.equal(compare([value], [result], "half").totalMatched, 0);
   assert.equal((await ledger.results()).length, 2);
 });
+
+test("a contradictory ESPN summary league is reported as a conflict, not scored", async () => {
+  const f = fixture(event(), "tur.1");
+  const e = event(full);
+  const result = await findResult(f, {
+    failures: [],
+    board: async () => ({ events: [e], source: { capturedAt: observedAt, sha256: hash } }),
+    get: async () => ({ capturedAt: observedAt, sha256: hash, bytes: JSON.stringify({
+      header: { id: f.id, league: { slug: "eng.1" }, competitions: e.competitions }
+    }) })
+  });
+  assert.equal(result.status, "result_conflict");
+  assert.equal(result.conflictReason, "summary_league_mismatch");
+  assert.equal(result.full, null);
+});
+
+test("paired admission excludes conflicting duplicate and invalid scores in either order", async () => {
+  const { ledger, input } = await setup();
+  const { value } = await ledger.append(input);
+  const score = { fixtureKey: input.fixture.key, status: "completed", full: [2, 1], half: [1, 0] };
+  assert.equal(compare([value], [score, score], "full").totalMatched, 1);
+  for (const other of [{ ...score, full: [1, 2] }, { ...score, full: ["2", 1] },
+    { ...score, full: [-1, 0] }, { ...score, status: "postponed" }, { ...score, status: "cancelled" }]) {
+    assert.equal(compare([value], [score, other], "full").totalMatched, 0);
+    assert.equal(compare([value], [other, score], "full").totalMatched, 0);
+  }
+  const firstHalfConflict = { ...score, half: [0, 0] };
+  assert.equal(compare([value], [score, firstHalfConflict], "full").totalMatched, 1);
+  assert.equal(compare([value], [score, firstHalfConflict], "half").totalMatched, 0);
+});

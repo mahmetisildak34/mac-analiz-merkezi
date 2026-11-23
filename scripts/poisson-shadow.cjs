@@ -9,7 +9,7 @@ const { summarize } = require("./backtest-poisson.cjs");
 const { pairedComparison } = require("./poisson-evaluation.cjs");
 const { evaluateProspective } = require("./poisson-prospective.cjs");
 const { normalizeName, predictGroup, preparePeriod } = require("./poisson-shadow-models.cjs");
-const { digest, models, openLedger, sha, timestamp } = require("./poisson-shadow-ledger.cjs");
+const { digest, models, openLedger, sha, timestamp, validScore } = require("./poisson-shadow-ledger.cjs");
 const {
   boardEvents, boardUrl, finishStatus, fixture, istanbulDay, readSource, scheduled, summaryUrl, verifiedHalf
 } = require("./poisson-shadow-espn.cjs");
@@ -194,6 +194,11 @@ async function findResult(original, provider) {
       id: payload.header.id, date: c.date, status: c.status, competitions: payload.header.competitions
     }, original.league, summary.capturedAt);
     const proof = { ...evidence, summarySha256: summary.sha256, summary: sourceProof(summary) };
+    const summaryLeague = payload.header?.league?.slug;
+    if (typeof summaryLeague === "string" && summaryLeague !== original.league) {
+      return { ...proof, status: "result_conflict", full: null, half: null,
+        conflictReason: "summary_league_mismatch" };
+    }
     if (summaryEvidence) {
       const summaryStatus = summaryEvidence.status;
       const disputedStatus = ["awarded", "cancelled", "postponed", "rescheduled", "identity_mismatch"].includes(summaryStatus);
@@ -252,11 +257,22 @@ async function settle(records, provider, ledger) {
 }
 
 function compare(records, outcomes, period) {
-  const verified = new Map(outcomes.filter(o => o.status === "completed" && o[period]).map(o => [o.fixtureKey, o]));
+  const verified = new Map();
+  const excluded = new Set();
+  for (const outcome of outcomes) {
+    const { fixtureKey } = outcome;
+    const score = outcome[period];
+    if (outcome.status !== "completed" || !Array.isArray(score) || score.length !== 2 || !score.every(validScore) ||
+        (verified.has(fixtureKey) && digest(verified.get(fixtureKey)[period]) !== digest(score))) {
+      excluded.add(fixtureKey);
+      continue;
+    }
+    verified.set(fixtureKey, outcome);
+  }
   const rows = records.flatMap(record => {
     const f = record.fixture;
     const score = verified.get(f.key)?.[period];
-    if (!score || !models.every(model => record.models[model][period])) return [];
+    if (excluded.has(f.key) || !score || !models.every(model => record.models[model][period])) return [];
     return [{ league: f.league, season: seasonOf(f.istanbulDay), day: f.istanbulDay,
       match: { hg: score[0], ag: score[1] },
       revisions: models.map(model => [record.models[model].version, record.models[model].revision]),
