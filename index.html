@@ -5343,7 +5343,7 @@ function mamRestorePendingDetail(){
  let saved=null;
  try{saved=JSON.parse(localStorage.getItem("mam_open_live_detail")||"null");}catch(_){}
  if(!saved||mamActiveMatch||mamScreenMode!=="live")return;
- const button=[...document.querySelectorAll("#matches .liveStatsBtn")].find(b=>
+ let button=[...document.querySelectorAll("#matches .liveStatsBtn")].find(b=>
   String(b.dataset.liveId||"")===String(saved.id||"")&&
   String(b.dataset.liveSource||"")===String(saved.source||"")&&
   String(b.dataset.liveLeagueId||"")===String(saved.league||""));
@@ -5556,6 +5556,18 @@ function makeMamDetailTab(article){
  const live=["1H","HT","2H","ET","P","LIVE","INPLAY"].includes(status);
  open.textContent=live?"Canlı maç detayını aç →":Number.isFinite(kickoff)&&kickoff>Date.now()&&["NS","TBD"].includes(status)?"Maç önü analizini aç →":"Maç detayını aç →";
  open.addEventListener("click",()=>activateMamFixture(article));
+ // Entire compact card is accessible; nested controls keep their own behavior.
+ article.tabIndex=0;
+ article.setAttribute("role","button");
+ article.setAttribute("aria-label","Maç detaylarını aç");
+ article.addEventListener("click",event=>{
+  if(event.target.closest("button,a,input,select,textarea,[role=button]"))return;
+  activateMamFixture(article);
+ });
+ article.addEventListener("keydown",event=>{
+  if(event.target!==article||!["Enter"," "].includes(event.key))return;
+  event.preventDefault();activateMamFixture(article);
+ });
  article.appendChild(open);
  formButton.addEventListener("click",()=>loadMamMatchForm(formButton,formButton.dataset.loaded==="1"));
 }
