@@ -131,3 +131,14 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
  assert.equal(arsenal.length,1,"Search should not duplicate the same team");
  assert.equal(arsenal[0].id,"espn:eng.1:359","ESPN profile identity must supersede fixture-only ID");
 }
+
+
+// Today must include all provider-confirmed states for the selected Istanbul date.
+{
+ const today=blockAfter(html,' if(mamScreenMode==="today"){','\n // Today\'s scoreboard order:');
+ assert.match(today,/mamIstanbulDay\\(m\\.fixture\\?\\.date\\)===selectedDay/);
+ assert.match(today,/mamTodayFilter==="live"/);
+ assert.match(today,/mamTodayFilter==="finished"/);
+ assert.match(today,/mamTodayFilter==="upcoming"/);
+ assert.doesNotMatch(today,/list=list\\.filter\\(m=>mamIsFutureUnplayed\\(m,mamNow\\)&&/);
+}
