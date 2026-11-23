@@ -76,3 +76,27 @@ for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
 assert.ok(checkedScripts > 0, "No inline JavaScript blocks were syntax-checked");
 
 console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup exception, fallback paths, cache version and " + checkedScripts + " inline scripts.");
+
+
+// Regression: live polling must not destroy the already loaded fixture snapshot.
+{
+  const helperStart = html.indexOf(" const publishLiveSnapshot=liveRows=>");
+  const helperEnd = html.indexOf("\n // Son başarılı canlı listeyi", helperStart);
+  assert.ok(helperStart > -1 && helperEnd > helperStart, "Live fixture preservation helper must exist");
+  const helper = html.slice(helperStart, helperEnd);
+  const makeMatch = (id, status) => ({fixture:{id, status:{short:status}}});
+  const context = {
+    allMatches:[makeMatch("today","NS"),makeMatch("future","NS"),makeMatch("old-live","1H")],
+    fallbackSchedule:[],
+    isLive:m => m.fixture.status.short === "1H",
+    renderMatches:()=>{},
+  };
+  vm.runInNewContext(helper + "\n globalThis.publish=publishLiveSnapshot;", context);
+  context.publish([makeMatch("new-live","1H")]);
+  assert.deepEqual(Array.from(context.allMatches,m=>m.fixture.id).sort(),["future","new-live","today"],"New live scores cannot erase scheduled matches");
+  context.publish([]);
+  assert.deepEqual(Array.from(context.allMatches,m=>m.fixture.id).sort(),["future","today"],"No live events cannot erase scheduled matches");
+  context.fallbackSchedule=[makeMatch("espn-today","NS"),makeMatch("espn-live","1H")];
+  context.publish([makeMatch("fresh-live","1H")]);
+  assert.deepEqual(Array.from(context.allMatches,m=>m.fixture.id).sort(),["espn-today","fresh-live"],"ESPN schedule wins over old fixture state");
+}
