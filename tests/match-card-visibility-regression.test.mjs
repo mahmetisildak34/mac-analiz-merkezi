@@ -1,3 +1,4 @@
+import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -15,7 +16,7 @@ test('live no-results branch preserves non-live fixtures for all screens',()=>{
 });
 
 test('known provider aliases collapse to one fixture without combining unrelated games',()=>{
- const {runInNewContext}=require('node:vm');
+
  const start=source.indexOf('const mamFixtureTeamKey=value=>');
  const end=source.indexOf('let mamFixtureLoadQueued=false;',start);
  assert.ok(start>0&&end>start);
