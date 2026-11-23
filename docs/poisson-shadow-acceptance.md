@@ -34,3 +34,19 @@ node scripts/poisson-shadow.cjs --mode settle \
 İlk pilotu ve ek fikstürleri ayrı göstermek için sonuç çalıştırmasına `--baseline ilk-pilot.json` ekleyin. Tamamlanan maçlar için maç sonu ve ilk yarı raporlarında v1.2 farkları gösterilir. Küçük örneklemde farklar betimleyicidir. Yeni skor tablosu eski kesin skoru tekrar doğrularsa, maç özeti geçici olarak alınamadığında önceden mühürlenmiş ilk yarı skoru kullanılabilir. Ayrı bir sonuç görevi oluşturmadan aynı izole arşiv tekrar kullanılabilir.
 
 ESPN geçici HTTP, bağlantı ve aktarım hatalarında en fazla bir yeni istek denenir. Uzun bekleme süresi isteyen kaynak bu çalışmada doğrulanmamış kalır. Arşiv içe aktarımı önce tüm tahmin, anlık görüntü ve skor bağlantılarını denetler. Skor dosyaları özgün mühürleriyle, maç sonu önce olacak şekilde yazılır. Böylece aynı arşivin farklı sıralamayla tekrar yüklenmesi yeni kayıt oluşturmaz. Doğrulanmış maç sonu skoru ile önceki skor aynıysa, yalnızca ilk yarıyı etkileyen bir uyuşmazlık maç sonu ölçümünü kesmez.
+
+## Haftalık kabul ve dönem arşivi
+
+Haftalık çalışma ilk 59 ve ek 62 fikstürün özgün paketlerini sınır olarak kullanır. Yeni fikstürler üçüncü grupta görünür. Her grubun ayrıca maç sonu ve ilk yarı ölçümleri vardır. Her 28 günlük takvim bloğu için skor, tahmin ve anlık görüntüler aynı sıkıştırılmış paketin kendi bölümünde tutulur. Bloklar önceki değerlendirmeyle aynı şekilde Unix takvim başlangıcına göre sabittir. İstanbul yerel maç tarihi kullanılır. Sezon değişimi tek bir takvim bloğunu ikiye bölmez.
+
+```sh
+node scripts/poisson-shadow.cjs --mode cycle --days 14 \
+  --archive /path/to/isolated-archive --worker-checkout /path/to/worker \
+  --forecast-revision 311e49cdd3505c70a2fb6da98741651a816a3fa9 \
+  --restore previous.json.gz --baseline original-59.json --pilot initial-121.json \
+  --checkpoint next.json.gz > next-report.json
+```
+
+İlk çalışmada `previous.json.gz` yerine 121 fikstürlük özgün JSON kullanılabilir. Girdi arşivinin değişiklik özetleri kontrol edilir ve yeni çıkış adı kullanılır. Kayıtlar maç başlamadan önce oluşturulur. İlk model revizyonu yalnızca tahmin girdilerini ve hesaplarını belirleyen dosyalar birebir aynıysa kullanılır. Çalıştırıcı revizyonu raporda ayrıca görünür. Bir sonraki çalıştırma için yeni paket önce doğrulanır, sonra önceki paketin yeni sürümü olarak saklanır.
+
+Her iki skor türünde aynı model grubunda en az 100 ortak sonuç ve sonuç içeren sekiz takvim bloğu oluştuğunda rapor `settle` önerir. Bu eşikten sonra yeni tahmin üretimi durabilir. Kalan fikstürlerin sonuçları veya doğrulanamama durumları ayrıca izlenir. Örneklem eşiği güven aralığı hesaplamasını açar. Model seçimi insan incelemesine kalır.

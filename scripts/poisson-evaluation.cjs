@@ -61,13 +61,14 @@ function scored({ match, models }, key) {
   return { values, bin: Math.min(9, Math.floor(p[pick] * 10)), gap: p[pick] - correct };
 }
 
-function pairedComparison(rows, candidate, baseline, confidence = 0.95) {
+function pairedComparison(rows, candidate, baseline, confidence = 0.95, { stratifyBySeason = true } = {}) {
   const seasons = new Map();
   const totals = metrics.map(() => 0);
   const allBins = emptyBins();
   for (const row of rows) {
-    if (!seasons.has(row.season)) seasons.set(row.season, new Map());
-    const season = seasons.get(row.season);
+    const stratum = stratifyBySeason ? row.season : "all";
+    if (!seasons.has(stratum)) seasons.set(stratum, new Map());
+    const season = seasons.get(stratum);
     const index = Math.floor(Date.parse(row.day) / (86400000 * blockDays));
     if (!season.has(index)) season.set(index, { n: 0, values: metrics.map(() => 0), bins: emptyBins() });
     const block = season.get(index);

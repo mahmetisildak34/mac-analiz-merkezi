@@ -1,7 +1,9 @@
 // Isolated five-model capture and settlement. All provider traffic goes to public read endpoints.
 const { execFile, execFileSync } = require("node:child_process");
-const { readFile } = require("node:fs/promises");
+const { link, readFile, writeFile, unlink } = require("node:fs/promises");
 const { resolve } = require("node:path");
+const { randomUUID } = require("node:crypto");
+const { blockIndex, decodeCheckpoint, encodeCheckpoint, longTermReport } = require("./poisson-shadow-periods.cjs");
 const { parseArgs, promisify } = require("node:util");
 const { cleanArchive, parseDate } = require("./poisson-football-data.cjs");
 const { loadWorkerModels } = require("./poisson-worker-models.cjs");
@@ -279,7 +281,7 @@ function compare(records, outcomes, period) {
       models: Object.fromEntries(models.map(name => [name, record.models[name][period]])) }];
   });
   function summary(group) {
-    const blocks = new Set(group.map(row => `${row.season}:${Math.floor(Date.parse(row.day) / (28 * 86400000))}`)).size;
+    const blocks = new Set(group.map(row => blockIndex(row.day))).size;
     // Pilot reporting is descriptive until the archive has several independent periods.
     const inferenceReady = group.length >= 100 && blocks >= 8;
     const summaries = Object.fromEntries(models.map(name => [name, summarize(group, name)]));
@@ -289,7 +291,7 @@ function compare(records, outcomes, period) {
       deltasVsV12: group.length ? Object.fromEntries(Object.entries(summaries).map(([name, model]) =>
         [name, Object.fromEntries(metrics.map(metric => [metric, model[metric] - baseline[metric]]))])) : {},
       pairs: inferenceReady ? models.flatMap((name, i) =>
-        models.slice(0, i).map(baseline => pairedComparison(group, name, baseline))) : [] };
+        models.slice(0, i).map(baseline => pairedComparison(group, name, baseline, 0.95, { stratifyBySeason: false }))) : [] };
   }
   function grouped(group) {
     return { overall: summary(group), leagues: Object.fromEntries(Object.keys(leagues).map(league =>
@@ -362,7 +364,8 @@ async function main() {
     mode: { type: "string", default: "disabled" }, archive: { type: "string" },
     "worker-checkout": { type: "string" }, days: { type: "string", default: "7" },
     restore: { type: "string" }, bundle: { type: "boolean", default: false },
-    baseline: { type: "string" }, "capture-from": { type: "string" }
+    baseline: { type: "string" }, "capture-from": { type: "string" },
+    pilot: { type: "string" }, checkpoint: { type: "string" }, "forecast-revision": { type: "string" }
   } });
   const { mode } = values;
   if (mode === "disabled") {
@@ -380,29 +383,56 @@ async function main() {
   if (execFileSync("git", ["-C", __dirname, "status", "--porcelain", "--untracked-files=no"], { encoding: "utf8" }).trim()) {
     throw new Error("Use a clean frontend checkout so forecast revisions are auditable");
   }
+  const captureRevision = values["forecast-revision"] ?? front;
+  if (captureRevision !== front) {
+    const originalPilotRevision = "311e49cdd3505c70a2fb6da98741651a816a3fa9";
+    const files = ["scripts/poisson-shadow-models.cjs", "scripts/poisson-worker-models.cjs",
+      "scripts/backtest-poisson.cjs", "scripts/poisson-football-data.cjs", "src/poisson-probabilities.js", "index.html"];
+    if (captureRevision !== originalPilotRevision || execFileSync("git", ["-C", __dirname,
+      "diff", "--name-only", captureRevision, front, "--", ...files], { encoding: "utf8" }).trim()) {
+      throw new Error("Forecast implementation differs from pinned pilot revision");
+    }
+  }
+  if (values.pilot && !values.baseline) throw new Error("Long-term reporting needs the original 59-fixture baseline");
   const worker = await loadWorkerModels(values["worker-checkout"]);
   const ledger = openLedger(resolve(values.archive));
   if (values.restore) {
-    const previous = JSON.parse(await readFile(resolve(values.restore)));
-    await ledger.restore(previous.archive);
+    const periods = decodeCheckpoint(await readFile(resolve(values.restore)));
+    for (const period of periods) await ledger.restore(period);
   }
+  const baseline = values.baseline ? JSON.parse(await readFile(resolve(values.baseline))).archive.predictions : null;
+  const pilot = values.pilot ? JSON.parse(await readFile(resolve(values.pilot))).archive.predictions : null;
+  if (pilot) longTermReport(await ledger.list(), [], baseline, pilot, compare, istanbulDay(Date.now()));
   const provider = providers();
-  const decisions = mode === "settle" ? [] : await capture(ledger, worker, { front, worker: worker.revision }, provider, days, captureFrom);
+  const decisions = mode === "settle" ? [] : await capture(ledger, worker, { front: captureRevision, worker: worker.revision }, provider, days, captureFrom);
   const records = await ledger.list();
   const outcomes = mode === "capture" ? [] : await settle(records, provider, ledger);
   const legacy = mode === "capture" ? null : await legacyAudit(resolve(values["worker-checkout"],
     "research/real-pre-match-forecast-evidence-2026-11-22.json"), provider);
-  const baseline = values.baseline ? JSON.parse(await readFile(resolve(values.baseline))).archive.predictions : null;
+  const archive = values.bundle || values.checkpoint ? await ledger.bundle() : null;
+  const longTerm = pilot ? longTermReport(records, outcomes, baseline, pilot, compare, istanbulDay(Date.now())) : null;
+  if (values.checkpoint) {
+    const target = resolve(values.checkpoint);
+    const temp = `${target}.${randomUUID()}.tmp`;
+    const bytes = encodeCheckpoint(archive);
+    try {
+      await writeFile(temp, bytes, { flag: "wx", mode: 0o600 });
+      await link(temp, target);
+    } finally {
+      await unlink(temp).catch(error => { if (error.code !== "ENOENT") throw error; });
+    }
+  }
   console.log(JSON.stringify({
     schemaVersion: 1, mode, reportedAt: now(), liveDefault: "Worker v1.2",
-    revisions: { front, worker: worker.revision }, captureDecisions: decisions, sourceFailures: provider.failures,
+    revisions: { front, forecastFrontend: captureRevision, worker: worker.revision }, captureDecisions: decisions, sourceFailures: provider.failures,
     records: records.map(({ fixture, recordedAt, sourceAt, sha256, snapshotSha256, models: p }) => ({
       fixture, recordedAt, sourceAt, sha256, snapshotSha256, firstHalfModels: models.filter(name => p[name].half)
     })),
     outcomes, storedOutcomes: (await ledger.results()).length, legacyV12: legacy,
     prospective: { full: compare(records, outcomes, "full"), half: compare(records, outcomes, "half") },
-    ...(baseline && { pilotGroups: pilotGroups(records, outcomes, baseline) }),
-    ...(values.bundle && { archive: await ledger.bundle() })
+    ...(longTerm && { longTerm }),
+    ...(baseline && !pilot && { pilotGroups: pilotGroups(records, outcomes, baseline) }),
+    ...(values.bundle && { archive })
   }, null, 2));
 }
 
