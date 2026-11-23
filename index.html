@@ -3698,19 +3698,51 @@ const mamFixtureTeamKey=value=>{
  return aliases[key]||key;
 };
 function mamFixturePair(match){
- const league=String(match.league?.id??"");
- const home=mamFixtureTeamKey(match.teams?.home?.name),away=mamFixtureTeamKey(match.teams?.away?.name);
- return league&&home&&away?league+"|"+home+"|"+away:"";
+	const league=String(match.league?.id??"");
+	const home=mamFixtureTeamKey(match.teams?.home?.name),away=mamFixtureTeamKey(match.teams?.away?.name);
+	return league&&home&&away?league+"|"+home+"|"+away:"";
+}
+function mamFixtureTeamPair(match){
+	const home=mamFixtureTeamKey(match?.teams?.home?.name),away=mamFixtureTeamKey(match?.teams?.away?.name);
+	return home&&away?home+"|"+away:"";
+}
+function mamFixtureProviderKeys(match){
+	const providers=new Set(Array.isArray(match?._mamSourceProviders)?match._mamSourceProviders.map(String):[]);
+	const source=String(match?.mamSource||"").toUpperCase();
+	const id=String(match?.fixture?.id??match?.id??"").toLowerCase();
+	if(source)providers.add(source);
+	else if(id.startsWith("espn-"))providers.add("ESPN");
+	else if(id.startsWith("sportscore-"))providers.add("SPORTSCORE");
+	else if(id.startsWith("football-data-"))providers.add("FOOTBALL_DATA");
+	else if(id.startsWith("apif-")||/^\d+$/.test(id))providers.add("API_FOOTBALL");
+	else if(id)providers.add("OTHER");
+	return [...providers];
+}
+function mamDifferentFixtureProviders(a,b){
+	const providersA=new Set(mamFixtureProviderKeys(a)),providersB=new Set(mamFixtureProviderKeys(b));
+	return providersA.size>0&&providersB.size>0&&![...providersA].some(provider=>providersB.has(provider));
+}
+function mamMergeFixtureSources(existing,incoming){
+	const providers=[...new Set([...mamFixtureProviderKeys(existing),...mamFixtureProviderKeys(incoming)])];
+	return providers.length?{...existing,_mamSourceProviders:providers}:existing;
 }
 function mamSameFixture(a,b){
- const aId=String(a.fixture?.id??a.id??""),bId=String(b.fixture?.id??b.id??"");
- if(aId&&bId&&aId===bId)return true;
- const pair=mamFixturePair(a);
- if(!pair||pair!==mamFixturePair(b))return false;
- return Math.abs(mamFixtureInstant(a.fixture?.date)-mamFixtureInstant(b.fixture?.date))<=10*60*1000;
+	const aId=String(a.fixture?.id??a.id??""),bId=String(b.fixture?.id??b.id??"");
+	if(aId&&bId&&aId===bId)return true;
+	const pair=mamFixturePair(a),otherPair=mamFixturePair(b);
+	if(pair&&pair===otherPair)return mamSameLiveProviderFixture(a,b);
+	return mamDifferentFixtureProviders(a,b)&&mamSameLiveProviderFixture(a,b);
+}
+function mamFindSameFixtureIndex(rows,target){
+	const list=Array.isArray(rows)?rows:[];
+	const id=String(target?.fixture?.id??target?.id??"");
+	if(id){const exact=list.findIndex(row=>String(row?.fixture?.id??row?.id??"")===id);if(exact>=0)return exact;}
+	const candidates=[];
+	for(let i=0;i<list.length;i++)if(mamSameFixture(list[i],target))candidates.push(i);
+	return candidates.length===1?candidates[0]:-1;
 }
 function mamSameLiveProviderFixture(a,b){
- const homeA=mamFixtureTeamKey(a?.teams?.home?.name),awayA=mamFixtureTeamKey(a?.teams?.away?.name);
+	const homeA=mamFixtureTeamKey(a?.teams?.home?.name),awayA=mamFixtureTeamKey(a?.teams?.away?.name);
  const homeB=mamFixtureTeamKey(b?.teams?.home?.name),awayB=mamFixtureTeamKey(b?.teams?.away?.name);
  if(!homeA||!awayA||homeA!==homeB||awayA!==awayB)return false;
  const timeA=mamFixtureInstant(a?.fixture?.date),timeB=mamFixtureInstant(b?.fixture?.date);
@@ -3723,7 +3755,7 @@ function mamUnrepresentedLiveFixtures(primaryRows,supplementRows){
  );
 }
 function mamMergeFixtureStatus(existing,incoming){
- return {...existing,goals:incoming.goals,score:incoming.score,fixture:{...existing.fixture,status:incoming.fixture.status}};
+ return {...mamMergeFixtureSources(existing,incoming),goals:incoming.goals,score:incoming.score,fixture:{...existing.fixture,status:incoming.fixture.status}};
 }
 function mamCanApplyFixtureStatus(existing,incoming){
  const before=mamCanonicalMatchStatus(existing),after=mamCanonicalMatchStatus(incoming);
@@ -3734,25 +3766,35 @@ function mamCanApplyFixtureStatus(existing,incoming){
  return true;
 }
 function mamMergeFixtureRows(rows){
- const matches=[],byId=new Map(),byPair=new Map();
- for(const incoming of rows){
-  const id=String(incoming.fixture?.id??incoming.id??"");
-  const pair=mamFixturePair(incoming);
-  let index=byId.get(id);
-  if(index===undefined&&pair)index=byPair.get(pair)?.find(i=>mamSameFixture(matches[i],incoming));
-  if(index===undefined){
-   index=matches.length;
-   matches.push(incoming);
+	const matches=[],byId=new Map(),byPair=new Map(),byTeams=new Map();
+	for(const incoming of rows){
+		const id=String(incoming.fixture?.id??incoming.id??"");
+		const pair=mamFixturePair(incoming);
+		const teamPair=mamFixtureTeamPair(incoming);
+		let index=byId.get(id);
+		if(index===undefined&&pair)index=byPair.get(pair)?.find(i=>mamSameFixture(matches[i],incoming));
+		if(index===undefined&&teamPair){
+			const compatible=(byTeams.get(teamPair)||[]).filter(i=>mamSameFixture(matches[i],incoming));
+			if(compatible.length===1)index=compatible[0];
+		}
+		if(index===undefined){
+			index=matches.length;
+			matches.push(incoming);
    if(pair){
-    if(!byPair.has(pair))byPair.set(pair,[]);
-    byPair.get(pair).push(index);
-   }
-  }else{
+				if(!byPair.has(pair))byPair.set(pair,[]);
+				byPair.get(pair).push(index);
+			}
+			if(teamPair){
+				if(!byTeams.has(teamPair))byTeams.set(teamPair,[]);
+				byTeams.get(teamPair).push(index);
+			}
+		}else{
    const existing=matches[index];
    if(mamCanApplyFixtureStatus(existing,incoming)&&
      (id.startsWith("espn-")||(!mamHasCompletedScore(existing)&&mamHasCompletedScore(incoming)))){
     matches[index]=mamMergeFixtureStatus(existing,incoming);
    }
+	   matches[index]=mamMergeFixtureSources(matches[index],incoming);
    // Prefer an intact provider spelling without replacing the canonical fixture ID.
    for(const side of ["home","away"]){
     const currentName=String(matches[index].teams?.[side]?.name||"");
@@ -4142,8 +4184,33 @@ async function footballDataLiveFixtures(){
  })).filter(m=>m.teams.home.name&&m.teams.away.name);
 }
 
+function mamSportScoreMatchSlug(item){
+	const direct=[item?._sportScoreSlug,item?.slug,item?.id,item?.fixture_id,item?.fixture?.id].find(value=>value!==null&&value!==undefined&&String(value).trim()!=="");
+	if(direct!==undefined){const value=String(direct).trim();return /^[a-z0-9_-]+$/i.test(value)?value:"";}
+	const raw=String(item?.url||"").trim();
+	if(!raw)return "";
+	let pathname="";
+	try{pathname=new URL(raw,"https://www.thesports.com").pathname;}catch(_){return "";}
+	const parts=pathname.split("/").filter(Boolean);
+	if(parts.length!==4||parts[0]!=="football"||parts[1]!=="match"||!parts[2])return "";
+	return /^[a-z0-9]+$/i.test(parts[3])?parts[3]:"";
+}
+function mamSportScoreKickoff(item){
+	const utcDate=typeof item?.utc_date==="string"?mamExplicitUtc(item.utc_date):"";
+	if(utcDate&&Number.isFinite(mamFixtureInstant(utcDate)))return utcDate;
+	const candidates=[item?.date,item?.fixture?.date,item?.time];
+	return candidates.find(value=>typeof value==="string"&&Number.isFinite(mamFixtureInstant(value)))||null;
+}
+function mamSportScoreFindLiveMatch(matches,homeName,awayName,clean){
+	return (Array.isArray(matches)?matches:[]).find(item=>{
+		const home=clean(item.home||item.home_team?.name||item.homeTeam?.name||item.teams?.home?.name);
+		const away=clean(item.away||item.away_team?.name||item.awayTeam?.name||item.teams?.away?.name);
+		if(!home||!away||!mamSportScoreMatchSlug(item)||!mamSportScoreKickoff(item))return false;
+		return (home===homeName&&away===awayName)||(home.includes(homeName)&&away.includes(awayName))||(homeName.includes(home)&&awayName.includes(away));
+	});
+}
 async function mamSportScoreLiveFixtures(force=false,signal=null){
- const cacheKey="mam_sportscore_live_fixtures_v2";
+	const cacheKey="mam_sportscore_live_fixtures_v3";
  let cached=null;try{cached=JSON.parse(localStorage.getItem(cacheKey)||"null");}catch(_){}
  if(!force&&cached?.time&&Array.isArray(cached.matches)&&Date.now()-cached.time<20000)return cached.matches;
  const date=typeof mamIstanbulDateString==="function"?mamIstanbulDateString():new Date().toISOString().slice(0,10);
@@ -4168,21 +4235,19 @@ async function mamSportScoreLiveFixtures(force=false,signal=null){
   else if(/finish|full time|ended|complete/.test(combined))short="FT";
   else if(/live|in play|in progress|inprogress|first half|second half|1st half|2nd half/.test(combined)||["1h","2h"].includes(raw))short="LIVE";
   if(!["HT","ET","P","SUSP","LIVE"].includes(short))return null;
-  const slug=String(item.slug||item.id||item.fixture_id||item.fixture?.id||"");
-  const home=String(item.home||item.home_team?.name||item.homeTeam?.name||item.teams?.home?.name||"");
-  const away=String(item.away||item.away_team?.name||item.awayTeam?.name||item.teams?.away?.name||"");
-  if(!slug||!home||!away)return null;
+	const slug=mamSportScoreMatchSlug(item);
+	const home=String(item.home||item.home_team?.name||item.homeTeam?.name||item.teams?.home?.name||"");
+	const away=String(item.away||item.away_team?.name||item.awayTeam?.name||item.teams?.away?.name||"");
+	const kickoff=mamSportScoreKickoff(item);
+	if(!slug||!home||!away||!kickoff)return null;
   const competition=item.competition||item.league||item.competition_name||"";
   const competitionName=typeof competition==="string"?competition:String(competition.name||competition.title||competition.slug||"SportScore");
   const competitionKey=competitionName.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
   const leagueId=item.competition_id||item.league_id||competition.id||canonicalLeagueIds[competitionKey]||"sportscore";
   const hs=number(item.home_score??item.homeScore??item.score?.home??item.goals?.home);
   const as=number(item.away_score??item.awayScore??item.score?.away??item.goals?.away);
-  const candidates=[mamExplicitUtc(item.utc_date),item.date,item.fixture?.date,item.time];
-  const kickoff=candidates.find(value=>Number.isFinite(mamFixtureInstant(value)));
-  const scheduledDay=candidates.find(value=>typeof value==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(value));
-  const clock=item.status_text||item.statusText||item.elapsed||item.minute||"";
-  return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff||scheduledDay||null,timeUnknown:!kickoff,status:{short,elapsed:minute(clock),displayClock:String(clock)}},league:{id:String(leagueId),name:competitionName,country:String(item.country||competition.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug};
+	const clock=item.status_text||item.statusText||item.elapsed||item.minute||"";
+	return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff,timeUnknown:false,status:{short,elapsed:minute(clock),displayClock:String(clock)}},league:{id:String(leagueId),name:competitionName,country:String(item.country||competition.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug};
  }).filter(Boolean);
  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
  return matches;
@@ -4529,12 +4594,10 @@ async function mamSportScoreLiveStats(button){
   try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data:envelope}));}catch(_){}
  }
  const matches=Array.isArray(envelope.matches)?envelope.matches:Array.isArray(envelope.fixtures)?envelope.fixtures:Array.isArray(envelope.data)?envelope.data:[];
- const match=matches.find(item=>{
-  const h=clean(item.home||item.home_team?.name),a=clean(item.away||item.away_team?.name);
-  return (h===homeName&&a===awayName)||(h.includes(homeName)&&a.includes(awayName))||(homeName.includes(h)&&awayName.includes(a));
- });
- if(!match?.slug)throw new Error("SportScore canlı listesinde bu maç için eşleşen detay kaydı yok.");
- const detailResponse=await fetch(base+"match?sport=football&slug="+encodeURIComponent(match.slug)+"&src=mac-analiz-merkezi");
+	const match=mamSportScoreFindLiveMatch(matches,homeName,awayName,clean);
+	const slug=mamSportScoreMatchSlug(match);
+	if(!match||!slug)throw new Error("SportScore canlı listesinde bu maç için eşleşen detay kaydı yok.");
+	const detailResponse=await fetch(base+"match?sport=football&slug="+encodeURIComponent(slug)+"&src=mac-analiz-merkezi");
  if(!detailResponse.ok)throw new Error("SportScore maç detayı HTTP "+detailResponse.status);
  const detail=await detailResponse.json();
  const root=detail.match||detail.data?.match||detail.data||detail;
@@ -6343,10 +6406,10 @@ async function refreshTodayScores(){
   const rows=await request;
   if(mamScreenMode!==mode||$("date").value!==day||mamActiveMatch||
      navigator.onLine===false||window.mamLoadMatchesBusy)return;
-  const next=[...allMatches];
+	const next=mamMergeFixtureRows(allMatches);
   for(const row of rows){
    if(mamIstanbulDay(row.fixture.date)!==day||mamCanonicalMatchStatus(row)==="UNK")continue;
-   const index=next.findIndex(match=>mamSameFixture(match,row));
+		const index=mamFindSameFixtureIndex(next,row);
    if(index===-1)next.push(row);
    else if(mamCanApplyFixtureStatus(next[index],row)){
     next[index]=mamMergeFixtureStatus(next[index],row);

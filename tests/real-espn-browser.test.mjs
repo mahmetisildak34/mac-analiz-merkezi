@@ -4,10 +4,12 @@ import {spawn} from "node:child_process";
 import {once} from "node:events";
 import {setTimeout as delay} from "node:timers/promises";
 import {chromium,webkit} from "playwright";
+import {espnCompetitions} from "../mobile/product-features.mjs";
 
 const origin="http://127.0.0.1:19172";
 const espn="https://site.api.espn.com";
 const leagues=[["tur.1","203"],["eng.1","39"]];
+const supportedLeagues=[...espnCompetitions.keys()];
 const istanbulDay=date=>new Intl.DateTimeFormat("en-CA",{
  timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"
 }).format(date);
@@ -26,6 +28,18 @@ async function getEspn(path){
  return response.json();
 }
 
+async function mapLimit(items,limit,mapper){
+ let cursor=0;
+ const results=new Array(items.length);
+ await Promise.all(Array.from({length:Math.min(limit,items.length)},async()=>{
+  while(cursor<items.length){
+   const index=cursor++;
+   results[index]=await mapper(items[index],index);
+  }
+ }));
+ return results;
+}
+
 async function serverStart(){
  const child=spawn("python3",["-m","http.server","19172","--bind","127.0.0.1"],{stdio:"ignore"});
  for(let i=0;i<60;i++){
@@ -38,6 +52,7 @@ async function serverStart(){
 }
 
 test("Public ESPN responses render through the iPhone fixture screens in Chromium and WebKit",async()=>{
+ assert.ok(supportedLeagues.length>=40,"Search today's real fixtures across the app's supported ESPN competition catalogue");
  const today=istanbulDay(new Date());
  const months=[...new Set([-30,0,30].map(n=>code(shift(today,n)).slice(0,6)))];
  const season=Number(today.slice(0,4))-(Number(today.slice(5,7))<7?1:0);
@@ -45,17 +60,21 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
  const teamDirectory=publicSoccer+"eng.1/teams?limit=500";
  const teamSchedule=publicSoccer+"eng.1/teams/359/schedule?season="+season;
  const dayBoards=[code(shift(today,-1)),code(today)];
- const paths=leagues.flatMap(([slug])=>[...dayBoards,...months].map(dates=>scoreboard(slug,dates)));
- const payloads=new Map(await Promise.all(paths.map(async path=>{
+ const sampledDates=[...new Set([...dayBoards,...months])];
+ const paths=[...new Set([
+  ...leagues.flatMap(([slug])=>sampledDates.map(dates=>scoreboard(slug,dates))),
+  ...supportedLeagues.flatMap(slug=>dayBoards.map(dates=>scoreboard(slug,dates)))
+ ])];
+ const payloads=new Map(await mapLimit(paths,8,async path=>{
   const payload=await getEspn(path);
   assert.ok(Array.isArray(payload.events),"ESPN response must contain an events array "+path);
   return [path,payload];
- })));
+ }));
  const rows=leagues.flatMap(([slug,leagueId])=>[code(today),...months].flatMap(dates=>
   payloads.get(scoreboard(slug,dates)).events.map(event=>({slug,leagueId,event}))
  ));
- const todayRows=leagues.flatMap(([slug,leagueId])=>dayBoards.flatMap(dates=>payloads.get(scoreboard(slug,dates)).events)
-  .filter(event=>eventDay(event)===today).map(event=>({slug,leagueId,event})));
+ const todayRows=supportedLeagues.flatMap(slug=>dayBoards.flatMap(dates=>payloads.get(scoreboard(slug,dates)).events)
+  .filter(event=>eventDay(event)===today).map(event=>({slug,event})));
  const daily=todayRows.find(({event})=>isScheduled(event))||todayRows[0];
  const future=rows.find(({event})=>isScheduled(event)&&eventDay(event)>today&&eventDay(event)<=shift(today,30));
  const finished=rows.filter(({event})=>isFinished(event)&&eventDay(event)>=shift(today,-30)&&eventDay(event)<today)
@@ -77,7 +96,7 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
  const opponent=({event})=>event.competitions[0].competitors.find(team=>team.team.id!=="359").team.displayName;
  console.log("ESPN run-time evidence",JSON.stringify({
   today:daily.event.id,upcoming:future.event.id,finished:finished.event.id,
-  leagues:leagues.map(([slug])=>slug),
+  leagues:supportedLeagues,
   sampledInPlay:todayRows.filter(({event})=>event.status?.type?.state==="in").map(({event})=>event.id)
  }));
  const server=await serverStart();
@@ -173,16 +192,17 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
        }
       }
       if(viewport.width===390){
+       const favoriteId=`espn-${finished.slug}-${finished.event.id}`;
        const finalCard=page.locator("#matches article.match").filter({
         has:page.locator(`.lineupBtn[data-id="espn-${finished.slug}-${finished.event.id}"]`)
        });
        await finalCard.locator('[data-mam-star][data-type="match"]').click();
        await page.locator("#mamFavoriteBottom").click();
-       await page.locator("[data-fav-matches]").getByText(home(finished.event).team.displayName,{exact:false}).waitFor();
+       await page.locator(`[data-fav-matches] [data-mam-remove-match="${favoriteId}"]`).waitFor();
        await page.reload();
        await page.locator("#mamAuthGate").waitFor({state:"detached"});
        await page.locator("#mamFavoriteBottom").click();
-       await page.locator("[data-fav-matches]").getByText(home(finished.event).team.displayName,{exact:false}).waitFor();
+       await page.locator(`[data-fav-matches] [data-mam-remove-match="${favoriteId}"]`).waitFor();
 
        await page.locator("#mamSearchToggle").click();
        const search=page.locator("#mamTeamSearchInput");
