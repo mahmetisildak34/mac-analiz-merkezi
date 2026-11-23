@@ -4,8 +4,8 @@ import test from "node:test";
 const source=readFileSync(new URL("../index.html",import.meta.url),"utf8");
 const live=source.slice(source.indexOf("function loadLiveMatchesNow(){"),source.indexOf("\n\nasync function mamSportScoreLiveStats("));
 test("live polling publishes ESPN fixtures alongside live matches",()=>{
- assert.match(live,/const publishLiveSnapshot=liveMatches=>/);
- assert.match(live,/const base=fallbackSchedule\.length\?fallbackSchedule:allMatches\.filter\(match=>!isLive\(match\)\)/);
+ assert.match(live,/const publishLiveSnapshot=liveRows=>/);
+ assert.match(live,/for\\(const match of \\(fallbackSchedule\\.length\\?fallbackSchedule:allMatches\\)\\)/);
  assert.match(live,/publishLiveSnapshot\(combinedLive\)/);
  assert.match(live,/publishLiveSnapshot\(\[\]\)/);
  assert.doesNotMatch(live,/if\(mamScreenMode==="live"\)allMatches=\[\]/);
