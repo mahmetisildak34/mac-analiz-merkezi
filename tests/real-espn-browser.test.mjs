@@ -16,7 +16,8 @@ const code=day=>day.replaceAll("-","");
 const scoreboard=(slug,dates)=>`/apis/site/v2/sports/soccer/${slug}/scoreboard?dates=${dates}&limit=500`;
 const isFinished=event=>event.status?.type?.state==="post"&&event.status?.type?.completed===true;
 const isScheduled=event=>event.status?.type?.name==="STATUS_SCHEDULED";
-const home=event=>event.competitions[0].competitors.find(team=>team.homeAway==="home");
+const competitor=(event,side)=>event.competitions[0].competitors.find(team=>team.homeAway===side);
+const home=event=>competitor(event,"home");
 const eventDay=event=>istanbulDay(new Date(event.date));
 
 async function getEspn(path){
@@ -130,7 +131,7 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
         await card.waitFor({state:"visible"});
        }
        if(mode==="finished"){
-        const away=event.competitions[0].competitors.find(team=>team.homeAway==="away");
+        const away=competitor(event,"away");
         assert.ok((await card.innerText()).includes(home(event).score+" – "+away.score),"Expected ESPN final score");
        }
        await card.locator(".match-versus").click();
@@ -177,7 +178,9 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
        await search.pressSequentially("Ars");
        await page.locator('#mamTeamSearchResults [data-search-team="espn:eng.1:359"]').click();
        const profile=page.getByRole("dialog",{name:"Arsenal takım profili"});
-       await profile.locator("#mamHistoryPastView").getByText(opponent(pastArsenal),{exact:true}).first().waitFor();
+       const pastEvent=pastArsenal.event;
+       const fixtureName=[home(pastEvent),competitor(pastEvent,"away")].map(row=>row.team.displayName).join(" – ");
+       await profile.locator("#mamHistoryPastView").getByText(fixtureName,{exact:true}).first().waitFor();
        await profile.locator('[data-history-view="upcoming"]').click();
        await profile.locator("#mamHistoryUpcomingView").getByText(opponent(futureArsenal),{exact:true}).first().waitFor();
        await profile.locator("#mamTeamHistoryBack").click();
