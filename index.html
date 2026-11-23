@@ -4302,11 +4302,11 @@ async function loadLiveMatchesNow(){
     mamNotifyLiveGoalChanges(combinedLive);
     publishLiveSnapshot(combinedLive);
      mamSaveLiveMatchCache(combinedLive);
-    warmLiveTeamHistories(allMatches);
-    const crossChecks=allMatches.map(match=>match._mamLiveCrossCheck).filter(Boolean);
+    warmLiveTeamHistories(combinedLive);
+    const crossChecks=combinedLive.map(match=>match._mamLiveCrossCheck).filter(Boolean);
     const scoreDiffs=crossChecks.filter(check=>check.score?.matched===false).length;
     const minuteDiffs=crossChecks.filter(check=>check.minute?.matched===false).length;
-    $("status").textContent=allMatches.length+" canlı maç · ESPN/API-Football karşılaştırması: "+crossChecks.length+" eşleşme, "+scoreDiffs+" skor farkı, "+minuteDiffs+" dakika farkı · Son kontrol: "+new Date().toLocaleTimeString("tr-TR",{timeZone:"Europe/Istanbul"});
+    $("status").textContent=combinedLive.length+" canlı maç · ESPN/API-Football karşılaştırması: "+crossChecks.length+" eşleşme, "+scoreDiffs+" skor farkı, "+minuteDiffs+" dakika farkı · Son kontrol: "+new Date().toLocaleTimeString("tr-TR",{timeZone:"Europe/Istanbul"});
     return;
    }
    espnErrorText="ESPN taraması tamamlandı; desteklenen liglerde canlı maç döndürmedi.";
@@ -4328,8 +4328,8 @@ async function loadLiveMatchesNow(){
    mamNotifyLiveGoalChanges(primaryLiveMatches);
    publishLiveSnapshot(primaryLiveMatches);
     mamSaveLiveMatchCache(primaryLiveMatches);
-   warmLiveTeamHistories(allMatches);
-   $("status").textContent=allMatches.length+" canlı maç · API-Football kaynağı (ESPN taramasında eşleşen canlı yayın bulunamadı).";
+   warmLiveTeamHistories(primaryLiveMatches);
+   $("status").textContent=primaryLiveMatches.length+" canlı maç · API-Football kaynağı (ESPN taramasında eşleşen canlı yayın bulunamadı).";
    return;
   }
   // İkinci yedek: football-data.org tek istekte desteklenen müsabakalardaki canlı maçları döndürür.
@@ -4341,9 +4341,9 @@ async function loadLiveMatchesNow(){
     mamNotifyLiveGoalChanges(backupLive);
     publishLiveSnapshot(backupLive);
      mamSaveLiveMatchCache(backupLive);
-    await mamSaveMatchesToD1(allMatches);
-    warmLiveTeamHistories(allMatches);
-    $("status").textContent=allMatches.length+" canlı maç bulundu · Football-data.org yedek kaynağı · API-Football kotası kullanılamıyor.";
+    await mamSaveMatchesToD1(backupLive);
+    warmLiveTeamHistories(backupLive);
+    $("status").textContent=backupLive.length+" canlı maç bulundu · Football-data.org yedek kaynağı · API-Football kotası kullanılamıyor.";
     return;
    }
    footballDataErrorText="Football-data.org desteklediği müsabakalarda şu anda canlı maç döndürmedi.";
@@ -4357,8 +4357,8 @@ async function loadLiveMatchesNow(){
     mamNotifyLiveGoalChanges(sportScoreLive);
     publishLiveSnapshot(sportScoreLive);
      mamSaveLiveMatchCache(sportScoreLive);
-    await mamSaveMatchesToD1(allMatches);
-    $("status").textContent=allMatches.length+" canlı maç bulundu · SportScore yedek kaynağı · API-Football kotası dolu olabilir.";
+    await mamSaveMatchesToD1(sportScoreLive);
+    $("status").textContent=sportScoreLive.length+" canlı maç bulundu · SportScore yedek kaynağı · API-Football kotası dolu olabilir.";
     return;
    }
    sportScoreErrorText="SportScore canlı maç döndürmedi.";
