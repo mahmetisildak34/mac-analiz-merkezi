@@ -50,7 +50,7 @@ assert.match(html, /data-today-filter="finished"/, "Finished matches tab missing
 assert.match(html, /function mamIsFutureUnplayed\(match,now=Date\.now\(\)\)/, "Future kickoff status guard missing");
 assert.match(html, /stamp>now/, "Past kickoff must not remain upcoming");
 assert.match(html, /mamIstanbulDay\(m\.fixture\?\.date\)===selectedDay/, "Today must use Istanbul calendar day");
-assert.match(html, /const day=mamIstanbulDay\(m\.fixture\?\.date\);\s*return mamIsFutureUnplayed\(m,mamNow\)&&day>mamTodayKey&&day>=start&&day<=end/, "Upcoming must exclude today");
+assert.match(html, /const day=mamIstanbulDay\(m\.fixture\?\.date\);\s*return day===selectedDay&&mamIsFutureUnplayed\(m,mamNow\)/, "Upcoming must use the selected Istanbul day and include its remaining fixtures");
 assert.match(html, /main\.mam-screen-today #mamTodayTabs\{display:none!important\}/, "Redundant daily subfilter must be hidden");
 assert.match(html, /if\(mamScreenMode==="live"\)list=list\.filter/, "Live match screen filtering missing");
 assert.match(html, /if\(mamScreenMode==="finished"\)list=list\.filter/, "Finished match screen filtering missing");

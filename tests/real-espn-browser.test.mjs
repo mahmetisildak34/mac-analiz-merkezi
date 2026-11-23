@@ -114,6 +114,14 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
       await page.locator("#mamAuthGate").waitFor({state:"detached"});
       for(const [mode,{slug,leagueId,event}] of [["today",daily],["upcoming",future],["finished",finished]]){
        await page.locator(`[data-match-mode="${mode}"]`).click();
+       if(mode!=="today"){
+        await page.locator("#date").fill(eventDay(event));
+        await page.locator("#date").dispatchEvent("change");
+       }
+       if(mode==="finished"){
+        await page.locator("#leagueTrigger").click();
+        await page.locator(`#leagueMenu [data-league-value="${leagueId}"]`).click();
+       }
        const card=page.locator("#matches article.match").filter({
         has:page.locator(`.lineupBtn[data-id="espn-${slug}-${event.id}"]`)
        });
@@ -126,7 +134,10 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
        }
        if(mode==="upcoming"){
         await page.locator("#mamRefNext").click();
-        assert.equal(await page.locator("#date").inputValue(),shift(today,1));
+        assert.equal(await page.locator("#date").inputValue(),shift(eventDay(event),1));
+        await card.waitFor({state:"hidden"});
+        await page.locator("#mamRefPrev").click();
+        await card.waitFor({state:"visible"});
         await page.locator("#leagueTrigger").click();
         await page.locator(`#leagueMenu [data-league-value="${leagueId}"]`).click();
         await card.waitFor({state:"visible"});

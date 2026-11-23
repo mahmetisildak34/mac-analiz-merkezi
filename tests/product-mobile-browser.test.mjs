@@ -182,6 +182,7 @@ async function verifyMainApp(context,browserName){
     live('espn-eng.1-803',league,'Ertelenen Test',{short:'PST'}),
     live('espn-eng.1-804',league,'İptal Test',{short:'CANC'}),
     live('espn-eng.1-805',league,'Biten Test',{short:'FT'})];
+   document.getElementById('date').value=mamIstanbulDay(allMatches[0].fixture.date);
    renderMatches();
   });
   assert.equal(await main.locator('#matches .mam-league-heading strong').first().innerText(),'Premier League');
@@ -215,14 +216,16 @@ async function verifyMainApp(context,browserName){
   await main.evaluate(()=>{
    const now=Date.now();
    const league={id:'39',name:'Premier League',country:'England'};
-   const make=(id,status,team)=>({fixture:{id,date:new Date(now+2*86400000).toISOString(),status:{short:status}},
-    league,teams:{home:{id:2001,name:team},away:{id:2002,name:'Rakip'}},goals:{home:null,away:null}});
-   window.__visibilityFixtures=[make('upcoming-ui','NS','Gelecek Kart'),make('finished-ui','FT','Biten Kart')];
-   setMamScreen('upcoming');allMatches=window.__visibilityFixtures.filter(m=>m.fixture.status.short==='NS');renderMatches();
-  });
+    const make=(id,status,team,offset)=>({fixture:{id,date:new Date(now+offset*86400000).toISOString(),status:{short:status}},
+     league,teams:{home:{id:2001,name:team},away:{id:2002,name:'Rakip'}},goals:{home:null,away:null}});
+    window.__visibilityFixtures=[make('upcoming-ui','NS','Gelecek Kart',2),make('finished-ui','FT','Biten Kart',-2)];
+    setMamScreen('upcoming');allMatches=window.__visibilityFixtures.filter(m=>m.fixture.status.short==='NS');
+    document.getElementById('date').value=mamIstanbulDay(allMatches[0].fixture.date);renderMatches();
+   });
   assert.equal(await main.locator('#matches article:visible').filter({hasText:'Gelecek Kart'}).count(),1);
   assert.equal(await main.locator('#matches article:visible').filter({hasText:'Biten Kart'}).count(),0);
-  await main.evaluate(()=>{setMamScreen('finished');allMatches=window.__visibilityFixtures.filter(m=>m.fixture.status.short==='FT');renderMatches();});
+  await main.evaluate(()=>{setMamScreen('finished');allMatches=window.__visibilityFixtures.filter(m=>m.fixture.status.short==='FT');
+   document.getElementById('date').value=mamIstanbulDay(allMatches[0].fixture.date);renderMatches();});
   assert.equal(await main.locator('#matches article:visible').filter({hasText:'Gelecek Kart'}).count(),0);
   await main.evaluate(()=>{setMamScreen('live');allMatches=[];renderMatches();});
   assert.equal(await main.locator('#matches article:visible').count(),0);
@@ -283,6 +286,7 @@ async function verifyMainApp(context,browserName){
      league:transition.league==='bra.1'?{id:'71',name:'Brasileirão',country:'Brazil'}:{id:'141',name:'La Liga 2',country:'Spain'},teams:{home:team('home'),away:team('away')},
      goals:{home:Number(scores.home),away:Number(scores.away)}}];
     setMamScreen('live');
+    document.getElementById('date').value=mamIstanbulDay(allMatches[0].fixture.date);
     renderMatches();
    },{transition:recording,step});
   }
