@@ -109,6 +109,115 @@ async function verifyMainApp(context,browserName){
   await main.locator('[data-fav-matches]').getByText(/Erzurum BB.*Goztepe/).waitFor();
   await main.locator('[data-mam-remove-match="espn-tur.1-401888243"]').click();
   await main.locator('[data-fav-matches]').getByText('Favori maç yok.').waitFor();
+  const espnProfile=JSON.parse(readFileSync(new URL('./fixtures/espn-arsenal-profile-20261123.json',import.meta.url),'utf8'));
+  await main.evaluate(sample=>{
+   const originalFetch=window.fetch.bind(window);
+   window.originalMobileNow=Date.now;
+   Date.now=()=>Date.parse('2026-11-23T06:00:00Z');
+   const directory={teams:[{team:{id:'359',displayName:'Arsenal'}}]};
+   window.fixtureProfileRequests=[];
+   window.fetch=(input,options)=>{
+    const url=new URL(String(input),location.href);
+    if(url.hostname==='site.api.espn.com'&&url.pathname.endsWith('/teams')){
+     const teams=url.pathname.includes('/eng.1/')||url.pathname.includes('/uefa.champions/')?directory:{teams:[]};
+     return Promise.resolve(new Response(JSON.stringify({sports:[{leagues:[teams]}]})));
+    }
+    const route=url.pathname.split('/api/')[1];
+    if(route?.startsWith('espn/eng.1/')){
+     window.fixtureProfileRequests.push(route+'?'+url.searchParams);
+     const payload=route.includes('/teams/359/schedule')?sample.schedule:sample.scoreboards[url.searchParams.get('dates')];
+     if(payload)return Promise.resolve(new Response(JSON.stringify(payload)));
+    }
+    return originalFetch(input,options);
+   };
+   const base={league:{id:'39',name:'Premier League',country:'England'},
+    fixture:{id:2229,date:'2026-11-23T21:30:00Z',status:{short:'NS'}},
+    teams:{home:{id:42,name:'Arsenal'},away:{id:-1,name:'Club With Missing ID'}},goals:{home:0,away:0}};
+   setMamScreen('home');document.getElementById('league').value='all';
+   document.getElementById('date').value='2026-11-24';
+   allMatches=[base];renderMatches();
+  },espnProfile);
+  const midnightCard=main.locator('#matches article.match').filter({hasText:'Club With Missing ID'});
+  await midnightCard.locator('.match-clock').getByText('00:30',{exact:true}).waitFor();
+  await midnightCard.locator('[data-mam-star="0"]').waitFor();
+  assert.equal(await midnightCard.locator('[data-mam-star="2"]').count(),0);
+  const search=main.locator('#mamSearchToggle');
+  await search.click();
+  assert.equal(await main.locator('#mamTeamSearchResults button').count(),0);
+  const input=main.locator('#mamTeamSearchInput');
+  await input.fill('Ars');
+  const arsenal=main.locator('#mamTeamSearchResults [data-search-team="espn:eng.1:359"]');
+  await arsenal.waitFor();
+  assert.equal(await main.locator('#mamTeamSearchResults button').count(),1);
+  await arsenal.click();
+  const foundProfile=main.getByRole('dialog',{name:'Arsenal takım profili',exact:true});
+  await foundProfile.locator('#mamHistoryPastView').getByText(/Newcastle United/).first().waitFor();
+  await foundProfile.locator('[data-history-view="upcoming"]').click();
+  await foundProfile.locator('#mamHistoryUpcomingView').getByText('Manchester City',{exact:true}).waitFor();
+  await foundProfile.locator('#mamHistoryUpcomingView').getByText(/Önümüzdeki 30 gün/).waitFor();
+  assert.equal(await main.evaluate(()=>window.fixtureProfileRequests.some(x=>x.includes('/teams/42/'))),false);
+  assert.equal(await foundProfile.evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+  await foundProfile.locator('#mamTeamHistoryBack').press('Escape');
+  assert.equal(await search.evaluate(el=>el===document.activeElement),true);
+  await main.evaluate(()=>{
+   const now=Date.now();
+   const live=(id,league,name,status,goals={home:1,away:0})=>({fixture:{id,date:new Date(now-70*60000).toISOString(),status},
+    league,teams:{home:{id:2001,name},away:{id:2002,name:'Rakip'}},goals});
+   const league={id:'39',name:'Premier League',country:'England'};
+   setMamScreen('live');
+   allMatches=[live('espn-abc.1-800',{id:'999',name:'Diğer Lig'},'Diğer Canlı',{short:'LIVE',elapsed:69}),
+    live('espn-eng.1-801',league,'Arsenal Test',{short:'HT',elapsed:45}),
+    live('espn-eng.1-802',league,'Saat Verisi Yok',{short:'LIVE',elapsed:null,displayClock:'Nov 23, 2026'},{home:null,away:null}),
+    live('espn-eng.1-803',league,'Ertelenen Test',{short:'PST'}),
+    live('espn-eng.1-804',league,'İptal Test',{short:'CANC'}),
+    live('espn-eng.1-805',league,'Biten Test',{short:'FT'})];
+   renderMatches();
+  });
+  assert.equal(await main.locator('#matches .mam-league-heading strong').first().innerText(),'Premier League');
+  const halftimeClock=main.locator('#matches article').filter({hasText:'Arsenal Test'}).locator('.match-time');
+  await halftimeClock.waitFor();
+  assert.match(await halftimeClock.innerText(),/Devre arası/);
+  const missingClock=main.locator('#matches article').filter({hasText:'Saat Verisi Yok'});
+  assert.doesNotMatch(await missingClock.locator('.match-time').innerText(),/\d+'/);
+  assert.equal(await missingClock.locator('.match-clock').innerText(),'—');
+  assert.equal(await main.locator('#matches article').filter({hasText:/Ertelenen Test|İptal Test|Biten Test/}).count(),0);
+  // Regression for the original 8849f62 Chromium/WebKit hidden #matches article timeout.
+  // Hidden cards must be excluded from visibility-based checks, never assumed visible
+  // just because a text selector resolves to a DOM node.
+  const visibleHalf=main.locator('#matches article.match:visible').filter({hasText:'Arsenal Test'});
+  assert.equal(await visibleHalf.count(),1);
+  assert.match(await visibleHalf.locator('.match-time').innerText(),/Devre arası/);
+  await main.evaluate(()=>{
+   const source=document.querySelector('#matches article.match');
+   if(!source)throw new Error('Missing visible card to clone');
+   const hidden=source.cloneNode(true);
+   hidden.dataset.testHiddenCard='1';
+   hidden.style.setProperty('display','none','important');
+   document.querySelector('#matches').appendChild(hidden);
+  });
+  const hiddenCard=main.locator('#matches article[data-test-hidden-card="1"]');
+  assert.equal(await hiddenCard.count(),1);
+  assert.equal(await hiddenCard.isVisible(),false);
+  assert.equal(await main.locator('#matches article:visible[data-test-hidden-card="1"]').count(),0);
+  assert.ok(await main.locator('#matches article:visible').count()>0);
+  await main.evaluate(()=>document.querySelector('#matches article[data-test-hidden-card="1"]').remove());
+  await main.evaluate(()=>{
+   const now=Date.now();
+   const league={id:'39',name:'Premier League',country:'England'};
+   const make=(id,status,team)=>({fixture:{id,date:new Date(now+2*86400000).toISOString(),status:{short:status}},
+    league,teams:{home:{id:2001,name:team},away:{id:2002,name:'Rakip'}},goals:{home:null,away:null}});
+   window.__visibilityFixtures=[make('upcoming-ui','NS','Gelecek Kart'),make('finished-ui','FT','Biten Kart')];
+   setMamScreen('upcoming');allMatches=window.__visibilityFixtures.filter(m=>m.fixture.status.short==='NS');renderMatches();
+  });
+  assert.equal(await main.locator('#matches article:visible').filter({hasText:'Gelecek Kart'}).count(),1);
+  assert.equal(await main.locator('#matches article:visible').filter({hasText:'Biten Kart'}).count(),0);
+  await main.evaluate(()=>{setMamScreen('finished');allMatches=window.__visibilityFixtures.filter(m=>m.fixture.status.short==='FT');renderMatches();});
+  assert.equal(await main.locator('#matches article:visible').filter({hasText:'Gelecek Kart'}).count(),0);
+  await main.evaluate(()=>{setMamScreen('live');allMatches=[];renderMatches();});
+  assert.equal(await main.locator('#matches article:visible').count(),0);
+  assert.ok(await main.locator('#matches').isVisible());
+
+  await main.evaluate(()=>{Date.now=window.originalMobileNow;});
   const historical=JSON.parse(readFileSync(new URL('./fixtures/espn-tur1-2025-standings.json',import.meta.url),'utf8'));
   await main.evaluate(payload=>{
    const fetchNetwork=window.fetch.bind(window);

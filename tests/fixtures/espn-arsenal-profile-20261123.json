@@ -1,0 +1,659 @@
+{
+  "capturedOn": "2026-11-23",
+  "league": "eng.1",
+  "teamId": "359",
+  "schedule": {
+    "events": [
+      {
+        "id": "401879232",
+        "date": "2026-11-21T17:30Z",
+        "league": {
+          "slug": "eng.1"
+        },
+        "status": null,
+        "competitions": [
+          {
+            "date": "2026-11-21T17:30Z",
+            "status": {
+              "clock": 5400.0,
+              "addedClock": 600.0,
+              "displayClock": "90'+10'",
+              "period": 2,
+              "type": {
+                "id": "28",
+                "name": "STATUS_FULL_TIME",
+                "state": "post",
+                "completed": true,
+                "description": "Full Time",
+                "detail": "FT",
+                "shortDetail": "FT"
+              }
+            },
+            "competitors": [
+              {
+                "homeAway": "home",
+                "team": {
+                  "id": "361",
+                  "displayName": "Newcastle United"
+                },
+                "score": {
+                  "value": 2.0,
+                  "displayValue": "2"
+                }
+              },
+              {
+                "homeAway": "away",
+                "team": {
+                  "id": "359",
+                  "displayName": "Arsenal"
+                },
+                "score": {
+                  "value": 2.0,
+                  "displayValue": "2"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "401878760",
+        "date": "2026-11-07T15:00Z",
+        "league": {
+          "slug": "eng.1"
+        },
+        "status": null,
+        "competitions": [
+          {
+            "date": "2026-11-07T15:00Z",
+            "status": {
+              "clock": 5400.0,
+              "addedClock": 300.0,
+              "displayClock": "90'+5'",
+              "period": 2,
+              "type": {
+                "id": "28",
+                "name": "STATUS_FULL_TIME",
+                "state": "post",
+                "completed": true,
+                "description": "Full Time",
+                "detail": "FT",
+                "shortDetail": "FT"
+              }
+            },
+            "competitors": [
+              {
+                "homeAway": "home",
+                "team": {
+                  "id": "359",
+                  "displayName": "Arsenal"
+                },
+                "score": {
+                  "value": 1.0,
+                  "displayValue": "1"
+                }
+              },
+              {
+                "homeAway": "away",
+                "team": {
+                  "id": "306",
+                  "displayName": "Hull City"
+                },
+                "score": {
+                  "value": 0.0,
+                  "displayValue": "0"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "scoreboards": {
+    "202611": {
+      "events": [
+        {
+          "id": "401879246",
+          "date": "2026-11-01T16:30Z",
+          "status": {
+            "clock": 5400.0,
+            "displayClock": "90'+7'",
+            "period": 2,
+            "type": {
+              "id": "28",
+              "name": "STATUS_FULL_TIME",
+              "state": "post",
+              "completed": true,
+              "description": "Full Time",
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          },
+          "competitions": [
+            {
+              "date": "2026-11-01T16:30Z",
+              "status": {
+                "clock": 5400.0,
+                "displayClock": "90'+7'",
+                "period": 2,
+                "type": {
+                  "id": "28",
+                  "name": "STATUS_FULL_TIME",
+                  "state": "post",
+                  "completed": true,
+                  "description": "Full Time",
+                  "detail": "FT",
+                  "shortDetail": "FT"
+                }
+              },
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "364",
+                    "displayName": "Liverpool"
+                  },
+                  "score": "0"
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "359",
+                    "displayName": "Arsenal"
+                  },
+                  "score": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "401878760",
+          "date": "2026-11-07T15:00Z",
+          "status": {
+            "clock": 5400.0,
+            "displayClock": "90'+5'",
+            "period": 2,
+            "type": {
+              "id": "28",
+              "name": "STATUS_FULL_TIME",
+              "state": "post",
+              "completed": true,
+              "description": "Full Time",
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          },
+          "competitions": [
+            {
+              "date": "2026-11-07T15:00Z",
+              "status": {
+                "clock": 5400.0,
+                "displayClock": "90'+5'",
+                "period": 2,
+                "type": {
+                  "id": "28",
+                  "name": "STATUS_FULL_TIME",
+                  "state": "post",
+                  "completed": true,
+                  "description": "Full Time",
+                  "detail": "FT",
+                  "shortDetail": "FT"
+                }
+              },
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "359",
+                    "displayName": "Arsenal"
+                  },
+                  "score": "1"
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "306",
+                    "displayName": "Hull City"
+                  },
+                  "score": "0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "401879232",
+          "date": "2026-11-21T17:30Z",
+          "status": {
+            "clock": 5400.0,
+            "displayClock": "90'+10'",
+            "period": 2,
+            "type": {
+              "id": "28",
+              "name": "STATUS_FULL_TIME",
+              "state": "post",
+              "completed": true,
+              "description": "Full Time",
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          },
+          "competitions": [
+            {
+              "date": "2026-11-21T17:30Z",
+              "status": {
+                "clock": 5400.0,
+                "displayClock": "90'+10'",
+                "period": 2,
+                "type": {
+                  "id": "28",
+                  "name": "STATUS_FULL_TIME",
+                  "state": "post",
+                  "completed": true,
+                  "description": "Full Time",
+                  "detail": "FT",
+                  "shortDetail": "FT"
+                }
+              },
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "361",
+                    "displayName": "Newcastle United"
+                  },
+                  "score": "2"
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "359",
+                    "displayName": "Arsenal"
+                  },
+                  "score": "2"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "401878753",
+          "date": "2026-11-29T16:30Z",
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0'",
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Sun, November 29th at 11:30 AM EST",
+              "shortDetail": "Scheduled"
+            }
+          },
+          "competitions": [
+            {
+              "date": "2026-11-29T16:30Z",
+              "status": {
+                "clock": 0.0,
+                "displayClock": "0'",
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Sun, November 29th at 11:30 AM EST",
+                  "shortDetail": "Scheduled"
+                }
+              },
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "359",
+                    "displayName": "Arsenal"
+                  },
+                  "score": "0"
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "382",
+                    "displayName": "Manchester City"
+                  },
+                  "score": "0"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "202612": {
+      "events": [
+        {
+          "id": "401878750",
+          "date": "2026-12-02T20:15Z",
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0'",
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Wed, December 2nd at 3:15 PM EST",
+              "shortDetail": "Scheduled"
+            }
+          },
+          "competitions": [
+            {
+              "date": "2026-12-02T20:15Z",
+              "status": {
+                "clock": 0.0,
+                "displayClock": "0'",
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Wed, December 2nd at 3:15 PM EST",
+                  "shortDetail": "Scheduled"
+                }
+              },
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "337",
+                    "displayName": "Brentford"
+                  },
+                  "score": "0"
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "359",
+                    "displayName": "Arsenal"
+                  },
+                  "score": "0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "401879209",
+          "date": "2026-12-06T16:30Z",
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0'",
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Sun, December 6th at 11:30 AM EST",
+              "shortDetail": "Scheduled"
+            }
+          },
+          "competitions": [
+            {
+              "date": "2026-12-06T16:30Z",
+              "status": {
+                "clock": 0.0,
+                "displayClock": "0'",
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Sun, December 6th at 11:30 AM EST",
+                  "shortDetail": "Scheduled"
+                }
+              },
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "367",
+                    "displayName": "Tottenham Hotspur"
+                  },
+                  "score": "0"
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "359",
+                    "displayName": "Arsenal"
+                  },
+                  "score": "0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "401878746",
+          "date": "2026-12-13T14:00Z",
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0'",
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Sun, December 13th at 9:00 AM EST",
+              "shortDetail": "Scheduled"
+            }
+          },
+          "competitions": [
+            {
+              "date": "2026-12-13T14:00Z",
+              "status": {
+                "clock": 0.0,
+                "displayClock": "0'",
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Sun, December 13th at 9:00 AM EST",
+                  "shortDetail": "Scheduled"
+                }
+              },
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "359",
+                    "displayName": "Arsenal"
+                  },
+                  "score": "0"
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "349",
+                    "displayName": "AFC Bournemouth"
+                  },
+                  "score": "0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "401879204",
+          "date": "2026-12-20T16:30Z",
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0'",
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Sun, December 20th at 11:30 AM EST",
+              "shortDetail": "Scheduled"
+            }
+          },
+          "competitions": [
+            {
+              "date": "2026-12-20T16:30Z",
+              "status": {
+                "clock": 0.0,
+                "displayClock": "0'",
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Sun, December 20th at 11:30 AM EST",
+                  "shortDetail": "Scheduled"
+                }
+              },
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "359",
+                    "displayName": "Arsenal"
+                  },
+                  "score": "0"
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "360",
+                    "displayName": "Manchester United"
+                  },
+                  "score": "0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "401878735",
+          "date": "2026-12-27T19:00Z",
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0'",
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Sun, December 27th at 2:00 PM EST",
+              "shortDetail": "Scheduled"
+            }
+          },
+          "competitions": [
+            {
+              "date": "2026-12-27T19:00Z",
+              "status": {
+                "clock": 0.0,
+                "displayClock": "0'",
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Sun, December 27th at 2:00 PM EST",
+                  "shortDetail": "Scheduled"
+                }
+              },
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "384",
+                    "displayName": "Crystal Palace"
+                  },
+                  "score": "0"
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "359",
+                    "displayName": "Arsenal"
+                  },
+                  "score": "0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "401879191",
+          "date": "2026-12-30T19:30Z",
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0'",
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Wed, December 30th at 2:30 PM EST",
+              "shortDetail": "Scheduled"
+            }
+          },
+          "competitions": [
+            {
+              "date": "2026-12-30T19:30Z",
+              "status": {
+                "clock": 0.0,
+                "displayClock": "0'",
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Wed, December 30th at 2:30 PM EST",
+                  "shortDetail": "Scheduled"
+                }
+              },
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "370",
+                    "displayName": "Fulham"
+                  },
+                  "score": "0"
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "359",
+                    "displayName": "Arsenal"
+                  },
+                  "score": "0"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

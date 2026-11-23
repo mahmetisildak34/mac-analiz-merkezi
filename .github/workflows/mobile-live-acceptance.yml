@@ -1,0 +1,68 @@
+name: Live and mobile product acceptance
+on:
+  push:
+    branches: [feature/live-mobile-product-acceptance-20261123]
+
+permissions:
+  contents: read
+
+jobs:
+  node-regressions:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run application and mobile regressions
+        run: >-
+          node --test test/app-integrity.test.cjs tests/*.test.js
+          tests/{favorites-bottom-nav-regression,main-favorites-integration,product-features,product-hub-integration}.test.mjs
+          tests/premium-dark-mobile.test.cjs
+  espn-extended-coverage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check public ESPN archive and team fixture coverage
+        run: |
+          set -o pipefail
+          node --check tests/espn-public-coverage-audit.mjs
+          node tests/espn-public-coverage-audit.mjs --archive | tee espn-extended-coverage.jsonl
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const rows=fs.readFileSync('espn-extended-coverage.jsonl','utf8').trim().split('\\n').map(JSON.parse);
+            if(rows.length!==49||new Set(rows.map(r=>r.league)).size!==49)process.exit(1);
+            const keys=['scoreboard','fixtures','live','finished','score','goals','cards','substitutions','statistics','lineups','standings','teamHistory','upcoming'];
+            const states=new Set(['verified','unsupported','no_sample','blocked']);
+            for(const row of rows)for(const key of keys){
+              if(!states.has(row.featureStatus?.[key]))throw new Error(row.league+' missing '+key+' evidence status');
+            }
+            console.log('49 ESPN leagues: feature-level evidence statuses saved.');
+          "
+      - name: Retain per-league source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: espn-49-league-extended-coverage
+          path: espn-extended-coverage.jsonl
+          if-no-files-found: warn
+  iphone-acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium and WebKit
+        run: |
+          npm install --no-save --no-package-lock playwright@1.58.2
+          npx playwright install --with-deps chromium webkit
+      - name: Verify premium appearance and real app interactions
+        run: node --test tests/premium-dark-browser.test.cjs tests/product-mobile-browser.test.mjs
+      - name: Verify real upcoming ESPN fixtures in Chromium and WebKit
+        run: node --test tests/espn-upcoming-real-browser.test.mjs

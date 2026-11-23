@@ -6,6 +6,8 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
   const browser = await engine.launch({headless:true});
   try {
     const page = await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,locale:'tr-TR'});
+    const origin = new URL(url).origin;
+    await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
     await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
     // Local UI-only acceptance: no credentials or production authentication are exercised.
     // The app's authentication overlay blocks clicks on the static preview.

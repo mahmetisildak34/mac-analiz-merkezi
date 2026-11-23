@@ -1,0 +1,34 @@
+name: Advanced match details acceptance
+on:
+  push:
+    branches: [feature/advanced-match-details-20261123]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  details-node:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check ESPN detail module
+        run: |
+          node --check mobile/espn-match-details.mjs
+          node --test tests/espn-match-details.test.mjs tests/advanced-espn-overlay.test.mjs tests/match-card-visibility-regression.test.mjs tests/match-card-interaction.test.mjs
+  details-browser-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium and WebKit
+        run: |
+          npm install --no-save --no-package-lock playwright@1.58.2
+          npx playwright install --with-deps chromium webkit
+      - name: Run existing premium mobile acceptance
+        run: node --test tests/premium-dark-browser.test.cjs tests/product-mobile-browser.test.mjs

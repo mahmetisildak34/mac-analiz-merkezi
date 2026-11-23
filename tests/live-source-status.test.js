@@ -25,7 +25,7 @@ test("ESPN lists only provider-declared in-progress and halftime events as live"
   [{state:"post",name:"STATUS_CANCELLED"},"CANC"],
   [{state:"post",name:"STATUS_CANCELED"},"CANC"],
   [{state:"in",name:"STATUS_ABANDONED"},"ABD"],
-  [{name:"STATUS_UNKNOWN"},"NS"]
+  [{name:"STATUS_UNKNOWN"},"UNK"]
  ])assert.equal(status(input),expected);
  assert.equal(status({}, {state:"in"}),"LIVE");
  assert.equal(status({state:"in"}, {name:"STATUS_POSTPONED"}),"PST");
@@ -193,4 +193,44 @@ test("a stale not-started label cannot authorize a prematch prediction after ESP
  assert.equal(eligible("NS",fixture.date,at+1000),false);
  assert.equal(eligible("TBD",fixture.date,at-1000),false);
  assert.equal(eligible("NS",fixture.date.slice(0,10),at-1000),false);
+});
+
+test("ESPN rejects placeholder and malformed scores while keeping provider zero",()=>{
+ const source=html.match(/function mamEspnGoal\([\s\S]*?\n\}/)?.[0];
+ const score=require("node:vm").runInNewContext(source+";mamEspnGoal");
+ for(const value of [null,undefined,""," ",false,-1,"-1",0.5,"1.5","4e1",Infinity,{}])assert.equal(score(value),null);
+ for(const value of [0,"0",{value:0},{displayValue:"0"}])assert.equal(score(value),0);
+ assert.equal(score({value:2,displayValue:"2"}),2);
+});
+
+test("ESPN stoppage time and exact known status survive the real parser",()=>{
+ const status=html.match(/function mamEspnStatus\([\s\S]*?\n\}/)?.[0];
+ const clock=html.match(/function mamEspnClock\([\s\S]*?\n\}/)?.[0];
+ const parse=require("node:vm").runInNewContext(status+clock+";[mamEspnStatus,mamEspnClock]");
+ assert.equal(parse[0](null,{state:"in",name:"STATUS_HALFTIME"}),"HT");
+ assert.equal(parse[0]({state:"post",name:"STATUS_FINAL_PEN"}),"PEN");
+ assert.equal(parse[1]({status:{displayClock:"90'+10'"}}).displayClock,"90+10'");
+ assert.equal(parse[1]({status:{displayClock:"Nov 23, 2026"}}).elapsed,null);
+});
+
+test("real ESPN historical and monthly fixtures use exact team IDs across Istanbul month boundaries",async()=>{
+ const methods=["mamEspnStatus","mamEspnGoal","mamIstanbulDay","mamHasCompletedScore","mamCanonicalMatchStatus","mamIsFutureUnplayed","mamEspnProfileFixtures","mamSearchEspnProfile"];
+ const js=methods.map(name=>html.match(new RegExp("(?:async )?function "+name+"\\([\\s\\S]*?\\n\\}"))?.[0]).join("\n");
+ const sample=require("./fixtures/espn-arsenal-profile-20261123.json");
+ const fake=structuredClone(sample.scoreboards["202612"].events[0]);
+ const target=fake.competitions[0].competitors.find(team=>team.team.id==="359");
+ target.team.id="999";
+ fake.id="99999";
+ sample.scoreboards["202612"].events.push(fake);
+ const starts=Date.parse("2026-11-23T06:00:00Z"),urls=[];
+ const context={ESPN_LEAGUES:{"39":{slug:"eng.1",name:"Premier League",country:"England"}},qs:x=>new URLSearchParams(x),
+  api:async request=>{urls.push(request);return request.includes("schedule")?sample.schedule:sample.scoreboards[new URLSearchParams(request.split("?")[1]).get("dates")];}};
+ const load=require("node:vm").runInNewContext(js+";mamSearchEspnProfile",context);
+ const result=await load("359","39",starts);
+ assert.equal(result.recent[0].goals.home,2);
+ assert.equal(result.recent[0].goals.away,2);
+ assert.ok(result.upcoming.some(m=>m.teams.home.name==="Arsenal"&&m.teams.away.name==="Manchester City"));
+ assert.ok(result.upcoming.some(m=>m.fixture.date.startsWith("2026-12-")));
+ assert.ok(result.upcoming.every(m=>m.fixture.id!=="espn-eng.1-99999"&&m.goals.home===null&&m.goals.away===null));
+ assert.deepEqual(urls,["espn/eng.1/teams/359/schedule?season=2026","espn/eng.1/scoreboard?dates=202611&limit=500","espn/eng.1/scoreboard?dates=202612&limit=500"]);
 });
