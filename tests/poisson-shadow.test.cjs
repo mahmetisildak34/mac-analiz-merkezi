@@ -192,3 +192,65 @@ test("different implementation revisions never share an inference cohort", async
   assert.equal(result.overall.matches, 0);
   assert.deepEqual(Object.values(result.cohorts).map(x => x.overall.matches), [1, 1]);
 });
+
+test("settlement reuses verified half-time on outage only while a fresh full-time score agrees", async () => {
+  const { settle } = require("../scripts/poisson-shadow.cjs");
+  const { ledger, input } = await setup();
+  const { value } = await ledger.append(input);
+  const old = await ledger.outcome(value, {
+    fixtureKey: input.fixture.key, observedAt, full: [2, 1], half: [1, 1],
+    status: "completed", boardSha256: hash, summarySha256: hash
+  });
+  let current = event(full);
+  const provider = { failures: [], board: async () => ({
+    events: [current], source: { capturedAt: observedAt, sha256: hash }
+  }), get: async () => null };
+  const [reused] = await settle([value], provider, ledger);
+  assert.deepEqual(reused.half, [1, 1]);
+  assert.equal(reused.halfStatus, "verified_archive");
+  assert.equal(reused.outcomeSha256, old.sha256);
+  assert.equal((await ledger.results()).length, 2);
+  current = event(full);
+  current.competitions[0].competitors[0].score = "5";
+  const [conflict] = await settle([value], provider, ledger);
+  assert.equal(conflict.status, "result_conflict");
+  assert.equal(compare([value], [conflict], "half").totalMatched, 0);
+  assert.equal((await ledger.results()).length, 2);
+});
+
+test("isolated baseline and extension groups report descriptive v1.2 differences without bootstrapping", async () => {
+  const { pilotGroups } = require("../scripts/poisson-shadow.cjs");
+  const { ledger, input } = await setup();
+  const { value } = await ledger.append(input);
+  const next = structuredClone(value);
+  next.fixture.key = "espn:tur.1:151";
+  next.models[models[1]].full.probabilities = [0.7, 0.2, 0.1];
+  const outcomes = [{ fixtureKey: value.fixture.key, status: "pending" },
+    { fixtureKey: next.fixture.key, status: "completed", full: [2, 1] }];
+  const groups = pilotGroups([value, next], outcomes, [value]);
+  assert.deepEqual(groups.original.statuses, { pending: 1 });
+  assert.deepEqual(groups.extension.statuses, { completed: 1 });
+  assert.deepEqual(groups.original.full.overall.deltasVsV12, {});
+  assert.ok(groups.extension.full.overall.deltasVsV12[models[1]].logLoss < 0);
+  assert.deepEqual(groups.extension.full.overall.pairs, []);
+  assert.throws(() => pilotGroups([value], [], [{ ...value, sha256: "wrong" }]), /Baseline pilot/);
+});
+
+test("archive transport retries incomplete CSVs, never joins partial bytes and leaves 404 alone", async () => {
+  const { readArchiveCsv } = require("../scripts/poisson-shadow.cjs");
+  const url = "https://www.football-data.co.uk/mmz4281/2526/I1.csv";
+  const complete = Buffer.from("Div,Date\nI1,22/11/25");
+  let attempts = 0;
+  const result = await readArchiveCsv(url, async () => {
+    if (++attempts === 1) throw Object.assign(new Error("partial"), { code: 28, stdout: Buffer.from("Div,D") });
+    return { stdout: complete };
+  });
+  assert.equal(attempts, 2);
+  assert.deepEqual(result.bytes, complete);
+  attempts = 0;
+  await assert.rejects(readArchiveCsv(url, async () => {
+    attempts++;
+    throw Object.assign(new Error("not found"), { code: 22, stderr: Buffer.from("HTTP 404") });
+  }), /not found/);
+  assert.equal(attempts, 1);
+});

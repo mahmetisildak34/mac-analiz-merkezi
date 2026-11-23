@@ -3,7 +3,7 @@ const { execFile, execFileSync } = require("node:child_process");
 const { readFile } = require("node:fs/promises");
 const { resolve } = require("node:path");
 const { parseArgs, promisify } = require("node:util");
-const { cleanArchive } = require("./poisson-football-data.cjs");
+const { cleanArchive, parseDate } = require("./poisson-football-data.cjs");
 const { loadWorkerModels } = require("./poisson-worker-models.cjs");
 const { summarize } = require("./backtest-poisson.cjs");
 const { pairedComparison } = require("./poisson-evaluation.cjs");
@@ -29,13 +29,23 @@ async function runBatched(items, work) {
 }
 
 const curl = promisify(execFile);
-async function readArchiveCsv(url) {
+async function readArchiveCsv(url, read = curl) {
   // Football-Data requires the runtime's HTTPS proxy in Work. curl honors
   // that proxy while retaining the exact public provider URL in the evidence.
-  const { stdout: bytes } = await curl("curl", ["--fail", "--silent", "--show-error",
+  const args = ["--fail", "--silent", "--show-error",
     "--proto", "=https", "--proto-redir", "=https", "--location", "--max-redirs", "3",
-    "--max-time", "18", "--max-filesize", "8000000", url],
-  { encoding: "buffer", maxBuffer: 8_100_000 });
+    "--max-time", "25", "--max-filesize", "8000000", url];
+  const attempt = () => read("curl", args, { encoding: "buffer", maxBuffer: 8_100_000 });
+  let response;
+  try { response = await attempt(); }
+  catch (error) {
+    const retryable = [5, 6, 7, 18, 28, 52, 55, 56].includes(error.code) ||
+      (error.code === 22 && /\b(?:429|50[0234])\b/.test(String(error.stderr)));
+    if (!retryable) throw error;
+    // A new process replaces the previous response instead of reusing bytes from a partial transfer.
+    response = await attempt();
+  }
+  const bytes = response.stdout;
   return { bytes, capturedAt: now(), url, sha256: sha(bytes) };
 }
 
@@ -79,10 +89,10 @@ async function leagueInputs(league, day, worker, provider) {
   return { sources, rows, periods, trainingCutoff: start };
 }
 
-async function capture(ledger, worker, revisions, provider, days) {
+async function capture(ledger, worker, revisions, provider, days, captureFrom) {
   const beganAt = now();
   const day = istanbulDay(timestamp(beganAt));
-  const dates = daysBetween(timestamp(beganAt), days);
+  const dates = daysBetween(captureFrom ? Date.parse(captureFrom) : timestamp(beganAt), days);
   const booked = new Set((await ledger.list()).map(r => r.fixture.key));
   const decisions = [];
   const inputs = new Map();
@@ -131,6 +141,11 @@ async function capture(ledger, worker, revisions, provider, days) {
       let saved;
       try { saved = await ledger.append({ fixture: game, sourceAt, snapshotSha256: snapshot.sha256, models: p.models }); }
       catch (error) {
+        if (error.message === "Conflicting immutable prediction") {
+          booked.add(game.key);
+          decisions.push({ fixtureKey: game.key, status: "concurrent_prediction_preserved" });
+          continue;
+        }
         if (timestamp(now()) >= timestamp(game.kickoff)) {
           decisions.push({ fixtureKey: game.key, status: "late_capture" });
           continue;
@@ -171,7 +186,7 @@ async function findResult(original, provider) {
     boardSha256: board.source.sha256, scoreboard: sourceProof(board.source), resultEventSha256: digest(event) };
   if (checked.status !== "completed") return evidence;
   const summary = await provider.get(summaryUrl(original.league, original.id));
-  if (!summary) return { ...evidence, half: null };
+  if (!summary) return { ...evidence, half: null, halfStatus: "source_unavailable" };
   try {
     const payload = JSON.parse(summary.bytes);
     const c = payload.header?.competitions?.[0];
@@ -183,24 +198,42 @@ async function findResult(original, provider) {
         summaryEvidence.full.some((score, i) => score !== checked.full[i])))) {
       return { ...proof, status: "result_conflict", full: null, half: null };
     }
-    return { ...proof, half: verifiedHalf(original, checked.full, payload) };
+    const half = verifiedHalf(original, checked.full, payload);
+    return { ...proof, half, halfStatus: half ? "verified" : "unverified" };
   } catch (error) {
     provider.failures.push({ url: summary.url, error: error.message });
-    return { ...evidence, half: null };
+    return { ...evidence, half: null, halfStatus: "unverified" };
   }
 }
 
 async function settle(records, provider, ledger) {
+  const sealedHalves = new Map((await ledger.results()).filter(row => row.half !== null)
+    .map(row => [row.fixtureKey, row]));
   return runBatched(records, async record => {
+    const fixtureKey = record.fixture.key;
     const evidence = await findResult(record.fixture, provider);
-    if (evidence.status === "completed") {
-      try { await ledger.outcome(record, evidence); }
-      catch (error) {
-        if (error.message === "Conflicting immutable result") return { fixtureKey: record.fixture.key, status: "result_conflict" };
-        throw error;
-      }
+    if (evidence.status !== "completed") return { ...evidence, fixtureKey };
+
+    // A transient summary outage does not erase a sealed half-time result when
+    // the current ESPN scoreboard confirms the same full-time score and identity.
+    const prior = sealedHalves.get(fixtureKey);
+    if (evidence.halfStatus === "source_unavailable" && prior?.predictionSha256 === record.sha256 &&
+        digest(evidence.full) === digest(prior.full)) {
+      evidence.half = prior.half;
+      evidence.halfStatus = "verified_archive";
+      evidence.summarySha256 = prior.summarySha256;
+      evidence.summary = prior.summary;
     }
-    return { fixtureKey: record.fixture.key, ...evidence };
+    try {
+      const sealed = await ledger.outcome(record, evidence);
+      return { ...evidence, fixtureKey, outcomeSha256: sealed.sha256 };
+    } catch (error) {
+      if (error.message === "Conflicting immutable result") {
+        return { fixtureKey, status: "result_conflict", observedAt: evidence.observedAt,
+          boardSha256: evidence.boardSha256, summarySha256: evidence.summarySha256 };
+      }
+      throw error;
+    }
   });
 }
 
@@ -219,8 +252,12 @@ function compare(records, outcomes, period) {
     const blocks = new Set(group.map(row => `${row.season}:${Math.floor(Date.parse(row.day) / (28 * 86400000))}`)).size;
     // Pilot reporting is descriptive until the archive has several independent periods.
     const inferenceReady = group.length >= 100 && blocks >= 8;
-    return { matches: group.length, blocks, inferenceReady,
-      models: Object.fromEntries(models.map(name => [name, summarize(group, name)])),
+    const summaries = Object.fromEntries(models.map(name => [name, summarize(group, name)]));
+    const baseline = summaries["Worker v1.2"];
+    const metrics = ["accuracy", "logLoss", "multiclassBrier", "ece"];
+    return { matches: group.length, blocks, inferenceReady, models: summaries,
+      deltasVsV12: group.length ? Object.fromEntries(Object.entries(summaries).map(([name, model]) =>
+        [name, Object.fromEntries(metrics.map(metric => [metric, model[metric] - baseline[metric]]))])) : {},
       pairs: inferenceReady ? models.flatMap((name, i) =>
         models.slice(0, i).map(baseline => pairedComparison(group, name, baseline))) : [] };
   }
@@ -241,6 +278,28 @@ function compare(records, outcomes, period) {
       revisions: Object.fromEntries(models.map((name, i) => [name, cohort.revisions[i]])), ...grouped(cohort.rows)
     }]))
   };
+}
+
+function pilotGroups(records, outcomes, baselineRecords) {
+  const current = new Map(records.map(record => [record.fixture.key, record.sha256]));
+  const baseline = new Map(baselineRecords.map(record => [record.fixture.key, record.sha256]));
+  if (baseline.size !== baselineRecords.length ||
+      [...baseline].some(([key, sha256]) => current.get(key) !== sha256)) {
+    throw new Error("Baseline pilot predictions do not match the sealed archive");
+  }
+  return Object.fromEntries([["original", true], ["extension", false]].map(([label, original]) => {
+    const group = records.filter(record => baseline.has(record.fixture.key) === original);
+    const keys = new Set(group.map(record => record.fixture.key));
+    const groupOutcomes = outcomes.filter(result => keys.has(result.fixtureKey));
+    return [label, {
+      fixtures: group.length,
+      statuses: groupOutcomes.reduce((counts, row) => {
+        counts[row.status] = (counts[row.status] ?? 0) + 1;
+        return counts;
+      }, {}),
+      full: compare(group, groupOutcomes, "full"), half: compare(group, groupOutcomes, "half")
+    }];
+  }));
 }
 
 async function legacyAudit(path, provider) {
@@ -272,7 +331,8 @@ async function main() {
   const { values } = parseArgs({ options: {
     mode: { type: "string", default: "disabled" }, archive: { type: "string" },
     "worker-checkout": { type: "string" }, days: { type: "string", default: "7" },
-    restore: { type: "string" }, bundle: { type: "boolean", default: false }
+    restore: { type: "string" }, bundle: { type: "boolean", default: false },
+    baseline: { type: "string" }, "capture-from": { type: "string" }
   } });
   const { mode } = values;
   if (mode === "disabled") {
@@ -284,6 +344,8 @@ async function main() {
   }
   const days = Number(values.days);
   if (!Number.isSafeInteger(days) || days < 1 || days > 14) throw new Error("Days must be between 1 and 14");
+  const captureFrom = values["capture-from"];
+  if (captureFrom && parseDate(captureFrom) !== captureFrom) throw new Error("Use YYYY-MM-DD for capture start");
   const front = execFileSync("git", ["-C", __dirname, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   if (execFileSync("git", ["-C", __dirname, "status", "--porcelain", "--untracked-files=no"], { encoding: "utf8" }).trim()) {
     throw new Error("Use a clean frontend checkout so forecast revisions are auditable");
@@ -295,11 +357,12 @@ async function main() {
     await ledger.restore(previous.archive);
   }
   const provider = providers();
-  const decisions = mode === "settle" ? [] : await capture(ledger, worker, { front, worker: worker.revision }, provider, days);
+  const decisions = mode === "settle" ? [] : await capture(ledger, worker, { front, worker: worker.revision }, provider, days, captureFrom);
   const records = await ledger.list();
   const outcomes = mode === "capture" ? [] : await settle(records, provider, ledger);
   const legacy = mode === "capture" ? null : await legacyAudit(resolve(values["worker-checkout"],
     "research/real-pre-match-forecast-evidence-2026-11-22.json"), provider);
+  const baseline = values.baseline ? JSON.parse(await readFile(resolve(values.baseline))).archive.predictions : null;
   console.log(JSON.stringify({
     schemaVersion: 1, mode, reportedAt: now(), liveDefault: "Worker v1.2",
     revisions: { front, worker: worker.revision }, captureDecisions: decisions, sourceFailures: provider.failures,
@@ -308,9 +371,10 @@ async function main() {
     })),
     outcomes, storedOutcomes: (await ledger.results()).length, legacyV12: legacy,
     prospective: { full: compare(records, outcomes, "full"), half: compare(records, outcomes, "half") },
+    ...(baseline && { pilotGroups: pilotGroups(records, outcomes, baseline) }),
     ...(values.bundle && { archive: await ledger.bundle() })
   }, null, 2));
 }
 
 if (require.main === module) main().catch(error => { console.error(error.message); process.exitCode = 1; });
-module.exports = { compare, findResult, leagueInputs };
+module.exports = { compare, findResult, leagueInputs, pilotGroups, readArchiveCsv, settle };
