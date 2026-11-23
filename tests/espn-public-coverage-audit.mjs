@@ -44,13 +44,31 @@ function summarize(data){
   players:rosters.some(team=>list(team?.roster).some(entry=>list(entry?.stats).length>0))
  };
 }
+// Bounded tournament-specific dates supplement the league calendar, which ESPN
+// sometimes omits on days without matches. A probe is evidence only if the
+// provider actually returns a completed event.
 const verifiedArchiveDates={
- 'uefa.champions':'20261104',
- 'fifa.world':'20260719',
- 'uefa.euro':'20240714'
+ 'uefa.champions':['20261104'],
+ 'fifa.world':['20260719'],
+ 'uefa.euro':['20240714'],
+ 'esp.copa_del_rey':['20261028','20260114','20251203'],
+ 'uefa.europa':['20261105','20261022','20260520'],
+ 'uefa.europa.conf':['20261105','20261022','20260527'],
+ 'tur.2':['20261121','20261108','20260816'],
+ 'ger.dfb_pokal':['20261028','20260818','20260523'],
+ 'ita.coppa_italia':['20260924','20260422'],
+ 'fra.coupe_de_france':['20260114','20260523'],
+ 'caf.nations':['20260118','20251221'],
+ 'conmebol.america':['20240714'],
+ 'fifa.cwc':['20250713'],
+ 'fifa.u20.friendly':['20250320','20241114'],
+ 'concacaf.champions':['20260530','20260527'],
+ 'concacaf.gold':['20250706'],
+ 'conmebol.libertadores':['20261121','20261029','20251129'],
+ 'conmebol.sudamericana':['20261121','20251025']
 };
 function archiveDates(boards,league){
- if(verifiedArchiveDates[league])return [verifiedArchiveDates[league]];
+ if(verifiedArchiveDates[league])return verifiedArchiveDates[league];
  const calendar=boards.flatMap(board=>list(board.value?.leagues).flatMap(league=>list(league?.calendar)));
  const dates=[...new Set(calendar.filter(value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}/.test(value)).map(value=>value.slice(0,10).replaceAll('-','')))];
  const earlier=dates.filter(day=>day<days[0]).sort().reverse();
@@ -90,6 +108,23 @@ async function audit([league,name]){
   distinctIds:new Set(scheduleEvents.map(event=>String(event.id??'')).filter(Boolean)).size,
   matchedTeam:scheduleEvents.some(event=>list(event?.competitions?.[0]?.competitors).some(row=>String(row.team?.id??'')===teamId))
  }:null;
+ // ESPN's default team schedule may contain only past events. Query explicit
+ // seasons separately and report every negative/unsupported outcome honestly.
+ const futureProbes=[];
+ if(teamId){
+  for(const query of ['dates=2026','dates=2027','season=2026','season=2027']){
+   const response=await read(base+'/teams/'+encodeURIComponent(teamId)+'/schedule?'+query);
+   const rows=list(response.value?.events);
+   const states={scheduled:0,finished:0,live:0,other:0,unknown:0};
+   for(const event of rows)states[matchState(event)]++;
+   futureProbes.push({query,error:response.error??null,events:rows.length,states,
+    matchedTeam:rows.some(event=>list(event?.competitions?.[0]?.competitors).some(row=>String(row.team?.id??'')===teamId))});
+   if(states.scheduled>0)break;
+  }
+ }
+ const teamFuture=teamId?{teamId,probes:futureProbes,
+  hasUpcoming:futureProbes.some(probe=>probe.states.scheduled>0),
+  unsupported:futureProbes.every(probe=>probe.error!==null||probe.events===0)}:null;
  const standings=await read(standingsSite+league+'/standings');
  let standingsResult;
  try{
@@ -113,7 +148,7 @@ async function audit([league,name]){
  return {
   league,name,days:Object.fromEntries(days.map((day,index)=>[day,dayResult(boards[index])])),
   teams:withTeams.length,logos:withLogos.length,eventId:sample?.id??null,
-  detail:summarize(detail),teamHistory,archive,standings:standingsResult,
+  detail:summarize(detail),teamHistory,teamFuture,archive,standings:standingsResult,
   active:events.filter(event=>matchState(event)==='live').map(event=>({id:event.id,status:event.status?.type?.name,clock:event.status?.displayClock,scores:list(event.competitions?.[0]?.competitors).map(row=>[row.homeAway,row.score])}))
  };
 }
