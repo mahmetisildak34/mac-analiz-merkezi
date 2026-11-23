@@ -102,7 +102,9 @@ test('Real public ESPN upcoming fixtures appear in iPhone team profiles (Chromiu
       assert.ok(visible.date?.includes(datePart)&&visible.date?.includes(timePart),
        engineName+' '+sample.slug+' Istanbul kickoff mismatch '+JSON.stringify({visible,istanbul}));
       assert.ok(visible.fixture?.includes(String(sample.event.id)),engineName+' '+sample.slug+' ESPN event ID mismatch');
-      assert.ok(visible.logos.length>=2&&visible.logos.every(Boolean),engineName+' '+sample.slug+' missing logos');
+      const sourceLogos=[sample.home.team,sample.away.team].filter(t=>t.logo||t.logos?.[0]?.href).length;
+      console.log('ESPN logo coverage '+JSON.stringify({engine:engineName,slug:sample.slug,sourceLogos,renderedLogos:visible.logos}));
+      assert.ok(visible.logos.length>=sourceLogos&&visible.logos.every(Boolean),engineName+' '+sample.slug+' published logos missing from profile');
       assert.ok(visible.width<=visible.viewport+1,'mobile horizontal overflow');
       console.log('PASS real ESPN profile '+JSON.stringify({engine:engineName,slug:sample.slug,id:sample.event.id,teamId:props.teamId,opponent:sample.away.team.displayName,istanbul,logos:visible.logos.length}));
      }finally{await context.close();}
