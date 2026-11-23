@@ -37,7 +37,14 @@ function summarize(data){
  if(!data)return null;
  if(data.error)return {error:data.error};
  const value=data.value,teams=list(value.boxscore?.teams),rosters=list(value.rosters);
+ const plays=[...list(value.keyEvents),...list(value.plays),...list(value.scoringPlays)];
+ const label=play=>[play?.type?.text,play?.type?.name,play?.text,play?.description].filter(Boolean).join(' ').toLowerCase();
  return {
+  kinds:{
+   goals:list(value.scoringPlays).length>0||plays.some(p=>/\\bgoal\\b|\\bown goal\\b/.test(label(p))),
+   cards:plays.some(p=>/yellow card|red card|sarı kart|kırmızı kart/.test(label(p))),
+   substitutions:plays.some(p=>/substitut|değişiklik/.test(label(p)))
+  },
   events:[value.keyEvents,value.plays,value.scoringPlays].some(rows=>list(rows).length>0),
   statistics:teams.some(team=>list(team?.statistics).length>0),
   lineups:rosters.some(team=>list(team?.roster).length>0),
@@ -157,10 +164,34 @@ async function audit([league,name]){
   return ['home','away'].every(side=>competitors.some(row=>row?.homeAway===side&&(row.team?.displayName||row.team?.name)));
  });
  const withLogos=withTeams.filter(event=>list(event.competitions?.[0]?.competitors).every(row=>row.team?.logo||list(row.team?.logos).some(logo=>logo?.href)));
+ // Explicit source-evidence classification. Missing matches or cups without a
+ // table are not software bugs; no_sample is not the same as unsupported.
+ const summary=summarize(detail);
+ const verified=condition=>condition?'verified':'no_sample';
+ const blocked=condition=>condition?'blocked':'no_sample';
+ const hasBoardError=boards.some(row=>!!row.error);
+ const hasCompleted=!!sample||events.some(event=>matchState(event)==='finished');
+ const sides=list(sample?.competitions?.[0]?.competitors);
+ const hasScore=hasCompleted&&['home','away'].every(side=>sides.some(row=>row?.homeAway===side&&row.score!=null));
+ const featureStatus={
+  scoreboard:hasBoardError?'blocked':'verified',
+  fixtures:hasBoardError?blocked(true):verified(events.length>0||!!sample),
+  live:verified(events.some(event=>matchState(event)==='live')),
+  finished:verified(hasCompleted),
+  score:verified(hasScore),
+  goals:detail?.error?'blocked':verified(summary?.kinds?.goals),
+  cards:detail?.error?'blocked':verified(summary?.kinds?.cards),
+  substitutions:detail?.error?'blocked':verified(summary?.kinds?.substitutions),
+  statistics:detail?.error?'blocked':verified(summary?.statistics),
+  lineups:detail?.error?'blocked':verified(summary?.lineups),
+  standings:standings.error?'blocked':verified(standingsResult?.rows>0),
+  teamHistory:teamHistory?.error?'blocked':verified(teamHistory?.events>0&&teamHistory?.matchedTeam),
+  upcoming:verified(upcomingBoardFixture?.validTeamIdentity||teamFuture?.hasUpcoming)
+ };
  return {
   league,name,days:Object.fromEntries(days.map((day,index)=>[day,dayResult(boards[index])])),
   teams:withTeams.length,logos:withLogos.length,eventId:sample?.id??null,
-  detail:summarize(detail),teamHistory,teamFuture,upcomingBoardFixture,archive,standings:standingsResult,
+  detail:summary,featureStatus,teamHistory,teamFuture,upcomingBoardFixture,archive,standings:standingsResult,
   active:events.filter(event=>matchState(event)==='live').map(event=>({id:event.id,status:event.status?.type?.name,clock:event.status?.displayClock,scores:list(event.competitions?.[0]?.competitors).map(row=>[row.homeAway,row.score])}))
  };
 }
