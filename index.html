@@ -9039,7 +9039,8 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js",{upda
 window.addEventListener("offline",()=>{
  if(mamScreenMode!=="live")return;
  if(mamActiveMatch)closeMamMatchDetail();
- allMatches=[];renderMatches();
+ // Never erase loaded Today, Upcoming or Finished fixtures on a network change.
+ renderMatches();
  $("status").textContent="Çevrimdışısınız. Güncel canlı skorlar gösterilemiyor.";
 });
 window.addEventListener("online",()=>{
