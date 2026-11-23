@@ -67,7 +67,7 @@ test("the verified AFC Champions League Elite ESPN scoreboard is configured",()=
 });
 
 test("SportScore supplements normalize AFC and Turkish First League to stable league IDs",async()=>{
- const methods=["mamExplicitUtc","mamFixtureInstant","mamSportScoreLiveFixtures"];
+ const methods=["mamExplicitUtc","mamFixtureInstant","mamSportScoreMatchSlug","mamSportScoreKickoff","mamSportScoreLiveFixtures"];
  const js=methods.map(name=>html.match(new RegExp("(?:async )?function "+name+"\\([\\s\\S]*?\\n\\}"))[0]).join("\n");
  const payload={matches:[
   {id:"bodrum",status:"live",status_text:"1st half",time:"2026-11-23T17:00:00Z",home:"Bodrum FK",away:"Belediye Vanspor",home_score:"0",away_score:"0",competition:"Turkish First League"},
@@ -296,7 +296,7 @@ test("duplicate source rows preserve fixture identity and protect a verified fin
 });
 
 test("fallback sources reject malformed live feeds and do not invent a kickoff or live status",async()=>{
- const methods=["mamExplicitUtc","mamFixtureInstant","footballDataLiveFixtures","mamSportScoreLiveFixtures"];
+ const methods=["mamExplicitUtc","mamFixtureInstant","mamSportScoreMatchSlug","mamSportScoreKickoff","footballDataLiveFixtures","mamSportScoreLiveFixtures"];
  const js=methods.map(name=>html.match(new RegExp("(?:async )?function "+name+"\\([\\s\\S]*?\\n\\}"))[0]).join("\n");
  let footballData={},sportScore={};
  const {footballDataLiveFixtures,sportScoreLiveFixtures}=require("node:vm").runInNewContext(js+";({footballDataLiveFixtures,sportScoreLiveFixtures:mamSportScoreLiveFixtures})",{
@@ -311,9 +311,10 @@ test("fallback sources reject malformed live feeds and do not invent a kickoff o
  assert.equal(footballMatch.fixture.status.short,"");
  assert.equal(footballMatch.fixture.date,"2026-11-23T17:00:00Z");
  sportScore={matches:[{id:1,status:"live",time:"20:00",home:"Ev",away:"Rakip"},
-  {id:2,status:"live",utc_date:"2026-11-23 17:00:00",home:"Ev",away:"Rakip"}]};
- const [unknown,confirmed]=await sportScoreLiveFixtures();
- assert.equal(unknown.fixture.date,null);
- assert.equal(unknown.fixture.timeUnknown,true);
- assert.equal(confirmed.fixture.date,"2026-11-23T17:00:00Z");
+  {id:2,status:"live",date:"2026-11-23",home:"Tarihsiz",away:"Rakip"},
+  {id:3,status:"live",utc_date:"2026-11-23 17:00:00",home:"Ev",away:"Rakip"}]};
+ const parsed=await sportScoreLiveFixtures();
+ assert.equal(parsed.length,1,"incomplete time-only and date-only event rows are rejected");
+ assert.equal(parsed[0].fixture.date,"2026-11-23T17:00:00Z","explicit UTC provider field is normalized without guessing a local timezone");
+ assert.equal(parsed[0].fixture.timeUnknown,false);
 });
