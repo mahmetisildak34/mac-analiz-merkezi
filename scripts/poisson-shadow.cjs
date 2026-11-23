@@ -1,15 +1,15 @@
 // Isolated five-model capture and settlement. All provider traffic goes to public read endpoints.
-const { execFileSync } = require("node:child_process");
+const { execFile, execFileSync } = require("node:child_process");
 const { readFile } = require("node:fs/promises");
 const { resolve } = require("node:path");
-const { parseArgs } = require("node:util");
+const { parseArgs, promisify } = require("node:util");
 const { cleanArchive } = require("./poisson-football-data.cjs");
 const { loadWorkerModels } = require("./poisson-worker-models.cjs");
 const { summarize } = require("./backtest-poisson.cjs");
 const { pairedComparison } = require("./poisson-evaluation.cjs");
 const { evaluateProspective } = require("./poisson-prospective.cjs");
 const { normalizeName, predictGroup, preparePeriod } = require("./poisson-shadow-models.cjs");
-const { digest, models, openLedger, timestamp } = require("./poisson-shadow-ledger.cjs");
+const { digest, models, openLedger, sha, timestamp } = require("./poisson-shadow-ledger.cjs");
 const {
   boardEvents, boardUrl, finishStatus, fixture, istanbulDay, readSource, scheduled, summaryUrl, verifiedHalf
 } = require("./poisson-shadow-espn.cjs");
@@ -28,14 +28,28 @@ async function runBatched(items, work) {
   return completed;
 }
 
+const curl = promisify(execFile);
+async function readArchiveCsv(url) {
+  // Football-Data requires the runtime's HTTPS proxy in Work. curl honors
+  // that proxy while retaining the exact public provider URL in the evidence.
+  const { stdout: bytes } = await curl("curl", ["--fail", "--silent", "--show-error",
+    "--proto", "=https", "--proto-redir", "=https", "--location", "--max-redirs", "3",
+    "--max-time", "18", "--max-filesize", "8000000", url],
+  { encoding: "buffer", maxBuffer: 8_100_000 });
+  return { bytes, capturedAt: now(), url, sha256: sha(bytes) };
+}
+
 function providers() {
   const requests = new Map();
   const failures = [];
   async function get(url) {
-    if (!requests.has(url)) requests.set(url, readSource(url).catch(error => {
-      failures.push({ url, error: error.message });
-      return null;
-    }));
+    if (!requests.has(url)) {
+      const read = new URL(url).hostname === "www.football-data.co.uk" ? readArchiveCsv : readSource;
+      requests.set(url, read(url).catch(error => {
+        failures.push({ url, error: error.message });
+        return null;
+      }));
+    }
     return requests.get(url);
   }
   async function board(league, day) {
@@ -198,6 +212,7 @@ function compare(records, outcomes, period) {
     if (!score || !models.every(model => record.models[model][period])) return [];
     return [{ league: f.league, season: seasonOf(f.istanbulDay), day: f.istanbulDay,
       match: { hg: score[0], ag: score[1] },
+      revisions: models.map(model => [record.models[model].version, record.models[model].revision]),
       models: Object.fromEntries(models.map(name => [name, record.models[name][period]])) }];
   });
   function summary(group) {
@@ -209,8 +224,23 @@ function compare(records, outcomes, period) {
       pairs: inferenceReady ? models.flatMap((name, i) =>
         models.slice(0, i).map(baseline => pairedComparison(group, name, baseline))) : [] };
   }
-  return { overall: summary(rows), leagues: Object.fromEntries(Object.keys(leagues).map(league =>
-    [league, summary(rows.filter(row => row.league === league))])) };
+  function grouped(group) {
+    return { overall: summary(group), leagues: Object.fromEntries(Object.keys(leagues).map(league =>
+      [league, summary(group.filter(row => row.league === league))])) };
+  }
+  const byRevision = new Map();
+  for (const row of rows) {
+    const { revisions } = row;
+    const key = digest(revisions);
+    if (!byRevision.has(key)) byRevision.set(key, { revisions, rows: [] });
+    byRevision.get(key).rows.push(row);
+  }
+  return {
+    ...grouped(byRevision.size > 1 ? [] : rows), totalMatched: rows.length,
+    cohorts: Object.fromEntries([...byRevision].map(([key, cohort]) => [key, {
+      revisions: Object.fromEntries(models.map((name, i) => [name, cohort.revisions[i]])), ...grouped(cohort.rows)
+    }]))
+  };
 }
 
 async function legacyAudit(path, provider) {

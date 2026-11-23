@@ -179,3 +179,16 @@ test("portable bundle restores exact sealed snapshots, predictions and results",
   await restored.restore(bundle);
   assert.deepEqual(await restored.bundle(), bundle);
 });
+
+test("different implementation revisions never share an inference cohort", async () => {
+  const { ledger, input } = await setup();
+  const { value } = await ledger.append(input);
+  const other = structuredClone(value);
+  other.fixture.key = "espn:tur.1:151";
+  other.models[models[0]].revision = "c".repeat(40);
+  const result = compare([value, other], [value, other].map(record =>
+    ({ fixtureKey: record.fixture.key, status: "completed", full: [2, 1] })), "full");
+  assert.equal(result.totalMatched, 2);
+  assert.equal(result.overall.matches, 0);
+  assert.deepEqual(Object.values(result.cohorts).map(x => x.overall.matches), [1, 1]);
+});

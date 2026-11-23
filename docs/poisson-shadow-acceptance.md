@@ -4,7 +4,7 @@ Bu araç güvenli geliştirme dalında, çevrimdışı modelleri ve ESPN ile Foo
 
 ## Çalıştırma
 
-Ön yüz güvenli dalını ve Worker `11b33639352b58be6892ed04d87e4a9eea9bdc2e` revizyonunu ayrı, temiz dizinlerde tutun. Arşiv dizinini her çalıştırmada aynı kullanın. Çıktıyı arşiv dizininin dışında, yeni bir dosya adıyla kaydedin.
+Ön yüz güvenli dalını ve Worker `11b33639352b58be6892ed04d87e4a9eea9bdc2e` revizyonunu ayrı, temiz dizinlerde tutun. Football-Data CSV istekleri için HTTPS erişimli curl gerekir. Arşiv dizinini her çalıştırmada aynı kullanın. Çıktıyı arşiv dizininin dışında, yeni bir dosya adıyla kaydedin.
 
 ```sh
 node scripts/poisson-shadow.cjs --mode cycle --days 7 \
@@ -25,4 +25,4 @@ node scripts/poisson-shadow.cjs --mode settle \
 - Eski ön yüzün 0–10 gol ızgarası matematiksel davranışıyla birlikte saklanır. Diğer dört model 1-X-2 toplamı toleransından geçer. Maç sonu ve ilk yarı olasılıkları, gerçek oranlardan bağımsız model çıktılarıdır.
 - Başlama saati, ESPN kimliği ve iki takımın kimlikleri eşleşir. Ertelenen, iptal edilen, hükmen sonuçlanan ve saati değişen fikstürler ayrı durum olarak raporlanır. İlk yarı, ayrı ESPN maç özetindeki iki normal süre bölümünün toplamı skor tablosundaki kesin skorla eşleştiğinde kabul edilir. Birbirini tutmayan açık final skorları karşılaştırmaya alınmaz.
 - Geçmiş 24 v1.2 tahmini ayrı doğrulanır. Beşli ileriye dönük ölçüm, yalnızca yeni ve zamanında mühürlenmiş kayıtlardan hesaplanır. Sonuçlar 2024/25 ve 2025/26 geçmiş kabul raporuna eklenmez.
-- Sonuçlanan az sayıda maç için ölçümler betimleyicidir. Bu pilotta 100 ortak sonuç ve sekiz 28 günlük zaman bloğu oluştuğunda eşleştirilmiş güven aralıkları hesaplanır. Altı lig için ayrı sayaç tutulur. Bunlar araştırma ölçütleridir, otomatik üretim modeli seçimi yapılmaz.
+- Sonuçlanan az sayıda maç için ölçümler betimleyicidir. Bu pilotta 100 ortak sonuç ve sekiz 28 günlük zaman bloğu oluştuğunda eşleştirilmiş güven aralıkları hesaplanır. Altı lig ve farklı model revizyonları için ayrı sayaç tutulur. Birden çok model revizyonu varsa ortak kalibrasyon veya üstünlük ölçümü üretilmez. Bunlar araştırma ölçütleridir, otomatik üretim modeli seçimi yapılmaz.
