@@ -150,3 +150,31 @@ test("floating point ties share the same 1-X-2 rule and preserve the strict UI m
   assert.equal(report.accuracy, 1);
   assert.equal(report.strictAccuracy, 0);
 });
+
+test("half-time CSV evidence has its own validity and conflicts", () => {
+  const rows = [
+    "SP1,2024-08-01,A,B,3,2,H,1,0,H",
+    "SP1,2024-08-02,B,A,2,2,D,0,0,D",
+    "SP1,2024-08-02,B,A,2,2,D,1,1,D",
+    "SP1,2024-08-03,B,C,1,1,D,2,0,H",
+    "SP1,2024-08-04,C,B,1,1,D,-1,0,D",
+    "SP1,2024-08-05,A,C,1,1,D,,,",
+    "SP1,2024-08-06,C,A,1,1,D,0,1,H"
+  ];
+  const bytes = Buffer.from("Div,Date,HomeTeam,AwayTeam,FTHG,FTAG,FTR,HTHG,HTAG,HTR\n" + rows.join("\n"));
+  const { fixtures: matches } = cleanArchive([{ name: "half.csv", bytes }]);
+  assert.deepEqual(matches.map(match => match.half), [[1, 0], null, null, null, null, null]);
+  assert.equal(matches.length, 6);
+});
+
+test("half-time replay scores the first-half outcome and never imputes missing scores from full time", () => {
+  const rows = fixtures().map(row => row + ",0,0,D");
+  rows.push("SP1,2024-08-11,Alpha,Beta,3,0,H,0,0,D", "SP1,2024-08-12,Beta,Alpha,2,1,H,,,");
+  const bytes = Buffer.from("Div,Date,HomeTeam,AwayTeam,FTHG,FTAG,FTR,HTHG,HTAG,HTR\n" + rows.join("\n"));
+  const result = evaluate([{ name: "archive-half.csv", bytes }], { testStart: "2024-08-11", period: "half" });
+  assert.equal(result.cleanFullTime, 22);
+  assert.equal(result.periodFixtures, 21);
+  assert.equal(result.groups.overall.paired, 1);
+  assert.equal(result.groups.overall.models["Frontend normalized"].accuracy, 1);
+  assert.equal(result.groups.overall.models["Frontend normalized"].topScoreAccuracy, 1);
+});

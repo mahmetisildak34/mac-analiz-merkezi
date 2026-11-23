@@ -1,10 +1,12 @@
 #!/usr/bin/env node
+const { createHash } = require("node:crypto");
 const { readFileSync } = require("node:fs");
 const { basename } = require("node:path");
 const { parseArgs } = require("node:util");
 const { markets, poisson } = require("../src/poisson-probabilities.js");
 const { parseDate, cleanArchive } = require("./poisson-football-data.cjs");
 const { loadWorkerModels } = require("./poisson-worker-models.cjs");
+const { evaluateExperiments } = require("./poisson-evaluation.cjs");
 
 const frontends = ["Frontend legacy", "Frontend normalized"];
 const average = values => values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -165,6 +167,8 @@ function summarize(rows, model) {
     mean1x2Mass: probabilityMass / n,
     ece: bins.reduce((sum, bin) => sum + Math.abs(bin.probability - bin.observed), 0) / n,
     calibration: calibration(bins), byOutcomeCalibration: byOutcome.map(calibration),
+    byOutcomeEce: byOutcome.map(group =>
+      group.reduce((sum, bin) => sum + Math.abs(bin.probability - bin.observed), 0) / n),
     topScoreAccuracy: top1 / n, top5ScoreAccuracy: top5 / n,
     binary: Object.fromEntries(Object.entries(binary).map(([key, x]) => [key, {
       accuracy: x.correct / n, logLoss: x.logLoss / n, brier: x.brier / n,
@@ -173,8 +177,13 @@ function summarize(rows, model) {
   };
 }
 
-function evaluate(inputs, { testStart, worker } = {}) {
-  const { reports, fixtures } = cleanArchive(inputs);
+function evaluate(inputs, { testStart, worker, experiment, period = "full" } = {}) {
+  if (!["full", "half"].includes(period)) throw new Error("Period must be full or half");
+  const { reports, fixtures: archive } = cleanArchive(inputs);
+  // Use period-specific history for the replay. An absent half-time score has no proxy.
+  const fixtures = period === "full" ? archive : archive
+    .filter(match => match.half)
+    .map(match => ({ ...match, hg: match.half[0], ag: match.half[1] }));
   const days = [...new Set(fixtures.map(match => match.day))];
   const cutoff = testStart ?? days[Math.floor(days.length * 0.7)];
   if (!cutoff || parseDate(cutoff) !== cutoff || cutoff <= days[0] || cutoff > days.at(-1)) {
@@ -202,18 +211,27 @@ function evaluate(inputs, { testStart, worker } = {}) {
   if (!slice("overall").paired.length) throw new Error("No matches met all model eligibility criteria");
   const groups = Object.fromEntries([...slices].map(([key, { paired, ...counts }]) => [key, {
     ...counts, paired: paired.length,
+    cohortSha256: createHash("sha256").update(JSON.stringify(paired.map(row => row.id))).digest("hex"),
     models: Object.fromEntries(modelNames.map(name => [name, summarize(paired, name)]))
   }]));
-  return { testStart: cutoff, workerRevision: worker?.revision ?? null, sources: reports, groups };
+  return {
+    testStart: cutoff, period, cleanFullTime: archive.length, periodFixtures: fixtures.length,
+    workerRevision: worker?.revision ?? null, sources: reports, groups,
+    ...(experiment && { experiments: evaluateExperiments(slice("overall").paired, modelNames, experiment, summarize) })
+  };
 }
 
 async function main() {
   const { values, positionals } = parseArgs({
-    options: { "test-start": { type: "string" }, "worker-checkout": { type: "string" } },
+    options: {
+      "test-start": { type: "string" }, "worker-checkout": { type: "string" }, period: { type: "string" },
+      "calibration-validation-start": { type: "string" }, "calibration-test-start": { type: "string" }
+    },
     allowPositionals: true
   });
   if (!positionals.length) {
-    console.error("Usage: node scripts/backtest-poisson.cjs [--test-start YYYY-MM-DD] [--worker-checkout DIR] FILE.csv ...");
+    console.error("Usage: node scripts/backtest-poisson.cjs [--test-start DATE] [--worker-checkout DIR] "
+      + "[--period full|half] [--calibration-validation-start DATE --calibration-test-start DATE] FILE.csv ...");
     process.exitCode = 2;
     return;
   }
@@ -230,7 +248,15 @@ async function main() {
     };
   });
   const worker = values["worker-checkout"] ? await loadWorkerModels(values["worker-checkout"]) : null;
-  console.log(JSON.stringify(evaluate(inputs, { testStart: values["test-start"], worker }), null, 2));
+  const validationStart = values["calibration-validation-start"];
+  const calibrationTestStart = values["calibration-test-start"];
+  if (Boolean(validationStart) !== Boolean(calibrationTestStart)) {
+    throw new Error("Supply both calibration dates together");
+  }
+  const experiment = validationStart ? { validationStart, testStart: calibrationTestStart } : undefined;
+  console.log(JSON.stringify(evaluate(inputs, {
+    testStart: values["test-start"], worker, period: values.period, experiment
+  }), null, 2));
 }
 
 if (require.main === module) {

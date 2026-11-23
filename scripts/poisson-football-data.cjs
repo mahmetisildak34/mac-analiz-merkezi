@@ -47,10 +47,13 @@ function parseCsv(text) {
   if (quoted) throw new Error("Unclosed CSV quote");
   appendRow();
   const header = rows.shift();
-  if (!header || required.some(key => header.indexOf(key) < 0 || header.indexOf(key) !== header.lastIndexOf(key))) {
+  const names = [...required, "HTHG", "HTAG", "HTR"];
+  if (!header || required.some(key => !header.includes(key))
+      || names.some(key => header.indexOf(key) !== header.lastIndexOf(key))) {
     throw new Error("Missing or duplicate Football-Data columns");
   }
-  return rows.map(values => Object.fromEntries(required.map(key => [key, values[header.indexOf(key)] ?? ""])));
+  const columns = names.map(key => [key, header.indexOf(key)]);
+  return rows.map(values => Object.fromEntries(columns.map(([key, index]) => [key, values[index] ?? ""])));
 }
 
 function parseDate(value) {
@@ -76,6 +79,7 @@ function cleanArchive(inputs) {
   const reports = [];
   const candidates = new Map();
   const conflicts = new Set();
+  const halfConflicts = new Set();
   for (const { name, bytes, league: expectedLeague, season: expectedSeason, url } of inputs) {
     // Football-Data archives can contain Windows-1252 team names.
     let decoded;
@@ -107,17 +111,30 @@ function cleanArchive(inputs) {
         report.nonStandard++;
         continue;
       }
+      const { HTHG, HTAG, HTR } = row;
+      const halfHome = Number(HTHG);
+      const halfAway = Number(HTAG);
+      const halfOutcome = halfHome > halfAway ? "H" : halfHome < halfAway ? "A" : "D";
+      const half = /^\d{1,2}$/.test(HTHG) && /^\d{1,2}$/.test(HTAG)
+        && halfHome <= hg && halfAway <= ag && (!HTR || HTR === halfOutcome) ? [halfHome, halfAway] : null;
       // Each top-flight archive here is double round-robin, with one fixture per ordered pairing.
       const id = JSON.stringify([league, season, home, away]);
       const prior = candidates.get(id);
       if (conflicts.has(id)) {
         report.conflicts++;
       } else if (!prior) {
-        const match = { id, league, season, day, home, away, hg, ag, report };
+        const match = { id, league, season, day, home, away, hg, ag, half, report };
         candidates.set(id, match);
         report.valid++;
       } else if (prior.day === day && prior.hg === hg && prior.ag === ag) {
         report.duplicates++;
+        if (half && !halfConflicts.has(id)) {
+          if (!prior.half) prior.half = half;
+          else if (half.some((goals, i) => goals !== prior.half[i])) {
+            prior.half = null;
+            halfConflicts.add(id);
+          }
+        }
       } else {
         prior.report.valid--;
         prior.report.conflicts++;

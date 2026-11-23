@@ -47,3 +47,16 @@ test("goal thresholds match the frontend and high-rate score modes are retained"
   assert.throws(() => distribution(1, "0.1"), RangeError);
   assert.throws(() => poisson(1, Number.MAX_SAFE_INTEGER + 1), RangeError);
 });
+
+test("first-half and full-time markets normalize independently, including 0.5 goals", () => {
+  for (const [home, away] of [[0, 0], [0.45, 0.35], [1.45, 1.1], [1e-16, 2e-16], [100, 100]]) {
+    const m = markets(home, away);
+    near(m.homeWin + m.draw + m.awayWin, 1);
+    near(distribution(home).reduce((a, b) => a + b, 0), 1);
+    assert.ok(m.over05 >= m.over15 && m.over15 >= m.over25 && m.over25 >= m.over35);
+    near(m.over05, -Math.expm1(-home - away));
+  }
+  assert.ok(markets(0.45, 0.35).over05 < markets(1.45, 1.1).over05);
+  assert.ok(markets(1e-16, 2e-16).over05 > 0);
+  assert.throws(() => markets(undefined, 1), RangeError);
+});

@@ -80,6 +80,7 @@
       homeWin: win / mass,
       draw: draw / mass,
       awayWin: loss / mass,
+      over05: -Math.expm1(-total),
       over15: overGoals(total, 2),
       over25: overGoals(total, 3),
       over35: overGoals(total, 4),

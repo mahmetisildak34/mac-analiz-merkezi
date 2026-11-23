@@ -3,13 +3,17 @@ const { execFileSync } = require("node:child_process");
 const { resolve } = require("node:path");
 const { pathToFileURL } = require("node:url");
 
-const revision = "ee555aacb45f0ba80dda4c541c6cac352fcf0534";
+const revisions = new Set([
+  "ee555aacb45f0ba80dda4c541c6cac352fcf0534",
+  "11b33639352b58be6892ed04d87e4a9eea9bdc2e"
+]);
 const names = ["Worker v1.2", "Worker v1.3", "Worker v1.4"];
 
 async function loadWorkerModels(checkout) {
-  if (execFileSync("git", ["-C", checkout, "rev-parse", "HEAD"], { encoding: "utf8" }).trim() !== revision ||
+  const revision = execFileSync("git", ["-C", checkout, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  if (!revisions.has(revision) ||
       execFileSync("git", ["-C", checkout, "status", "--porcelain", "--untracked-files=no"], { encoding: "utf8" }).trim()) {
-    throw new Error(`Use a clean Worker checkout at ${revision}`);
+    throw new Error(`Use a clean Worker checkout at one of: ${[...revisions].join(", ")}`);
   }
   const file = path => pathToFileURL(resolve(checkout, path)).href;
   const { predictTrustedGoals } = await import(file("trusted-goal-poisson.js"));
