@@ -3676,6 +3676,23 @@ async function espnFixtures(date,includeAllLeagues=false,endDate=date){
  return sorted;
 }
 
+function mamSameFixture(a,b){
+ const teamKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
+ const aId=String(a.fixture?.id??a.id??""),bId=String(b.fixture?.id??b.id??"");
+ if(aId&&bId&&aId===bId)return true;
+ const aLeague=String(a.league?.id??""),bLeague=String(b.league?.id??"");
+ if(aLeague&&bLeague&&aLeague!==bLeague)return false;
+ const ah=teamKey(a.teams?.home?.name),aa=teamKey(a.teams?.away?.name);
+ const bh=teamKey(b.teams?.home?.name),ba=teamKey(b.teams?.away?.name);
+ if(!ah||!aa||!bh||!ba||ah!==bh||aa!==ba)return false;
+ const at=Date.parse(a.fixture?.date||""),bt=Date.parse(b.fixture?.date||"");
+ return Number.isFinite(at)&&Number.isFinite(bt)&&Math.abs(at-bt)<=10*60*1000;
+}
+
+function mamMergeFixtureStatus(existing,incoming){
+ return {...existing,goals:incoming.goals,score:incoming.score,fixture:{...existing.fixture,status:incoming.fixture.status}};
+}
+
 let mamFixtureLoadQueued=false;
 async function loadMatches(){
  const button=$("load");
@@ -3847,27 +3864,17 @@ async function loadMatches(){
   if(archivedDayRows.length||espnSupplementCount){
    const merged=[];
    const finalStatuses=new Set(["FT","AET","PEN","AWD","WO","FINISHED"]);
-   const teamKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
-   const sameFixture=(a,b)=>{
-    const aId=String(a.fixture?.id??a.id??""),bId=String(b.fixture?.id??b.id??"");
-    if(aId&&bId&&aId===bId)return true;
-    const aLeague=String(a.league?.id??""),bLeague=String(b.league?.id??"");
-    if(aLeague&&bLeague&&aLeague!==bLeague)return false;
-    const ah=teamKey(a.teams?.home?.name),aa=teamKey(a.teams?.away?.name);
-    const bh=teamKey(b.teams?.home?.name),ba=teamKey(b.teams?.away?.name);
-    if(!ah||!aa||!bh||!ba||ah!==bh||aa!==ba)return false;
-    const at=Date.parse(a.fixture?.date||""),bt=Date.parse(b.fixture?.date||"");
-    return Number.isFinite(at)&&Number.isFinite(bt)&&Math.abs(at-bt)<=10*60*1000;
-   };
    for(const incoming of [...matches,...archivedDayRows]){
-    const index=merged.findIndex(existing=>sameFixture(existing,incoming));
+    const index=merged.findIndex(existing=>mamSameFixture(existing,incoming));
     if(index<0)merged.push(incoming);
     else{
      const existing=merged[index];
      const existingDone=finalStatuses.has(String(existing.fixture?.status?.short||"").toUpperCase());
      const incomingDone=finalStatuses.has(String(incoming.fixture?.status?.short||"").toUpperCase());
      // Keep the primary provider's fixture ID, but accept a completed archive result.
-     if(incomingDone&&!existingDone)merged[index]={...existing,goals:incoming.goals,score:incoming.score,fixture:{...existing.fixture,status:incoming.fixture?.status||existing.fixture?.status}};
+     const espnUpdate=String(incoming.fixture?.id).startsWith("espn-")&&
+      (!existingDone||incomingDone)&&mamCanonicalMatchStatus(incoming)!=="UNK";
+     if(espnUpdate||incomingDone&&!existingDone)merged[index]=mamMergeFixtureStatus(existing,incoming);
     }
    }
    matches=merged.sort((a,b)=>Date.parse(a.fixture?.date||0)-Date.parse(b.fixture?.date||0));
@@ -5614,12 +5621,13 @@ function makeMamDetailTab(article){
  article.setAttribute("role","button");
  article.setAttribute("aria-label","Maç detaylarını aç");
  article.addEventListener("click",event=>{
+  if(mamActiveMatch===article)return;
   const control=event.target.closest("button,a,input,select,textarea,[role=button]");
   if(control&&control!==article)return;
   activateMamFixture(article);
  });
  article.addEventListener("keydown",event=>{
-  if(event.target!==article||!["Enter"," "].includes(event.key))return;
+  if(mamActiveMatch===article||event.target!==article||!["Enter"," "].includes(event.key))return;
   event.preventDefault();activateMamFixture(article);
  });
  article.appendChild(open);
@@ -6244,17 +6252,47 @@ function mamTickVisibleMatchClock(){
   if(clock)clock.textContent="🔴 "+elapsed+"' · Canlı";
  }
 }
+let mamTodayScoreRequest=null;
+async function refreshTodayScores(){
+ if(navigator.onLine===false||mamTodayScoreRequest||mamActiveMatch)return;
+ const day=mamIstanbulDateString();
+ if($("date").value!==day){setMamScreen("today");return loadMatches();}
+ const request=espnFixtures(day,true);
+ mamTodayScoreRequest=request;
+ try{
+  const rows=await request;
+  if(mamScreenMode!=="today"||$("date").value!==day||mamActiveMatch||
+     navigator.onLine===false||window.mamLoadMatchesBusy)return;
+  const next=[...allMatches];
+  for(const row of rows){
+   if(mamIstanbulDay(row.fixture.date)!==day||mamCanonicalMatchStatus(row)==="UNK")continue;
+   const index=next.findIndex(match=>mamSameFixture(match,row));
+   if(index===-1)next.push(row);
+   else if(!mamHasCompletedScore(next[index])||mamHasCompletedScore(row)){
+    next[index]=mamMergeFixtureStatus(next[index],row);
+   }
+  }
+  allMatches=next;
+  renderMatches();
+ }catch(error){
+  console.warn("Günlük ESPN skorları yenilenemedi:",error);
+ }finally{mamTodayScoreRequest=null;}
+}
+
 async function refreshVisibleFixtureLists(){
  if(document.hidden||window.mamLoadMatchesBusy)return;
  window.mamLastFixtureRefreshAt=Date.now();
  if(mamScreenMode==="live")return loadLiveMatches();
+ if(mamScreenMode==="today")return refreshTodayScores();
  if(mamScreenMode==="upcoming")return loadMatches();
 }
 if(!window.mamLiveStatsTimer){
  window.mamLiveScoreTimer=setInterval(refreshOpenLiveScore,8000);
  window.mamLiveStatsTimer=setInterval(refreshOpenLiveStats,5000);
  window.mamLiveClockTimer=setInterval(mamTickVisibleMatchClock,1000);
- window.mamLiveRefreshTimer=setInterval(()=>{if(mamScreenMode==="live")refreshVisibleFixtureLists();},30000);
+ window.mamLiveRefreshTimer=setInterval(()=>{
+  if(mamScreenMode==="live"||mamScreenMode==="today")refreshVisibleFixtureLists();
+ },30000);
  window.mamFixtureRefreshTimer=setInterval(()=>{if(mamScreenMode==="upcoming")refreshVisibleFixtureLists();},180000);
  document.addEventListener("visibilitychange",()=>{
   if(!document.hidden){

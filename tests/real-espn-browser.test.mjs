@@ -39,6 +39,10 @@ async function serverStart(){
 test("Public ESPN responses render through the iPhone fixture screens in Chromium and WebKit",async()=>{
  const today=istanbulDay(new Date());
  const months=[...new Set([-30,0,30].map(n=>code(shift(today,n)).slice(0,6)))];
+ const season=Number(today.slice(0,4))-(Number(today.slice(5,7))<7?1:0);
+ const publicSoccer="/apis/site/v2/sports/soccer/";
+ const teamDirectory=publicSoccer+"eng.1/teams?limit=500";
+ const teamSchedule=publicSoccer+"eng.1/teams/359/schedule?season="+season;
  const paths=leagues.flatMap(([slug])=>[code(today),...months].map(dates=>scoreboard(slug,dates)));
  const payloads=new Map(await Promise.all(paths.map(async path=>{
   const payload=await getEspn(path);
@@ -60,6 +64,15 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
  const finalPath=`/apis/site/v2/sports/soccer/${finished.slug}/summary?event=${finished.event.id}`;
  const summary=await getEspn(finalPath);
  payloads.set(finalPath,summary);
+ for(const path of [teamDirectory,teamSchedule])payloads.set(path,await getEspn(path));
+ const arsenalRows=rows.filter(({slug,event})=>slug==="eng.1"&&event.competitions?.[0]?.competitors?.some(
+  team=>team.team?.id==="359"
+ ));
+ const pastArsenal=arsenalRows.filter(({event})=>isFinished(event)&&eventDay(event)<today)
+  .sort((a,b)=>Date.parse(b.event.date)-Date.parse(a.event.date))[0];
+ const futureArsenal=arsenalRows.find(({event})=>isScheduled(event)&&eventDay(event)>today&&eventDay(event)<=shift(today,30));
+ assert.ok(pastArsenal&&futureArsenal,"ESPN must publish both past and upcoming Arsenal fixtures for acceptance");
+ const opponent=({event})=>event.competitions[0].competitors.find(team=>team.team.id!=="359").team.displayName;
  console.log("ESPN run-time evidence",JSON.stringify({
   today:daily.event.id,upcoming:future.event.id,finished:finished.event.id,
   leagues:leagues.map(([slug])=>slug),
@@ -110,7 +123,8 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
         await card.locator(".match-clock").getByText(kickoff,{exact:true}).waitFor();
        }
        if(mode==="upcoming"){
-        await page.locator("#mamRefNext").waitFor({state:"visible"});
+        await page.locator("#mamRefNext").click();
+        assert.equal(await page.locator("#date").inputValue(),shift(today,1));
         await page.locator("#leagueTrigger").click();
         await page.locator(`#leagueMenu [data-league-value="${leagueId}"]`).click();
         await card.waitFor({state:"visible"});
@@ -123,8 +137,15 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
        const overlay=page.locator(".match-detail-overlay:not([hidden])");
        await overlay.waitFor({state:"visible"});
        assert.ok((await overlay.innerText()).includes(home(event).team.displayName),"Match identity lost in "+mode);
-       if(mode==="finished"&&summary.boxscore?.teams?.some(team=>team.statistics?.length)){
-        await overlay.locator(".mam-advanced-espn table").waitFor({state:"visible"});
+       if(mode==="finished"){
+        await overlay.locator('.match-detail-tab[data-pane="overview"]').click();
+        if(summary.boxscore?.teams?.some(team=>team.statistics?.length)){
+         await overlay.locator(".mam-advanced-espn table").waitFor({state:"visible"});
+        }
+        if(summary.keyEvents?.some(event=>event.scoringPlay)){
+         await overlay.locator('.match-detail-tab[data-pane="goals"]').click();
+         await overlay.locator('.match-detail-pane[data-pane="goals"]').getByText("Gol",{exact:true}).first().waitFor();
+        }
        }
        await overlay.locator(".match-detail-close").click();
        await overlay.waitFor({state:"hidden"});
@@ -137,6 +158,31 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
         await context.setOffline(false);
         await page.waitForFunction(()=>navigator.onLine);
        }
+      }
+      if(viewport.width===390){
+       const finalCard=page.locator("#matches article.match").filter({
+        has:page.locator(`.lineupBtn[data-id="espn-${finished.slug}-${finished.event.id}"]`)
+       });
+       await finalCard.locator('[data-mam-star][data-type="match"]').click();
+       await page.locator("#mamFavoriteBottom").click();
+       await page.locator("[data-fav-matches]").getByText(home(finished.event).team.displayName,{exact:false}).waitFor();
+       await page.reload();
+       await page.locator("#mamAuthGate").waitFor({state:"detached"});
+       await page.locator("#mamFavoriteBottom").click();
+       await page.locator("[data-fav-matches]").getByText(home(finished.event).team.displayName,{exact:false}).waitFor();
+
+       await page.locator("#mamSearchToggle").click();
+       const search=page.locator("#mamTeamSearchInput");
+       assert.equal(await page.locator("#mamTeamSearchResults button").count(),0);
+       await search.pressSequentially("Ars");
+       await page.locator('#mamTeamSearchResults [data-search-team="espn:eng.1:359"]').click();
+       const profile=page.getByRole("dialog",{name:"Arsenal takım profili"});
+       await profile.locator("#mamHistoryPastView").getByText(opponent(pastArsenal),{exact:true}).first().waitFor();
+       await profile.locator('[data-history-view="upcoming"]').click();
+       await profile.locator("#mamHistoryUpcomingView").getByText(opponent(futureArsenal),{exact:true}).first().waitFor();
+       await profile.locator("#mamTeamHistoryBack").click();
+       await profile.waitFor({state:"hidden"});
+       console.log(name+" real ESPN team history and persisted match favorite passed");
       }
       console.log(name+" real ESPN fixtures "+viewport.width+"x"+viewport.height+" passed");
      }finally{await context.close();}
