@@ -181,6 +181,42 @@ async function verifyMainApp(context,browserName){
   assert.doesNotMatch(await missingClock.locator('.match-time').innerText(),/\d+'/);
   assert.equal(await missingClock.locator('.match-clock').innerText(),'—');
   assert.equal(await main.locator('#matches article').filter({hasText:/Ertelenen Test|İptal Test|Biten Test/}).count(),0);
+  // Regression for the original 8849f62 Chromium/WebKit hidden #matches article timeout.
+  // Hidden cards must be excluded from visibility-based checks, never assumed visible
+  // just because a text selector resolves to a DOM node.
+  const visibleHalf=main.locator('#matches article.match:visible').filter({hasText:'Arsenal Test'});
+  assert.equal(await visibleHalf.count(),1);
+  assert.match(await visibleHalf.locator('.match-time').innerText(),/Devre arası/);
+  await main.evaluate(()=>{
+   const source=document.querySelector('#matches article.match');
+   if(!source)throw new Error('Missing visible card to clone');
+   const hidden=source.cloneNode(true);
+   hidden.dataset.testHiddenCard='1';
+   hidden.style.display='none';
+   document.querySelector('#matches').appendChild(hidden);
+  });
+  const hiddenCard=main.locator('#matches article[data-test-hidden-card="1"]');
+  assert.equal(await hiddenCard.count(),1);
+  assert.equal(await hiddenCard.isVisible(),false);
+  assert.equal(await main.locator('#matches article:visible[data-test-hidden-card="1"]').count(),0);
+  assert.ok(await main.locator('#matches article:visible').count()>0);
+  await main.evaluate(()=>document.querySelector('#matches article[data-test-hidden-card="1"]').remove());
+  await main.evaluate(()=>{
+   const now=Date.now();
+   const league={id:'39',name:'Premier League',country:'England'};
+   const make=(id,status,team)=>({fixture:{id,date:new Date(now+3600000).toISOString(),status:{short:status}},
+    league,teams:{home:{id:2001,name:team},away:{id:2002,name:'Rakip'}},goals:{home:null,away:null}});
+   window.__visibilityFixtures=[make('upcoming-ui','NS','Gelecek Kart'),make('finished-ui','FT','Biten Kart')];
+   setMamScreen('upcoming');allMatches=[...window.__visibilityFixtures];renderMatches();
+  });
+  assert.equal(await main.locator('#matches article:visible').filter({hasText:'Gelecek Kart'}).count(),1);
+  assert.equal(await main.locator('#matches article:visible').filter({hasText:'Biten Kart'}).count(),0);
+  await main.evaluate(()=>{setMamScreen('finished');allMatches=window.__visibilityFixtures;renderMatches();});
+  assert.equal(await main.locator('#matches article:visible').filter({hasText:'Gelecek Kart'}).count(),0);
+  await main.evaluate(()=>{setMamScreen('live');allMatches=[];renderMatches();});
+  assert.equal(await main.locator('#matches article:visible').count(),0);
+  assert.ok(await main.locator('#matches').isVisible());
+
   await main.evaluate(()=>{Date.now=window.originalMobileNow;});
   const historical=JSON.parse(readFileSync(new URL('./fixtures/espn-tur1-2025-standings.json',import.meta.url),'utf8'));
   await main.evaluate(payload=>{
