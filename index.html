@@ -5794,11 +5794,17 @@ function renderMatches(){
  if(mamScreenMode==="upcoming")list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)>mamTodayKey);
  if(mamScreenMode==="finished")list=list.filter(m=>["FT","AET","PEN","AWD","WO"].includes(mamCanonicalMatchStatus(m)));
  if(mamScreenMode==="today"){
-  // A stale provider NS/TBD status does not mean a match is still upcoming.
+  // Today is a complete local-day scoreboard, not just future kickoffs.
+  // Keep unknown/stale provider states visible without inventing live or final results.
   const selectedDay=$("date")?.value||mamTodayKey;
-  list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)===selectedDay);
+  list=list.filter(m=>mamIstanbulDay(m.fixture?.date)===selectedDay);
   const status=m=>mamCanonicalMatchStatus(m);
-  const counts={all:allMatches.length,live:allMatches.filter(m=>liveCodes.has(status(m))).length,upcoming:allMatches.filter(m=>mamIsFutureUnplayed(m,mamNow)).length,finished:allMatches.filter(m=>["FT","AET","PEN","AWD","WO"].includes(status(m))).length};
+  const isFinished=m=>["FT","AET","PEN","AWD","WO"].includes(status(m));
+  const isUpcoming=m=>mamIsFutureUnplayed(m,mamNow);
+  const counts={all:list.length,live:list.filter(m=>liveCodes.has(status(m))).length,upcoming:list.filter(isUpcoming).length,finished:list.filter(isFinished).length};
+  if(mamTodayFilter==="live")list=list.filter(m=>liveCodes.has(status(m)));
+  else if(mamTodayFilter==="upcoming")list=list.filter(isUpcoming);
+  else if(mamTodayFilter==="finished")list=list.filter(isFinished);
   $("mamTodayAllCount").textContent=counts.all;$("mamTodayLiveCount").textContent=counts.live;$("mamTodayUpcomingCount").textContent=counts.upcoming;$("mamTodayFinishedCount").textContent=counts.finished;
   $("mamTodayTabs")?.querySelectorAll("[data-today-filter]").forEach(tab=>{const active=tab.dataset.todayFilter===mamTodayFilter;tab.classList.toggle("active",active);tab.setAttribute("aria-selected",String(active));});
  }
