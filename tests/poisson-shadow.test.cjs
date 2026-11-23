@@ -254,3 +254,76 @@ test("archive transport retries incomplete CSVs, never joins partial bytes and l
   }), /not found/);
   assert.equal(attempts, 1);
 });
+
+test("ESPN retries 503 once and respects permanent errors and longer retry-after", async () => {
+  const { readSource } = require("../scripts/poisson-shadow-espn.cjs");
+  const url = "https://site.api.espn.com/example";
+  let calls = 0;
+  const recovered = await readSource(url, async () => ++calls === 1
+    ? new Response("", { status: 503, headers: { "retry-after": "0" } })
+    : new Response('{"events":[]}'));
+  assert.equal(calls, 2);
+  assert.equal(recovered.bytes.toString(), '{"events":[]}');
+  for (const status of [404, 429]) {
+    calls = 0;
+    await assert.rejects(readSource(url, async () => {
+      calls++;
+      return new Response("", { status, headers: { "retry-after": "30" } });
+    }), new RegExp(String(status)));
+    assert.equal(calls, 1);
+  }
+});
+
+test("ESPN retries partial response bodies without retaining partial bytes", async () => {
+  const { readSource } = require("../scripts/poisson-shadow-espn.cjs");
+  let calls = 0;
+  const recovered = await readSource("https://site.api.espn.com/example", async () => {
+    if (++calls === 1) return { ok: true, arrayBuffer: async () => {
+      throw Object.assign(new Error("socket"), { cause: { code: "UND_ERR_SOCKET" } });
+    } };
+    return new Response("fresh");
+  });
+  assert.equal(calls, 2);
+  assert.equal(recovered.bytes.toString(), "fresh");
+});
+
+test("shuffled restore preserves exact period seals and invalid bundles are rejected before writing", async () => {
+  const { ledger, input } = await setup();
+  const { value } = await ledger.append(input);
+  const evidence = { fixtureKey: value.fixture.key, observedAt, full: [2, 1], half: null,
+    status: "completed", boardSha256: hash };
+  await ledger.outcome(value, evidence);
+  await ledger.outcome(value, { ...evidence, half: [1, 0], boardSha256: "b".repeat(64), summarySha256: hash });
+  const bundle = await ledger.bundle();
+  const invalid = { ...bundle, results: bundle.results.filter(row => row.half) };
+  const directory = await mkdtemp(join(tmpdir(), "mam-poisson-preflight-"));
+  const restored = openLedger(directory);
+  await assert.rejects(restored.restore(invalid), /Inconsistent full-time/);
+  assert.deepEqual(await readdir(directory), []);
+  await restored.restore({ ...bundle, results: [...bundle.results].reverse() });
+  await restored.restore(bundle);
+  assert.deepEqual(await restored.bundle(), bundle);
+});
+
+test("concurrent duplicate outcomes seal one result per period and half conflict preserves verified full-time", async () => {
+  const { settle } = require("../scripts/poisson-shadow.cjs");
+  const { ledger, input } = await setup();
+  const { value } = await ledger.append(input);
+  const evidence = { fixtureKey: value.fixture.key, observedAt, full: [2, 1], half: [1, 0],
+    status: "completed", boardSha256: hash, summarySha256: hash };
+  const settled = await Promise.all(Array.from({ length: 6 }, () => ledger.outcome(value, evidence)));
+  assert.equal(new Set(settled.map(row => row.sha256)).size, 1);
+  assert.equal((await ledger.results()).length, 2);
+  const e = event(full);
+  const summary = { header: { id: value.fixture.id, league: { slug: value.fixture.league }, competitions: e.competitions } };
+  const provider = { failures: [],
+    board: async () => ({ events: [e], source: { capturedAt: observedAt, sha256: hash } }),
+    get: async () => ({ bytes: JSON.stringify(summary), capturedAt: observedAt, sha256: hash }) };
+  const [result] = await settle([value], provider, ledger);
+  assert.equal(result.status, "completed");
+  assert.equal(result.halfStatus, "result_conflict");
+  assert.equal(result.conflictReason, "sealed_half_time_score");
+  assert.equal(compare([value], [result], "full").totalMatched, 1);
+  assert.equal(compare([value], [result], "half").totalMatched, 0);
+  assert.equal((await ledger.results()).length, 2);
+});

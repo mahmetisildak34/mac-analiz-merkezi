@@ -88,6 +88,37 @@ async function checkedRead(path) {
   return { ...payload, sha256 };
 }
 
+function validateOutcome(record, evidence) {
+  if (Object.hasOwn(evidence, "predictionSha256") || evidence.status !== "completed" || !(timestamp(evidence.observedAt) > timestamp(record.fixture.kickoff)) ||
+        !hashPattern.test(evidence.boardSha256) || evidence.fixtureKey !== record.fixture.key ||
+        !Array.isArray(evidence.full) || evidence.full.length !== 2 || !evidence.full.every(validScore) ||
+        (evidence.half !== null && (!hashPattern.test(evidence.summarySha256) || !Array.isArray(evidence.half) ||
+        evidence.half.length !== 2 || evidence.half.some((n, i) => !validScore(n) || n > evidence.full[i])))) {
+    throw new Error("Invalid final score evidence");
+  }
+}
+
+function pairedResults(finals, records) {
+  const byFixture = new Map();
+  for (const { sha256, predictionSha256, ...evidence } of finals) {
+    const record = records.get(evidence.fixtureKey);
+    if (!record || record.sha256 !== predictionSha256 || !hashPattern.test(sha256)) {
+      throw new Error("Missing result provenance in bundle");
+    }
+    validateOutcome(record, evidence);
+    const pair = byFixture.get(evidence.fixtureKey) ?? {};
+    const period = evidence.half ? "half" : "full";
+    if (pair[period]) throw new Error("Duplicate archive result");
+    pair[period] = evidence;
+    byFixture.set(evidence.fixtureKey, pair);
+  }
+  for (const { full, half } of byFixture.values()) {
+    if (!full || (half && digest(full.full) !== digest(half.full))) {
+      throw new Error("Inconsistent full-time and half-time archive results");
+    }
+  }
+}
+
 function openLedger(root, now = () => new Date().toISOString()) {
   const predictions = join(root, "predictions");
   const snapshots = join(root, "snapshots");
@@ -151,13 +182,7 @@ function openLedger(root, now = () => new Date().toISOString()) {
     return result;
   }
   async function outcome(record, evidence) {
-    if (evidence.status !== "completed" || !(timestamp(evidence.observedAt) > timestamp(record.fixture.kickoff)) ||
-        !hashPattern.test(evidence.boardSha256) || evidence.fixtureKey !== record.fixture.key ||
-        !Array.isArray(evidence.full) || evidence.full.length !== 2 || !evidence.full.every(validScore) ||
-        (evidence.half !== null && (!hashPattern.test(evidence.summarySha256) || !Array.isArray(evidence.half) ||
-        evidence.half.length !== 2 || evidence.half.some((n, i) => !validScore(n) || n > evidence.full[i])))) {
-      throw new Error("Invalid final score evidence");
-    }
+    validateOutcome(record, evidence);
     const payload = { predictionSha256: record.sha256, ...evidence };
     const key = sha(record.fixture.key);
     async function seal(suffix, data) {
@@ -186,8 +211,10 @@ function openLedger(root, now = () => new Date().toISOString()) {
   async function bundle() {
     const records = await list();
     const linked = [...new Set(records.map(r => r.snapshotSha256))];
+    const finals = await results();
+    pairedResults(finals, new Map(records.map(record => [record.fixture.key, record])));
     return { predictions: records, snapshots: await Promise.all(linked.map(hash =>
-      checkedRead(join(snapshots, hash + ".json")))), results: await results() };
+      checkedRead(join(snapshots, hash + ".json")))), results: finals };
   }
 
   async function restore(archive) {
@@ -202,25 +229,36 @@ function openLedger(root, now = () => new Date().toISOString()) {
       const result = await createOnly(directory, name, data(record));
       if (result.value.sha256 !== record.sha256) throw new Error("Conflicting immutable archive import");
     }
+    const inputsByHash = new Map();
     const fixtureRecords = new Map();
     for (const input of inputs) {
-      checkSnapshot(input);
       data(input);
-      await restoreExact(snapshots, input.sha256 + ".json", input);
+      checkSnapshot(input);
+      if (inputsByHash.has(input.sha256)) throw new Error("Duplicate archive snapshot");
+      inputsByHash.set(input.sha256, input);
     }
     for (const record of records) {
+      data(record);
       validatePrediction(record);
-      await linkedSnapshot(record, record.snapshotSha256);
-      await restoreExact(predictions, sha(record.fixture.key) + ".json", record);
+      const snapshot = inputsByHash.get(record.snapshotSha256);
+      if (!snapshot || snapshot.fixtureKey !== record.fixture.key ||
+          snapshot.eventSha256 !== record.fixture.eventSha256 || snapshot.sourceAt !== record.sourceAt) {
+        throw new Error("Snapshot identity mismatch");
+      }
+      if (fixtureRecords.has(record.fixture.key)) throw new Error("Duplicate archive prediction");
       fixtureRecords.set(record.fixture.key, record);
     }
-    for (const result of finals) {
-      const { predictionSha256, ...evidence } = data(result);
-      const record = fixtureRecords.get(evidence.fixtureKey);
-      if (!record || record.sha256 !== predictionSha256) throw new Error("Missing result provenance in bundle");
-      // Preserve the original timestamp and sealed score proof on import.
-      const restored = await outcome(record, evidence);
-      if (restored.sha256 !== result.sha256) throw new Error("Conflicting immutable archive import");
+    for (const result of finals) data(result);
+    pairedResults(finals, fixtureRecords);
+
+    for (const input of inputs) await restoreExact(snapshots, input.sha256 + ".json", input);
+    for (const record of records) await restoreExact(predictions, sha(record.fixture.key) + ".json", record);
+    // Half-time is only published after its exact full-time seal, even if the
+    // input bundle was shuffled or a previous restore was interrupted.
+    for (const period of ["full", "half"]) {
+      for (const result of finals.filter(row => (row.half ? "half" : "full") === period)) {
+        await restoreExact(outcomes, `${sha(result.fixtureKey)}-${period}.json`, result);
+      }
     }
   }
   return { snapshot, append, list, outcome, results, bundle, restore };

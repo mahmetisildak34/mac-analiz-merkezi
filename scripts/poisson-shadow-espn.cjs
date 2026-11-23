@@ -16,18 +16,40 @@ const statusNames = {
 const readScore = value => typeof value === "string" && /^\d{1,2}$/.test(value) && validScore(Number(value))
   ? Number(value) : null;
 
-async function readSource(url) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(18000), redirect: "error" });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const bytes = Buffer.from(await response.arrayBuffer());
-  const capturedAt = new Date().toISOString();
-  if (bytes.length > 8_000_000) throw new Error("Public response exceeds size limit");
-  return { bytes, capturedAt, url, sha256: sha(bytes) };
+async function readSource(url, request = fetch) {
+  async function attempt() {
+    const response = await request(url, { signal: AbortSignal.timeout(18000), redirect: "error" });
+    if (!response.ok) {
+      const error = new Error(`HTTP ${response.status}`);
+      if ([408, 429, 500, 502, 503, 504].includes(response.status)) {
+        const retryAfter = response.headers.get("retry-after");
+        if (retryAfter == null) error.retryDelay = 250;
+        else if (/^\d+$/.test(retryAfter)) error.retryDelay = Number(retryAfter) * 1000;
+        else error.retryDelay = Math.max(0, Date.parse(retryAfter) - Date.now());
+      }
+      await response.body?.cancel().catch(() => {});
+      throw error;
+    }
+    const bytes = Buffer.from(await response.arrayBuffer());
+    const capturedAt = new Date().toISOString();
+    if (bytes.length > 8_000_000) throw new Error("Public response exceeds size limit");
+    return { bytes, capturedAt, url, sha256: sha(bytes) };
+  }
+  try { return await attempt(); }
+  catch (error) {
+    const transient = ["TimeoutError", "AbortError"].includes(error.name) ||
+      ["ECONNRESET", "EAI_AGAIN", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_SOCKET"].includes(error.cause?.code);
+    const delay = transient ? 250 : error.retryDelay;
+    // Respect long provider backoffs by leaving the result unverified this run.
+    if (!Number.isFinite(delay) || delay > 2000) throw error;
+    if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+    return attempt();
+  }
 }
 
 function boardEvents(source, league) {
   const payload = JSON.parse(source.bytes);
-  if (payload?.leagues?.length !== 1 || payload.leagues[0].slug !== league || !Array.isArray(payload.events)) {
+  if (payload?.leagues?.length !== 1 || payload.leagues[0]?.slug !== league || !Array.isArray(payload.events)) {
     throw new Error("Invalid ESPN league scoreboard");
   }
   return payload.events;

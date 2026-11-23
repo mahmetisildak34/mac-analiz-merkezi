@@ -194,9 +194,15 @@ async function findResult(original, provider) {
       id: payload.header.id, date: c.date, status: c.status, competitions: payload.header.competitions
     }, original.league, summary.capturedAt);
     const proof = { ...evidence, summarySha256: summary.sha256, summary: sourceProof(summary) };
-    if (summaryEvidence && (summaryEvidence.status === "awarded" || (summaryEvidence.status === "completed" &&
-        summaryEvidence.full.some((score, i) => score !== checked.full[i])))) {
-      return { ...proof, status: "result_conflict", full: null, half: null };
+    if (summaryEvidence) {
+      const summaryStatus = summaryEvidence.status;
+      const disputedStatus = ["awarded", "cancelled", "postponed", "rescheduled", "identity_mismatch"].includes(summaryStatus);
+      const disputedScore = summaryStatus === "completed" &&
+        summaryEvidence.full.some((score, i) => score !== checked.full[i]);
+      if (disputedStatus || disputedScore) {
+        return { ...proof, status: "result_conflict", full: null, half: null,
+          conflictReason: disputedScore ? "scoreboard_summary_score" : `summary_${summaryStatus}` };
+      }
     }
     const half = verifiedHalf(original, checked.full, payload);
     return { ...proof, half, halfStatus: half ? "verified" : "unverified" };
@@ -229,8 +235,16 @@ async function settle(records, provider, ledger) {
       return { ...evidence, fixtureKey, outcomeSha256: sealed.sha256 };
     } catch (error) {
       if (error.message === "Conflicting immutable result") {
+        const sealed = (await ledger.results()).filter(row =>
+          row.fixtureKey === fixtureKey && row.predictionSha256 === record.sha256);
+        const agreedFull = sealed.find(row => row.half === null && digest(row.full) === digest(evidence.full));
+        if (agreedFull && evidence.half) {
+          return { ...evidence, half: null, halfStatus: "result_conflict",
+            conflictReason: "sealed_half_time_score", outcomeSha256: agreedFull.sha256 };
+        }
         return { fixtureKey, status: "result_conflict", observedAt: evidence.observedAt,
-          boardSha256: evidence.boardSha256, summarySha256: evidence.summarySha256 };
+          boardSha256: evidence.boardSha256, summarySha256: evidence.summarySha256,
+          conflictReason: "sealed_full_time_score" };
       }
       throw error;
     }
