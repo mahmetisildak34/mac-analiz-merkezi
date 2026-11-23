@@ -82,7 +82,7 @@ test('Real public ESPN upcoming fixtures appear in iPhone team profiles (Chromiu
        button.dataset.teamSource='espn';
        button.dataset.exactSearch='1';
        button.textContent=name;document.body.append(button);
-       await openStandingTeamHistory(button,leagueId,button);
+       await window.mamOpenStandingTeamHistory(button,leagueId,button);
       },props);
       const dialog=page.getByRole('dialog',{name:props.name+' takım profili',exact:true});
       await dialog.locator('[data-history-view="upcoming"]').click();
