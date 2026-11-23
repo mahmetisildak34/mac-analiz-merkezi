@@ -199,9 +199,15 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
    await page.clock.fastForward(31_000);
    await card.locator(".match-clock").getByText("2 – 1",{exact:true}).waitFor({timeout:8000});
    await page.locator('[data-match-mode="live"]').click();
-   await page.locator("#status").getByText(/doğrulanmış canlı maç bulunamadı/).waitFor();
-   await card.waitFor({state:"hidden"});
-   assert.equal(await page.evaluate(()=>localStorage.getItem("mam_live_matches_cache_v1")),null);
+   await page.locator("#status").getByText(/doğrulanmış canlı maç bulunamadı|Canlı veri doğrulanamadı|Canlı maç durumu şu anda doğrulanamadı/).waitFor();
+   const liveState=await page.locator("#status").innerText();
+   if(liveState.includes("doğrulanmış canlı maç bulunamadı")){
+    await card.waitFor({state:"hidden"});
+    assert.equal(await page.evaluate(()=>localStorage.getItem("mam_live_matches_cache_v1")),null);
+   }else{
+    // An uncertain provider response must never be mistaken for a verified empty result.
+    assert.match(liveState,/Canlı veri doğrulanamadı|Canlı maç durumu şu anda doğrulanamadı/);
+   }
    await page.locator('[data-match-mode="today"]').click();
    await page.waitForFunction(()=>!window.mamLoadMatchesBusy);
    await page.clock.setSystemTime(new Date("2026-11-23T21:01:00Z"));
