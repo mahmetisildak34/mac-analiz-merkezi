@@ -5386,8 +5386,8 @@ async function mamLoadAdvancedEspnDetails(article){
  const fixture=String(button?.dataset.id||"");
  const leagueId=String(button?.dataset.league||live?.dataset.liveLeagueId||"");
  const league=ESPN_LEAGUES[leagueId];
- const id=fixture.match(/^espn-[a-z0-9._-]+-(\\d+)$/i)?.[1]||
-  (live?.dataset.liveSource==="espn"&&/^\\d+$/.test(live.dataset.liveId||"")?live.dataset.liveId:"");
+ const id=fixture.match(/^espn-[a-z0-9._-]+-(\d+)$/i)?.[1]||
+  (live?.dataset.liveSource==="espn"&&/^\d+$/.test(live.dataset.liveId||"")?live.dataset.liveId:"");
  if(!id||!league?.slug)return;
  const overview=article.querySelector('.match-detail-pane[data-pane="overview"]');
  if(!overview)return;
