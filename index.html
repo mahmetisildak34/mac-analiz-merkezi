@@ -5935,31 +5935,24 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
   const countryFlags={"Czech-Republic":"🇨🇿","Czech Republic":"🇨🇿","Poland":"🇵🇱","Spain":"🇪🇸","Denmark":"🇩🇰","Germany":"🇩🇪","Italy":"🇮🇹","France":"🇫🇷","England":"🏴","Türkiye":"🇹🇷","Turkey":"🇹🇷","World":"🌍","Europe":"🇪🇺"};
   return '<section class="mam-league-group"><div class="mam-league-heading"><span class="mam-league-globe">'+esc(league.icon||countryFlags[league.country]||"⚽")+'</span><strong>'+esc(league.name||"Diğer maçlar")+'</strong><small>'+esc(league.country||"")+'</small><span class="mam-league-count">'+group.length+' MAÇ</span></div>'+group.map(m=>{
   const f=m.fixture||{},l=m.league||{},t=m.teams||{},g=m.goals||{};
-  let statusCode=mamCanonicalMatchStatus(m);
+  const statusCode=mamCanonicalMatchStatus(m);
   const statusNames={"NS":"Başlamadı","TBD":"Saat bekleniyor","1H":"1. yarı","HT":"Devre arası","2H":"2. yarı","ET":"Uzatmalar","BT":"Uzatma arası","P":"Penaltılar","SUSP":"Durduruldu","INT":"Kesildi","LIVE":"Canlı","FT":"Bitti","AET":"Uzatmalarda bitti","PEN":"Penaltılarla bitti","PST":"Ertelendi","CANC":"İptal","ABD":"Yarıda kaldı","AWD":"Hükmen","WO":"Hükmen"};
-  let statusLabel=statusNames[statusCode]||statusCode||"Durum bilinmiyor";
-  let isLiveStatus=["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(statusCode);
+  const statusLabel=statusNames[statusCode]||statusCode||"Durum bilinmiyor";
+  const isLiveStatus=["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(statusCode);
   const isFinishedStatus=["FT","AET","PEN","AWD","WO"].includes(statusCode);
   const time=f.date?new Date(f.date).toLocaleTimeString("tr-TR",{
    hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"
   }):"";
   const elapsed=f.status?.elapsed;
-  const displayClock=String(f.status?.displayClock||"");
-  let effectiveElapsed=elapsed==null||elapsed===""?NaN:Number(elapsed);
-  // ESPN sağlayıcı saatini kullan; başlama saatinden geçen süreyle dakika tahmin etme.
-  const clockMatch=displayClock.match(/(?:^|\D)(\d{1,3})(?::\d{2})?\s*'?/);
-  const clockMinute=clockMatch?Number(clockMatch[1]):NaN;
-  if(!Number.isFinite(effectiveElapsed)&&Number.isFinite(clockMinute)&&clockMinute>=0&&clockMinute<=130){
-   effectiveElapsed=clockMinute;
-  }
-  statusLabel=statusNames[statusCode]||statusCode||"Durum bilinmiyor";
-  isLiveStatus=["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(statusCode);
+  const providerElapsed=elapsed==null||elapsed===""?NaN:Number(elapsed);
+  const providerClock=mamEspnClock({status:f.status});
+  const effectiveElapsed=Number.isFinite(providerElapsed)&&providerElapsed>=0&&providerElapsed<=130
+   ?providerElapsed:providerClock.elapsed;
   let liveMinute="";
   if(isLiveStatus){
    if(statusCode==="HT")liveMinute="Devre arası";
-   else if(/^[0-9]{1,3}\+[0-9]{1,2}'$/.test(displayClock))liveMinute=displayClock;
+   else if(providerClock.displayClock.includes("+"))liveMinute=providerClock.displayClock;
    else if(Number.isFinite(effectiveElapsed))liveMinute=String(Math.round(effectiveElapsed))+"'";
-   else if(displayClock&&/^\s*\d{1,3}(?::\d{2})?\s*'?\s*$/.test(displayClock))liveMinute=displayClock.trim().replace(/:.*$/,"").replace(/\s*'?$/,"")+"'";
    else liveMinute="Canlı";
   }
   const displayedTime=isLiveStatus?(liveMinute||"Canlı"):time;
