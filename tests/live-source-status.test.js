@@ -59,6 +59,29 @@ test("fallback providers normalize only active match states",()=>{
  assert.match(html,/\["HT","ET","P","SUSP","LIVE"\]\.includes\(short\)/);
 });
 
+test("the verified AFC Champions League Elite ESPN scoreboard is configured",()=>{
+ const start=html.indexOf("const ESPN_LEAGUES={"),end=html.indexOf("\n};",start);
+ const mapping=html.slice(start,end);
+ assert.match(mapping,/"afc_champions":\{slug:"afc\.champions",name:"AFC Champions League Elite"/);
+ assert.match(html,/const liveCodes=new Set\(\["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"\]\)/);
+});
+
+test("SportScore supplements normalize AFC and Turkish First League to stable league IDs",async()=>{
+ const methods=["mamExplicitUtc","mamFixtureInstant","mamSportScoreLiveFixtures"];
+ const js=methods.map(name=>html.match(new RegExp("(?:async )?function "+name+"\\([\\s\\S]*?\\n\\}"))[0]).join("\n");
+ const payload={matches:[
+  {id:"bodrum",status:"live",status_text:"1st half",time:"2026-11-23T17:00:00Z",home:"Bodrum FK",away:"Belediye Vanspor",home_score:"0",away_score:"0",competition:"Turkish First League"},
+  {id:"afc",status:"live",status_text:"2nd half",time:"2026-11-23T16:00:00Z",home:"Al-Ain FC",away:"Esteghlal Tehran",home_score:"0",away_score:"1",competition:"AFC Champions League Elite"}
+ ]};
+ const load=require("node:vm").runInNewContext(js+";mamSportScoreLiveFixtures",{
+  WORKER:"https://fixture.invalid",qs:x=>new URLSearchParams(x),mamIstanbulDateString:()=>"2026-11-23",
+  localStorage:{getItem:()=>null,setItem:()=>{}},fetch:async()=>({ok:true,json:async()=>payload})
+ });
+ const rows=await load(true);
+ assert.deepEqual(rows.map(row=>row.league.id),["204","afc_champions"]);
+ assert.ok(rows.every(row=>row.fixture.status.short==="LIVE"));
+});
+
 test("published standings keep missing fields blank and prefer source goal difference",()=>{
  const standings=html.slice(html.indexOf("async function loadStandings"),html.indexOf("const MAM_MATCH_STATS_TTL"));
  assert.match(standings,/await loadEspnStandings\(espnLeague,\{season:seasonValue,refresh\}\)/);

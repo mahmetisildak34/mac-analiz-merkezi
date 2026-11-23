@@ -91,6 +91,7 @@ export const espnCompetitions = new Map([
  ['ger.1', 'Bundesliga'],
  ['ita.1', 'Serie A'],
  ['fra.1', 'Ligue 1'],
+ ['afc.champions', 'AFC Champions League Elite'],
  ['uefa.champions', 'UEFA Champions League'],
  ['uefa.europa', 'UEFA Europa League'],
  ['uefa.nations', 'UEFA Nations League'],

@@ -3438,6 +3438,7 @@ const ESPN_LEAGUES={
  "9":{slug:"conmebol.america",name:"Copa América",country:"South America"},
  "15":{slug:"fifa.cwc",name:"FIFA Club World Cup",country:"World"},
  "307":{slug:"ksa.1",name:"Saudi Pro League",country:"Saudi Arabia"},
+ "afc_champions":{slug:"afc.champions",name:"AFC Champions League Elite",country:"Asia"},
  "concacaf_nations":{slug:"concacaf.nations.league",name:"CONCACAF Nations League",country:"North America"},
  "caf_nations_qual":{slug:"caf.nations_qual",name:"Africa Cup of Nations Qualifying",country:"Africa"},
  "fifa_friendly":{slug:"fifa.friendly",name:"International Friendlies",country:"World"},
@@ -3691,6 +3692,7 @@ const mamFixtureTeamKey=value=>{
   stanbulbaakehr:"basaksehir",istanbulbaakehr:"basaksehir",basakehr:"basaksehir",
    arcaorum:"corum",arcaorumspor:"corum",orum:"corum",
    caykurrizespor:"rizespor",caykurrzespor:"rizespor",
+  alshamalsports:"alshamal",esteghlaltehran:"esteghlal",belediyevanspor:"vanspor",
    kasimpasa:"kasimpasa",kasmpasa:"kasimpasa"
  };
  return aliases[key]||key;
@@ -3706,6 +3708,19 @@ function mamSameFixture(a,b){
  const pair=mamFixturePair(a);
  if(!pair||pair!==mamFixturePair(b))return false;
  return Math.abs(mamFixtureInstant(a.fixture?.date)-mamFixtureInstant(b.fixture?.date))<=10*60*1000;
+}
+function mamSameLiveProviderFixture(a,b){
+ const homeA=mamFixtureTeamKey(a?.teams?.home?.name),awayA=mamFixtureTeamKey(a?.teams?.away?.name);
+ const homeB=mamFixtureTeamKey(b?.teams?.home?.name),awayB=mamFixtureTeamKey(b?.teams?.away?.name);
+ if(!homeA||!awayA||homeA!==homeB||awayA!==awayB)return false;
+ const timeA=mamFixtureInstant(a?.fixture?.date),timeB=mamFixtureInstant(b?.fixture?.date);
+ return Number.isFinite(timeA)&&Number.isFinite(timeB)&&Math.abs(timeA-timeB)<=10*60*1000;
+}
+function mamUnrepresentedLiveFixtures(primaryRows,supplementRows){
+ const primary=Array.isArray(primaryRows)?primaryRows:[];
+ return (Array.isArray(supplementRows)?supplementRows:[]).filter(candidate=>
+  !primary.some(existing=>mamSameLiveProviderFixture(existing,candidate))
+ );
 }
 function mamMergeFixtureStatus(existing,incoming){
  return {...existing,goals:incoming.goals,score:incoming.score,fixture:{...existing.fixture,status:incoming.fixture.status}};
@@ -4127,13 +4142,13 @@ async function footballDataLiveFixtures(){
  })).filter(m=>m.teams.home.name&&m.teams.away.name);
 }
 
-async function mamSportScoreLiveFixtures(force=false){
+async function mamSportScoreLiveFixtures(force=false,signal=null){
  const cacheKey="mam_sportscore_live_fixtures_v2";
  let cached=null;try{cached=JSON.parse(localStorage.getItem(cacheKey)||"null");}catch(_){}
  if(!force&&cached?.time&&Array.isArray(cached.matches)&&Date.now()-cached.time<20000)return cached.matches;
  const date=typeof mamIstanbulDateString==="function"?mamIstanbulDateString():new Date().toISOString().slice(0,10);
  const url=WORKER+"/api/sportscore/v1/fixtures/?"+qs({sport:"football",date,status:"live",limit:200,src:"mac-analiz-merkezi"});
- const response=await fetch(url,{headers:{Accept:"application/json"},cache:"no-store"});
+ const response=await fetch(url,{headers:{Accept:"application/json"},cache:"no-store",signal:signal||undefined});
  if(!response.ok)throw new Error("SportScore canlı fikstür HTTP "+response.status);
  const payload=await response.json();
  const rows=[payload?.matches,payload?.fixtures,payload?.data,payload?.response].find(Array.isArray);
@@ -4141,6 +4156,7 @@ async function mamSportScoreLiveFixtures(force=false){
  const norm=value=>String(value||"").toLowerCase().replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
  const minute=value=>{const m=String(value||"").match(/(?:^|\D)(\d{1,3})(?:\s*\+\s*(\d{1,2}))?\s*['′]?/);return m?Number(m[1]):null;};
  const number=value=>value===null||value===undefined||value===""?null:(Number.isFinite(Number(value))?Number(value):null);
+ const canonicalLeagueIds={"afc champions league elite":"afc_champions","turkish first league":"204","trendyol 1 lig":"204","turkish super league":"203","super lig":"203"};
  const matches=rows.map(item=>{
   const raw=norm(item.status||item.state),detail=norm(item.status_text||item.statusText||item.elapsed||item.minute);
   const combined=raw+" "+detail;
@@ -4158,13 +4174,15 @@ async function mamSportScoreLiveFixtures(force=false){
   if(!slug||!home||!away)return null;
   const competition=item.competition||item.league||item.competition_name||"";
   const competitionName=typeof competition==="string"?competition:String(competition.name||competition.title||competition.slug||"SportScore");
+  const competitionKey=competitionName.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  const leagueId=item.competition_id||item.league_id||competition.id||canonicalLeagueIds[competitionKey]||"sportscore";
   const hs=number(item.home_score??item.homeScore??item.score?.home??item.goals?.home);
   const as=number(item.away_score??item.awayScore??item.score?.away??item.goals?.away);
   const candidates=[mamExplicitUtc(item.utc_date),item.date,item.fixture?.date,item.time];
   const kickoff=candidates.find(value=>Number.isFinite(mamFixtureInstant(value)));
   const scheduledDay=candidates.find(value=>typeof value==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(value));
   const clock=item.status_text||item.statusText||item.elapsed||item.minute||"";
-  return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff||scheduledDay||null,timeUnknown:!kickoff,status:{short,elapsed:minute(clock),displayClock:String(clock)}},league:{id:String(item.competition_id||item.league_id||competition.id||"sportscore"),name:competitionName,country:String(item.country||competition.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug};
+  return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff||scheduledDay||null,timeUnknown:!kickoff,status:{short,elapsed:minute(clock),displayClock:String(clock)}},league:{id:String(leagueId),name:competitionName,country:String(item.country||competition.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug};
  }).filter(Boolean);
  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
  return matches;
@@ -4364,6 +4382,16 @@ async function loadLiveMatchesNow(){
    if(fallback.length)mamSaveMatchesToD1(fallback).catch(error=>console.warn("ESPN canlı maçları D1 arşivine yazılamadı:",error));
    const fallbackLive=fallback.filter(isLive);
    espnLiveCount=fallbackLive.length;
+   let supplementalLive=[];
+   if(fallbackLive.length){
+    const controller=typeof AbortController==="function"?new AbortController():null;
+    const requestTimeout=controller?setTimeout(()=>controller.abort(),1400):null;
+    try{
+     const sportScoreLive=(await mamSportScoreLiveFixtures(false,controller?.signal)).filter(isRecentLive);
+     supplementalLive=mamUnrepresentedLiveFixtures(fallbackLive,sportScoreLive);
+    }catch(error){console.warn("ESPN canlı maçlarına ek SportScore taraması başarısız:",error);}
+    finally{if(requestTimeout)clearTimeout(requestTimeout);}
+   }
    // Cross-check the primary live score and elapsed minute against the ESPN events already fetched.
    primaryLiveMatches=mamEnrichLiveScoresWithEspn(primaryLiveMatches,fallbackLive);
    if(fallbackLive.length){
@@ -4378,6 +4406,7 @@ async function loadLiveMatchesNow(){
     previousDayFixtures.forEach(match=>freshPairs.add(matchPair(match)));
     const mergedByPair=new Map();
     recentCachedLive.forEach(match=>{const key=matchPair(match);if(!freshPairs.has(key))mergedByPair.set(key,match);});
+    supplementalLive.forEach(match=>{const key=matchPair(match);if(!mergedByPair.has(key))mergedByPair.set(key,match);});
     const primaryChecksByPair=new Map(primaryLiveMatches.filter(match=>match._mamLiveCrossCheck).map(match=>[matchPair(match),match._mamLiveCrossCheck]));
     fallbackLive.forEach(match=>{
      const check=primaryChecksByPair.get(matchPair(match));
