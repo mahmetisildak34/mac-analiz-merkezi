@@ -41,7 +41,7 @@ function summarize(data){
  const label=play=>[play?.type?.text,play?.type?.name,play?.text,play?.description].filter(Boolean).join(' ').toLowerCase();
  return {
   kinds:{
-   goals:list(value.scoringPlays).length>0||plays.some(p=>/\\bgoal\\b|\\bown goal\\b/.test(label(p))),
+   goals:list(value.scoringPlays).length>0||plays.some(p=>/goal|own goal/.test(label(p))),
    cards:plays.some(p=>/yellow card|red card|sarı kart|kırmızı kart/.test(label(p))),
    substitutions:plays.some(p=>/substitut|değişiklik/.test(label(p)))
   },
