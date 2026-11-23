@@ -8959,7 +8959,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,return
   for(const team of catalog)if(!byEspnId.has(team.teamId))byEspnId.set(team.teamId,team);
   for(const [teamId,name] of FALLBACK_TEAMS){
    const existing=byEspnId.get(teamId);
-   if(!existing||existing.slug.startsWith('uefa.')){
+   if(!existing||existing.slug==='tur.1'||existing.slug.startsWith('uefa.')){
     byEspnId.set(teamId,{id:'espn:tur.1:'+teamId,teamId,name,slug:'tur.1',leagueId:'203',league:'Süper Lig'});
    }
   }

@@ -174,7 +174,9 @@ async function verifyMainApp(context,browserName){
    renderMatches();
   });
   assert.equal(await main.locator('#matches .mam-league-heading strong').first().innerText(),'Premier League');
-  await main.locator('#matches article').filter({hasText:'Arsenal Test'}).locator('.match-time').getByText('Devre arası',{exact:true}).waitFor();
+  const halftimeClock=main.locator('#matches article').filter({hasText:'Arsenal Test'}).locator('.match-time');
+  await halftimeClock.waitFor();
+  assert.match(await halftimeClock.innerText(),/Devre arası/);
   const missingClock=main.locator('#matches article').filter({hasText:'Saat Verisi Yok'});
   assert.doesNotMatch(await missingClock.locator('.match-time').innerText(),/\d+'/);
   assert.equal(await missingClock.locator('.match-clock').innerText(),'—');
