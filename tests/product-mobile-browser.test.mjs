@@ -192,7 +192,7 @@ async function verifyMainApp(context,browserName){
    if(!source)throw new Error('Missing visible card to clone');
    const hidden=source.cloneNode(true);
    hidden.dataset.testHiddenCard='1';
-   hidden.style.display='none';
+   hidden.style.setProperty('display','none','important');
    document.querySelector('#matches').appendChild(hidden);
   });
   const hiddenCard=main.locator('#matches article[data-test-hidden-card="1"]');
