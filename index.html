@@ -4352,7 +4352,8 @@ async function loadLiveMatchesNow(){
   // D1 arşivi geçmiş kayıtları tutabilir; güncel sağlayıcı teyidi olmadan canlı maç olarak gösterilmez.
   const d1LiveMatches=[];
   // Hiçbir kaynak bu yenilemede canlı maçı doğrulamadıysa canlı ekran boş kalır.
-  allMatches=[];
+  // Preserve the fixture snapshot for other screens; only the live view is empty.
+  if(mamScreenMode==="live")allMatches=[];
   renderMatches();
   const noLiveEventsFound =
    espnErrorText.startsWith("ESPN taraması tamamlandı") &&
@@ -5806,32 +5807,6 @@ function renderMatches(){
  const selectedDate=$("date")?.value||todayKey;
  if($("mamTodayTitle"))$("mamTodayTitle").textContent=selectedDate===todayKey?"BUGÜN OYNANACAK MAÇLAR":new Date(selectedDate+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"})+" MAÇLARI";
  if($("mamTodayCount"))$("mamTodayCount").textContent=list.length+" MAÇ";
- if(mamScreenMode==="upcoming"){
-  list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)>mamTodayKey);
-  list.sort((a,b)=>Date.parse(a.fixture?.date||0)-Date.parse(b.fixture?.date||0));
-  if($("mamSectionCount"))$("mamSectionCount").textContent=list.length+" MAÇ";
-  if(!list.length){
-   $("matches").innerHTML='<div class="empty">Önümüzdeki 30 gün için gelecek maç bulunamadı. Veri arşivi henüz dolmamış olabilir; yenile ile tekrar dene.</div>';
-   return;
-  }
-  const groups=[...list.reduce((map,m)=>{
-   const l=m.league||{};
-   const key=String(l.country||"Diğer")+"::"+String(l.id??l.name??"other");
-   if(!map.has(key))map.set(key,[]);
-   map.get(key).push(m);
-   return map;
-  },new Map()).entries()];
-  $("matches").innerHTML='<div class="mam-upcoming-summary"><strong>ÖNÜMÜZDEKİ 30 GÜN</strong><span>'+list.length+' GELECEK MAÇ</span></div>'+groups.map(([key,items])=>{
-   const league=items[0]?.league||{};
-   return '<section class="mam-league-group mam-upcoming-group"><div class="mam-league-heading"><span class="mam-league-globe">⚽</span><strong>'+esc(league.name||"Diğer maçlar")+'</strong><small>'+esc(league.country||"")+'</small><span class="mam-league-count">'+items.length+'</span></div>'+items.map(m=>{
-    const f=m.fixture||{},t=m.teams||{},l=m.league||{};
-    const time=f.date?new Date(f.date).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"}):"Saat TBD";
-    return '<article class="mam-fixture-row"><div class="mam-fixture-time">'+esc(time)+'<span>BAŞLAMADI</span></div><div class="mam-fixture-teams"><div>'+teamBadge(t.home)+'<strong>'+esc(t.home?.name||"Ev sahibi")+'</strong></div><span class="mam-fixture-vs">VS</span><div>'+teamBadge(t.away)+'<strong>'+esc(t.away?.name||"Deplasman")+'</strong></div></div><button class="predBtn mam-fixture-analyze" data-id="'+esc(f.id)+'" data-home="'+esc(t.home?.id)+'" data-away="'+esc(t.away?.id)+'" data-home-name="'+esc(t.home?.name)+'" data-away-name="'+esc(t.away?.name)+'" data-league="'+esc(l.id)+'" data-date="'+esc(f.date?.slice(0,10))+'" data-kickoff="'+esc(f.timeUnknown?"":f.date)+'" data-status="'+esc(mamCanonicalMatchStatus(m))+'">Maç ön analizini yap →</button><div class="pred" id="pred-'+esc(f.id)+'" hidden></div></article>';
-   }).join("")+'</section>';
-  }).join("");
-  document.querySelectorAll("#matches .predBtn").forEach(button=>button.addEventListener("click",()=>analyze(button)));
-  return;
- }
  if(!list.length){
   $("matches").innerHTML=mamScreenMode==="today"?'<div class="empty">Türkiye saatine göre bugün henüz başlamamış maç bulunamadı. Başlangıç saati geçmiş fakat sağlayıcı durumu güncellenmemiş maçlar doğrulanmadan Canlı veya Biten olarak gösterilmez.</div>':'<div class="empty">Bu filtrede maç bulunamadı.</div>';
   return;
