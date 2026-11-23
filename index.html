@@ -4184,7 +4184,7 @@ function loadLiveMatches(){
 async function loadLiveMatchesNow(){
  try{if(localStorage.getItem("mam_open_live_detail"))setMamScreen("live");}catch(_){}
  if(navigator.onLine===false){
-  if(mamScreenMode==="live"){allMatches=[];renderMatches();$("status").textContent="Çevrimdışısınız. Güncel canlı skorlar gösterilemiyor.";}
+  if(mamScreenMode==="live"){renderMatches();$("status").textContent="Çevrimdışısınız. Güncel canlı skorlar gösterilemiyor.";}
   return;
  }
  const button=$("loadLive");
@@ -5896,7 +5896,7 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
    <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span>${isLiveStatus&&time?'<small class="mam-kickoff-time" aria-label="Başlangıç saati: '+esc(time)+'">'+esc(time)+'</small>':""}</span></div>
    <div class="match-versus">
     <div class="team-block">${teamBadge(t.home)}<strong>${esc(t.home?.name)}</strong>${isFinishedStatus?mamOutcomeBadge(g.home,g.away):""}</div>
-    <div class="match-center"><span class="match-clock">${g.home!=null&&g.away!=null?esc(g.home)+" – "+esc(g.away):esc(time||"VS")}</span><small>${isLiveStatus&&time?esc(statusLabel)+" · "+esc(time):(statusCode==="NS"?"Karşılaşma":esc(statusLabel))}</small></div>
+    <div class="match-center"><span class="match-clock">${!["NS","TBD","UNK","PST","CANC"].includes(statusCode)&&g.home!=null&&g.away!=null?esc(g.home)+" – "+esc(g.away):esc(time||"VS")}</span><small>${isLiveStatus&&time?esc(statusLabel)+" · "+esc(time):(statusCode==="NS"?"Karşılaşma":esc(statusLabel))}</small></div>
     <div class="team-block">${teamBadge(t.away)}<strong>${esc(t.away?.name)}</strong>${isFinishedStatus?mamOutcomeBadge(g.away,g.home):""}</div>
    </div>
    <div class="match-actions">
