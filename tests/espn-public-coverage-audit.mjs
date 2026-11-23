@@ -92,6 +92,18 @@ async function audit([league,name]){
    if(sample){archive.sampleDate=day;break;}
   }
  }
+ const scheduled=events.find(event=>matchState(event)==='scheduled');
+ const scheduledSides=list(scheduled?.competitions?.[0]?.competitors);
+ const scheduledHome=scheduledSides.find(row=>row?.homeAway==='home')?.team;
+ const scheduledAway=scheduledSides.find(row=>row?.homeAway==='away')?.team;
+ const upcomingBoardFixture=scheduled?{
+  eventId:String(scheduled.id??''),date:scheduled.date??null,
+  homeId:scheduledHome?.id==null?null:String(scheduledHome.id),
+  awayId:scheduledAway?.id==null?null:String(scheduledAway.id),
+  homeName:scheduledHome?.displayName??scheduledHome?.name??null,
+  awayName:scheduledAway?.displayName??scheduledAway?.name??null,
+  validTeamIdentity:!!scheduled.id&&!!scheduledHome?.id&&!!scheduledAway?.id&&String(scheduledHome.id)!==String(scheduledAway.id)
+ }:null;
  const detail=sample?.id?await read(base+'/summary?event='+encodeURIComponent(sample.id)):null;
  // A provider-published team ID is required; never match teams by names.
  const competitors=list(sample?.competitions?.[0]?.competitors);
@@ -148,7 +160,7 @@ async function audit([league,name]){
  return {
   league,name,days:Object.fromEntries(days.map((day,index)=>[day,dayResult(boards[index])])),
   teams:withTeams.length,logos:withLogos.length,eventId:sample?.id??null,
-  detail:summarize(detail),teamHistory,teamFuture,archive,standings:standingsResult,
+  detail:summarize(detail),teamHistory,teamFuture,upcomingBoardFixture,archive,standings:standingsResult,
   active:events.filter(event=>matchState(event)==='live').map(event=>({id:event.id,status:event.status?.type?.name,clock:event.status?.displayClock,scores:list(event.competitions?.[0]?.competitors).map(row=>[row.homeAway,row.score])}))
  };
 }
