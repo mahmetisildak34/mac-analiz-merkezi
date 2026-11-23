@@ -4202,14 +4202,31 @@ async function loadLiveMatchesNow(){
   if(!liveById.has(key))liveById.set(key,match);
  });
  const cachedMatches=[...liveById.values()];
+
+ // Live score polling must never replace the complete fixture list.
+ let fallbackSchedule=[];
+ const publishLiveSnapshot=liveRows=>{
+  const byId=new Map();
+  for(const match of (fallbackSchedule.length?fallbackSchedule:allMatches)){
+   if(isLive(match))continue;
+   const id=String(match?.fixture?.id??match?.id??"");
+   if(id)byId.set(id,match);
+  }
+  for(const match of liveRows){
+   const id=String(match?.fixture?.id??match?.id??"");
+   if(id)byId.set(id,match);
+  }
+  allMatches=[...byId.values()];
+  renderMatches();
+ };
+
  // Son başarılı canlı listeyi API isteğini beklemeden göster.
  if(cachedMatches.length){
-  allMatches=cachedMatches;
-  renderMatches();
+  publishLiveSnapshot(cachedMatches);
   $("status").textContent="Son kayıtlı canlı maçlar yükleniyor; güncel skorlar kontrol ediliyor...";
  }
  let primaryErrorText="",primaryCount=0,espnErrorText="",primaryLiveMatches=[];
-  let fallbackSchedule=[],espnCount=0,espnLiveCount=0,footballDataCount=0,sportScoreCount=0;
+  let espnCount=0,espnLiveCount=0,footballDataCount=0,sportScoreCount=0;
  try{
   // ESPN is the first live-score source. API-Football is a controlled fallback only.
   primaryErrorText="API-Football canlı isteği ESPN kontrolünden sonraya alındı.";
@@ -4272,9 +4289,8 @@ async function loadLiveMatchesNow(){
     });
     const combinedLive=[...mergedByPair.values()];
     mamNotifyLiveGoalChanges(combinedLive);
-    allMatches=combinedLive;
-    mamSaveLiveMatchCache(combinedLive);
-    renderMatches();
+    publishLiveSnapshot(combinedLive);
+     mamSaveLiveMatchCache(combinedLive);
     warmLiveTeamHistories(allMatches);
     const crossChecks=allMatches.map(match=>match._mamLiveCrossCheck).filter(Boolean);
     const scoreDiffs=crossChecks.filter(check=>check.score?.matched===false).length;
@@ -4299,9 +4315,8 @@ async function loadLiveMatchesNow(){
   // ESPN'de o anda maç bulunmasa bile API-Football canlı liste döndürdüyse kaybetme.
   if(primaryLiveMatches.length){
    mamNotifyLiveGoalChanges(primaryLiveMatches);
-   allMatches=primaryLiveMatches;
-   mamSaveLiveMatchCache(primaryLiveMatches);
-   renderMatches();
+   publishLiveSnapshot(primaryLiveMatches);
+    mamSaveLiveMatchCache(primaryLiveMatches);
    warmLiveTeamHistories(allMatches);
    $("status").textContent=allMatches.length+" canlı maç · API-Football kaynağı (ESPN taramasında eşleşen canlı yayın bulunamadı).";
    return;
@@ -4313,9 +4328,8 @@ async function loadLiveMatchesNow(){
    footballDataCount=backupLive.length;
    if(backupLive.length){
     mamNotifyLiveGoalChanges(backupLive);
-    allMatches=backupLive;
-    mamSaveLiveMatchCache(backupLive);
-    renderMatches();
+    publishLiveSnapshot(backupLive);
+     mamSaveLiveMatchCache(backupLive);
     await mamSaveMatchesToD1(allMatches);
     warmLiveTeamHistories(allMatches);
     $("status").textContent=allMatches.length+" canlı maç bulundu · Football-data.org yedek kaynağı · API-Football kotası kullanılamıyor.";
@@ -4330,9 +4344,8 @@ async function loadLiveMatchesNow(){
    sportScoreCount=sportScoreLive.length;
    if(sportScoreLive.length){
     mamNotifyLiveGoalChanges(sportScoreLive);
-    allMatches=sportScoreLive;
-    mamSaveLiveMatchCache(allMatches);
-    renderMatches();
+    publishLiveSnapshot(sportScoreLive);
+     mamSaveLiveMatchCache(sportScoreLive);
     await mamSaveMatchesToD1(allMatches);
     $("status").textContent=allMatches.length+" canlı maç bulundu · SportScore yedek kaynağı · API-Football kotası dolu olabilir.";
     return;
@@ -4342,8 +4355,7 @@ async function loadLiveMatchesNow(){
   // D1 arşivi geçmiş kayıtları tutabilir; güncel sağlayıcı teyidi olmadan canlı maç olarak gösterilmez.
   const d1LiveMatches=[];
   // Hiçbir kaynak bu yenilemede canlı maçı doğrulamadıysa canlı ekran boş kalır.
-  allMatches=[];
-  renderMatches();
+  publishLiveSnapshot([]);
   const noLiveEventsFound =
    espnErrorText.startsWith("ESPN taraması tamamlandı") &&
    footballDataErrorText.startsWith("Football-data.org desteklediği müsabakalarda şu anda canlı maç döndürmedi") &&
@@ -4376,8 +4388,7 @@ async function loadLiveMatchesNow(){
    :cachedMatches.length?' Ekrandaki son canlı maç listesi korundu.':' Henüz bu cihazda kaydedilmiş canlı maç listesi yok.';
   $("status").innerHTML='<span class="error">Canlı veri kaynağı şu an yanıt vermiyor; '+(cachedMatches.length?'son kayıtlı maçlar gösteriliyor.':'şu an gösterilecek kayıtlı canlı maç yok.')+' API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+' | SportScore: '+esc(sportScoreErrorText)+esc(cacheNote)+'</span>';
  }catch(unexpectedError){
-  allMatches=[];
-  renderMatches();
+  publishLiveSnapshot([]);
   $("status").innerHTML='<span class="error">Canlı akış işlenemedi: '+esc(unexpectedError?.message||unexpectedError)+'</span>';
  }finally{
   button.disabled=false;
