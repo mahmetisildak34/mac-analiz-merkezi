@@ -6,7 +6,7 @@ import {spawn} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {chromium,webkit} from 'playwright';
 
-const port=18788,origin='http://127.0.0.1:'+port, now=Date.parse('2026-11-23T07:00:00Z');
+const port=18788,origin='http://127.0.0.1:'+port, now=Date.now();
 const cases=[
  {slug:'tur.1',leagueId:'203',day:'20261123'},
  {slug:'eng.1',leagueId:'39',day:'20261123'},
@@ -14,20 +14,22 @@ const cases=[
 ];
 async function getSource(sample){
  const url='https://site.api.espn.com/apis/site/v2/sports/soccer/'+sample.slug+'/scoreboard?dates='+sample.day;
- const result=await fetch(url,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(12000)});
- assert.equal(result.status,200,url+' returned HTTP '+result.status);
- const board=await result.json();
- const event=(board.events||[]).find(e=>{
-  const sides=e.competitions?.[0]?.competitors||[];
-  const state=e.status?.type?.state??e.competitions?.[0]?.status?.type?.state;
-  return state==='pre'&&Date.parse(e.date)>now&&
-   sides.length===2&&sides.every(c=>/^[0-9]+$/.test(String(c.team?.id||''))&&(c.team?.displayName||c.team?.name))&&
-   sides.some(c=>c.homeAway==='home')&&sides.some(c=>c.homeAway==='away');
- });
- assert.ok(event,'No public ESPN upcoming event found for '+sample.slug+' on '+sample.day+'; records='+JSON.stringify((board.events||[]).slice(0,4).map(e=>({id:e.id,date:e.date,state:e.status?.type?.state,competitors:e.competitions?.[0]?.competitors?.map(c=>({homeAway:c.homeAway,id:c.team?.id,name:c.team?.displayName||c.team?.name}))}))));
- const home=event.competitions[0].competitors.find(x=>x.homeAway==='home');
- const away=event.competitions[0].competitors.find(x=>x.homeAway==='away');
- return {...sample,event,board,home,away,url};
+  const result=await fetch(url,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(12000)});
+  assert.equal(result.status,200,url+' returned HTTP '+result.status);
+  const board=await result.json();
+  const stateOf=e=>e.status?.type?.state??e.competitions?.[0]?.status?.type?.state;
+  const validTeams=e=>{
+   const sides=e.competitions?.[0]?.competitors||[];
+   return sides.length===2&&sides.every(c=>/^[0-9]+$/.test(String(c.team?.id||''))&&(c.team?.displayName||c.team?.name))&&
+    sides.some(c=>c.homeAway==='home')&&sides.some(c=>c.homeAway==='away');
+  };
+  const event=(board.events||[]).find(e=>stateOf(e)==='pre'&&Date.parse(e.date)>now&&validTeams(e))||
+   (board.events||[]).find(e=>['in','post'].includes(stateOf(e))&&Date.parse(e.date)<=now&&validTeams(e));
+  assert.ok(event,'No valid public ESPN fixture found for '+sample.slug+' on '+sample.day+'; records='+JSON.stringify((board.events||[]).slice(0,4).map(e=>({id:e.id,date:e.date,state:stateOf(e),competitors:e.competitions?.[0]?.competitors?.map(c=>({homeAway:c.homeAway,id:c.team?.id,name:c.team?.displayName||c.team?.name}))}))));
+  const expectedUpcoming=stateOf(event)==='pre'&&Date.parse(event.date)>now;
+  const home=event.competitions[0].competitors.find(x=>x.homeAway==='home');
+  const away=event.competitions[0].competitors.find(x=>x.homeAway==='away');
+  return {...sample,event,board,home,away,url,expectedUpcoming};
 }
 async function serve(){
  const child=spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1'],{stdio:'ignore'});
@@ -42,7 +44,7 @@ async function stop(child){
  if(!child)return;
  if(child.exitCode===null&&child.signalCode===null)child.kill();
 }
-test('Real public ESPN upcoming fixtures appear in iPhone team profiles (Chromium and WebKit)',{timeout:180000},async()=>{
+test('Real public ESPN fixtures are correctly classified in iPhone team profiles (Chromium and WebKit)',{timeout:180000},async()=>{
  const casesReady=await Promise.all(cases.map(getSource));
  console.log('Real source evidence '+JSON.stringify(casesReady.map(x=>({slug:x.slug,url:x.url,id:x.event.id,date:x.event.date,home:x.home.team.id,away:x.away.team.id}))));
  const server=await serve();
@@ -94,8 +96,14 @@ test('Real public ESPN upcoming fixtures appear in iPhone team profiles (Chromiu
       },props);
       const dialog=page.getByRole('dialog',{name:props.name+' takım profili',exact:true});
       await dialog.locator('[data-history-view="upcoming"]').click();
-      const card=dialog.locator('#mamHistoryUpcomingView .mam-upcoming-match').filter({hasText:sample.away.team.displayName}).first();
-      await card.waitFor({state:'visible',timeout:15000});
+  const card=dialog.locator('#mamHistoryUpcomingView .mam-upcoming-match[data-fixture*="'+sample.event.id+'"]');
+  if(!sample.expectedUpcoming){
+   await page.waitForTimeout(300);
+   assert.equal(await card.count(),0,engineName+' '+sample.slug+' started/finished ESPN event leaked into upcoming fixtures');
+   console.log('PASS started fixture excluded from upcoming '+JSON.stringify({engine:engineName,slug:sample.slug,id:sample.event.id,state:sample.event.status?.type?.state??sample.event.competitions?.[0]?.status?.type?.state}));
+   continue;
+  }
+  await card.waitFor({state:'visible',timeout:15000});
       assert.match(await card.innerText(),new RegExp(sample.home.team.displayName.replace(/[.*+?^${\}()|[\]\\]/g,'\\$&')));
       const visible=await card.evaluate(el=>({
        text:el.innerText,
