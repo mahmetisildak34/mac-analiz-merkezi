@@ -36,7 +36,12 @@ jobs:
             import fs from 'node:fs';
             const rows=fs.readFileSync('espn-extended-coverage.jsonl','utf8').trim().split('\\n').map(JSON.parse);
             if(rows.length!==49||new Set(rows.map(r=>r.league)).size!==49)process.exit(1);
-            console.log('49 unique ESPN competitions audited; availability is reported per feature.');
+            const keys=['scoreboard','fixtures','live','finished','score','goals','cards','substitutions','statistics','lineups','standings','teamHistory','upcoming'];
+            const states=new Set(['verified','unsupported','no_sample','blocked']);
+            for(const row of rows)for(const key of keys){
+              if(!states.has(row.featureStatus?.[key]))throw new Error(row.league+' missing '+key+' evidence status');
+            }
+            console.log('49 ESPN leagues: feature-level evidence statuses saved.');
           "
       - name: Retain per-league source evidence
         if: always()
