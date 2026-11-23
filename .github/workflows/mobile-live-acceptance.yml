@@ -59,3 +59,5 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Verify premium appearance and real app interactions
         run: node --test tests/premium-dark-browser.test.cjs tests/product-mobile-browser.test.mjs
+      - name: Verify real upcoming ESPN fixtures in Chromium and WebKit
+        run: node --test tests/espn-upcoming-real-browser.test.mjs
