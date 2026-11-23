@@ -105,8 +105,8 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
  const start=html.indexOf("async function loadLiveMatchesNow(){");
  const end=html.indexOf("async function mamSportScoreLiveStats(",start);
  const live=html.slice(start,end);
- assert.match(live,/mamSaveMatchesToD1\\(backupLive\\)/,"Only confirmed Football-data live matches may reach its existing archive call");
- assert.match(live,/mamSaveMatchesToD1\\(sportScoreLive\\)/,"Only confirmed SportScore live matches may reach its existing archive call");
- assert.doesNotMatch(live,/mamSaveMatchesToD1\\(allMatches\\)/,"Live refresh must never write the entire fixture snapshot");
- assert.match(live,/combinedLive\\.length\\+" canlı maç/,"Live count must not include preserved non-live fixtures");
+ assert.ok(live.includes("mamSaveMatchesToD1(backupLive)"),"Only confirmed Football-data live matches may reach its existing archive call");
+ assert.ok(live.includes("mamSaveMatchesToD1(sportScoreLive)"),"Only confirmed SportScore live matches may reach its existing archive call");
+ assert.ok(!live.includes("mamSaveMatchesToD1(allMatches)"),"Live refresh must never write the entire fixture snapshot");
+ assert.ok(live.includes("combinedLive.length+\" canlı maç"),"Live count must not include preserved non-live fixtures");
 }
