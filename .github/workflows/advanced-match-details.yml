@@ -32,3 +32,8 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Run existing premium mobile acceptance
         run: node --test tests/premium-dark-browser.test.cjs tests/product-mobile-browser.test.mjs
+      - name: Verify main application cards across three iPhone viewports
+        run: node --test tests/iphone-match-cards.test.mjs
+
+      - name: Verify real ESPN read-only fixtures in Chromium and WebKit
+        run: node --test tests/real-espn-browser.test.mjs
