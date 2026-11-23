@@ -48,6 +48,8 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
      await page.evaluate(({mode,rows})=>{
       setMamScreen(mode);
       document.getElementById("league").value="all";
+      const target=mode==="upcoming"?rows.future:mode==="finished"?rows.finished:rows.today;
+      document.getElementById("date").value=mamIstanbulDay(target.fixture.date);
       if(mode==="today")document.getElementById("date").value=mamIstanbulDay(rows.today.fixture.date);
       allMatches=Object.values(rows);
       renderMatches();

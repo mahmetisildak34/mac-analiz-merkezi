@@ -3692,7 +3692,7 @@ const mamFixtureTeamKey=value=>{
   stanbulbaakehr:"basaksehir",istanbulbaakehr:"basaksehir",basakehr:"basaksehir",
    arcaorum:"corum",arcaorumspor:"corum",orum:"corum",
    caykurrizespor:"rizespor",caykurrzespor:"rizespor",
-  alshamalsports:"alshamal",esteghlaltehran:"esteghlal",belediyevanspor:"vanspor",
+  alshamalsports:"alshamal",algharafasports:"algharafa",esteghlaltehran:"esteghlal",belediyevanspor:"vanspor",
    kasimpasa:"kasimpasa",kasmpasa:"kasimpasa"
  };
  return aliases[key]||key;
@@ -4385,7 +4385,8 @@ async function loadLiveMatchesNow(){
    let supplementalLive=[];
    if(fallbackLive.length){
     const controller=typeof AbortController==="function"?new AbortController():null;
-    const requestTimeout=controller?setTimeout(()=>controller.abort(),1400):null;
+    // SportScore cold requests can take >2 seconds; 1.4s discarded valid live rows.
+    const requestTimeout=controller?setTimeout(()=>controller.abort(),3500):null;
     try{
      const sportScoreLive=(await mamSportScoreLiveFixtures(false,controller?.signal)).filter(isRecentLive);
      supplementalLive=mamUnrepresentedLiveFixtures(fallbackLive,sportScoreLive);
@@ -5919,25 +5920,22 @@ function renderMatches(){
   if(safeRows.length) localStorage.setItem("mam_product_hub_fixtures_v1",JSON.stringify({savedAt:Date.now(),matches:safeRows}));
  } catch (_) { /* Storage is optional. */ }
  const league=$("league").value;
- // Canlı maçlar ekranı, ana sayfada seçilmiş lig filtresinden bağımsız olarak tüm ligleri gösterir.
- let list=(mamScreenMode==="live"||mamScreenMode==="finished"||league==="all")?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
+ let list=league==="all"?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
  const liveCodes=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
- if(mamScreenMode==="live")list=list.filter(m=>navigator.onLine!==false&&liveCodes.has(mamCanonicalMatchStatus(m)));
  const mamNow=Date.now();
  const mamTodayKey=mamIstanbulDay(new Date(mamNow).toISOString());
+ const selectedDay=$("date")?.value||mamTodayKey;
+ if(mamScreenMode==="live")list=list.filter(m=>navigator.onLine!==false&&liveCodes.has(mamCanonicalMatchStatus(m))&&mamIstanbulDay(m.fixture?.date)===selectedDay);
  if(mamScreenMode==="upcoming"){
-  const start=$("date").value||mamTodayKey;
-  const end=mamOffsetFixtureDate(start,30);
   list=list.filter(m=>{
    const day=mamIstanbulDay(m.fixture?.date);
-   return mamIsFutureUnplayed(m,mamNow)&&day>mamTodayKey&&day>=start&&day<=end;
+   return day===selectedDay&&mamIsFutureUnplayed(m,mamNow);
   });
  }
- if(mamScreenMode==="finished")list=list.filter(m=>["FT","AET","PEN","AWD","WO"].includes(mamCanonicalMatchStatus(m)));
+ if(mamScreenMode==="finished")list=list.filter(m=>mamIstanbulDay(m.fixture?.date)===selectedDay&&["FT","AET","PEN","AWD","WO"].includes(mamCanonicalMatchStatus(m)));
  if(mamScreenMode==="today"){
   // Today is a complete local-day scoreboard, not just future kickoffs.
   // Keep unknown/stale provider states visible without inventing live or final results.
-  const selectedDay=$("date")?.value||mamTodayKey;
   list=list.filter(m=>mamIstanbulDay(m.fixture?.date)===selectedDay);
   const status=m=>mamCanonicalMatchStatus(m);
   const isFinished=m=>["FT","AET","PEN","AWD","WO"].includes(status(m));
