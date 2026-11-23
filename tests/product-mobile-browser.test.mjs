@@ -115,10 +115,11 @@ async function verifyMainApp(context,browserName){
    window.originalMobileNow=Date.now;
    Date.now=()=>Date.parse('2026-11-23T06:00:00Z');
    const directory={teams:[{team:{id:'359',displayName:'Arsenal'}}]};
-   window.fixtureProfileRequests=[];
+   window.fixtureProfileRequests=[];window.espnDirectoryRequests=[];
    window.fetch=(input,options)=>{
     const url=new URL(String(input),location.href);
     if(url.hostname==='site.api.espn.com'&&url.pathname.endsWith('/teams')){
+      window.espnDirectoryRequests.push(url.pathname);
      const teams=url.pathname.includes('/eng.1/')||url.pathname.includes('/uefa.champions/')?directory:{teams:[]};
      return Promise.resolve(new Response(JSON.stringify({sports:[{leagues:[teams]}]})));
     }
@@ -147,7 +148,16 @@ async function verifyMainApp(context,browserName){
   const input=main.locator('#mamTeamSearchInput');
   await input.fill('Ars');
   const arsenal=main.locator('#mamTeamSearchResults [data-search-team="espn:eng.1:359"]');
-  await arsenal.waitFor();
+  await arsenal.waitFor().catch(async error=>{
+    const diagnostic=await main.evaluate(()=>({
+     input:document.getElementById('mamTeamSearchInput')?.value,
+     help:document.getElementById('mamTeamSearchHelp')?.textContent,
+     results:document.getElementById('mamTeamSearchResults')?.innerText,
+     requests:window.espnDirectoryRequests||[],
+     cache:localStorage.getItem('mam_search_espn_teams_v1')?.slice(0,500)
+    }));
+    throw new Error('ESPN directory search failed: '+JSON.stringify(diagnostic),{cause:error});
+   });
   assert.equal(await main.locator('#mamTeamSearchResults button').count(),1);
   await arsenal.click();
   const foundProfile=main.getByRole('dialog',{name:'Arsenal takım profili',exact:true});
