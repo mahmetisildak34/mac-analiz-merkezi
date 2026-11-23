@@ -5,89 +5,141 @@ import {once} from "node:events";
 import {setTimeout as delay} from "node:timers/promises";
 import {chromium,webkit} from "playwright";
 
-const port=19172,origin="http://127.0.0.1:"+port;
-const leagues=[["tur.1","203","Süper Lig","Türkiye"],["eng.1","39","Premier League","England"]];
-const istanbulDay=date=>new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(date);
-const shift=(date,days)=>{const d=new Date(date+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);};
-const dayCode=s=>s.replaceAll("-","");
-async function events(league,date){
- const url="https://site.api.espn.com/apis/site/v2/sports/soccer/"+league+"/scoreboard?dates="+dayCode(date)+"&limit=500";
- const response=await fetch(url,{signal:AbortSignal.timeout(15000)});
- assert.equal(response.ok,true,"Read-only ESPN scoreboard HTTP status: "+url+" "+response.status);
- const data=await response.json();
- assert.ok(Array.isArray(data.events),"ESPN must return a valid events array "+url);
- return data.events;
+const origin="http://127.0.0.1:19172";
+const espn="https://site.api.espn.com";
+const leagues=[["tur.1","203"],["eng.1","39"]];
+const istanbulDay=date=>new Intl.DateTimeFormat("en-CA",{
+ timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"
+}).format(date);
+const shift=(date,days)=>new Date(Date.parse(date+"T12:00:00Z")+days*86400000).toISOString().slice(0,10);
+const code=day=>day.replaceAll("-","");
+const scoreboard=(slug,dates)=>`/apis/site/v2/sports/soccer/${slug}/scoreboard?dates=${dates}&limit=500`;
+const isFinished=event=>event.status?.type?.state==="post"&&event.status?.type?.completed===true;
+const isScheduled=event=>event.status?.type?.name==="STATUS_SCHEDULED";
+const home=event=>event.competitions[0].competitors.find(team=>team.homeAway==="home");
+const eventDay=event=>istanbulDay(new Date(event.date));
+
+async function getEspn(path){
+ const response=await fetch(espn+path,{signal:AbortSignal.timeout(15000)});
+ assert.ok(response.ok,"Public ESPN GET "+path+" returned "+response.status);
+ return response.json();
 }
-function fixture(event,league){
- const [slug,id,name,country]=league;
- const c=event.competitions?.[0]||{},status=event.status?.type||c.status?.type||{};
- const home=c.competitors?.find(x=>x.homeAway==="home"),away=c.competitors?.find(x=>x.homeAway==="away");
- if(!home?.team?.displayName||!away?.team?.displayName||!event.id||!event.date)return null;
- const state=String(status.state||"");
- const code=state==="post"||status.completed===true?"FT":state==="in"?"LIVE":"NS";
- const score=team=>{
-  const raw=team?.score&&typeof team.score==="object"?team.score.value??team.score.displayValue:team?.score;
-  return code==="NS"||raw==null||raw===""||!Number.isSafeInteger(Number(raw))||Number(raw)<0?null:Number(raw);
- };
- return {fixture:{id:"espn-"+slug+"-"+event.id,date:event.date,status:{short:code}},
-  league:{id,name,country},teams:{home:{id:Number(home.team.id)||-1,name:home.team.displayName,logo:home.team.logo||""},away:{id:Number(away.team.id)||-1,name:away.team.displayName,logo:away.team.logo||""}},
-  goals:{home:score(home),away:score(away)}};
-}
+
 async function serverStart(){
- const child=spawn("python3",["-m","http.server",String(port),"--bind","127.0.0.1"],{stdio:"ignore"});
- for(let i=0;i<60;i++){if(child.exitCode!==null)throw Error("HTTP fixture host stopped");try{if((await fetch(origin+"/index.html")).ok)return child;}catch{}await delay(100);}
+ const child=spawn("python3",["-m","http.server","19172","--bind","127.0.0.1"],{stdio:"ignore"});
+ for(let i=0;i<60;i++){
+  if(child.exitCode!==null)throw Error("HTTP fixture host stopped");
+  try{if((await fetch(origin+"/index.html")).ok)return child;}catch{}
+  await delay(100);
+ }
+ child.kill();
  throw Error("HTTP fixture host not ready");
 }
 
-test("Real ESPN read-only fixtures open and close in Chromium and WebKit",async()=>{
- const today=istanbulDay(new Date()),yesterday=shift(today,-1),future=shift(today,6);
- const result=await Promise.all(leagues.flatMap(league=>[today,yesterday,future].map(async day=>({league,day,events:await events(league[0],day)}))));
- const rows=result.flatMap(group=>group.events.map(event=>fixture(event,group.league)).filter(Boolean));
- const now=Date.now();
- const dayRows=rows.filter(m=>istanbulDay(new Date(m.fixture.date))===today);
- const todayMatch=dayRows[0];
- const futureMatch=rows.find(m=>Date.parse(m.fixture.date)>now+86400000&&m.fixture.status.short==="NS");
- const finishedMatch=rows.find(m=>m.fixture.status.short==="FT"&&Date.parse(m.fixture.date)<now);
- assert.ok(todayMatch,"Real ESPN data did not contain a match for today's Istanbul date; live acceptance is blocked");
- assert.ok(futureMatch,"Real ESPN upcoming fixture not found; live acceptance is blocked");
- assert.ok(finishedMatch,"Real ESPN completed fixture not found; live acceptance is blocked");
- console.log("Real ESPN read-only evidence:",JSON.stringify({today:todayMatch.fixture.id,upcoming:futureMatch.fixture.id,finished:finishedMatch.fixture.id,sources:result.map(x=>({league:x.league[0],date:x.day,events:x.events.length}))}));
+test("Public ESPN responses render through the iPhone fixture screens in Chromium and WebKit",async()=>{
+ const today=istanbulDay(new Date());
+ const months=[...new Set([-30,0,30].map(n=>code(shift(today,n)).slice(0,6)))];
+ const paths=leagues.flatMap(([slug])=>[code(today),...months].map(dates=>scoreboard(slug,dates)));
+ const payloads=new Map(await Promise.all(paths.map(async path=>{
+  const payload=await getEspn(path);
+  assert.ok(Array.isArray(payload.events),"ESPN response must contain an events array "+path);
+  return [path,payload];
+ })));
+ const rows=leagues.flatMap(([slug,leagueId])=>[code(today),...months].flatMap(dates=>
+  payloads.get(scoreboard(slug,dates)).events.map(event=>({slug,leagueId,event}))
+ ));
+ const todayRows=leagues.flatMap(([slug,leagueId])=>payloads.get(scoreboard(slug,code(today))).events
+  .filter(event=>eventDay(event)===today).map(event=>({slug,leagueId,event})));
+ const daily=todayRows.find(({event})=>isScheduled(event))||todayRows[0];
+ const future=rows.find(({event})=>isScheduled(event)&&eventDay(event)>today&&eventDay(event)<=shift(today,30));
+ const finished=rows.filter(({event})=>isFinished(event)&&eventDay(event)>=shift(today,-30)&&eventDay(event)<today)
+  .sort((a,b)=>Date.parse(b.event.date)-Date.parse(a.event.date))[0];
+ assert.ok(daily,"No real match was published today in the sampled ESPN leagues");
+ assert.ok(future,"No real upcoming fixture in the sampled ESPN leagues");
+ assert.ok(finished,"No verified final in the sampled ESPN leagues");
+ const finalPath=`/apis/site/v2/sports/soccer/${finished.slug}/summary?event=${finished.event.id}`;
+ const summary=await getEspn(finalPath);
+ payloads.set(finalPath,summary);
+ console.log("ESPN run-time evidence",JSON.stringify({
+  today:daily.event.id,upcoming:future.event.id,finished:finished.event.id,
+  leagues:leagues.map(([slug])=>slug),
+  sampledInPlay:todayRows.filter(({event})=>event.status?.type?.state==="in").map(({event})=>event.id)
+ }));
  const server=await serverStart();
  try{
   for(const [name,engine] of [["Chromium",chromium],["WebKit",webkit]]){
    const browser=await engine.launch({headless:true});
    try{
     for(const viewport of [{width:390,height:844},{width:393,height:852},{width:430,height:932}]){
-     const page=await browser.newPage({viewport,isMobile:true,hasTouch:true});
-     await page.route("**/*",route=>route.request().url().startsWith(origin+"/")?route.continue():route.abort());
-     await page.addInitScript(()=>{
-      localStorage.setItem("mam_session_token","local-browser-acceptance");
-      const native=window.fetch.bind(window);
-      window.fetch=(input,options)=>String(input)==="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/auth/check"?Promise.resolve(new Response('{"ok":true}')):
-       new URL(String(input),location.href).origin===location.origin?native(input,options):Promise.reject(new Error("No production API writes during browser acceptance"));
-     });
-     await page.goto(origin+"/index.html");
-     await page.locator("#mamAuthGate").waitFor({state:"detached"});
-     for(const [mode,selected] of [["today",todayMatch],["upcoming",futureMatch],["finished",finishedMatch]]){
-      await page.evaluate(({mode,selected,today,all})=>{
-       setMamScreen(mode);
-       document.getElementById("league").value="all";
-       document.getElementById("date").value=today;
-       allMatches=all;renderMatches();
-      },{mode,selected,today,all:rows});
-      const card=page.locator("#matches article.match").filter({hasText:selected.teams.home.name}).first();
-      await card.waitFor({state:"visible",timeout:10000});
-      await card.click();
-      const overlay=page.locator(".match-detail-overlay:not([hidden])");
-      await overlay.waitFor({state:"visible"});
-      assert.ok((await overlay.innerText()).includes(selected.teams.home.name),"Real match identity lost in "+mode);
-      await overlay.locator(".match-detail-close").click();
-      await overlay.waitFor({state:"hidden"});
-      await card.waitFor({state:"visible"});
-      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,"Horizontal overflow");
-     }
-     console.log(name+" real ESPN fixtures "+viewport.width+"x"+viewport.height+" passed");
-     await page.close();
+     const context=await browser.newContext({viewport,isMobile:true,hasTouch:true,serviceWorkers:"block"});
+     try{
+      const page=await context.newPage();
+      await page.route("**/*",route=>route.request().url().startsWith(origin+"/")?route.continue():route.abort());
+      await page.addInitScript(({espn,payloads})=>{
+       localStorage.setItem("mam_session_token","local-browser-acceptance");
+       const native=window.fetch.bind(window);
+       const bodies=new Map(payloads);
+       const worker="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+       // Bridge only sampled public GETs to their fetched ESPN bodies. The app still
+       // performs its own requests, parsing, filtering and rendering.
+       window.fetch=(input,options)=>{
+        const url=new URL(String(input),location.href);
+        if(url.origin===location.origin)return native(input,options);
+        if((options?.method||"GET").toUpperCase()!=="GET"||!navigator.onLine)
+         return Promise.reject(new TypeError("External writes and offline requests are blocked"));
+        if(url.origin===worker&&url.pathname==="/auth/check")return Promise.resolve(new Response('{"ok":true}'));
+        const path=url.origin===worker&&url.pathname.startsWith("/api/espn/")
+         ?"/apis/site/v2/sports/soccer/"+url.pathname.slice("/api/espn/".length)+url.search
+         :url.origin===espn?url.pathname+url.search:"";
+        if(bodies.has(path))return Promise.resolve(new Response(JSON.stringify(bodies.get(path))));
+        return Promise.resolve(new Response('{"error":"Provider unavailable in isolated acceptance"}',{status:503}));
+       };
+      },{espn,payloads:[...payloads]});
+      await page.goto(origin+"/index.html");
+      await page.locator("#mamAuthGate").waitFor({state:"detached"});
+      for(const [mode,{slug,leagueId,event}] of [["today",daily],["upcoming",future],["finished",finished]]){
+       await page.locator(`[data-match-mode="${mode}"]`).click();
+       const card=page.locator("#matches article.match").filter({
+        has:page.locator(`.lineupBtn[data-id="espn-${slug}-${event.id}"]`)
+       });
+       await card.waitFor({state:"visible",timeout:25000});
+       if(isScheduled(event)){
+        const kickoff=new Intl.DateTimeFormat("tr-TR",{
+         timeZone:"Europe/Istanbul",hour:"2-digit",minute:"2-digit",hourCycle:"h23"
+        }).format(new Date(event.date));
+        await card.locator(".match-clock").getByText(kickoff,{exact:true}).waitFor();
+       }
+       if(mode==="upcoming"){
+        await page.locator("#mamRefNext").waitFor({state:"visible"});
+        await page.locator("#leagueTrigger").click();
+        await page.locator(`#leagueMenu [data-league-value="${leagueId}"]`).click();
+        await card.waitFor({state:"visible"});
+       }
+       if(mode==="finished"){
+        const away=event.competitions[0].competitors.find(team=>team.homeAway==="away");
+        assert.ok((await card.innerText()).includes(home(event).score+" – "+away.score),"Expected ESPN final score");
+       }
+       await card.locator(".match-versus").click();
+       const overlay=page.locator(".match-detail-overlay:not([hidden])");
+       await overlay.waitFor({state:"visible"});
+       assert.ok((await overlay.innerText()).includes(home(event).team.displayName),"Match identity lost in "+mode);
+       if(mode==="finished"&&summary.boxscore?.teams?.some(team=>team.statistics?.length)){
+        await overlay.locator(".mam-advanced-espn table").waitFor({state:"visible"});
+       }
+       await overlay.locator(".match-detail-close").click();
+       await overlay.waitFor({state:"hidden"});
+       await card.waitFor({state:"visible"});
+       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,"Horizontal overflow");
+       if(mode==="today"){
+        await context.setOffline(true);
+        await page.waitForFunction(()=>!navigator.onLine);
+        await card.waitFor({state:"visible"});
+        await context.setOffline(false);
+        await page.waitForFunction(()=>navigator.onLine);
+       }
+      }
+      console.log(name+" real ESPN fixtures "+viewport.width+"x"+viewport.height+" passed");
+     }finally{await context.close();}
     }
    }finally{await browser.close();}
   }

@@ -50,7 +50,7 @@ assert.match(html, /data-today-filter="finished"/, "Finished matches tab missing
 assert.match(html, /function mamIsFutureUnplayed\(match,now=Date\.now\(\)\)/, "Future kickoff status guard missing");
 assert.match(html, /stamp>now/, "Past kickoff must not remain upcoming");
 assert.match(html, /mamIstanbulDay\(m\.fixture\?\.date\)===selectedDay/, "Today must use Istanbul calendar day");
-assert.match(html, /mamIstanbulDay\(m\.fixture\?\.date\)>mamTodayKey/, "Upcoming must exclude today");
+assert.match(html, /const day=mamIstanbulDay\(m\.fixture\?\.date\);\s*return mamIsFutureUnplayed\(m,mamNow\)&&day>mamTodayKey&&day>=start&&day<=end/, "Upcoming must exclude today");
 assert.match(html, /main\.mam-screen-today #mamTodayTabs\{display:none!important\}/, "Redundant daily subfilter must be hidden");
 assert.match(html, /if\(mamScreenMode==="live"\)list=list\.filter/, "Live match screen filtering missing");
 assert.match(html, /if\(mamScreenMode==="finished"\)list=list\.filter/, "Finished match screen filtering missing");
@@ -120,7 +120,11 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
  const source=html.slice(start,end);
  const ctx={
   allMatches:[{league:{name:"Premier League",country:"England"},teams:{home:{id:42,name:"Arsenal"},away:{id:-1,name:"Test Club"}}}],
-  directory:new Map([["espn:eng.1:359",{id:"espn:eng.1:359",name:"Arsenal",league:"Premier League",country:"England"}]]),
+  directory:new Map([
+   ["espn:uefa.champions:359",{id:"espn:uefa.champions:359",name:"Arsenal",league:"UEFA Champions League"}],
+   ["espn:eng.1:359",{id:"espn:eng.1:359",name:"Arsenal",league:"Premier League",country:"England"}],
+  ]),
+  ESPN_LEAGUES:["eng.1","uefa.champions"],
   FALLBACK_TEAMS:[],
   read:()=>({}),
   normalize:value=>String(value||"").toLocaleLowerCase("tr-TR"),
