@@ -3732,9 +3732,20 @@ function mamMergeFixtureRows(rows){
     if(!byPair.has(pair))byPair.set(pair,[]);
     byPair.get(pair).push(index);
    }
-  }else if(mamCanApplyFixtureStatus(matches[index],incoming)&&
-    (id.startsWith("espn-")||(!mamHasCompletedScore(matches[index])&&mamHasCompletedScore(incoming)))){
-   matches[index]=mamMergeFixtureStatus(matches[index],incoming);
+  }else{
+   const existing=matches[index];
+   if(mamCanApplyFixtureStatus(existing,incoming)&&
+     (id.startsWith("espn-")||(!mamHasCompletedScore(existing)&&mamHasCompletedScore(incoming)))){
+    matches[index]=mamMergeFixtureStatus(existing,incoming);
+   }
+   // Prefer an intact provider spelling without replacing the canonical fixture ID.
+   for(const side of ["home","away"]){
+    const currentName=String(matches[index].teams?.[side]?.name||"");
+    const alternateName=String(incoming.teams?.[side]?.name||"");
+    if(currentName.includes("\uFFFD")&&!alternateName.includes("\uFFFD")&&alternateName){
+     matches[index]={...matches[index],teams:{...matches[index].teams,[side]:{...matches[index].teams[side],name:alternateName}}};
+    }
+   }
   }
   if(id)byId.set(id,index);
  }
