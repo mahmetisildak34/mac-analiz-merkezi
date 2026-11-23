@@ -8,6 +8,8 @@ test('upcoming uses shared clickable match-card renderer instead of dead-end fix
  assert.doesNotMatch(render,/mam-fixture-row/);
  assert.match(render,/mamScreenMode==="upcoming"/);
 });
-test('live no-results branch does not clear fixtures while another screen is active',()=>{
- assert.match(source,/if\(mamScreenMode==="live"\)allMatches=\[\];\s*renderMatches\(\);/);
+test('live no-results branch preserves non-live fixtures for all screens',()=>{
+ const live=source.slice(source.indexOf('function loadLiveMatchesNow(){'),source.indexOf('async function mamSportScoreLiveStats('));
+ assert.match(live,/publishLiveSnapshot\(\[\]\);/);
+ assert.doesNotMatch(live,/if\(mamScreenMode==="live"\)allMatches=\[\];\s*renderMatches\(\);/);
 });

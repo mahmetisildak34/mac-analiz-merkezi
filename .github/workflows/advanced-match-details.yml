@@ -17,7 +17,7 @@ jobs:
       - name: Check ESPN detail module
         run: |
           node --check mobile/espn-match-details.mjs
-          node --test tests/espn-match-details.test.mjs tests/advanced-espn-overlay.test.mjs tests/match-card-visibility-regression.test.mjs tests/match-card-interaction.test.mjs
+          node --test tests/espn-match-details.test.mjs tests/advanced-espn-overlay.test.mjs tests/match-card-visibility-regression.test.mjs tests/match-card-interaction.test.mjs tests/live-fixture-preservation.test.mjs
   details-browser-regression:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
