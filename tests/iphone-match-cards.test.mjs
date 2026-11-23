@@ -89,6 +89,14 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
      {homeAway:"home",team:{id:"7914",displayName:"Başakşehir"},score:"0"},
      {homeAway:"away",team:{id:"21638",displayName:"Çorum FK"},score:"0"}
     ]}]};
+    const midnightMatch={
+     id:"401801111",date:"2026-11-22T21:30:00Z",
+     status:{type:{name:"STATUS_FULL_TIME",state:"post",completed:true}},
+     competitions:[{competitors:[
+      {homeAway:"home",team:{id:"11",displayName:"Gece Yarısı Ev Sahibi"},score:"3"},
+      {homeAway:"away",team:{id:"12",displayName:"Gece Yarısı Deplasman"},score:"0"}
+     ]}]
+    };
     window.testScoreboard={status:{displayClock:"",type:{name:"STATUS_SCHEDULED",state:"pre"}},goals:["0","0"]};
     window.fetch=(input,options)=>{
      const url=new URL(String(input),location.href);
@@ -101,7 +109,9 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
       const row=structuredClone(current);
       row.status=status;
       row.competitions[0].competitors.forEach((team,i)=>{team.score=goals[i];});
-      return Promise.resolve(Response.json({events:url.pathname.includes("/tur.1/")?[row]:[]}));
+      const date=url.searchParams.get("dates");
+      const events=date==="20261122"?[midnightMatch]:[row];
+      return Promise.resolve(Response.json({events:url.pathname.includes("/tur.1/")?events:[]}));
      }
      return Promise.resolve(Response.json({response:[]}));
     };
@@ -113,6 +123,8 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
    assert.match(await card.locator(".match-clock").innerText(),/20:00/);
    await page.locator('[data-match-mode="today"]').click();
    await page.locator("#status").getByText(/maç yüklendi/).waitFor({timeout:8000});
+   const midnightCard=page.locator("#matches article.match").filter({hasText:"Gece Yarısı Ev Sahibi"});
+   await midnightCard.locator(".match-clock").getByText("3 – 0",{exact:true}).waitFor();
    await page.evaluate(()=>{window.testScoreboard.unavailable=true;});
    await page.clock.fastForward(31_000);
    await page.locator("#mamSectionRefresh").click();
@@ -122,6 +134,7 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
    await page.context().setOffline(true);
    await page.waitForFunction(()=>!navigator.onLine);
    await card.waitFor({state:"visible",timeout:5000});
+   await midnightCard.waitFor({state:"visible"});
    await page.evaluate(()=>{
     window.testScoreboard={status:{displayClock:"17'",type:{name:"STATUS_IN_PROGRESS",state:"in"}},goals:["1","0"]};
    });

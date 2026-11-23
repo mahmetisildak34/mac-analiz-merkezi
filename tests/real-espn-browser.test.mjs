@@ -44,7 +44,8 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
  const publicSoccer="/apis/site/v2/sports/soccer/";
  const teamDirectory=publicSoccer+"eng.1/teams?limit=500";
  const teamSchedule=publicSoccer+"eng.1/teams/359/schedule?season="+season;
- const paths=leagues.flatMap(([slug])=>[code(today),...months].map(dates=>scoreboard(slug,dates)));
+ const dayBoards=[code(shift(today,-1)),code(today)];
+ const paths=leagues.flatMap(([slug])=>[...dayBoards,...months].map(dates=>scoreboard(slug,dates)));
  const payloads=new Map(await Promise.all(paths.map(async path=>{
   const payload=await getEspn(path);
   assert.ok(Array.isArray(payload.events),"ESPN response must contain an events array "+path);
@@ -53,7 +54,7 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
  const rows=leagues.flatMap(([slug,leagueId])=>[code(today),...months].flatMap(dates=>
   payloads.get(scoreboard(slug,dates)).events.map(event=>({slug,leagueId,event}))
  ));
- const todayRows=leagues.flatMap(([slug,leagueId])=>payloads.get(scoreboard(slug,code(today))).events
+ const todayRows=leagues.flatMap(([slug,leagueId])=>dayBoards.flatMap(dates=>payloads.get(scoreboard(slug,dates)).events)
   .filter(event=>eventDay(event)===today).map(event=>({slug,leagueId,event})));
  const daily=todayRows.find(({event})=>isScheduled(event))||todayRows[0];
  const future=rows.find(({event})=>isScheduled(event)&&eventDay(event)>today&&eventDay(event)<=shift(today,30));

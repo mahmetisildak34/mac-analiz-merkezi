@@ -3600,9 +3600,10 @@ function mamOffsetFixtureDate(date,days){
  return new Date(Date.parse(date+"T12:00:00Z")+days*86400000).toISOString().slice(0,10);
 }
 
-async function espnFixtures(date,includeAllLeagues=false,endDate=date){
+async function espnFixtures(date,includeAllLeagues=false,endDate=date,istanbulWindow=false){
  const selected=$("league").value;
- const espnCacheKey="mam_espn_scoreboard_cache_v2_"+date+"_"+endDate+"_"+(includeAllLeagues||selected==="all"?"all":selected);
+ const firstProviderDay=istanbulWindow?mamOffsetFixtureDate(date,-1):date;
+ const espnCacheKey="mam_espn_scoreboard_cache_v2_"+date+"_"+endDate+"_"+(includeAllLeagues||selected==="all"?"all":selected)+(istanbulWindow?"_istanbul":"");
  try{const cached=JSON.parse(localStorage.getItem(espnCacheKey)||"null");if(cached?.time&&Array.isArray(cached.matches)&&Date.now()-cached.time<(includeAllLeagues?15000:45000))return cached.matches;}catch(_){}
  const rawTargets=(includeAllLeagues||selected==="all")
   ? Object.entries(ESPN_LEAGUES)
@@ -3614,10 +3615,11 @@ async function espnFixtures(date,includeAllLeagues=false,endDate=date){
   return true;
  });
  if(!targets.length)return [];
- const dates=[date.replaceAll("-","")];
+ // ESPN boards may file Istanbul's early-morning fixtures on the previous day.
+ const dates=[...new Set([firstProviderDay,date])].map(day=>day.replaceAll("-",""));
  if(endDate!==date){
   dates.length=0;
-  const month=new Date(date.slice(0,7)+"-01T12:00:00Z");
+  const month=new Date(firstProviderDay.slice(0,7)+"-01T12:00:00Z");
   while(month.toISOString().slice(0,7)<=endDate.slice(0,7)){
    dates.push(month.toISOString().slice(0,7).replace("-",""));
    month.setUTCMonth(month.getUTCMonth()+1);
@@ -3658,7 +3660,7 @@ async function espnFixtures(date,includeAllLeagues=false,endDate=date){
      };
     }).filter(match=>{
      if(!match.teams.home.name||!match.teams.away.name)return false;
-     if(date===endDate)return true;
+     if(date===endDate&&!istanbulWindow)return true;
      const localDay=mamIstanbulDay(match.fixture.date);
      return localDay>=date&&localDay<=endDate;
     })};
@@ -3671,8 +3673,10 @@ async function espnFixtures(date,includeAllLeagues=false,endDate=date){
  if(!matches.length&&failures.length){
   throw new Error("ESPN sonuçları ("+failures.length+"/"+targets.length+" lig isteği başarısız): "+failures.slice(0,4).map((x,index)=>String(x.reason?.message||x.reason)).join(" | "));
  }
+ const partial=results.some(result=>result?.partial);
+ if(!matches.length&&partial)throw new Error("ESPN skor tablosunun bir bölümü alınamadı.");
  const sorted=matches.sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
- if(!failures.length&&!results.some(result=>result?.partial))try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),matches:sorted}));}catch(_){}
+ if(!failures.length&&!partial)try{localStorage.setItem(espnCacheKey,JSON.stringify({time:Date.now(),matches:sorted}));}catch(_){}
  return sorted;
 }
 
@@ -3705,7 +3709,7 @@ async function loadMatches(){
  window.mamLoadMatchesBusy=true;
  const earliest=mode==="finished"?mamOffsetFixtureDate(date,-30):date;
  const latest=mode==="upcoming"?mamOffsetFixtureDate(date,30):date;
- const loadEspn=()=>stillSelected()?espnFixtures(earliest,mode==="today"||mode==="finished"||league==="all",latest):[];
+ const loadEspn=()=>stillSelected()?espnFixtures(earliest,mode==="today"||mode==="finished"||league==="all",latest,true):[];
  window.mamLastFixtureRefreshAt=Date.now();
  button.disabled=true;
  $("status").textContent="Maçlar yükleniyor…";
@@ -6262,7 +6266,8 @@ async function refreshTodayScores(){
   setMamScreen("today");
   return loadMatches();
  }
- const request=espnFixtures(day,true);
+ const hour=Number(new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Istanbul",hour:"2-digit",hourCycle:"h23"}).format(new Date()));
+ const request=espnFixtures(day,true,day,hour<6);
  mamTodayScoreRequest=request;
  try{
   const rows=await request;
