@@ -3562,22 +3562,17 @@ async function getApiFootballMatchStats(fixtureId){
 }
 
 function mamEspnStatus(eventType={},competitionType={}){
- const types=[eventType??{},competitionType??{}];
+ const types=[eventType,competitionType];
  for(const type of types){
   const name=String(type.name||"").toUpperCase();
   if(name==="STATUS_POSTPONED")return "PST";
   if(["STATUS_CANCELED","STATUS_CANCELLED"].includes(name))return "CANC";
   if(["STATUS_ABANDONED","STATUS_ABANDONED_GAME"].includes(name))return "ABD";
-  if(name==="STATUS_DELAYED")return "TBD";
-  if(name==="STATUS_SUSPENDED")return "SUSP";
+   if(name==="STATUS_DELAYED")return "TBD";
  }
- const states=types.map(type=>String(type.state||"").toLowerCase());
- if(types.some(type=>type.name==="STATUS_FINAL_AET"))return "AET";
- if(types.some(type=>type.name==="STATUS_FINAL_PEN"))return "PEN";
- if(states.includes("post")||types.some(type=>type.completed===true))return "FT";
- if(!states.some(state=>["in","live","inprogress"].includes(state))){
-  return states.includes("pre")||types.some(type=>["STATUS_SCHEDULED","STATUS_NOT_STARTED"].includes(type.name))?"NS":"UNK";
- }
+ const state=String(eventType.state||competitionType.state||"").toLowerCase();
+ if(state==="post"||types.some(type=>type.completed===true))return "FT";
+ if(!["in","live","inprogress"].includes(state))return "NS";
  const halftime=types.some(type=>/^STATUS_HALFTIME$/i.test(type.name||"")||
   /^(half[ -]?time|interval)$/i.test(type.detail||type.shortDetail||""));
  if(halftime)return "HT";
@@ -3587,16 +3582,9 @@ function mamEspnStatus(eventType={},competitionType={}){
  return "LIVE";
 }
 
-function mamEspnGoal(value){
- const raw=value&&typeof value==="object"?value.value??value.displayValue:value;
- if(typeof raw!=="number"&&!(typeof raw==="string"&&/^\d+$/.test(raw)))return null;
- const goals=Number(raw);
- return Number.isSafeInteger(goals)&&goals>=0?goals:null;
-}
-
 async function espnFixtures(date,includeAllLeagues=false){
  const selected=$("league").value;
- const espnCacheKey="mam_espn_scoreboard_cache_v3_"+String(date)+"_"+(includeAllLeagues||selected==="all"?"all":selected);
+ const espnCacheKey="mam_espn_scoreboard_cache_v2_"+String(date)+"_"+(includeAllLeagues||selected==="all"?"all":selected);
  try{const cached=JSON.parse(localStorage.getItem(espnCacheKey)||"null");if(cached?.time&&Array.isArray(cached.matches)&&Date.now()-cached.time<(includeAllLeagues?15000:45000))return cached.matches;}catch(_){}
  const rawTargets=(includeAllLeagues||selected==="all")
   ? Object.entries(ESPN_LEAGUES)
@@ -3617,17 +3605,19 @@ async function espnFixtures(date,includeAllLeagues=false){
    const index=cursor++,[leagueId,league]=targets[index];
    try{
     const payload=await api("espn/"+league.slug+"/scoreboard?"+qs({dates:espnDate,limit:500}));
-    if(!Array.isArray(payload?.events))throw new Error("ESPN skor tablosu geçersiz.");
-    const events=payload.events;
+    const events=Array.isArray(payload.events)?payload.events:[];
     results[index]={status:"fulfilled",value:events.filter(event=>event?.id!=null&&String(event.id).trim()).map(event=>{
      const competition=(event.competitions||[])[0]||{};
-     const competitors=Array.isArray(competition.competitors)?competition.competitors:[];
-     const home=competitors.find(team=>team?.homeAway==="home")||{};
-     const away=competitors.find(team=>team?.homeAway==="away")||{};
+     const competitors=competition.competitors||[];
+     const home=competitors.find(team=>team.homeAway==="home")||{};
+     const away=competitors.find(team=>team.homeAway==="away")||{};
      const eventType=event.status?.type||{},competitionType=competition.status?.type||{};
      const statusShort=mamEspnStatus(eventType,competitionType);
      const clock=mamEspnClock(event);
-     const toGoals=value=>["NS","TBD","UNK","PST","CANC"].includes(statusShort)?null:mamEspnGoal(value);
+     const toGoals=value=>{
+      if(value===null||value===undefined||value==="")return null;
+      const parsed=Number(value);return Number.isFinite(parsed)?parsed:null;
+     };
      const teamId=value=>{const n=Number(value);return Number.isFinite(n)&&n!==0?n:-1;};
      return {
       fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||competition.date||null,status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock}},
@@ -4148,8 +4138,8 @@ function mamNotifyLiveGoalChanges(matches){
  const notifications=[];
  for(const match of matches){
   const id=String(match?.fixture?.id??"");
-  const home=mamEspnGoal(match?.goals?.home),away=mamEspnGoal(match?.goals?.away);
-  if(!id||home===null||away===null)continue;
+  const home=Number(match?.goals?.home),away=Number(match?.goals?.away);
+  if(!id||!Number.isFinite(home)||!Number.isFinite(away))continue;
   const old=previous[id];
   if(old&&Number.isFinite(Number(old.home))&&Number.isFinite(Number(old.away))){
    if(home>Number(old.home))notifications.push({match,side:"home",score:home+" – "+away});
@@ -4214,28 +4204,12 @@ async function loadLiveMatchesNow(){
  const cachedMatches=[...liveById.values()];
  // Son başarılı canlı listeyi API isteğini beklemeden göster.
  if(cachedMatches.length){
-  allMatches=[...allMatches.filter(match=>!isLive(match)),...cachedMatches];
+  allMatches=cachedMatches;
   renderMatches();
   $("status").textContent="Son kayıtlı canlı maçlar yükleniyor; güncel skorlar kontrol ediliyor...";
  }
  let primaryErrorText="",primaryCount=0,espnErrorText="",primaryLiveMatches=[];
   let fallbackSchedule=[],espnCount=0,espnLiveCount=0,footballDataCount=0,sportScoreCount=0;
- // Live polling must never erase the fixture cards used by Today and Upcoming.
- // ESPN's current scoreboard is authoritative for today's non-live fixtures.
- const publishLiveSnapshot=liveMatches=>{
-  const base=fallbackSchedule.length?fallbackSchedule:allMatches.filter(match=>!isLive(match));
-  const byId=new Map();
-  for(const match of base){
-   const id=String(match?.fixture?.id??match?.id??"");
-   if(id)byId.set(id,match);
-  }
-  for(const match of liveMatches){
-   const id=String(match?.fixture?.id??match?.id??"");
-   if(id)byId.set(id,match);
-  }
-  allMatches=[...byId.values()];
-  renderMatches();
- };
  try{
   // ESPN is the first live-score source. API-Football is a controlled fallback only.
   primaryErrorText="API-Football canlı isteği ESPN kontrolünden sonraya alındı.";
@@ -4298,8 +4272,9 @@ async function loadLiveMatchesNow(){
     });
     const combinedLive=[...mergedByPair.values()];
     mamNotifyLiveGoalChanges(combinedLive);
+    allMatches=combinedLive;
     mamSaveLiveMatchCache(combinedLive);
-    publishLiveSnapshot(combinedLive);
+    renderMatches();
     warmLiveTeamHistories(allMatches);
     const crossChecks=allMatches.map(match=>match._mamLiveCrossCheck).filter(Boolean);
     const scoreDiffs=crossChecks.filter(check=>check.score?.matched===false).length;
@@ -4324,8 +4299,9 @@ async function loadLiveMatchesNow(){
   // ESPN'de o anda maç bulunmasa bile API-Football canlı liste döndürdüyse kaybetme.
   if(primaryLiveMatches.length){
    mamNotifyLiveGoalChanges(primaryLiveMatches);
+   allMatches=primaryLiveMatches;
    mamSaveLiveMatchCache(primaryLiveMatches);
-   publishLiveSnapshot(primaryLiveMatches);
+   renderMatches();
    warmLiveTeamHistories(allMatches);
    $("status").textContent=allMatches.length+" canlı maç · API-Football kaynağı (ESPN taramasında eşleşen canlı yayın bulunamadı).";
    return;
@@ -4337,8 +4313,9 @@ async function loadLiveMatchesNow(){
    footballDataCount=backupLive.length;
    if(backupLive.length){
     mamNotifyLiveGoalChanges(backupLive);
+    allMatches=backupLive;
     mamSaveLiveMatchCache(backupLive);
-    publishLiveSnapshot(backupLive);
+    renderMatches();
     await mamSaveMatchesToD1(allMatches);
     warmLiveTeamHistories(allMatches);
     $("status").textContent=allMatches.length+" canlı maç bulundu · Football-data.org yedek kaynağı · API-Football kotası kullanılamıyor.";
@@ -4353,8 +4330,9 @@ async function loadLiveMatchesNow(){
    sportScoreCount=sportScoreLive.length;
    if(sportScoreLive.length){
     mamNotifyLiveGoalChanges(sportScoreLive);
-    mamSaveLiveMatchCache(sportScoreLive);
-    publishLiveSnapshot(sportScoreLive);
+    allMatches=sportScoreLive;
+    mamSaveLiveMatchCache(allMatches);
+    renderMatches();
     await mamSaveMatchesToD1(allMatches);
     $("status").textContent=allMatches.length+" canlı maç bulundu · SportScore yedek kaynağı · API-Football kotası dolu olabilir.";
     return;
@@ -4364,8 +4342,8 @@ async function loadLiveMatchesNow(){
   // D1 arşivi geçmiş kayıtları tutabilir; güncel sağlayıcı teyidi olmadan canlı maç olarak gösterilmez.
   const d1LiveMatches=[];
   // Hiçbir kaynak bu yenilemede canlı maçı doğrulamadıysa canlı ekran boş kalır.
-  // Preserve the fixture snapshot for other screens; only the live view is empty.
-  publishLiveSnapshot([]);
+  allMatches=[];
+  renderMatches();
   const noLiveEventsFound =
    espnErrorText.startsWith("ESPN taraması tamamlandı") &&
    footballDataErrorText.startsWith("Football-data.org desteklediği müsabakalarda şu anda canlı maç döndürmedi") &&
@@ -4398,7 +4376,7 @@ async function loadLiveMatchesNow(){
    :cachedMatches.length?' Ekrandaki son canlı maç listesi korundu.':' Henüz bu cihazda kaydedilmiş canlı maç listesi yok.';
   $("status").innerHTML='<span class="error">Canlı veri kaynağı şu an yanıt vermiyor; '+(cachedMatches.length?'son kayıtlı maçlar gösteriliyor.':'şu an gösterilecek kayıtlı canlı maç yok.')+' API-Football: '+esc(primaryErrorText)+' | ESPN: '+esc(espnErrorText)+' | Football-data.org: '+esc(footballDataErrorText)+' | SportScore: '+esc(sportScoreErrorText)+esc(cacheNote)+'</span>';
  }catch(unexpectedError){
-  allMatches=allMatches.filter(match=>!isLive(match));
+  allMatches=[];
   renderMatches();
   $("status").innerHTML='<span class="error">Canlı akış işlenemedi: '+esc(unexpectedError?.message||unexpectedError)+'</span>';
  }finally{
@@ -4780,7 +4758,7 @@ function mamEspnClock(event){
  const candidates=[status.displayClock,competitionStatus.displayClock,status.type?.displayClock,competitionStatus.type?.displayClock,status.type?.shortDetail,competitionStatus.type?.shortDetail];
  for(const value of candidates){
   const label=String(value??"").trim();
-  const match=label.match(/^(\d{1,3})(?::[0-5]\d|')?(?:\+(\d{1,2})'?)?$/);
+  const match=label.match(/^(\d{1,3})(?:'?\+(\d{1,2}))?(?:(?::[0-5]\d)|')?$/);
   if(!match)continue;
   const minute=Number(match[1]);
   if(minute>130)continue;
@@ -5354,7 +5332,7 @@ function mamRestorePendingDetail(){
  let saved=null;
  try{saved=JSON.parse(localStorage.getItem("mam_open_live_detail")||"null");}catch(_){}
  if(!saved||mamActiveMatch||mamScreenMode!=="live")return;
- let button=[...document.querySelectorAll("#matches .liveStatsBtn")].find(b=>
+ const button=[...document.querySelectorAll("#matches .liveStatsBtn")].find(b=>
   String(b.dataset.liveId||"")===String(saved.id||"")&&
   String(b.dataset.liveSource||"")===String(saved.source||"")&&
   String(b.dataset.liveLeagueId||"")===String(saved.league||""));
@@ -5392,45 +5370,6 @@ function activateMamFixture(article){
  if(analysisTab)analysisTab.click();
  if(analysisButton&&!analysisButton.disabled)analyze(analysisButton);
 }
-async function mamLoadAdvancedEspnDetails(article){
- const button=article.querySelector(".lineupBtn");
- const live=article.querySelector(".liveStatsBtn");
- const fixture=String(button?.dataset.id||"");
- const leagueId=String(button?.dataset.league||live?.dataset.liveLeagueId||"");
- const league=ESPN_LEAGUES[leagueId];
- const id=fixture.match(/^espn-[a-z0-9._-]+-(\d+)$/i)?.[1]||
-  (live?.dataset.liveSource==="espn"&&/^\d+$/.test(live.dataset.liveId||"")?live.dataset.liveId:"");
- if(!id||!league?.slug)return;
- const overview=article.querySelector('.match-detail-pane[data-pane="overview"]');
- if(!overview)return;
- let section=overview.querySelector(".mam-advanced-espn");
- if(!section){section=document.createElement("section");section.className="mam-advanced-espn";overview.append(section);}
- section.textContent="ESPN takım karşılaştırması yükleniyor…";
- try{
-  const [{normalizeMatchDetails},summary]=await Promise.all([
-   import("./mobile/espn-match-details.mjs"),
-   api("espn/"+league.slug+"/summary?"+qs({event:id}))
-  ]);
-  if(!article.isConnected)return;
-  const details=normalizeMatchDetails(summary);
-  const home=details.teams.find(t=>t.side==="home"),away=details.teams.find(t=>t.side==="away");
-  const statMap=team=>new Map((details.teamStats.find(t=>t.teamId===team?.id)?.statistics||[]).map(s=>[s.name,s.value]));
-  const h=statMap(home),a=statMap(away),keys=[...new Set([...h.keys(),...a.keys()])].filter(Boolean).slice(0,12);
-  section.replaceChildren();
-  const title=document.createElement("h3");title.textContent="ESPN takım karşılaştırması";section.append(title);
-  const note=document.createElement("p");note.className="match-detail-note";
-  note.textContent="Kaynak: ESPN maç özeti · Paylaşılmayan değerler — olarak gösterilir.";section.append(note);
-  if(!keys.length){const empty=document.createElement("p");empty.textContent="Bu maç için karşılaştırılabilir ESPN takım istatistiği bulunamadı.";section.append(empty);return;}
-  const table=document.createElement("table"),caption=document.createElement("caption");
-  caption.textContent="Maç istatistikleri";table.append(caption);
-  const head=document.createElement("thead"),tr=document.createElement("tr");
-  for(const label of ["İstatistik",home?.name||"Ev sahibi",away?.name||"Deplasman"]){const th=document.createElement("th");th.textContent=label;tr.append(th);}
-  head.append(tr);table.append(head);
-  const tbody=document.createElement("tbody");
-  for(const key of keys){const row=document.createElement("tr");for(const value of [key,h.get(key)||"—",a.get(key)||"—"]){const cell=document.createElement("td");cell.textContent=value;row.append(cell);}tbody.append(row);}
-  table.append(tbody);section.append(table);
- }catch(error){section.textContent="ESPN karşılaştırması alınamadı. Diğer maç detayları kullanılabilir.";}
-}
 function openMamMatchDetail(article){
  if(!article)return;
  if(mamActiveMatch&&mamActiveMatch!==article)closeMamMatchDetail();
@@ -5454,7 +5393,6 @@ function openMamMatchDetail(article){
  const away=article.querySelector(".team-block:last-child strong")?.textContent||"Deplasman";
  overlay.querySelector(".match-detail-top strong").textContent=home+" – "+away;
  overlay.hidden=false;document.body.style.overflow="hidden";
- void mamLoadAdvancedEspnDetails(article);
  const liveButton=article.querySelector(".liveStatsBtn");
  if(liveButton){mamSeedVisibleMatchClock(liveButton);try{const rawId=String(liveButton.dataset.liveId||"");const source=String(liveButton.dataset.liveSource||"");const league=String(liveButton.dataset.liveLeagueId||"");const match=allMatches.find(m=>String(m.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId&&String(m.league?.id||"")===league)||null;localStorage.setItem("mam_open_live_detail",JSON.stringify({id:rawId,source,league,tab:"stats",match}));}catch(_){}}
  try{history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
@@ -5567,18 +5505,6 @@ function makeMamDetailTab(article){
  const live=["1H","HT","2H","ET","P","LIVE","INPLAY"].includes(status);
  open.textContent=live?"Canlı maç detayını aç →":Number.isFinite(kickoff)&&kickoff>Date.now()&&["NS","TBD"].includes(status)?"Maç önü analizini aç →":"Maç detayını aç →";
  open.addEventListener("click",()=>activateMamFixture(article));
- // Entire compact card is accessible; nested controls keep their own behavior.
- article.tabIndex=0;
- article.setAttribute("role","button");
- article.setAttribute("aria-label","Maç detaylarını aç");
- article.addEventListener("click",event=>{
-  if(event.target.closest("button,a,input,select,textarea,[role=button]"))return;
-  activateMamFixture(article);
- });
- article.addEventListener("keydown",event=>{
-  if(event.target!==article||!["Enter"," "].includes(event.key))return;
-  event.preventDefault();activateMamFixture(article);
- });
  article.appendChild(open);
  formButton.addEventListener("click",()=>loadMamMatchForm(formButton,formButton.dataset.loaded==="1"));
 }
@@ -5830,6 +5756,32 @@ function renderMatches(){
  const selectedDate=$("date")?.value||todayKey;
  if($("mamTodayTitle"))$("mamTodayTitle").textContent=selectedDate===todayKey?"BUGÜN OYNANACAK MAÇLAR":new Date(selectedDate+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"})+" MAÇLARI";
  if($("mamTodayCount"))$("mamTodayCount").textContent=list.length+" MAÇ";
+ if(mamScreenMode==="upcoming"){
+  list=list.filter(m=>mamIsFutureUnplayed(m,mamNow)&&mamIstanbulDay(m.fixture?.date)>mamTodayKey);
+  list.sort((a,b)=>Date.parse(a.fixture?.date||0)-Date.parse(b.fixture?.date||0));
+  if($("mamSectionCount"))$("mamSectionCount").textContent=list.length+" MAÇ";
+  if(!list.length){
+   $("matches").innerHTML='<div class="empty">Önümüzdeki 30 gün için gelecek maç bulunamadı. Veri arşivi henüz dolmamış olabilir; yenile ile tekrar dene.</div>';
+   return;
+  }
+  const groups=[...list.reduce((map,m)=>{
+   const l=m.league||{};
+   const key=String(l.country||"Diğer")+"::"+String(l.id??l.name??"other");
+   if(!map.has(key))map.set(key,[]);
+   map.get(key).push(m);
+   return map;
+  },new Map()).entries()];
+  $("matches").innerHTML='<div class="mam-upcoming-summary"><strong>ÖNÜMÜZDEKİ 30 GÜN</strong><span>'+list.length+' GELECEK MAÇ</span></div>'+groups.map(([key,items])=>{
+   const league=items[0]?.league||{};
+   return '<section class="mam-league-group mam-upcoming-group"><div class="mam-league-heading"><span class="mam-league-globe">⚽</span><strong>'+esc(league.name||"Diğer maçlar")+'</strong><small>'+esc(league.country||"")+'</small><span class="mam-league-count">'+items.length+'</span></div>'+items.map(m=>{
+    const f=m.fixture||{},t=m.teams||{},l=m.league||{};
+    const time=f.date?new Date(f.date).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"}):"Saat TBD";
+    return '<article class="mam-fixture-row"><div class="mam-fixture-time">'+esc(time)+'<span>BAŞLAMADI</span></div><div class="mam-fixture-teams"><div>'+teamBadge(t.home)+'<strong>'+esc(t.home?.name||"Ev sahibi")+'</strong></div><span class="mam-fixture-vs">VS</span><div>'+teamBadge(t.away)+'<strong>'+esc(t.away?.name||"Deplasman")+'</strong></div></div><button class="predBtn mam-fixture-analyze" data-id="'+esc(f.id)+'" data-home="'+esc(t.home?.id)+'" data-away="'+esc(t.away?.id)+'" data-home-name="'+esc(t.home?.name)+'" data-away-name="'+esc(t.away?.name)+'" data-league="'+esc(l.id)+'" data-date="'+esc(f.date?.slice(0,10))+'" data-kickoff="'+esc(f.timeUnknown?"":f.date)+'" data-status="'+esc(mamCanonicalMatchStatus(m))+'">Maç ön analizini yap →</button><div class="pred" id="pred-'+esc(f.id)+'" hidden></div></article>';
+   }).join("")+'</section>';
+  }).join("");
+  document.querySelectorAll("#matches .predBtn").forEach(button=>button.addEventListener("click",()=>analyze(button)));
+  return;
+ }
  if(!list.length){
   $("matches").innerHTML=mamScreenMode==="today"?'<div class="empty">Türkiye saatine göre bugün henüz başlamamış maç bulunamadı. Başlangıç saati geçmiş fakat sağlayıcı durumu güncellenmemiş maçlar doğrulanmadan Canlı veya Biten olarak gösterilmez.</div>':'<div class="empty">Bu filtrede maç bulunamadı.</div>';
   return;
@@ -5865,7 +5817,7 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
   return '<section class="mam-league-group"><div class="mam-league-heading"><span class="mam-league-globe">'+esc(league.icon||countryFlags[league.country]||"⚽")+'</span><strong>'+esc(league.name||"Diğer maçlar")+'</strong><small>'+esc(league.country||"")+'</small><span class="mam-league-count">'+group.length+' MAÇ</span></div>'+group.map(m=>{
   const f=m.fixture||{},l=m.league||{},t=m.teams||{},g=m.goals||{};
   let statusCode=mamCanonicalMatchStatus(m);
-  const statusNames={"NS":"Başlamadı","UNK":"Durum bilinmiyor","TBD":"Saat bekleniyor","1H":"1. yarı","HT":"Devre arası","2H":"2. yarı","ET":"Uzatmalar","BT":"Uzatma arası","P":"Penaltılar","SUSP":"Durduruldu","INT":"Kesildi","LIVE":"Canlı","FT":"Bitti","AET":"Uzatmalarda bitti","PEN":"Penaltılarla bitti","PST":"Ertelendi","CANC":"İptal","ABD":"Yarıda kaldı","AWD":"Hükmen","WO":"Hükmen"};
+  const statusNames={"NS":"Başlamadı","TBD":"Saat bekleniyor","1H":"1. yarı","HT":"Devre arası","2H":"2. yarı","ET":"Uzatmalar","BT":"Uzatma arası","P":"Penaltılar","SUSP":"Durduruldu","INT":"Kesildi","LIVE":"Canlı","FT":"Bitti","AET":"Uzatmalarda bitti","PEN":"Penaltılarla bitti","PST":"Ertelendi","CANC":"İptal","ABD":"Yarıda kaldı","AWD":"Hükmen","WO":"Hükmen"};
   let statusLabel=statusNames[statusCode]||statusCode||"Durum bilinmiyor";
   let isLiveStatus=["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(statusCode);
   const isFinishedStatus=["FT","AET","PEN","AWD","WO"].includes(statusCode);
@@ -5876,7 +5828,7 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
   const displayClock=String(f.status?.displayClock||"");
   let effectiveElapsed=elapsed==null||elapsed===""?NaN:Number(elapsed);
   // ESPN sağlayıcı saatini kullan; başlama saatinden geçen süreyle dakika tahmin etme.
-  const clockMatch=displayClock.trim().match(/^(\d{1,3})(?::[0-5]\d)?\s*'?(?:\+\d{1,2}'?)?$/);
+  const clockMatch=displayClock.match(/(?:^|\D)(\d{1,3})(?::\d{2})?\s*'?/);
   const clockMinute=clockMatch?Number(clockMatch[1]):NaN;
   if(!Number.isFinite(effectiveElapsed)&&Number.isFinite(clockMinute)&&clockMinute>=0&&clockMinute<=130){
    effectiveElapsed=clockMinute;
@@ -5887,17 +5839,16 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
   if(isLiveStatus){
    if(statusCode==="HT")liveMinute="Devre arası";
    else if(/^[0-9]{1,3}\+[0-9]{1,2}'$/.test(displayClock))liveMinute=displayClock;
-   else if(Number.isFinite(effectiveElapsed)&&effectiveElapsed>=0&&effectiveElapsed<=130)liveMinute=String(Math.round(effectiveElapsed))+"'";
+   else if(Number.isFinite(effectiveElapsed))liveMinute=String(Math.round(effectiveElapsed))+"'";
+   else if(displayClock&&/^\s*\d{1,3}(?::\d{2})?\s*'?\s*$/.test(displayClock))liveMinute=displayClock.trim().replace(/:.*$/,"").replace(/\s*'?$/,"")+"'";
    else liveMinute="Canlı";
   }
   const displayedTime=isLiveStatus?(liveMinute||"Canlı"):time;
-  const showScore=!["NS","TBD","UNK","PST","CANC"].includes(statusCode)
-   &&mamEspnGoal(g.home)!==null&&mamEspnGoal(g.away)!==null;
   return `<article class="match match-modern">
    <div class="match-head"><span class="league-label">${esc(l.name)} · ${esc(l.country)}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span>${isLiveStatus&&time?'<small class="mam-kickoff-time" aria-label="Başlangıç saati: '+esc(time)+'">'+esc(time)+'</small>':""}</span></div>
    <div class="match-versus">
     <div class="team-block">${teamBadge(t.home)}<strong>${esc(t.home?.name)}</strong>${isFinishedStatus?mamOutcomeBadge(g.home,g.away):""}</div>
-    <div class="match-center"><span class="match-clock">${showScore?esc(g.home)+" – "+esc(g.away):isLiveStatus||isFinishedStatus?"—":esc(time||"VS")}</span><small>${isLiveStatus&&time?esc(statusLabel)+" · "+esc(time):(statusCode==="NS"?"Karşılaşma":esc(statusLabel))}</small></div>
+    <div class="match-center"><span class="match-clock">${g.home!=null&&g.away!=null?esc(g.home)+" – "+esc(g.away):esc(time||"VS")}</span><small>${isLiveStatus&&time?esc(statusLabel)+" · "+esc(time):(statusCode==="NS"?"Karşılaşma":esc(statusLabel))}</small></div>
     <div class="team-block">${teamBadge(t.away)}<strong>${esc(t.away?.name)}</strong>${isFinishedStatus?mamOutcomeBadge(g.away,g.home):""}</div>
    </div>
    <div class="match-actions">
@@ -6042,25 +5993,22 @@ async function refreshActiveMatchScore(){
      // API-Football'dan bu turda taze maç verisi geldiyse ESPN scoreboard'un
      // gecikmeli kopyasıyla skoru/dakikayı ezme. ESPN yalnızca ana veri yoksa
      // yedek olsun; ESPN kaynaklı maçlarda ise kendi skorunu kullan.
-     if((source==="espn"||!fresh)&&existing&&home&&away&&statusShort!=="UNK"){
-      const noScore=["NS","PST","CANC","TBD"].includes(statusShort);
-      const goals={home:noScore?null:mamEspnGoal(home.score),away:noScore?null:mamEspnGoal(away.score)};
+     if((source==="espn"||!fresh)&&existing&&home?.score!=null&&away?.score!=null){
       const existingStatus=existing.fixture?.status||{};
       const safeElapsed=clock.elapsed!=null?clock.elapsed:
        (existingStatus.elapsed!=null?existingStatus.elapsed:null);
-      fresh={...existing,goals,fixture:{...existing.fixture,status:{...existingStatus,short:statusShort,elapsed:safeElapsed,displayClock:clock.displayClock||existingStatus.displayClock||""}}};
+      fresh={...existing,goals:{home:Number(home.score),away:Number(away.score)},fixture:{...existing.fixture,status:{...existingStatus,short:statusShort,elapsed:safeElapsed,displayClock:clock.displayClock||existingStatus.displayClock||""}}};
      }
     }
    }catch(espnError){console.warn("ESPN açık maç skoru doğrulanamadı; son geçerli skor korunuyor.",espnError);}
   }
-  if(!fresh)return;
+  if(!fresh||fresh.goals?.home==null||fresh.goals?.away==null)return;
   const key=String(fresh.fixture?.id||"");
   const index=allMatches.findIndex(match=>String(match.fixture?.id||"")===key);
   if(index>=0)allMatches[index]=fresh;
   else if(fresh.fixture?.id)allMatches.push(fresh);
   const score=article.querySelector(".match-clock");
-  const homeScore=mamEspnGoal(fresh.goals?.home),awayScore=mamEspnGoal(fresh.goals?.away);
-  if(score)score.textContent=homeScore===null||awayScore===null?"—":homeScore+" – "+awayScore;
+  if(score)score.textContent=String(fresh.goals.home)+" – "+String(fresh.goals.away);
   const status=fresh.fixture?.status||{};
   const elapsed=status.elapsed==null||status.elapsed===""?NaN:Number(status.elapsed);
   const now=Date.now();
@@ -6072,18 +6020,15 @@ async function refreshActiveMatchScore(){
   const providerMinute=Number.isFinite(elapsed)&&elapsed>=0?elapsed:
    Number(String(status.displayClock||"").match(/^\d{1,3}/)?.[0]);
   // Aynı devre içinde sağlayıcı gecikmeli/eski dakika döndürürse ekrandaki saati geriye alma.
-  const terminalLabels={FT:"Maç bitti",AET:"Uzatmalarda bitti",PEN:"Penaltılarla bitti",POST:"Maç bitti",
-   PST:"Ertelendi",CANC:"İptal",ABD:"Yarıda kaldı",TBD:"Saat bekleniyor",NS:"Başlamadı"};
-  const terminal=terminalLabels[statusShort];
-  const isStopped=statusShort==="HT"||Boolean(terminal);
+  const isStopped=["HT","FT","AET","PEN","POST"].includes(statusShort);
   const clockBase=!isStopped&&Number.isFinite(providerMinute)&&Number.isFinite(previousMinute)
    ?Math.max(providerMinute,previousMinute)
    :providerMinute;
   const shownMinute=Number.isFinite(clockBase)?Math.floor(clockBase):NaN;
   const minute=statusShort==="HT"?"Devre arası":source==="espn"?status.displayClock||"Canlı":Number.isFinite(shownMinute)?shownMinute+"'":status.displayClock||"Canlı";
-  const stoppedLabel=terminal||(statusShort==="HT"?"Devre arası":statusShort==="SUSP"?"Durduruldu":statusShort==="INT"?"Oyun durdu":"Canlı");
+  const stoppedLabel=statusShort==="HT"?"Devre arası":["FT","AET","PEN","POST"].includes(statusShort)?"Maç bitti":statusShort==="SUSP"?"Durduruldu":statusShort==="INT"?"Oyun durdu":"Canlı";
   const headClock=article.querySelector(".match-head .match-time");
-  if(headClock)headClock.textContent=terminal||((isStopped?"⚪ ":"🔴 ")+minute+" · "+stoppedLabel);
+  if(headClock)headClock.textContent=(isStopped?"⚪ ":"🔴 ")+minute+" · "+stoppedLabel;
   const centerSub=article.querySelector(".match-center small");
   if(centerSub)centerSub.textContent=stoppedLabel==="Canlı"?"Canlı maç · sağlayıcı saati":stoppedLabel;
   if(Number.isFinite(clockBase)){
@@ -6092,13 +6037,9 @@ async function refreshActiveMatchScore(){
    button.dataset.liveClockStatus=statusShort;
   }
   button.dataset.liveMinute=Number.isFinite(elapsed)?String(elapsed):"";
-  button.dataset.liveHomeScore=homeScore===null?"":String(homeScore);
-  button.dataset.liveAwayScore=awayScore===null?"":String(awayScore);
-  try{
-   const live=allMatches.filter(match=>["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(mamCanonicalMatchStatus(match)));
-   if(live.length)mamSaveLiveMatchCache(live);
-   else if(terminal)localStorage.removeItem(MAM_LIVE_MATCH_CACHE_KEY);
-  }catch(_){}
+  button.dataset.liveHomeScore=String(fresh.goals.home);
+  button.dataset.liveAwayScore=String(fresh.goals.away);
+  try{mamSaveLiveMatchCache(allMatches.filter(match=>["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(mamCanonicalMatchStatus(match))));}catch(_){}
  }catch(error){console.warn("Açık maç skoru yenilenemedi:",error);}
 }
 
@@ -7093,14 +7034,15 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
             const competition=event.competitions?.[0],competitors=competition?.competitors||[];
             const home=competitors.find(x=>x.homeAway==="home"),away=competitors.find(x=>x.homeAway==="away");
             if(!home||!away)continue;
-            const status=mamEspnStatus(event.status?.type,competition?.status?.type);
-            if(!["FT","AET","PEN"].includes(status))continue;
-            const homeScore=mamEspnGoal(home.score),awayScore=mamEspnGoal(away.score);
-            if(homeScore===null||awayScore===null)continue;
+            const state=String(competition.status?.type?.state||event.status?.type?.state||"").toLowerCase();
+            if(!(competition.status?.type?.completed===true||event.status?.type?.completed===true||state==="post"))continue;
+            const scoreValue=value=>Number(value&&typeof value==="object"?(value.value??value.displayValue):value);
+            const homeScore=scoreValue(home.score),awayScore=scoreValue(away.score);
+            if(!Number.isFinite(homeScore)||!Number.isFinite(awayScore))continue;
             const homeNames=[home.team?.displayName,home.team?.name,home.team?.shortDisplayName,home.team?.abbreviation].filter(Boolean);
             const awayNames=[away.team?.displayName,away.team?.name,away.team?.shortDisplayName,away.team?.abbreviation].filter(Boolean);
-            const homeIsTarget=home.team?.id!=null?String(home.team.id)===espnTeamId:homeNames.some(isTarget);
-            const awayIsTarget=away.team?.id!=null?String(away.team.id)===espnTeamId:awayNames.some(isTarget);
+            const homeIsTarget=Number(home.team?.id)===Number(espnTeamId)||homeNames.some(isTarget);
+            const awayIsTarget=Number(away.team?.id)===Number(espnTeamId)||awayNames.some(isTarget);
             if(homeIsTarget===awayIsTarget)continue;
             const homeName=homeIsTarget?teamName:(home.team?.displayName||home.team?.name||home.team?.shortDisplayName||"");
             const awayName=awayIsTarget?teamName:(away.team?.displayName||away.team?.name||away.team?.shortDisplayName||"");
@@ -8220,74 +8162,11 @@ async function mamSportScoreStandings(competitionName){
  return {name:match.name,rows};
 }
 
-function mamEspnProfileFixtures(payload,teamId,leagueId){
- if(!Array.isArray(payload?.events))throw new Error("ESPN fikstürü geçersiz.");
- const league=ESPN_LEAGUES[String(leagueId)];
- if(!league?.slug||!/^\d+$/.test(String(teamId)))return [];
- return payload.events.flatMap(event=>{
-  const comp=event?.competitions?.[0];
-  const id=String(event?.id??""),date=event?.date||comp?.date;
-  const eventLeague=event?.league?.slug;
-  const sides=Array.isArray(comp?.competitors)?comp.competitors:[];
-  const home=sides.find(side=>side?.homeAway==="home"),away=sides.find(side=>side?.homeAway==="away");
-  const sideId=side=>String(side?.team?.id??side?.id??"");
-  const homeId=sideId(home),awayId=sideId(away);
-  if(!/^\d+$/.test(id)||!Number.isFinite(Date.parse(date))||sides.length!==2||
-     !/^[1-9]\d*$/.test(homeId)||!/^[1-9]\d*$/.test(awayId)||homeId===awayId||![homeId,awayId].includes(String(teamId))||
-     (eventLeague&&eventLeague!==league.slug))return [];
-  const team=side=>({id:Number(sideId(side)),name:side.team?.displayName||side.team?.name||"",
-   logo:side.team?.logo||side.team?.logos?.[0]?.href||""});
-  const teams={home:team(home),away:team(away)};
-  if(!teams.home.name||!teams.away.name)return [];
-  const status=mamEspnStatus(event.status?.type,comp.status?.type);
-  const goals=["FT","AET","PEN"].includes(status)?
-   {home:mamEspnGoal(home.score),away:mamEspnGoal(away.score)}:{home:null,away:null};
-  return [{fixture:{id:"espn-"+league.slug+"-"+id,date,status:{short:status}},
-   league:{id:String(leagueId),name:league.name,country:league.country},teams,goals,
-   mamSelectedTeamHome:homeId===String(teamId)}];
- });
-}
-
-async function mamSearchEspnProfile(teamId,leagueId,now=Date.now()){
- const league=ESPN_LEAGUES[String(leagueId)];
- const day=mamIstanbulDay(new Date(now).toISOString());
- const futureDay=mamIstanbulDay(new Date(now+30*86400000).toISOString());
- const firstMonth=day.slice(0,7),lastMonth=futureDay.slice(0,7);
- const months=[firstMonth];
- const cursor=new Date(firstMonth+"-01T00:00:00Z");
- while(months.at(-1)<lastMonth){
-  cursor.setUTCMonth(cursor.getUTCMonth()+1);
-  months.push(cursor.toISOString().slice(0,7));
- }
- const year=Number(day.slice(0,4))-(Number(day.slice(5,7))<7?1:0);
- const prefix="espn/"+league.slug+"/";
- const load=path=>Promise.resolve().then(()=>api(prefix+path))
-  .then(payload=>mamEspnProfileFixtures(payload,teamId,leagueId));
- const [history,...boards]=await Promise.allSettled([
-  load("teams/"+teamId+"/schedule?"+qs({season:year})),
-  ...months.map(month=>load("scoreboard?"+qs({dates:month.replace("-",""),limit:500})))
- ]);
- const byId=new Map();
- for(const source of [history,...boards])if(source.status==="fulfilled"){
-  for(const match of source.value)byId.set(match.fixture.id,match);
- }
- const all=[...byId.values()];
- const time=match=>Date.parse(match.fixture.date);
- return {
-  recent:all.filter(match=>time(match)<now&&mamHasCompletedScore(match)).sort((a,b)=>time(b)-time(a)),
-  upcoming:all.filter(match=>time(match)<=now+30*86400000&&mamIsFutureUnplayed(match,now))
-   .sort((a,b)=>time(a)-time(b)),
-  historyError:history.status==="rejected"?"ESPN takım takvimi alınamadı.":"",
-  upcomingError:boards.some(board=>board.status==="rejected")?"ESPN gelecek fikstürünün bir bölümü alınamadı.":""
- };
-}
-
-const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,returnFocus=row)=>{
+const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   if(!row)return;
   const teamName=row.dataset.standingTeam||"";
   const teamId=row.dataset.standingTeamId||"";
   const teamSource=row.dataset.teamSource||"api-football";
-  const exactSearch=row.dataset.exactSearch==="1"&&teamSource==="espn"&&/^\d+$/.test(teamId);
   const sourceFixtureId=teamSource==="espn"?"espn-team-directory":"";
   if(!teamName)return;
   document.getElementById("mamTeamHistoryScreen")?.remove();
@@ -8315,7 +8194,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,return
    document.body.style.overflow=previousOverflow;
    for(const [element,wasInert] of background)element.inert=wasInert;
    document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));
-   returnFocus?.focus({preventScroll:true});
+   row.focus({preventScroll:true});
   };
   const back=screen.querySelector("#mamTeamHistoryBack");
   back.addEventListener("click",close);
@@ -8323,21 +8202,19 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,return
   screen.addEventListener("keydown",event=>{if(event.key==="Escape"){event.preventDefault();event.stopPropagation();close();}});
 
   try{
-   const cutoff=mamIstanbulDay(new Date(Date.now()+86400000).toISOString());
+   const d=new Date();d.setDate(d.getDate()+1);
+   const cutoff=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
    const content=screen.querySelector("#mamTeamHistoryContent");
    let recent=[];
    let historyError="";
-   let upcoming=[];
-   let upcomingError="";
-   if(exactSearch){
-    ({recent,upcoming,historyError,upcomingError}=await mamSearchEspnProfile(teamId,leagueId));
-   }else{
    try{
     const matches=await getTeamFixtures(teamId,cutoff,teamName,String(leagueId),sourceFixtureId,false,false,teamSource);
     recent=matches.slice(0,10);
    }catch(error){
     historyError=String(error?.message||"Geçmiş maç verisi alınamadı.");
    }
+   let upcoming=[];
+   let upcomingError="";
    try{
     let leagueFixtures=[];
     if(String(leagueId)==="39")leagueFixtures=await getPremierLeagueUpcoming();
@@ -8503,7 +8380,6 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,return
      if(!upcoming.length)upcomingError=upcomingError||String(ssError?.message||ssError);
     }
    }
-   }
    // MAM_TEAM_HISTORY_INLINE_RED_GOLD_V7: deduplicate identical team fixtures across all providers, even when the primary source already returned 10 rows.
    const finalTeamKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|a\.s\.|s\.a\.|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
    const finalPastMap=new Map();
@@ -8516,7 +8392,6 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,return
    }
    recent=[...finalPastMap.values()].sort((a,b)=>Date.parse(b.fixture?.date||0)-Date.parse(a.fixture?.date||0)).slice(0,10);
    upcoming=upcoming.filter(match=>mamIsFutureUnplayed(match));
-   const upcomingNotice=exactSearch?'<p role="status">'+(upcomingError?esc(upcomingError)+' ':'')+'Önümüzdeki 30 gün · ESPN</p>':'';
    const pastHtml=recent.length?'<section style="margin-bottom:22px;"><div style="display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px;"><span style="font-size:12px;font-weight:900;color:#65dcb1;">SON '+recent.length+' TAMAMLANMIŞ MAÇ</span><span style="font-size:10px;color:#9eb2bc;">GEÇMİŞ</span></div><div style="display:grid;gap:10px;">'+recent.map(m=>{
     const home=m.teams?.home||{},away=m.teams?.away||{};
     const teamKey=value=>{let key=String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\\b(football club|fc|afc|sk|fk|as|cf|sc|club)\\b/g,"").replace(/[^a-z0-9]/g,"");const groups=[["vitoriadeguimaraes","vitoriasc","vitoriaguimaraes"],["estorilpraia","estoril"],["gilvicentefc","gilvicente"],["maritimofunchal","maritimo","maritimom"]];for(const group of groups)if(group.includes(key))return group[0];return key;};
@@ -8524,7 +8399,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,return
     const homeGoals=Number(m.goals?.home),awayGoals=Number(m.goals?.away);
     const gf=isHome?homeGoals:awayGoals,ga=isHome?awayGoals:homeGoals;
     const outcome=gf>ga?"W":gf<ga?"L":"D";
-    const date=mamIstanbulDay(m.fixture?.date);
+    const date=String(m.fixture?.date||"").slice(0,10);
     const dateLabel=date?new Date(date+"T12:00:00").toLocaleDateString("tr-TR",{day:"2-digit",month:"short",year:"numeric"}):"";
     const bg=outcome==="W"?"rgba(34,197,126,.18)":outcome==="L"?"rgba(239,83,80,.18)":"rgba(160,177,190,.16)";
     const color=outcome==="W"?"#67e4b0":outcome==="L"?"#ff9696":"#d2dce3";
@@ -8552,7 +8427,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,return
       '<div class="pred" id="pred-'+esc(fixtureId)+'">Analiz henüz yapılmadı.</div></article>';
    }).join("")+'</div></div></section>':'<section style="margin-top:22px;"><div style="font-size:12px;font-weight:900;color:#65dcb1;margin:0 2px 10px;">GELECEK MAÇLAR</div><p style="font-size:12px;color:#a9c0c4;">'+(upcomingError?"Gelecek fikstürü alınamadı: "+esc(upcomingError):"Şu an listelenecek gelecek maç bulunamadı.")+'</p></section>';
    const switchBar='<div class="mam-team-history-banner"><div class="mam-team-history-banner-mark">⚽</div><div><strong>'+esc(teamName)+'</strong><small>'+esc(standingCompetitionNames[String(leagueId)]||ESPN_LEAGUES[String(leagueId)]?.name||"Lig") +' · TAKIM MAÇLARI</small></div></div><div style="display:flex;gap:8px;margin:0 0 14px;padding:4px;border:1px solid rgba(255,65,91,.45);border-radius:15px;background:#100b15;"><button type="button" data-history-view="past" aria-selected="true" style="flex:1;min-height:42px;padding:8px 10px;border-radius:11px;background:linear-gradient(135deg,#ffbd18,#e58a00);color:#160d06;font-size:12px;font-weight:950;">Geçmiş maçlar</button><button type="button" data-history-view="upcoming" aria-selected="false" style="flex:1;min-height:42px;padding:8px 10px;border-radius:11px;background:linear-gradient(145deg,#1b111c,#100c16);color:#f7edf1;font-size:12px;font-weight:900;">Gelecek maçlar</button></div>';
-   content.innerHTML=switchBar+'<div id="mamHistoryPastView">'+pastHtml+'</div><div id="mamHistoryUpcomingView" hidden>'+upcomingNotice+futureHtml+'</div>';
+   content.innerHTML=switchBar+'<div id="mamHistoryPastView">'+pastHtml+'</div><div id="mamHistoryUpcomingView" hidden>'+futureHtml+'</div>';
    const pastView=content.querySelector("#mamHistoryPastView"),upcomingView=content.querySelector("#mamHistoryUpcomingView");
    content.querySelectorAll("[data-history-view]").forEach(tab=>tab.addEventListener("click",()=>{
     const showUpcoming=tab.dataset.historyView==="upcoming";
@@ -8962,9 +8837,9 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,return
  const read=key=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{return {};}};
  let previousFocus=null;
  // Public ESPN team directories supplement fixture-only results. No API-Football calls.
- const DIRECTORY_LEAGUES=['tur.1','eng.1','esp.1','ita.1','ger.1','fra.1','ned.1','por.1','usa.1','bra.1','arg.1','uefa.champions','uefa.europa','uefa.europa.conf'];
+ const ESPN_LEAGUES=['tur.1','eng.1','esp.1','ita.1','ger.1','fra.1','ned.1','por.1','usa.1','bra.1','arg.1','uefa.champions','uefa.europa','uefa.europa.conf'];
  // Keep essential Turkish clubs searchable when ESPN's directory is partial or blocked in Safari.
- const FALLBACK_TEAMS=[['1895','Beşiktaş'],['436','Fenerbahçe'],['432','Galatasaray'],['997','Trabzonspor']];
+ const FALLBACK_TEAMS=['Beşiktaş','Fenerbahçe','Galatasaray','Trabzonspor'];
  const directory=new Map();
  let directoryLoading=false,directoryLoaded=false;
  const catalogKey='mam_search_espn_teams_v1';
@@ -8972,13 +8847,13 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,return
  async function loadDirectory(){
   if(directoryLoading||directoryLoaded)return;
   directoryLoading=true;
-  const requests=DIRECTORY_LEAGUES.map(async league=>{
+  const requests=ESPN_LEAGUES.map(async league=>{
    try{
     const response=await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/'+encodeURIComponent(league)+'/teams?limit=500',{signal:AbortSignal.timeout(9000)});
     if(!response.ok)return;
     const data=await response.json();
     const rows=Array.isArray(data?.sports?.[0]?.leagues?.[0]?.teams)?data.sports[0].leagues[0].teams:[];
-    for(const row of rows){const team=row?.team||row;if(/^\d+$/.test(String(team?.id??''))&&team?.displayName){const id='espn:'+league+':'+team.id;directory.set(id,{id,name:String(team.displayName),league:LEAGUE_NAMES[league]||league,country:''});}}
+    for(const row of rows){const team=row?.team||row;if(team?.id!=null&&team?.displayName){const id='espn:'+league+':'+team.id;directory.set(id,{id,name:String(team.displayName),league:LEAGUE_NAMES[league]||league,country:''});}}
    }catch{}
   });
   await Promise.all(requests);
@@ -8986,52 +8861,31 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,return
   if(directory.size){directoryLoaded=true;try{localStorage.setItem(catalogKey,JSON.stringify({savedAt:Date.now(),teams:[...directory.values()]}));}catch{}}
   if(!panel.hidden)draw();
  }
- const searchLeagueId=slug=>Object.keys(ESPN_LEAGUES).find(key=>ESPN_LEAGUES[key]?.slug===slug);
  function teams(){
-  const catalog=[...directory.values()].flatMap(t=>{
-   const match=/^espn:([^:]+):(\d+)$/.exec(String(t?.id));
-   const leagueId=match&&searchLeagueId(match[1]);
-   return leagueId?[{...t,slug:match[1],teamId:match[2],leagueId}]:[];
-  }).sort((a,b)=>DIRECTORY_LEAGUES.indexOf(a.slug)-DIRECTORY_LEAGUES.indexOf(b.slug));
-  const byEspnId=new Map();
-  for(const team of catalog)if(!byEspnId.has(team.teamId))byEspnId.set(team.teamId,team);
-  for(const [teamId,name] of FALLBACK_TEAMS){
-   const existing=byEspnId.get(teamId);
-   if(!existing||existing.slug==='tur.1'||existing.slug.startsWith('uefa.')){
-    byEspnId.set(teamId,{id:'espn:tur.1:'+teamId,teamId,name,slug:'tur.1',leagueId:'203',league:'Süper Lig'});
-   }
-  }
-  const fixtureTeams=new Map();
+  const map=new Map();
   let rows=typeof allMatches!=='undefined'&&Array.isArray(allMatches)?allMatches:[];
   if(!rows.length){const saved=read('mam_product_hub_fixtures_v1');rows=Array.isArray(saved.matches)?saved.matches:[];}
-  for(const match of rows){
-   const leagueId=String(match?.league?.id??'');
-   const league=ESPN_LEAGUES[leagueId];
-   if(!league?.slug)continue;
-   const espnFixture=String(match.fixture?.id??'').startsWith('espn-'+league.slug+'-');
-   for(const team of [match?.teams?.home,match?.teams?.away]){
-    if(!team?.name)continue;
-    const numeric=String(team.id??'');
-    const teamId=espnFixture&&/^[1-9]\d*$/.test(numeric)?numeric:'';
-    const item={name:String(team.name),league:LEAGUE_NAMES[league.slug]||league.name,leagueId,slug:league.slug,teamId};
-    if(teamId){
-     if(!byEspnId.has(teamId))byEspnId.set(teamId,{...item,id:'espn:'+league.slug+':'+teamId});
-    }else{
-     const id='fixture:'+leagueId+':'+normalize(item.name).trim();
-     fixtureTeams.set(id,{...item,id});
-    }
-   }
+  for(const match of rows)for(const team of [match?.teams?.home,match?.teams?.away]){
+   if(team?.id==null||!team?.name)continue;
+   const id=String(team.id);
+   if(!map.has(id))map.set(id,{id,name:String(team.name),league:String(match?.league?.name||''),country:String(match?.league?.country||'')});
   }
-  const known=[...byEspnId.values()];
-  const uncatalogued=[...fixtureTeams.values()].filter(team=>!known.some(candidate=>
-   candidate.leagueId===team.leagueId&&normalize(candidate.name)===normalize(team.name)));
-  return [...known,...uncatalogued].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+  for(const [id,team] of directory)if(!map.has(id))map.set(id,team);
+  for(const name of FALLBACK_TEAMS){
+   if(![...map.values()].some(t=>normalize(t.name)===normalize(name)))map.set('fallback:tur.1:'+normalize(name),{id:'fallback:tur.1:'+normalize(name),name,league:'Süper Lig',country:'Türkiye'});
+  }
+  const unique=new Map();
+  for(const team of map.values()){
+   const key=normalize(team.name)+'|'+normalize(team.league);
+   if(!unique.has(key))unique.set(key,team);
+  }
+  return [...unique.values()].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
  }
  function draw(){
   const q=normalize(input.value.trim());
   const all=teams();
   const filtered=q?all.filter(t=>normalize(t.name).includes(q)||normalize(t.league).includes(q)).slice(0,60):[];
-  document.getElementById('mamTeamSearchHelp').textContent=!q?'Takım adı veya lig yaz.':directoryLoading?'Takım rehberi yükleniyor…':'Takım arama sonuçları';
+  document.getElementById('mamTeamSearchHelp').textContent=directoryLoading?'Takım rehberi yükleniyor…':q?'Takım arama sonuçları':'Takım adı veya lig yaz.';
   results.innerHTML=!q?'':filtered.map(t=>'<button type="button" class="mam-team-result" data-search-team="'+escapeHtml(t.id)+'" style="display:flex;width:100%;text-align:left;background:transparent;color:inherit;border:0;border-bottom:1px solid #41516f;padding:12px 0;cursor:pointer"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span></button>').join('')||'<p>'+(directoryLoading?'Takımlar yükleniyor…':'Bu isimde takım bulunamadı.')+'</p>';
  }
  results.addEventListener('click',event=>{
@@ -9043,12 +8897,12 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague,return
   if(typeof open!=='function')return;
   const row=document.createElement('div');
   row.dataset.standingTeam=team.name;
-  row.dataset.standingTeamId=team.teamId;
+  row.dataset.standingTeamId=String(team.id).startsWith('espn:')?String(team.id).split(':').pop():String(team.id).startsWith('fallback:')?'':String(team.id);
   row.dataset.teamSource='espn';
-  row.dataset.exactSearch=team.teamId?'1':'';
-  const returnFocus=previousFocus;
   hide();
-  open(row,team.leagueId,returnFocus);
+  const espnCode=String(team.id).startsWith('espn:')?String(team.id).split(':')[1]:Object.keys(LEAGUE_NAMES).find(code=>LEAGUE_NAMES[code]===team.league)||'tur.1';
+  const profileLeagueIds={'tur.1':'203','eng.1':'39','esp.1':'140','ita.1':'135','ger.1':'78','fra.1':'61','ned.1':'88','por.1':'94','usa.1':'253','bra.1':'71','arg.1':'128','uefa.champions':'2','uefa.europa':'3','uefa.europa.conf':'848'};
+  open(row,profileLeagueIds[espnCode]||'203');
  });
  function hide(){panel.hidden=true;trigger.setAttribute('aria-expanded','false');document.body.style.overflow='';previousFocus?.focus();}
  trigger.addEventListener('click',()=>{previousFocus=document.activeElement;panel.hidden=false;trigger.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';input.value='';draw();loadDirectory();input.focus();});
