@@ -24,7 +24,7 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
   const server=await launchServer();
   const browser=await engine.launch({headless:true});
   try{
-   for(const viewport of [{width:390,height:844},{width:393,height:852},{width:430,height:932}]){
+   for(const viewport of [{width:375,height:812},{width:390,height:844},{width:393,height:852},{width:430,height:932}]){
     const page=await browser.newPage({viewport,isMobile:true,hasTouch:true});
     await page.route("**/*",route=>route.request().url().startsWith(origin+"/")?route.continue():route.abort());
     await page.addInitScript(()=>{
@@ -41,10 +41,10 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
      const current=new Date(Date.now()+15*60000).toISOString();
      const later=new Date(Date.now()+8*86400000).toISOString();
      return {today:{fixture:{id:"iphone-today",date:current,status:{short:"NS"}},league:{id:"203",name:"Süper Lig",country:"Türkiye"},teams:{home:{id:1,name:"İstanbul Ev Sahibi"},away:{id:2,name:"Ankara Deplasman"}},goals:{home:null,away:null}},
-      future:{fixture:{id:"iphone-future",date:later,status:{short:"NS"}},league:{id:"203",name:"Süper Lig",country:"Türkiye"},teams:{home:{id:3,name:"Geleceğin Ev Sahibi"},away:{id:4,name:"Geleceğin Deplasman"}},goals:{home:null,away:null}},
+      future:{fixture:{id:"iphone-future",date:later,status:{short:"NS"}},league:{id:"203",name:"Süper Lig",country:"Türkiye"},teams:{home:{id:3,name:"Internacional"},away:{id:4,name:"Geleceğin Deplasman"}},goals:{home:null,away:null}},
       finished:{fixture:{id:"espn-tur.1-401888243",date:"2026-11-22T10:30Z",status:{short:"FT"}},league:{id:"203",name:"Süper Lig",country:"Türkiye"},teams:{home:{id:19267,name:"Erzurum BB"},away:{id:789,name:"Goztepe"}},goals:{home:0,away:1}}};
     });
-    for(const [mode,expected] of [["today","İstanbul Ev Sahibi"],["upcoming","Geleceğin Ev Sahibi"],["finished","Erzurum BB"]]){
+    for(const [mode,expected] of [["today","İstanbul Ev Sahibi"],["upcoming","Internacional"],["finished","Erzurum BB"]]){
      await page.evaluate(({mode,rows})=>{
       setMamScreen(mode);
       document.getElementById("league").value="all";
@@ -54,6 +54,23 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
      },{mode,rows});
      const card=page.locator("#matches article.match").filter({hasText:expected}).first();
      await card.waitFor({state:"visible",timeout:7000});
+     assert.equal(await card.locator("[data-mam-star]:visible").count(),1);
+     if(mode==="upcoming"){
+      const kickoff=new Intl.DateTimeFormat("tr-TR",{timeZone:"Europe/Istanbul",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(rows.future.fixture.date));
+      assert.equal((await card.innerText()).split(kickoff).length,2);
+      const layout=await card.evaluate(el=>{
+       const [home,away]=[...el.querySelectorAll(".team-block strong")].map(name=>name.getBoundingClientRect());
+       const score=el.querySelector(".match-center").getBoundingClientRect();
+       return {namesClear:home.right<=score.left+1&&away.left>=score.right-1,
+        headerClear:document.querySelector(".mam-appbar").getBoundingClientRect().bottom<=document.querySelector(".mam-section-header").getBoundingClientRect().top};
+      });
+      assert.deepEqual(layout,{namesClear:true,headerClear:true});
+      assert.equal(await card.evaluate(el=>{
+       el.scrollIntoView({block:"end",behavior:"instant"});
+       const nav=document.querySelector(".mam-bottom-nav");
+       return el.getBoundingClientRect().bottom<=nav.getBoundingClientRect().top;
+      }),true,"The last card must clear the fixed menu");
+     }
      await card.click();
      const overlay=page.locator(".match-detail-overlay:not([hidden])");
      await overlay.waitFor({state:"visible"});
@@ -159,13 +176,21 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
 
    await page.locator('[data-match-mode="finished"]').click();
    await page.clock.fastForward(31_000);
-   await page.locator("#status").getByText(/maç yüklendi/).waitFor({timeout:8000});
+   await page.waitForFunction(()=>document.getElementById("status").dataset.fixtureReady==="1");
+   const finishedCards=await page.locator("#matches article.match").count();
+   assert.equal(await page.locator("#status").innerText(),finishedCards?finishedCards+" maç yüklendi.":"Bu filtrede maç bulunamadı.");
    await card.waitFor({state:"hidden",timeout:5000});
    await page.evaluate(()=>{
     window.testScoreboard={status:{displayClock:"90'",type:{name:"STATUS_FULL_TIME",state:"post",completed:true}},goals:["2","1"]};
    });
    await page.clock.fastForward(31_000);
    await card.locator(".match-clock").getByText("2 – 1",{exact:true}).waitFor({timeout:8000});
+   await page.locator('[data-match-mode="today"]').click();
+   await page.waitForFunction(()=>!window.mamLoadMatchesBusy);
+   await page.clock.setSystemTime(new Date("2026-11-23T21:01:00Z"));
+   await page.evaluate(()=>document.dispatchEvent(new Event("visibilitychange")));
+   await page.waitForFunction(()=>document.getElementById("date").value==="2026-11-24");
+   await card.waitFor({state:"hidden"});
   }finally{
    await browser.close();
    const stopped=once(server,"exit");server.kill();await stopped;

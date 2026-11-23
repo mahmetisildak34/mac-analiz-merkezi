@@ -174,7 +174,7 @@ test("captured ESPN Spain second division match transitions from added time to f
 });
 
 test("ESPN detail clock is not advanced by the local display timer",()=>{
- const source=html.slice(html.indexOf("function mamTickVisibleMatchClock"),html.indexOf("async function refreshVisibleFixtureLists"));
+ const source=html.slice(html.indexOf("function mamTickVisibleMatchClock"),html.indexOf("let mamTodayScoreRequest"));
  const button={dataset:{liveSource:"espn"}};
  const tick=require("node:vm").runInNewContext(source+"\n mamTickVisibleMatchClock",{
   document:{querySelectorAll:()=>[button]},
@@ -214,7 +214,7 @@ test("ESPN stoppage time and exact known status survive the real parser",()=>{
 });
 
 test("real ESPN historical and monthly fixtures use exact team IDs across Istanbul month boundaries",async()=>{
- const methods=["mamEspnStatus","mamEspnGoal","mamIstanbulDay","mamHasCompletedScore","mamCanonicalMatchStatus","mamIsFutureUnplayed","mamEspnProfileFixtures","mamSearchEspnProfile"];
+ const methods=["mamEspnStatus","mamEspnGoal","mamFixtureInstant","mamIstanbulDateString","mamIstanbulDay","mamHasCompletedScore","mamCanonicalMatchStatus","mamIsFutureUnplayed","mamEspnProfileFixtures","mamSearchEspnProfile"];
  const js=methods.map(name=>html.match(new RegExp("(?:async )?function "+name+"\\([\\s\\S]*?\\n\\}"))?.[0]).join("\n");
  const sample=require("./fixtures/espn-arsenal-profile-20261123.json");
  const fake=structuredClone(sample.scoreboards["202612"].events[0]);
@@ -233,4 +233,41 @@ test("real ESPN historical and monthly fixtures use exact team IDs across Istanb
  assert.ok(result.upcoming.some(m=>m.fixture.date.startsWith("2026-12-")));
  assert.ok(result.upcoming.every(m=>m.fixture.id!=="espn-eng.1-99999"&&m.goals.home===null&&m.goals.away===null));
  assert.deepEqual(urls,["espn/eng.1/teams/359/schedule?season=2026","espn/eng.1/scoreboard?dates=202611&limit=500","espn/eng.1/scoreboard?dates=202612&limit=500"]);
+});
+
+test("source kickoffs keep the Istanbul date, respect European DST and reject ambiguous times",()=>{
+ const methods=["mamExplicitUtc","mamFixtureInstant","mamIstanbulDateString","mamIstanbulDay","mamKickoffTime","mamZonedKickoff"];
+ const js=methods.map(name=>html.match(new RegExp("function "+name+"\\([\\s\\S]*?\\n\\}"))[0]).join("\n");
+ const time=require("node:vm").runInNewContext(js+";({mamExplicitUtc,mamIstanbulDay,mamKickoffTime,mamZonedKickoff})");
+ assert.equal(time.mamExplicitUtc("2026-11-23 17:00:00"),"2026-11-23T17:00:00Z");
+ assert.equal(time.mamKickoffTime({date:"2026-11-23T17:00Z"}),"20:00");
+ assert.equal(time.mamIstanbulDay("2026-11-23T22:30Z"),"2026-11-24");
+ assert.equal(time.mamKickoffTime({date:"2026-11-23T19:30-03:00"}),"01:30");
+ assert.equal(time.mamZonedKickoff("2026-07-18","21:00","Europe/Madrid"),"2026-07-18T19:00:00.000Z");
+ assert.equal(time.mamZonedKickoff("2026-11-23","21:00","Europe/Paris"),"2026-11-23T20:00:00.000Z");
+ assert.equal(time.mamZonedKickoff("2026-03-29","02:30","Europe/Paris"),"");
+ assert.equal(time.mamZonedKickoff("2026-10-25","02:30","Europe/Madrid"),"");
+ assert.equal(time.mamKickoffTime({date:"2026-11-23T17:00"}),"");
+ assert.equal(time.mamKickoffTime({date:"2026-11-23",timeUnknown:true}),"");
+});
+
+test("duplicate source rows preserve fixture identity and protect a verified final score",()=>{
+ const helpers=html.slice(html.indexOf("const mamFixtureTeamKey="),html.indexOf("let mamFixtureLoadQueued="));
+ const methods=["mamFixtureInstant","mamCanonicalMatchStatus","mamHasCompletedScore"];
+ const js=methods.map(name=>html.match(new RegExp("function "+name+"\\([\\s\\S]*?\\n\\}"))[0]).join("\n");
+ const merge=require("node:vm").runInNewContext(helpers+"\n"+js+";mamMergeFixtureRows");
+ const fixture=(id,date,short,home,away,league="203")=>({fixture:{id,date,status:{short}},league:{id:league},
+  teams:{home:{name:id.startsWith("espn")?"Çorum FK":"Corum"},away:{name:"Rakip"}},goals:{home,away}});
+ const kickoff="2026-11-23T17:00Z";
+ const result=merge([fixture("15",kickoff,"NS",null,null),
+  fixture("espn-tur.1-17","2026-11-23T20:00+03:00","1H",1,0),
+  fixture("espn-tur.1-17",kickoff,"FT",2,1),
+  fixture("espn-tur.1-17",kickoff,"NS",0,0),
+  fixture("espn-tur.1-99","2026-12-01T17:00Z","NS",null,null),
+  fixture("espn-tur.cup-17",kickoff,"NS",null,null,"204")]);
+ assert.equal(result.length,3);
+ assert.equal(result[0].fixture.id,"15");
+ assert.equal(result[0].fixture.status.short,"FT");
+ assert.equal(result[0].goals.home,2);
+ assert.equal(result[0].goals.away,1);
 });

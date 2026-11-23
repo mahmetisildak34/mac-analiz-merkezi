@@ -62,13 +62,14 @@ async function verifyMainApp(context,browserName){
   const card=main.locator('#matches article.match');
   assert.match(await card.innerText(),/0 – 1/);
   await card.locator('[data-mam-star="0"]').click();
-  await card.locator('[data-mam-star="1"]').click();
+  assert.equal(await card.locator('[data-mam-star]:visible').count(),1);
   const opener=card.locator('.mam-match-open');
   const detailStart=performance.now();
   await opener.click();
   const dialog=main.getByRole('dialog',{name:/Erzurum BB/});
   await dialog.waitFor();
   measurements.detailMs=Math.round(performance.now()-detailStart);
+  await dialog.locator('[data-mam-star="1"]').click();
   await dialog.getByRole('button',{name:'⚽ Detay'}).click();
   const profileLink=dialog.getByRole('button',{name:'Erzurum BB takım profili'});
   await profileLink.click();
@@ -287,14 +288,13 @@ async function verifyMainApp(context,browserName){
   }
   async function toggleRecordedFavorites(){
    const card=main.locator('#matches article.match').first();
-   for(const index of [0,1]){
-    const button=card.locator('[data-mam-star="'+index+'"]');
-    assert.equal(await button.getAttribute('aria-pressed'),'false');
-    await button.click();
-    assert.equal(await button.getAttribute('aria-pressed'),'true');
-    await button.click();
-    assert.equal(await button.getAttribute('aria-pressed'),'false');
-   }
+   const button=card.locator('[data-mam-star]:visible');
+   assert.equal(await button.count(),1);
+   assert.equal(await button.getAttribute('aria-pressed'),'false');
+   await button.click();
+   assert.equal(await button.getAttribute('aria-pressed'),'true');
+   await button.click();
+   assert.equal(await button.getAttribute('aria-pressed'),'false');
   }
   await replayEspn('live');
   await main.locator('#matches article.match').getByText(/90\+6/).waitFor();
@@ -374,7 +374,7 @@ async function verifyMainApp(context,browserName){
       if(!before){
        assert.equal(await visual.locator('.mam-bottom-nav button:visible').count(),5);
        assert.equal(await visual.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
-       assert.equal(await card.locator('[data-mam-star]').evaluateAll(buttons=>buttons.every(button=>button.offsetWidth>=44&&button.offsetHeight>=44)),true);
+       assert.equal(await card.locator('[data-mam-star]:visible').evaluateAll(buttons=>buttons.every(button=>button.offsetWidth>=44&&button.offsetHeight>=44)),true);
        assert.equal(await card.locator('.team-block strong').evaluateAll(names=>names.every(name=>name.scrollHeight<=name.clientHeight+1&&name.scrollWidth<=name.clientWidth+1)),true);
       }
       await visual.screenshot({path:visualDir+'/'+browserName+'-'+width+'-'+mode+'-matches.png',animations:'disabled'});

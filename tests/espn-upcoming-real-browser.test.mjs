@@ -100,6 +100,7 @@ test('Real public ESPN upcoming fixtures appear in iPhone team profiles (Chromiu
       const visible=await card.evaluate(el=>({
        text:el.innerText,
        date:el.querySelector('.match-time')?.innerText,
+       time:el.querySelector('.match-clock')?.innerText,
        logos:[...el.querySelectorAll('.team-logo,img')].map(x=>x.getAttribute('src')),
        fixture:el.getAttribute('data-fixture'),
        width:el.getBoundingClientRect().width,
@@ -107,7 +108,7 @@ test('Real public ESPN upcoming fixtures appear in iPhone team profiles (Chromiu
       }));
       const istanbul=new Intl.DateTimeFormat('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(sample.event.date));
       const [datePart,timePart]=istanbul.split(' ');
-      assert.ok(visible.date?.includes(datePart)&&visible.date?.includes(timePart),
+      assert.ok(visible.date?.includes(datePart)&&visible.time===timePart&&visible.text.split(timePart).length===2,
        engineName+' '+sample.slug+' Istanbul kickoff mismatch '+JSON.stringify({visible,istanbul}));
       assert.ok(visible.fixture?.includes(String(sample.event.id)),engineName+' '+sample.slug+' ESPN event ID mismatch');
       const sourceLogos=[sample.home.team,sample.away.team].filter(t=>t.logo||t.logos?.[0]?.href).length;

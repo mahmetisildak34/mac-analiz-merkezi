@@ -90,6 +90,8 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
     fallbackSchedule:[],
     isLive:m => m.fixture.status.short === "1H",
     renderMatches:()=>{},
+    isCurrent:()=>true,
+    mamMergeFixtureRows:rows=>rows,
   };
   vm.runInNewContext(helper + "\n globalThis.publish=publishLiveSnapshot;", context);
   context.publish([makeMatch("new-live","1H")]);

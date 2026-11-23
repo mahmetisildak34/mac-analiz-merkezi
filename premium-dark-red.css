@@ -89,3 +89,52 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
  #couponPanel{max-width:100%;overflow-wrap:anywhere}
  #mamStandingsScreen .mam-standings-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
+
+/* Match navigation and cards share the same reading order at iPhone widths. */
+.mam-provider-credit{display:block;margin:0 auto 110px;padding-inline:12px;max-width:900px;color:#aab3c0;font-size:12px}
+body > main .mam-section-header{background:#171d27!important;color:#f4f6fa!important;border-color:#343a46!important}
+body > main .mam-section-header strong{color:#f4f6fa!important}
+body > main.mam-screen-today #mamTodayHeader{display:none!important}
+#matches .team-crest{display:inline-grid!important;place-items:center;flex:none}
+#matches .team-crest > *{grid-area:1/1}
+body .team-crest:has(.team-logo) .team-placeholder{visibility:hidden}
+
+@media(max-width:560px){
+ body{scroll-padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+ body > main{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))!important}
+ body > main .mam-appbar,body > main .mam-match-tabs{position:static!important}
+ body > main.mam-screen-live #mamLiveNav:not([hidden]){display:none!important}
+ #mamSectionEyebrow,#mamSectionCount{display:none!important}
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail){
+  display:grid!important;grid-template-columns:minmax(0,1fr) 44px 44px;
+  grid-template-rows:44px auto;align-items:center;padding:2px 6px 6px!important;
+  min-height:0!important;height:auto!important;scroll-margin-block:8px calc(78px + env(safe-area-inset-bottom,0px));
+ }
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-head{
+  position:static!important;transform:none!important;grid-column:1;grid-row:1;width:auto!important;min-width:0;
+  justify-content:flex-start!important;margin:0!important;padding:0!important;
+ }
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-head > span{flex-direction:row!important;justify-content:flex-start!important}
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-head .league-label{display:none!important}
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-time i{display:none!important}
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .match-versus{
+  grid-column:1/-1;grid-row:2;min-height:38px!important;margin:0!important;
+  grid-template-columns:minmax(0,1fr) minmax(45px,auto) minmax(0,1fr)!important;gap:5px!important;
+ }
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-block{
+  min-width:0;display:flex!important;gap:4px!important;align-items:center!important;
+ }
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-block strong{
+  min-width:0;display:block!important;white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important;
+  -webkit-line-clamp:unset!important;overflow:visible!important;font-size:11px!important;
+ }
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .team-logo{object-fit:contain!important}
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites{
+  position:static!important;display:flex!important;grid-column:2;grid-row:1;justify-content:center!important;
+ }
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-type="team"]{display:none!important}
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-independent-favorites [data-type="match"]{align-items:center!important;padding:0!important}
+ body #matches article.match.match-modern.mam-has-favorites:not(.in-detail) .mam-match-open{
+  position:static!important;grid-column:3;grid-row:1;min-width:44px!important;min-height:44px!important;align-self:center;
+ }
+}
