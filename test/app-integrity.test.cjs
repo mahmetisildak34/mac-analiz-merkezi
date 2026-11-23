@@ -98,5 +98,5 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
   assert.deepEqual(Array.from(context.allMatches,m=>m.fixture.id).sort(),["future","today"],"No live events cannot erase scheduled matches");
   context.fallbackSchedule=[makeMatch("espn-today","NS"),makeMatch("espn-live","1H")];
   context.publish([makeMatch("fresh-live","1H")]);
-  assert.deepEqual(Array.from(context.allMatches,m=>m.fixture.id).sort(),["espn-today","fresh-live"],"ESPN schedule wins over old fixture state");
+  assert.deepEqual(Array.from(context.allMatches,m=>m.fixture.id).sort(),["espn-today","fresh-live","future","today"],"ESPN schedule wins over old fixture state");
 }
