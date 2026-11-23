@@ -5380,6 +5380,45 @@ function activateMamFixture(article){
  if(analysisTab)analysisTab.click();
  if(analysisButton&&!analysisButton.disabled)analyze(analysisButton);
 }
+async function mamLoadAdvancedEspnDetails(article){
+ const button=article.querySelector(".lineupBtn");
+ const live=article.querySelector(".liveStatsBtn");
+ const fixture=String(button?.dataset.id||"");
+ const leagueId=String(button?.dataset.league||live?.dataset.liveLeagueId||"");
+ const league=ESPN_LEAGUES[leagueId];
+ const id=fixture.match(/^espn-[a-z0-9._-]+-(\\d+)$/i)?.[1]||
+  (live?.dataset.liveSource==="espn"&&/^\\d+$/.test(live.dataset.liveId||"")?live.dataset.liveId:"");
+ if(!id||!league?.slug)return;
+ const overview=article.querySelector('.match-detail-pane[data-pane="overview"]');
+ if(!overview)return;
+ let section=overview.querySelector(".mam-advanced-espn");
+ if(!section){section=document.createElement("section");section.className="mam-advanced-espn";overview.append(section);}
+ section.textContent="ESPN takım karşılaştırması yükleniyor…";
+ try{
+  const [{normalizeMatchDetails},summary]=await Promise.all([
+   import("./mobile/espn-match-details.mjs"),
+   api("espn/"+league.slug+"/summary?"+qs({event:id}))
+  ]);
+  if(!article.isConnected)return;
+  const details=normalizeMatchDetails(summary);
+  const home=details.teams.find(t=>t.side==="home"),away=details.teams.find(t=>t.side==="away");
+  const statMap=team=>new Map((details.teamStats.find(t=>t.teamId===team?.id)?.statistics||[]).map(s=>[s.name,s.value]));
+  const h=statMap(home),a=statMap(away),keys=[...new Set([...h.keys(),...a.keys()])].filter(Boolean).slice(0,12);
+  section.replaceChildren();
+  const title=document.createElement("h3");title.textContent="ESPN takım karşılaştırması";section.append(title);
+  const note=document.createElement("p");note.className="match-detail-note";
+  note.textContent="Kaynak: ESPN maç özeti · Paylaşılmayan değerler — olarak gösterilir.";section.append(note);
+  if(!keys.length){const empty=document.createElement("p");empty.textContent="Bu maç için karşılaştırılabilir ESPN takım istatistiği bulunamadı.";section.append(empty);return;}
+  const table=document.createElement("table"),caption=document.createElement("caption");
+  caption.textContent="Maç istatistikleri";table.append(caption);
+  const head=document.createElement("thead"),tr=document.createElement("tr");
+  for(const label of ["İstatistik",home?.name||"Ev sahibi",away?.name||"Deplasman"]){const th=document.createElement("th");th.textContent=label;tr.append(th);}
+  head.append(tr);table.append(head);
+  const tbody=document.createElement("tbody");
+  for(const key of keys){const row=document.createElement("tr");for(const value of [key,h.get(key)||"—",a.get(key)||"—"]){const cell=document.createElement("td");cell.textContent=value;row.append(cell);}tbody.append(row);}
+  table.append(tbody);section.append(table);
+ }catch(error){section.textContent="ESPN karşılaştırması alınamadı. Diğer maç detayları kullanılabilir.";}
+}
 function openMamMatchDetail(article){
  if(!article)return;
  if(mamActiveMatch&&mamActiveMatch!==article)closeMamMatchDetail();
@@ -5403,6 +5442,7 @@ function openMamMatchDetail(article){
  const away=article.querySelector(".team-block:last-child strong")?.textContent||"Deplasman";
  overlay.querySelector(".match-detail-top strong").textContent=home+" – "+away;
  overlay.hidden=false;document.body.style.overflow="hidden";
+ void mamLoadAdvancedEspnDetails(article);
  const liveButton=article.querySelector(".liveStatsBtn");
  if(liveButton){mamSeedVisibleMatchClock(liveButton);try{const rawId=String(liveButton.dataset.liveId||"");const source=String(liveButton.dataset.liveSource||"");const league=String(liveButton.dataset.liveLeagueId||"");const match=allMatches.find(m=>String(m.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId&&String(m.league?.id||"")===league)||null;localStorage.setItem("mam_open_live_detail",JSON.stringify({id:rawId,source,league,tab:"stats",match}));}catch(_){}}
  try{history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
