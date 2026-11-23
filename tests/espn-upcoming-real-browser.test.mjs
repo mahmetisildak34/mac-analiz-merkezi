@@ -54,7 +54,15 @@ test('Real public ESPN upcoming fixtures appear in iPhone team profiles (Chromiu
      const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true,serviceWorkers:'block'});
      try{
       const page=await context.newPage();
-      await page.route('**/*',route=>route.request().url().startsWith(origin+'/')?route.continue():route.abort());
+      await page.route('**/*',route=>{
+       const url=route.request().url();
+       if(url.startsWith(origin+'/'))return route.continue();
+       if(route.request().resourceType()==='image')return route.fulfill({
+        status:200,contentType:'image/svg+xml',
+        body:'<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
+       });
+       return route.abort();
+      });
       await page.addInitScript(({board,slug})=>{
        localStorage.setItem('mam_session_token','local-browser-acceptance');
        const original=window.fetch.bind(window);
