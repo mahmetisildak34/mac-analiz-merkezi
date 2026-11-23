@@ -2817,7 +2817,8 @@ async function api(path){
       if(/rate.?limit|too many requests|request limit|requests limit|quota/i.test(errorText)){
         const provider=isPrimaryApi?"API-Football":cleanPath.startsWith("espn/")?"ESPN":"Football-data.org";
         if(isPrimaryApi){
-          const remaining=Number(response.headers.get("x-ratelimit-requests-remaining"));
+          const remainingHeader=response.headers.get("x-ratelimit-requests-remaining");
+          const remaining=remainingHeader===null?NaN:Number(remainingHeader);
           const dailyQuota=remaining===0||/daily|per day|day limit|daily quota|limit_day|quota exceeded|requests per day/i.test(errorText);
           if(dailyQuota){
             const nextUtcMidnight=Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth(),new Date().getUTCDate()+1);
@@ -2844,7 +2845,8 @@ async function api(path){
       if(archiveLeague)await mamSaveMatchesToD1(data.response,archiveLeague);
     }
     if(isPrimaryApi){
-      const remaining=Number(response.headers.get("x-ratelimit-requests-remaining"));
+      const remainingHeader=response.headers.get("x-ratelimit-requests-remaining");
+      const remaining=remainingHeader===null?NaN:Number(remainingHeader);
       if(remaining===0){
         const nextUtcMidnight=Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth(),new Date().getUTCDate()+1);
         try{localStorage.setItem(dailyCooldownKey,String(nextUtcMidnight));}catch(_){}
