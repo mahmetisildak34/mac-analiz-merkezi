@@ -4431,7 +4431,8 @@ async function loadLiveMatchesNow(){
    sportScoreErrorText="SportScore canlı maç döndürmedi.";
   }catch(error){sportScoreErrorText=String(error?.message||error);}
   const noLiveEventsFound =
-   !espnIncomplete && !primaryErrorText && espnErrorText.startsWith("ESPN taraması tamamlandı") &&
+   !espnIncomplete && primaryErrorText.startsWith("API-Football live=all boş yanıt döndürdü") &&
+   espnErrorText.startsWith("ESPN taraması tamamlandı") &&
    footballDataErrorText.startsWith("Football-data.org desteklediği müsabakalarda şu anda canlı maç döndürmedi") &&
    sportScoreErrorText.startsWith("SportScore canlı maç döndürmedi");
   if(noLiveEventsFound){
