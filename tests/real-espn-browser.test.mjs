@@ -113,6 +113,7 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
        localStorage.setItem("mam_session_token","local-browser-acceptance");
        const native=window.fetch.bind(window);
        const bodies=new Map(payloads);
+       window.__mamEspnSummaryReads=Object.create(null);
        const worker="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
        // Bridge only sampled public GETs to their fetched ESPN bodies. The app still
        // performs its own requests, parsing, filtering and rendering.
@@ -125,7 +126,10 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
         const path=url.origin===worker&&url.pathname.startsWith("/api/espn/")
          ?"/apis/site/v2/sports/soccer/"+url.pathname.slice("/api/espn/".length)+url.search
          :url.origin===espn?url.pathname+url.search:"";
-        if(bodies.has(path))return Promise.resolve(new Response(JSON.stringify(bodies.get(path))));
+        if(bodies.has(path)){
+         if(path.includes("/summary?event="))window.__mamEspnSummaryReads[path]=(window.__mamEspnSummaryReads[path]||0)+1;
+         return Promise.resolve(new Response(JSON.stringify(bodies.get(path))));
+        }
         return Promise.resolve(new Response('{"error":"Provider unavailable in isolated acceptance"}',{status:503}));
        };
       },{espn,payloads:[...payloads]});
@@ -182,6 +186,21 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
        await overlay.locator(".match-detail-close").click();
        await overlay.waitFor({state:"hidden"});
        await card.waitFor({state:"visible"});
+       if(mode==="finished"&&viewport.width===390){
+        const summaryPath=publicSoccer+slug+"/summary?event="+event.id;
+        await page.waitForFunction(path=>window.__mamEspnSummaryReads[path]>0,summaryPath);
+        await page.waitForFunction(()=>document.querySelector(".match[data-mam-advanced-espn-loaded='true']"));
+        const requestsBefore=await page.evaluate(path=>window.__mamEspnSummaryReads[path],summaryPath);
+        await page.waitForFunction(()=>location.hash!=="#match-detail");
+        await card.locator(".match-versus").click();
+        await overlay.waitFor({state:"visible"});
+        await page.waitForTimeout(50);
+        const requestsAfter=await page.evaluate(path=>window.__mamEspnSummaryReads[path],summaryPath);
+        assert.equal(requestsAfter,requestsBefore,"Reopening the same ESPN match must reuse its detail summary");
+        await overlay.locator(".match-detail-close").click();
+        await overlay.waitFor({state:"hidden"});
+        await page.waitForFunction(()=>location.hash!=="#match-detail");
+       }
        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,"Horizontal overflow");
        if(mode==="today"){
         await context.setOffline(true);

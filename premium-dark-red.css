@@ -139,3 +139,11 @@ body .team-crest:has(.team-logo) .team-placeholder{visibility:hidden}
   width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;align-self:center;
  }
 }
+
+@media(prefers-reduced-motion:no-preference){
+ .match-detail-overlay:not([hidden]) .match.in-detail{animation:mam-match-detail-enter 180ms cubic-bezier(.2,.75,.25,1) both}
+ @keyframes mam-match-detail-enter{
+  from{opacity:0;transform:translateY(8px) scale(.995)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+ }
+}
