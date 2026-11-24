@@ -78,13 +78,29 @@ async function verifyMainApp(context,browserName){
  try{
   await main.route('**/*',route=>route.request().url().startsWith(origin+'/')?route.continue():route.abort());
   await main.addInitScript(()=>{
-   localStorage.setItem('mam_session_token','local-browser-acceptance');
+   sessionStorage.setItem('mam_auth_refresh_v1','local-browser-refresh');
+   const worker='https://odd-sunset-6c83.m-ahmetisildak34.workers.dev';
+   const model={
+    role:'PREMIUM',quota:{used:1,limit:50,remaining:49},day:'2026-11-24',
+    lambdaHome:1.5,lambdaAway:1.2,homeWin:.45,draw:.3,awayWin:.25,
+    over15:.65,over25:.45,over35:.28,btts:.52,hasHalf:false,
+    first05:null,first15:null,second05:null,second15:null,
+    topScores:[{h:1,a:0,p:.2},{h:1,a:1,p:.15},{h:2,a:0,p:.12},{h:0,a:0,p:.1},{h:0,a:1,p:.08}],
+    outcome:{label:'Ev sahibi kazanır',chance:.45}
+   };
+   const respond=data=>Promise.resolve(new Response(JSON.stringify(data)));
    const fetchNetwork=window.fetch.bind(window);
-   window.fetch=(input,options)=>String(input)==='https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/auth/check'
-    ?Promise.resolve(new Response('{"ok":true}'))
-    :new URL(String(input),location.href).origin===location.origin
+   window.fetch=(input,options)=>{
+    const url=String(input);
+    if(url===worker+'/membership/config')return respond({configured:false,turnstileSiteKey:null});
+    if(url===worker+'/membership/auth/refresh')return respond({access_token:'local-premium-access',refresh_token:'local-browser-refresh'});
+    if(url===worker+'/membership/me')return respond({role:'PREMIUM',quota:{used:0,limit:50,remaining:50}});
+    if(url===worker+'/membership/analysis')return respond(model);
+    if(url===worker+'/auth/check')return respond({ok:true});
+    return new URL(url,location.href).origin===location.origin
      ?fetchNetwork(input,options)
      :Promise.reject(new TypeError('External requests disabled in the acceptance test'));
+   };
   });
   await main.goto(origin+'/index.html');
   await main.locator('#mamAuthGate').waitFor({state:'hidden'});
