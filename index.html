@@ -3473,6 +3473,31 @@ function mamWriteStatsCache(key,value){
  if(!value||typeof value!=="object")return;
  try{localStorage.setItem(key,JSON.stringify({time:Date.now(),value}));}catch(_){}
 }
+function mamParseEspnTeamStatistics(team){
+ const result={},normalizeStat=value=>String(value||"").toLowerCase().replace(/[^a-z]/g,"");
+ for(const stat of (team?.statistics||[])){
+  const key=normalizeStat(stat.name||stat.abbreviation),raw=stat.displayValue??stat.value;
+  const number=Number(String(raw??"").replace(/,/g,"").replace("%",""));
+  if(raw===null||raw===undefined||raw===""||!Number.isFinite(number))continue;
+  if(/corner/.test(key))result.corners=number;
+  else if(/shotsontarget|shotsongoal|ontarget/.test(key))result.shotsOnTarget=number;
+  else if(/blockedshots/.test(key))result.blockedShots=number;
+  else if(/shotsofftarget|offtarget/.test(key))result.shotsOffTarget=number;
+  else if(/totalshots/.test(key)||key==="sh"||key==="s"||key==="shots")result.shots=number;
+  else if(/possession/.test(key))result.possession=number;
+  else if(/foul/.test(key))result.fouls=number;
+  else if(/offside/.test(key))result.offsides=number;
+  else if(/save/.test(key))result.saves=number;
+  else if(/accuratepasses|totalpasses|passes/.test(key))result.passes=number;
+ else if(key==="xg"||/expectedgoals/.test(key))result.xg=number;
+ else if(/yellowcard/.test(key))result.yellowCards=number;
+ else if(/redcard/.test(key))result.redCards=number;
+ }
+ if(result.shots===undefined&&Number.isFinite(result.shotsOnTarget)&&Number.isFinite(result.shotsOffTarget)&&Number.isFinite(result.blockedShots)){
+  result.shots=result.shotsOnTarget+result.shotsOffTarget+result.blockedShots;
+ }
+ return result;
+}
 const mamStatsInflight=window.mamStatsInflight||(window.mamStatsInflight=new Map());
 async function mamCachedMatchStats(key,loader){
  const cached=mamReadStatsCache(key);
@@ -3496,33 +3521,7 @@ async function getEspnMatchStats(leagueId,eventId){
   const data=await api("espn/"+league.slug+"/summary?"+qs({event:String(eventId)}));
   const teams=Array.isArray(data.boxscore?.teams)?data.boxscore.teams:[];
   if(teams.length<2)return {home:{},away:{}};
-  const normalizeStat=value=>String(value||"").toLowerCase().replace(/[^a-z]/g,"");
-  const readStats=team=>{
-   const result={};
-   for(const stat of (team.statistics||[])){
-    const key=normalizeStat(stat.name||stat.abbreviation);
-    const raw=stat.displayValue??stat.value;
-    const number=Number(String(raw??"").replace(/,/g,"").replace("%",""));
-    if(raw===null||raw===undefined||raw===""||!Number.isFinite(number))continue;
-    if(/corner/.test(key))result.corners=number;
-    else if(/shotsontarget|shotsongoal|ontarget/.test(key))result.shotsOnTarget=number;
-    else if(/blockedshots/.test(key))result.blockedShots=number;
-    else if(/shotsofftarget|offtarget/.test(key))result.shotsOffTarget=number;
-    else if(/totalshots|shots$/.test(key)||key==="sh"||key==="s")result.shots=number;
-    else if(/possession/.test(key))result.possession=number;
-    else if(/foul/.test(key))result.fouls=number;
-    else if(/offside/.test(key))result.offsides=number;
-    else if(/save/.test(key))result.saves=number;
-    else if(/accuratepasses|totalpasses|passes/.test(key))result.passes=number;
-    else if(key==="xg"||/expectedgoals/.test(key))result.xg=number;
-    else if(/yellowcard/.test(key))result.yellowCards=number;
-    else if(/redcard/.test(key))result.redCards=number;
-   }
-   if(result.shots===undefined&&Number.isFinite(result.shotsOnTarget)&&Number.isFinite(result.shotsOffTarget)&&Number.isFinite(result.blockedShots)){
-    result.shots=result.shotsOnTarget+result.shotsOffTarget+result.blockedShots;
-   }
-   return result;
-  };
+  const readStats=team=>mamParseEspnTeamStatistics(team);
   const home=teams.find(x=>x.homeAway==="home");
   const away=teams.find(x=>x.homeAway==="away");
   if(!home||!away)return {home:{},away:{}};
@@ -6554,7 +6553,7 @@ $("couponBuildRisky").addEventListener("click",()=>buildSuggestedCoupon("risky")
 renderCoupon();
 
 // UEFA 2026/27: takım isimlerini tüm veri sağlayıcılarında tek kimliğe bağla.
-const MAM_UEFA_TEAM_GROUPS=[["AEK Athens","AEK Athens FC","PAE AEK","PAE AEK Athens","AEK FC"],["Arsenal","Arsenal FC"],["Aston Villa","Aston Villa FC"],["Atletico Madrid","Atlético de Madrid","Atletico de Madrid","Atleti","Atlético","Club Atlético de Madrid"],["Barcelona","FC Barcelona","Barça"],["Bayern Munich","Bayern München","FC Bayern München","Bayern","FC Bayern","Bayern Munich FC"],["Bodo Glimt","Bodø/Glimt","Bodo/Glimt","FK Bodø/Glimt"],["Borussia Dortmund","Dortmund","BVB","B. Dortmund","Borussia Dortmund FC"],["Club Brugge","Club Brugge KV","Brugge","FC Bruges"],["Como","Como 1907"],["Fenerbahce","Fenerbahçe","Fenerbahçe SK"],["Feyenoord","Feyenoord Rotterdam"],["Galatasaray","Galatasaray SK","Galatasaray A.Ş."],["Inter","Internazionale","Inter Milan","FC Internazionale Milano","Internazionale Milano"],["LASK","LASK Linz","Linzer ASK"],["Leipzig","RB Leipzig","RasenBallsport Leipzig","RB Leipzig FC"],["Lens","RC Lens","Racing Club de Lens"],["Lille","LOSC Lille","Lille OSC"],["Liverpool","Liverpool FC"],["Manchester City","Man City","Man City FC","Manchester City FC"],["Manchester United","Man United","Man Utd","Man U","Manchester Utd","Manchester United FC"],["Napoli","SSC Napoli","Società Sportiva Calcio Napoli"],["Paris","Paris Saint-Germain","Paris SG","PSG","Paris Saint Germain FC"],["Porto","FC Porto","Futebol Clube do Porto"],["PSV","PSV Eindhoven","PSV FC"],["Real Betis","Real Betis Balompie","Betis"],["Real Madrid","Real Madrid CF"],["Roma","AS Roma"],["Sabah","Sabah FC"],["Shakhtar","Shakhtar Donetsk","FC Shakhtar","FC Shakhtar Donetsk"],["Slavia Praha","Slavia Prague","SK Slavia Praha"],["Slovan Bratislava","ŠK Slovan Bratislava","S. Bratislava"],["Sporting CP","Sporting Lisbon","Sporting Clube de Portugal","Sporting","Sporting Portugal"],["Stuttgart","VfB Stuttgart"],["Viking","Viking FK"],["Villarreal","Villarreal CF"],["Ararat-Armenia","FC Ararat-Armenia"],["Sparta Praha","Sparta Prague","AC Sparta Praha"],["Omonia","Omonia Nicosia","AC Omonia","Omonoia"],["Celta","Celta Vigo","RC Celta de Vigo","Celta de Vigo"],["Milan","AC Milan","AC Milan","Associazione Calcio Milan"],["Benfica","SL Benfica","Sport Lisboa e Benfica"],["Leverkusen","Bayer Leverkusen","Bayer 04 Leverkusen"],["Celje","NK Celje"],["Hapoel Beer-Sheva","Hapoel Be'er Sheva","Hapoel Beer Sheva","Hapoel Be'er","Hapoel Beer","H. Beer-Sheva"],["GNK Dinamo","Dinamo Zagreb","GNK Dinamo Zagreb"],["Olympiacos","Olympiacos FC","Olympiakos"],["Jagiellonia","Jagiellonia Bialystok","Jagiellonia Białystok"],["Anderlecht","RSC Anderlecht"],["Lyon","Olympique Lyonnais","Olympique Lyon","OL Lyon"],["Sturm Graz","SK Sturm Graz"],["Rennes","Stade Rennais","Stade Rennais FC"],["Sunderland","Sunderland AFC"],["AZ Alkmaar","AZ","AZ 67"],["OFI Crete","OFI","OFI FC"],["Levski Sofia","Levski","PFC Levski Sofia"],["Salzburg","Red Bull Salzburg","FC Red Bull Salzburg","RB Salzburg"],["Besiktas","Beşiktaş","Beşiktaş JK"],["Marseille","Olympique de Marseille","OM","Olympique Marseille"],["Celtic","Celtic FC"],["Ferencvaros","Ferencváros","Ferencvarosi TC","FTC"],["Crystal Palace","Crystal Palace FC"],["Lech Poznan","Lech Poznań","KKS Lech Poznań"],["Viktoria Plzen","Viktoria Plzeň","FC Viktoria Plzeň"],["Union SG","Union Saint-Gilloise","Royale Union Saint-Gilloise","Union St.-Gilloise","Union St. Gilloise","Union Saint Gilloise"],["Juventus","Juventus FC"],["NEC Nijmegen","N.E.C.","NEC","Nijmegen Eendracht Combinatie"],["Lillestrom","Lillestrøm","Lillestrøm SK"],["Torreense","SCU Torreense"],["Real Sociedad","Real Sociedad de Futbol"],["Bournemouth","AFC Bournemouth"],["Hoffenheim","TSG Hoffenheim","TSG 1899 Hoffenheim"],["Lugano","FC Lugano"],["Crvena Zvezda","Red Star Belgrade","Red Star","FK Crvena Zvezda"],["Hajduk Split","Hajduk","HNK Hajduk Split"],["Ajax","AFC Ajax"],["Gent","KAA Gent","AA Gent"],["Aarhus","AGF Aarhus","AGF"],["Egnatia","KF Egnatia"],["Midtjylland","FC Midtjylland"],["KuPS Kuopio","KuPS","Kuopion Palloseura"],["Trabzonspor","Trabzonspor FK","Trabzonspor A.Ş."],["Mjallby","Mjällby","Mjällby AIF"],["Inter Escaldes","Inter Club d'Escaldes"],["Panathinaikos","Panathinaikos FC","PAO"],["Borac","Borac Banja Luka","FK Borac","Borac BL"],["CSKA Sofia","PFC CSKA Sofia"],["Monaco","AS Monaco"],["Riga","Riga FC"],["Kairat Almaty","Kairat","FC Kairat Almaty"],["Universitatea Craiova","U Craiova","CS Universitatea Craiova","Univ. Craiova"],["Getafe","Getafe CF"],["Atalanta","Atalanta BC"],["Pafos","Pafos FC","Pafos FC Ltd"],["Brighton","Brighton & Hove Albion","Brighton and Hove Albion"],["Kauno Zalgiris","Kauno Žalgiris","FK Kauno Žalgiris"],["Copenhagen","FC Copenhagen","FC København","Kobenhavn"],["Braga","SC Braga","Sporting Clube de Braga"],["Twente","FC Twente"],["Thun","FC Thun"],["Hearts","Heart of Midlothian","Heart of Midlothian FC"],["Nordsjaelland","Nordsjælland","FC Nordsjaelland","FC Nordsjælland"],["Sint-Truidense","Sint-Truiden","STVV","Sint-Truidense VV"],["Iberia Tbilisi","Iberia 1999","FC Iberia 1999","FC Iberia Tbilisi"],["Freiburg","SC Freiburg"],["Jablonec","FK Jablonec"],["Brann","SK Brann"],["Lincoln Red Imps","Lincoln Red Imps FC","L. Red Imps"]];
+const MAM_UEFA_TEAM_GROUPS=[["AEK Athens","AEK Athens FC","PAE AEK","PAE AEK Athens","AEK FC"],["Arsenal","Arsenal FC"],["Aston Villa","Aston Villa FC"],["Atletico Madrid","Atlético de Madrid","Atletico de Madrid","Atleti","Atlético","Club Atlético de Madrid"],["Barcelona","FC Barcelona","Barça"],["Bayern Munich","Bayern München","FC Bayern München","Bayern","FC Bayern","Bayern Munich FC"],["Bodo Glimt","Bodø/Glimt","Bodo/Glimt","FK Bodø/Glimt"],["Borussia Dortmund","Dortmund","BVB","B. Dortmund","Borussia Dortmund FC"],["Club Brugge","Club Brugge KV","Brugge","FC Bruges"],["Como","Como 1907"],["Fenerbahce","Fenerbahçe","Fenerbahçe SK"],["Feyenoord","Feyenoord Rotterdam"],["Galatasaray","Galatasaray SK","Galatasaray A.Ş."],["Inter","Internazionale","Inter Milan","FC Internazionale Milano","Internazionale Milano"],["LASK","LASK Linz","Linzer ASK"],["Leipzig","RB Leipzig","RasenBallsport Leipzig","RB Leipzig FC"],["Lens","RC Lens","Racing Club de Lens"],["Lille","LOSC Lille","Lille OSC"],["Liverpool","Liverpool FC"],["Manchester City","Man City","Man City FC","Manchester City FC"],["Manchester United","Man United","Man Utd","Man U","Manchester Utd","Manchester United FC"],["Napoli","SSC Napoli","Società Sportiva Calcio Napoli"],["Paris","Paris Saint-Germain","Paris SG","PSG","Paris Saint Germain FC"],["Porto","FC Porto","Futebol Clube do Porto"],["PSV","PSV Eindhoven","PSV FC"],["Real Betis","Real Betis Balompie","Betis"],["Real Madrid","Real Madrid CF"],["Roma","AS Roma"],["Sabah","Sabah FC"],["Shakhtar","Shakhtar Donetsk","FC Shakhtar","FC Shakhtar Donetsk"],["Slavia Praha","Slavia Prague","SK Slavia Praha"],["Slovan Bratislava","ŠK Slovan Bratislava","S. Bratislava"],["Sporting CP","Sporting Lisbon","Sporting Clube de Portugal","Sporting","Sporting Portugal"],["Stuttgart","VfB Stuttgart"],["Viking","Viking FK"],["Villarreal","Villarreal CF"],["Ararat-Armenia","FC Ararat-Armenia"],["Sparta Praha","Sparta Prague","AC Sparta Praha"],["Omonia","Omonia Nicosia","AC Omonia","Omonoia"],["Celta","Celta Vigo","RC Celta de Vigo","Celta de Vigo"],["Milan","AC Milan","AC Milan","Associazione Calcio Milan"],["Benfica","SL Benfica","Sport Lisboa e Benfica"],["Leverkusen","Bayer Leverkusen","Bayer 04 Leverkusen"],["Celje","NK Celje"],["Hapoel Beer-Sheva","Hapoel Be'er Sheva","Hapoel Beer Sheva","Hapoel Be'er","Hapoel Beer","H. Beer-Sheva"],["Maccabi Tel Aviv","Maccabi Tel-Aviv","M. Tel-Aviv","Maccabi Tel Aviv FC","Maccabi TA"],["GNK Dinamo","Dinamo Zagreb","GNK Dinamo Zagreb"],["Olympiacos","Olympiacos FC","Olympiakos"],["Jagiellonia","Jagiellonia Bialystok","Jagiellonia Białystok"],["Anderlecht","RSC Anderlecht"],["Lyon","Olympique Lyonnais","Olympique Lyon","OL Lyon"],["Sturm Graz","SK Sturm Graz"],["Rennes","Stade Rennais","Stade Rennais FC"],["Sunderland","Sunderland AFC"],["AZ Alkmaar","AZ","AZ 67"],["OFI Crete","OFI","OFI FC"],["Levski Sofia","Levski","PFC Levski Sofia"],["Salzburg","Red Bull Salzburg","FC Red Bull Salzburg","RB Salzburg"],["Besiktas","Beşiktaş","Beşiktaş JK"],["Marseille","Olympique de Marseille","OM","Olympique Marseille"],["Celtic","Celtic FC"],["Ferencvaros","Ferencváros","Ferencvarosi TC","FTC"],["Crystal Palace","Crystal Palace FC"],["Lech Poznan","Lech Poznań","KKS Lech Poznań"],["Viktoria Plzen","Viktoria Plzeň","FC Viktoria Plzeň"],["Union SG","Union Saint-Gilloise","Royale Union Saint-Gilloise","Union St.-Gilloise","Union St. Gilloise","Union Saint Gilloise"],["Juventus","Juventus FC"],["NEC Nijmegen","N.E.C.","NEC","Nijmegen Eendracht Combinatie"],["Lillestrom","Lillestrøm","Lillestrøm SK"],["Torreense","SCU Torreense"],["Real Sociedad","Real Sociedad de Futbol"],["Bournemouth","AFC Bournemouth"],["Hoffenheim","TSG Hoffenheim","TSG 1899 Hoffenheim"],["Lugano","FC Lugano"],["Crvena Zvezda","Red Star Belgrade","Red Star","FK Crvena Zvezda"],["Hajduk Split","Hajduk","HNK Hajduk Split"],["Ajax","AFC Ajax"],["Gent","KAA Gent","AA Gent"],["Aarhus","AGF Aarhus","AGF"],["Egnatia","KF Egnatia"],["Midtjylland","FC Midtjylland"],["KuPS Kuopio","KuPS","Kuopion Palloseura"],["Trabzonspor","Trabzonspor FK","Trabzonspor A.Ş."],["Mjallby","Mjällby","Mjällby AIF"],["Inter Escaldes","Inter Club d'Escaldes"],["Panathinaikos","Panathinaikos FC","PAO"],["Borac","Borac Banja Luka","FK Borac","Borac BL"],["CSKA Sofia","PFC CSKA Sofia"],["Monaco","AS Monaco"],["Riga","Riga FC"],["Kairat Almaty","Kairat","FC Kairat Almaty"],["Universitatea Craiova","U Craiova","CS Universitatea Craiova","Univ. Craiova"],["Getafe","Getafe CF"],["Atalanta","Atalanta BC"],["Pafos","Pafos FC","Pafos FC Ltd"],["Brighton","Brighton & Hove Albion","Brighton and Hove Albion"],["Kauno Zalgiris","Kauno Žalgiris","FK Kauno Žalgiris"],["Copenhagen","FC Copenhagen","FC København","Kobenhavn"],["Braga","SC Braga","Sporting Clube de Braga"],["Twente","FC Twente"],["Thun","FC Thun"],["Hearts","Heart of Midlothian","Heart of Midlothian FC"],["Nordsjaelland","Nordsjælland","FC Nordsjaelland","FC Nordsjælland"],["Sint-Truidense","Sint-Truiden","STVV","Sint-Truidense VV"],["Iberia Tbilisi","Iberia 1999","FC Iberia 1999","FC Iberia Tbilisi"],["Freiburg","SC Freiburg"],["Jablonec","FK Jablonec"],["Brann","SK Brann"],["Lincoln Red Imps","Lincoln Red Imps FC","L. Red Imps"]];
 function mamUefaTeamMatch(a,b){
  // Only explicit, verified club aliases are interchangeable. Do not strip generic
  // suffixes such as FC globally: "Paris FC" must never become "Paris" (PSG).
@@ -6611,6 +6610,20 @@ function mamDeduplicateHistoricalMatches(matches){
   out[index]={...match,...previous,fixture:{...(match.fixture||{}),...(previous.fixture||{})},statistics:{home:merge(match.statistics?.home,previous.statistics?.home),away:merge(match.statistics?.away,previous.statistics?.away)},mamSources:[...new Set([...(previous.mamSources||[previous.mamSource||"unknown"]),match.mamSource||"unknown"])]};
  }
  return out;
+}
+
+function mamHistoryCompetitionAllowed(match,leagueId){
+ const selected=String(leagueId||""),matchLeague=String(match?.league?.id??match?.leagueId??"");
+ const source=String(match?.mamSource||"").toLowerCase();
+ const normalize=value=>String(value||"").normalize("NFD").toLowerCase().replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();
+ const name=normalize(match?.league?.name||match?.competition?.name||"");
+ if(["2","3","848"].includes(selected)){
+  const expected={"2":["champions league","uefa champions"],"3":["europa league","uefa europa","europe league"],"848":["conference league","uefa conference"]}[selected]||[];
+  if(source==="football-data-team")return expected.some(token=>name.includes(normalize(token)));
+  if(matchLeague)return matchLeague===selected;
+  return !name||expected.some(token=>name.includes(normalize(token)));
+ }
+ return !matchLeague||matchLeague===selected;
 }
 
 // D1 kalıcı maç arşivi: analiz için bulunan geçmiş maçları idempotent olarak kaydet.
@@ -7015,6 +7028,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   let sourceError="";
 
   const addMatch=m=>{
+    if(!mamHistoryCompetitionAllowed(m,leagueId))return;
     const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
     const hm=(m.mamSource==="football-data-team"&&Number(m.teams?.home?.id)===Number(teamId))||isTarget(h),am=(m.mamSource==="football-data-team"&&Number(m.teams?.away?.id)===Number(teamId))||isTarget(a);
     if(hm===am)return;
@@ -7026,7 +7040,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     // and scores: the same real-world fixture can have a transient or corrected score
     // in one provider. Scores remain payload data and are preserved from the first
     // trusted row while statistics and other fields are merged below.
-    const identity=[d,normalize(h),normalize(a)].join("|");
+    const identity=[d,mamCanonicalHistoryTeamKey(h),mamCanonicalHistoryTeamKey(a)].join("|");
     const normalizedMatch={...m,teams:{
       home:{...m.teams.home,id:hm?Number(teamId):-1},
       away:{...m.teams.away,id:am?Number(teamId):-1}
@@ -7177,7 +7191,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         addMatch({
           mamSource:"open-matchday",
           fixture:{date:row.date+"T12:00:00Z",status:{short:"FT"}},
-          league:{name:folder.replaceAll("_"," ")},
+          league:{id:String(leagueId),name:folder.replaceAll("_"," ")},
           teams:{home:{id:hm?Number(teamId):-1,name:row.home},away:{id:am?Number(teamId):-1,name:row.away}},
           goals:{home:gh,away:ga},
           score:{halftime:{home:num(row.ht_home),away:num(row.ht_away)}},
