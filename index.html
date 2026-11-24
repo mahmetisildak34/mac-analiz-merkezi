@@ -6945,9 +6945,11 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     if(gh===null||ga===null||gh===undefined||ga===undefined)return;
     const d=String(m.fixture?.date||"").slice(0,10);
     if(!d||d>=matchDate)return;
-    // Cross-provider identity deliberately excludes provider fixture IDs and league labels:
-    // ESPN, CSV and D1 use different IDs/names for the same real-world fixture.
-    const identity=[d,normalize(h),normalize(a),Number(gh),Number(ga)].join("|");
+    // Cross-provider identity deliberately excludes provider fixture IDs, league labels,
+    // and scores: the same real-world fixture can have a transient or corrected score
+    // in one provider. Scores remain payload data and are preserved from the first
+    // trusted row while statistics and other fields are merged below.
+    const identity=[d,normalize(h),normalize(a)].join("|");
     const normalizedMatch={...m,teams:{
       home:{...m.teams.home,id:hm?Number(teamId):-1},
       away:{...m.teams.away,id:am?Number(teamId):-1}
@@ -8764,6 +8766,13 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
      if(!upcoming.length)upcomingError=upcomingError||String(ssError?.message||ssError);
     }
    }
+   // ESPN profile rows contain score and identity data but no boxscore statistics.
+   // Enrich only ESPN-backed rows here; this avoids API-Football quota use while
+   // ensuring the common history path supplies available shots/cards/corners to
+   // the match detail and analysis consumers.
+   if(useEspnProfile&&recent.length){
+    try{await mamEnrichHistoricalStats(recent,leagueId);}catch(_){/* history remains usable without optional stats */}
+   }
    // MAM_TEAM_HISTORY_INLINE_RED_GOLD_V7: deduplicate identical team fixtures across all providers, even when the primary source already returned 10 rows.
    const finalTeamKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|a\.s\.|s\.a\.|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
    const finalPastMap=new Map();
@@ -8771,7 +8780,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
     if(!mamHasCompletedScore(match))continue;
     const home=finalTeamKey(match.teams?.home?.name),away=finalTeamKey(match.teams?.away?.name);
     const date=String(match.fixture?.date||"").slice(0,10);
-    const key=[date,home,away,match.goals?.home,match.goals?.away].join("|");
+    const key=[date,home,away].join("|");
     if(!finalPastMap.has(key))finalPastMap.set(key,match);
    }
    recent=[...finalPastMap.values()].sort((a,b)=>Date.parse(b.fixture?.date||0)-Date.parse(a.fixture?.date||0)).slice(0,10);
