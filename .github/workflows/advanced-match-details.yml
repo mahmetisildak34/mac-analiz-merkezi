@@ -20,16 +20,16 @@ jobs:
           node --test tests/espn-match-details.test.mjs tests/advanced-espn-overlay.test.mjs tests/match-card-visibility-regression.test.mjs tests/match-card-interaction.test.mjs tests/live-fixture-preservation.test.mjs
   details-browser-regression:
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install Chromium and WebKit
-        run: |
-          npm install --no-save --no-package-lock playwright@1.58.2
-          npx playwright install --with-deps chromium webkit
+      - name: Install pinned Playwright runner
+        run: npm install --no-save --no-package-lock playwright@1.58.2
       - name: Run existing premium mobile acceptance
         run: node --test tests/premium-dark-browser.test.cjs tests/product-mobile-browser.test.mjs
       - name: Verify main application cards across three iPhone viewports

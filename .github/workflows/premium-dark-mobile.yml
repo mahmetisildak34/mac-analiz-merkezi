@@ -13,6 +13,8 @@ on:
 jobs:
   premium-mobile:
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -21,9 +23,7 @@ jobs:
           node-version: '22'
       - name: Validate theme source and existing screens
         run: node tests/premium-dark-mobile.test.cjs
-      - name: Install isolated browser test tools
-        run: |
-          npm install --no-save --no-package-lock playwright@1.56.1
-          npx playwright install --with-deps chromium webkit
+      - name: Install pinned Playwright runner
+        run: npm install --no-save --no-package-lock playwright@1.58.2
       - name: Run Chromium and WebKit iPhone visual smoke
         run: node tests/premium-dark-browser.test.cjs

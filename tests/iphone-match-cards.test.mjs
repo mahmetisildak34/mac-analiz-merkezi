@@ -6,11 +6,12 @@ import {setTimeout as delay} from "node:timers/promises";
 import {chromium,webkit} from "playwright";
 
 const port=19171, origin="http://127.0.0.1:"+port;
-async function launchServer(){
- const process=spawn("python3",["-m","http.server",String(port),"--bind","127.0.0.1"],{stdio:"ignore"});
+async function launchServer(serverPort=port){
+ const serverOrigin="http://127.0.0.1:"+serverPort;
+ const process=spawn("python3",["-m","http.server",String(serverPort),"--bind","127.0.0.1"],{stdio:"ignore"});
  for(let i=0;i<70;i++){
   if(process.exitCode!==null)throw new Error("Fixture HTTP server stopped");
-  try{if((await fetch(origin+"/index.html")).ok)return process;}catch{}
+  try{if((await fetch(serverOrigin+"/index.html")).ok)return process;}catch{}
   await delay(100);
  }
  throw new Error("Fixture HTTP server unavailable");
@@ -30,10 +31,14 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
     await page.addInitScript(()=>{
      localStorage.setItem("mam_session_token","local-browser-acceptance");
      const request=window.fetch.bind(window);
-     window.fetch=(input,options)=>String(input)==="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/auth/check"
-      ?Promise.resolve(new Response('{"ok":true}'))
-      :new URL(String(input),location.href).origin===location.origin
-       ?request(input,options):Promise.reject(new TypeError("Network disabled in captured-data regression"));
+     window.__blockedExternalRequests=[];
+     window.fetch=(input,options)=>{
+      const url=new URL(String(input),location.href);
+      if(url.pathname==="/auth/check")return Promise.resolve(new Response('{"ok":true}'));
+      if(url.origin===location.origin)return request(input,options);
+      window.__blockedExternalRequests.push(url.href);
+      return Promise.reject(new TypeError("Network disabled in captured-data regression"));
+     };
     });
     await page.goto(origin+"/index.html");
     await page.locator("#mamAuthGate").waitFor({state:"detached"});
@@ -216,6 +221,63 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
    await page.evaluate(()=>document.dispatchEvent(new Event("visibilitychange")));
    await page.waitForFunction(()=>document.getElementById("date").value==="2026-11-24");
    await card.waitFor({state:"hidden"});
+  }finally{
+   await browser.close();
+   const stopped=once(server,"exit");server.kill();await stopped;
+  }
+ });
+}
+
+for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
+ test(engineName+" does not refresh live statistics after details close",async()=>{
+  const serverPort=port+3,serverOrigin="http://127.0.0.1:"+serverPort;
+  const server=await launchServer(serverPort);
+  const browser=await engine.launch({headless:true});
+  try{
+   const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:"block"});
+   await page.route("**/*",route=>route.request().url().startsWith(serverOrigin+"/")?route.continue():route.abort());
+   await page.addInitScript(()=>{
+    localStorage.setItem("mam_session_token","local-browser-acceptance");
+    const native=window.fetch.bind(window);
+    window.__blockedExternalRequests=[];
+    window.fetch=(input,options)=>{
+     const url=new URL(String(input),location.href);
+     if(url.pathname==="/auth/check")return Promise.resolve(new Response('{"ok":true}'));
+     if(url.origin===location.origin)return native(input,options);
+     window.__blockedExternalRequests.push(url.href);
+     return Promise.reject(new TypeError("Network disabled in closed-detail regression"));
+    };
+   });
+   await page.goto(serverOrigin+"/index.html");
+   await page.locator("#mamAuthGate").waitFor({state:"detached"});
+   await page.evaluate(()=>clearInterval(window.mamLiveStatsTimer));
+   const live=match("espn-tur.1-401888243",new Date(Date.now()+15*60000).toISOString(),"1H","Canlı Ev Sahibi","Canlı Deplasman",{home:1,away:0});
+   live.fixture.status.elapsed=17;live.fixture.status.displayClock="17'";
+   await page.evaluate(fixture=>{
+    setMamScreen("live");
+    document.getElementById("date").value=mamIstanbulDay(fixture.fixture.date);
+    allMatches=[fixture];
+    renderMatches();
+   },live);
+   const card=page.locator("#matches article.match").filter({hasText:"Canlı Ev Sahibi"});
+   await card.waitFor({state:"visible"});
+   await card.locator(".mam-match-open").click();
+   const overlay=page.locator(".match-detail-overlay:not([hidden])");
+   await overlay.waitFor({state:"visible"});
+   const panel=overlay.locator(".liveStats");
+   await panel.waitFor({state:"visible",timeout:8000});
+   await overlay.locator(".match-detail-close").click();
+   await overlay.waitFor({state:"hidden"});
+   await page.waitForFunction(()=>location.hash!=="#match-detail");
+   const before=await page.evaluate(()=>window.__blockedExternalRequests.length);
+   const after=await page.evaluate(async()=>{
+    const button=document.querySelector(".liveStatsBtn");
+    button.dataset.statsLastRefresh="0";
+    await refreshOpenLiveStats();
+    return window.__blockedExternalRequests.length;
+   });
+   assert.equal(after,before,"A hidden match detail must not initiate another statistics request");
+   console.log(engineName+" closed-detail polling: no additional blocked provider requests");
   }finally{
    await browser.close();
    const stopped=once(server,"exit");server.kill();await stopped;

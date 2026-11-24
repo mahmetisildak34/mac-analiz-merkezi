@@ -5470,6 +5470,7 @@ async function loadLineups(button){
 
 /* MAÇ DETAY EKRANI */
 let mamActiveMatch=null;
+let mamLastClosedDetail=null;
 let mamActivePlaceholder=null;
 let mamDetailOverlay=null;
 let mamDetailReturn=null;
@@ -5496,9 +5497,11 @@ function ensureMamDetailOverlay(){
  mamDetailOverlay.addEventListener("click",event=>{if(event.target===mamDetailOverlay)closeMamMatchDetail();});
  return mamDetailOverlay;
 }
-function closeMamMatchDetail(){
+function closeMamMatchDetail({preserveHistory=false}={}){
  if(!mamActiveMatch)return;
  const article=mamActiveMatch,placeholder=mamActivePlaceholder;
+ article._mamDetailOpenToken=(article._mamDetailOpenToken||0)+1;
+ mamLastClosedDetail=article;
  const hasCardPosition=Boolean(placeholder?.parentNode);
  if(hasCardPosition){placeholder.parentNode.insertBefore(article,placeholder);placeholder.remove();}
  article.classList.remove("in-detail");
@@ -5514,7 +5517,7 @@ function closeMamMatchDetail(){
  }
  try{localStorage.removeItem("mam_open_live_detail");}catch(_){}
  if(!hasCardPosition&&!article.parentNode)renderMatches();
- if(history.state?.mamMatchDetail)history.back();
+ if(!preserveHistory&&history.state?.mamMatchDetail)history.back();
 }
 function mamRestorePendingDetail(){
  let saved=null;
@@ -5535,30 +5538,31 @@ function mamRestorePendingDetail(){
  }
  if(!button)return;
  const article=button.closest(".match");if(!article)return;
- activateMamFixture(article);
- if(saved.tab&&saved.tab!=="stats")article.querySelector('.match-detail-tab[data-pane="'+saved.tab+'"]')?.click();
+ const savedTab=["overview","goals","form","lineup","absences","stats","analysis"].includes(saved.tab)?saved.tab:"stats";
+ activateMamFixture(article,savedTab);
 }
-function activateMamFixture(article){
+function activateMamFixture(article,preferredPane=null){
  if(!article)return;
- if(mamActiveMatch&&mamActiveMatch!==article)closeMamMatchDetail();
- makeMamDetailTab(article);
- const analysisButton=article.querySelector(".predBtn:not(.liveAnalyzeBtn)");
- const liveStatsButton=article.querySelector(".liveStatsBtn");
- openMamMatchDetail(article);
- // Canlı maçta detay ekranı doğrudan istatistik sekmesini açar ve veriyi yükler.
- // Böylece kullanıcı ayrıca gizli bir düğme aramak zorunda kalmaz.
- if(liveStatsButton){
-  const statsTab=article.querySelector('.match-detail-tab[data-pane="stats"]');
-  if(statsTab)statsTab.click();
-  const panel=document.getElementById(liveStatsButton.dataset.livePanel||"");
-  if(panel&&panel.hidden&&!liveStatsButton.disabled)liveStatsButton.click();
-  return;
- }
- const analysisTab=article.querySelector('.match-detail-tab[data-pane="analysis"]');
- if(analysisTab)analysisTab.click();
- if(analysisButton&&!analysisButton.disabled)analyze(analysisButton);
+ if(mamActiveMatch&&mamActiveMatch!==article)closeMamMatchDetail({preserveHistory:true});
+ openMamMatchDetail(article,preferredPane);
+}
+const mamAdvancedEspnSummaryCache=new Map();
+function mamCachedAdvancedEspnSummary(slug,eventId){
+ const key=String(slug)+":"+String(eventId),cached=mamAdvancedEspnSummaryCache.get(key);
+ if(cached&&(cached.pending||cached.expiresAt>Date.now()))return cached.promise;
+ const entry={pending:true,expiresAt:0,promise:null};
+ entry.promise=api("espn/"+slug+"/summary?"+qs({event:eventId})).then(summary=>{
+  entry.pending=false;entry.expiresAt=Date.now()+30000;return summary;
+ }).catch(error=>{
+  if(mamAdvancedEspnSummaryCache.get(key)===entry)mamAdvancedEspnSummaryCache.delete(key);
+  throw error;
+ });
+ mamAdvancedEspnSummaryCache.set(key,entry);
+ if(mamAdvancedEspnSummaryCache.size>40)mamAdvancedEspnSummaryCache.delete(mamAdvancedEspnSummaryCache.keys().next().value);
+ return entry.promise;
 }
 async function mamLoadAdvancedEspnDetails(article){
+ if(!article||article.dataset.mamAdvancedEspnLoaded==="true"||article.dataset.mamAdvancedEspnLoading==="true")return;
  const button=article.querySelector(".lineupBtn");
  const live=article.querySelector(".liveStatsBtn");
  const fixture=String(button?.dataset.id||"");
@@ -5569,15 +5573,17 @@ async function mamLoadAdvancedEspnDetails(article){
  if(!id||!league?.slug)return;
  const overview=article.querySelector('.match-detail-pane[data-pane="overview"]');
  if(!overview)return;
+ article.dataset.mamAdvancedEspnLoading="true";
  let section=overview.querySelector(".mam-advanced-espn");
  if(!section){section=document.createElement("section");section.className="mam-advanced-espn";overview.append(section);}
  section.textContent="ESPN takım karşılaştırması yükleniyor…";
  try{
   const [{normalizeMatchDetails},summary]=await Promise.all([
    import("./mobile/espn-match-details.mjs"),
-   api("espn/"+league.slug+"/summary?"+qs({event:id}))
+   mamCachedAdvancedEspnSummary(league.slug,id)
   ]);
   if(!article.isConnected)return;
+  article.dataset.mamAdvancedEspnLoaded="true";
   const details=normalizeMatchDetails(summary);
   const home=details.teams.find(t=>t.side==="home"),away=details.teams.find(t=>t.side==="away");
   const statMap=team=>new Map((details.teamStats.find(t=>t.teamId===team?.id)?.statistics||[]).map(s=>[s.name,s.value]));
@@ -5596,10 +5602,11 @@ async function mamLoadAdvancedEspnDetails(article){
   for(const key of keys){const row=document.createElement("tr");for(const value of [key,h.get(key)||"—",a.get(key)||"—"]){const cell=document.createElement("td");cell.textContent=value;row.append(cell);}tbody.append(row);}
   table.append(tbody);section.append(table);
  }catch(error){section.textContent="ESPN karşılaştırması alınamadı. Diğer maç detayları kullanılabilir.";}
+ finally{delete article.dataset.mamAdvancedEspnLoading;}
 }
-function openMamMatchDetail(article){
+function openMamMatchDetail(article,preferredPane=null){
  if(!article)return;
- if(mamActiveMatch&&mamActiveMatch!==article)closeMamMatchDetail();
+ if(mamActiveMatch&&mamActiveMatch!==article)closeMamMatchDetail({preserveHistory:true});
  makeMamDetailTab(article);
  const overlay=ensureMamDetailOverlay(),body=overlay.querySelector(".match-detail-body");
  if(mamActiveMatch===article){
@@ -5620,14 +5627,24 @@ function openMamMatchDetail(article){
  const away=article.querySelector(".team-block:last-child strong")?.textContent||"Deplasman";
  overlay.querySelector(".match-detail-top strong").textContent=home+" – "+away;
  overlay.hidden=false;document.body.style.overflow="hidden";
- void mamLoadAdvancedEspnDetails(article);
  const liveButton=article.querySelector(".liveStatsBtn");
  if(liveButton){mamSeedVisibleMatchClock(liveButton);try{const rawId=String(liveButton.dataset.liveId||"");const source=String(liveButton.dataset.liveSource||"");const league=String(liveButton.dataset.liveLeagueId||"");const match=allMatches.find(m=>String(m.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId&&String(m.league?.id||"")===league)||null;localStorage.setItem("mam_open_live_detail",JSON.stringify({id:rawId,source,league,tab:"stats",match}));}catch(_){}}
- try{history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
- const first=liveButton?(article.querySelector('.match-detail-tab[data-pane="stats"]')||article.querySelector(".match-detail-tab")):(article.querySelector('.match-detail-tab[data-pane="analysis"]')||article.querySelector(".match-detail-tab"));
- if(first)first.click();
+ try{if(!(history.state?.mamMatchDetail&&location.hash==="#match-detail"))history.pushState({mamMatchDetail:true},"","#match-detail");}catch(_){}
+ const tabs=[...article.querySelectorAll(".match-detail-tab")];
+ const defaultPane=liveButton?"stats":"analysis";
+ const first=tabs.find(tab=>tab.dataset.pane===preferredPane)||tabs.find(tab=>tab.dataset.pane===defaultPane)||tabs[0];
+ if(first){
+  tabs.forEach(tab=>tab.classList.toggle("active",tab===first));
+  article.querySelectorAll(".match-detail-pane").forEach(pane=>pane.hidden=pane.dataset.pane!==first.dataset.pane);
+ }
+ const openToken=article._mamDetailOpenToken=(article._mamDetailOpenToken||0)+1;
+ requestAnimationFrame(()=>setTimeout(()=>{
+  if(article._mamDetailOpenToken!==openToken||mamActiveMatch!==article||overlay.hidden)return;
+  void mamLoadAdvancedEspnDetails(article);
+  if(first)first.click();
+  if(liveButton)refreshOpenLiveScore();
+ },0));
  overlay.querySelector(".match-detail-close")?.focus({preventScroll:true});
- if(liveButton)refreshOpenLiveScore();
 }
 function makeMamDetailTab(article){
  if(article.dataset.detailReady==="true")return;
@@ -5661,6 +5678,7 @@ function makeMamDetailTab(article){
   tabs.appendChild(tab);
   const pane=document.createElement("section");pane.className="match-detail-pane";pane.dataset.pane=def.id;pane.hidden=index!==0;panes.appendChild(pane);sections[def.id]=pane;
   tab.addEventListener("click",()=>{
+   article._mamDetailOpenToken=(article._mamDetailOpenToken||0)+1;
    tabs.querySelectorAll(".match-detail-tab").forEach(x=>x.classList.toggle("active",x===tab));
    panes.querySelectorAll(".match-detail-pane").forEach(x=>x.hidden=x!==pane);
    const liveButton=article.querySelector(".liveStatsBtn");
@@ -5853,7 +5871,11 @@ async function loadMamMatchForm(button,forceRefresh=false){
  }finally{button.disabled=false;}
 }
 document.addEventListener("keydown",event=>{if(event.key==="Escape"&&mamActiveMatch)closeMamMatchDetail();});
-window.addEventListener("popstate",()=>{if(mamActiveMatch)closeMamMatchDetail();});
+window.addEventListener("popstate",event=>{
+ const restoringDetail=event.state?.mamMatchDetail&&location.hash==="#match-detail";
+ if(restoringDetail){if(!mamActiveMatch&&mamLastClosedDetail?.isConnected)openMamMatchDetail(mamLastClosedDetail);return;}
+ if(mamActiveMatch)closeMamMatchDetail();
+});
 
 let mamScreenMode="home";
 let mamTodayFilter="all";
@@ -6310,7 +6332,8 @@ async function refreshOpenLiveStats(){
    const panel=document.getElementById(button.dataset.livePanel||"");
    const pane=button.closest(".match-detail-pane");
    const overlay=button.closest(".match-detail-overlay");
-   return panel&&!panel.hidden&&(!pane||!pane.hidden)&&(!overlay||!overlay.hidden)&&!button.disabled;
+   const article=button.closest(".match.in-detail");
+   return panel&&!panel.hidden&&pane&&!pane.hidden&&overlay&&!overlay.hidden&&article===mamActiveMatch&&!button.disabled;
   });
   for(const button of buttons){
    if(document.hidden)break;
@@ -9066,6 +9089,9 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   setMamScreen("home");await loadMatches();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});
  }));
  async function loadDashboardStats(){
+  const kpiIds=["mamKpiTotal","mamKpiStats","mamKpiMissing","mamKpiCoverage","mamKpiQueue","mamKpiQueueNote"];
+  if(!kpiIds.some(id=>$(id)))return;
+  const setKpi=(id,value)=>{const node=$(id);if(node)node.textContent=value;};
   try{
    const [d1,queue]=await Promise.all([
     fetch("https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/archive/d1-status").then(r=>r.ok?r.json():null),
@@ -9073,16 +9099,16 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
    ]);
    if(d1?.ok){
     const st=d1.statistics||{};
-    $("mamKpiTotal").textContent=Number(d1.total||0).toLocaleString("tr-TR");
-    $("mamKpiStats").textContent=Number(st.withStatistics||0).toLocaleString("tr-TR");
-    $("mamKpiMissing").textContent=Number(st.missingStatistics||0).toLocaleString("tr-TR");
-    $("mamKpiCoverage").textContent="%"+Number(st.coveragePercent||0).toLocaleString("tr-TR")+" istatistik kapsamı";
+    setKpi("mamKpiTotal",Number(d1.total||0).toLocaleString("tr-TR"));
+    setKpi("mamKpiStats",Number(st.withStatistics||0).toLocaleString("tr-TR"));
+    setKpi("mamKpiMissing",Number(st.missingStatistics||0).toLocaleString("tr-TR"));
+    setKpi("mamKpiCoverage","%"+Number(st.coveragePercent||0).toLocaleString("tr-TR")+" istatistik kapsamı");
    }
    if(queue?.ok){
-    $("mamKpiQueue").textContent=Number(queue.statisticsQueuePending??0).toLocaleString("tr-TR");
-    $("mamKpiQueueNote").textContent=queue.complete?"Arşiv kontrolü tamamlandı":"İşlem devam ediyor";
+    setKpi("mamKpiQueue",Number(queue.statisticsQueuePending??0).toLocaleString("tr-TR"));
+    setKpi("mamKpiQueueNote",queue.complete?"Arşiv kontrolü tamamlandı":"İşlem devam ediyor");
    }
-  }catch(error){$("mamKpiQueueNote").textContent="Veri durumu şu an alınamadı";}
+  }catch(error){setKpi("mamKpiQueueNote","Veri durumu şu an alınamadı");}
  }
  loadDashboardStats();
 })();
