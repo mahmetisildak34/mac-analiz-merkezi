@@ -570,7 +570,8 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .match:not(.in-detail) .match-versus{padding:8px 0 4px}
 .match:not(.in-detail) .team-block strong{font-size:14px}
 .match:not(.in-detail) .match-clock{font-size:21px}
-.match-detail-overlay{position:fixed;inset:0;z-index:2147483647!important;background:#080f19;display:flex;flex-direction:column;overflow:auto;padding:calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 18px)}
+/* Keep the membership gate above this full-screen detail layer. */
+.match-detail-overlay{position:fixed;inset:0;z-index:2147483646!important;background:#080f19;display:flex;flex-direction:column;overflow:auto;padding:calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 18px)}
 .match-detail-overlay[hidden]{display:none!important}
 .match-detail-top{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:12px;padding:8px 2px 13px;background:#080f19;color:#fff}
 .match-detail-top strong{font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2439,7 +2440,7 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
 <body>
 
 
-<div id="mamAuthGate" hidden style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(7,17,31,.94)">
+<div id="mamAuthGate" hidden style="position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(7,17,31,.94)">
  <form id="mamAuthForm" style="width:min(100%,380px);padding:24px;border:1px solid #30445f;border-radius:20px;background:#101d30;color:#f4f8ff;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
   <div style="font-size:12px;letter-spacing:1px;color:#35e0b5;font-weight:800">GÜVENLİ ÜYELİK</div>
   <h2 style="margin:12px 0 6px">Maç Analiz Merkezi</h2>
@@ -2681,6 +2682,7 @@ Veri kaynakları: API-Football, ESPN ve Football-data.org. Geçmiş takım veril
 <script src="./half-goal-algorithm.js"></script>
 <script>"use strict";
 const $=id=>document.getElementById(id);
+const mamAuthGateIsOpen=()=>{const gate=$("mamAuthGate");return Boolean(gate&&!gate.hidden)};
 const WORKER="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
 const CACHE_HOURS=12;
 $("date").value=mamIstanbulDateString();
@@ -6454,7 +6456,7 @@ async function refreshTodayScores(){
 
 let mamLastIstanbulFixtureDay=mamIstanbulDateString();
 async function refreshVisibleFixtureLists(){
- if(document.hidden||navigator.onLine===false||$("mamAuthGate")||window.mamLoadMatchesBusy)return;
+ if(document.hidden||navigator.onLine===false||mamAuthGateIsOpen()||window.mamLoadMatchesBusy)return;
  window.mamLastFixtureRefreshAt=Date.now();
  const previousDay=mamLastIstanbulFixtureDay;
  const currentDay=mamLastIstanbulFixtureDay=mamIstanbulDateString();
@@ -9026,6 +9028,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
  document.getElementById("mamAuthSignup")?.addEventListener("click",async()=>{const b=document.getElementById("mamAuthSignup");b.disabled=true;msg.textContent="Hesap oluşturuluyor…";try{const token=await captcha();await post("/membership/auth/signup",{email:email.value,password:pass.value,turnstileToken:token});msg.textContent="Doğrulama bağlantısı e-posta adresinize gönderildiyse gelen kutunuzu kontrol edin.";}catch(error){msg.textContent=error.message||"Kayıt tamamlanamadı.";}finally{b.disabled=false;resetCaptcha();}});
  document.getElementById("mamAuthReset")?.addEventListener("click",async()=>{msg.textContent="Sıfırlama isteği gönderiliyor…";try{const token=await captcha();await post("/membership/auth/password-reset",{email:email.value,turnstileToken:token});msg.textContent="Adres kayıtlıysa parola sıfırlama bağlantısı gönderildi.";}catch(error){msg.textContent=error.message||"İstek tamamlanamadı.";}finally{resetCaptcha();}});
  window.mamAuthOpen=showGate;
+ document.dispatchEvent(new Event("mam:session-ready"));
 })();
 </script>
 
@@ -9422,7 +9425,7 @@ window.addEventListener("offline",()=>{
  $("status").textContent="Çevrimdışısınız. Güncel canlı skorlar gösterilemiyor.";
 });
 window.addEventListener("online",()=>{
- if($("mamAuthGate"))return;
+ if(mamAuthGateIsOpen())return;
  refreshOpenLiveScore();
  refreshOpenLiveStats();
  if(!allMatches.length&&["home","today","upcoming","finished"].includes(mamScreenMode))void loadMatches();

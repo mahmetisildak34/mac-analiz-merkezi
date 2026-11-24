@@ -194,7 +194,10 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
    await page.clock.install({time:new Date("2026-11-23T16:58:00Z")});
    await page.route("**/*",route=>route.request().url().startsWith(origin+"/")?route.continue():route.abort());
    await page.addInitScript(()=>{
-    localStorage.setItem("mam_session_token","local-browser-acceptance");
+    localStorage.removeItem("mam_session_token");
+    sessionStorage.removeItem("mam_auth_refresh_v1");
+    window.__mamSessionReady=false;
+    document.addEventListener("mam:session-ready",()=>{window.__mamSessionReady=true;},{once:true});
     const native=window.fetch.bind(window);
     const current={id:"401888370",date:"2026-11-23T17:00:00Z",competitions:[{competitors:[
      {homeAway:"home",team:{id:"7914",displayName:"Başakşehir"},score:"0"},
@@ -212,7 +215,7 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
     window.fetch=(input,options)=>{
      const url=new URL(String(input),location.href);
      if(url.origin===location.origin)return native(input,options);
-     if(url.pathname==="/auth/check")return Promise.resolve(new Response('{"ok":true}'));
+     if(url.pathname==="/membership/config")return Promise.resolve(Response.json({turnstileSiteKey:null}));
      if(window.testScoreboard.unavailable)return Promise.reject(new TypeError("Simulated provider failure"));
      if(url.pathname.includes("football-data/matches"))return Promise.resolve(Response.json({matches:[]}));
      if(url.pathname.includes("/summary"))return Promise.resolve(Response.json({keyEvents:window.testScoreboard.events||[]}));
@@ -229,7 +232,8 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
     };
    });
    await page.goto(origin+"/index.html");
-   await page.locator("#mamAuthGate").waitFor({state:"hidden"});
+   await page.waitForFunction(()=>window.__mamSessionReady===true&&window.mamAuth?.role==="FREE");
+   assert.equal(await page.evaluate(()=>window.mamAuth.token),"","fixture refresh acceptance must exercise the unauthenticated guest path");
    const card=page.locator("#matches article.match").filter({hasText:"Çorum FK"});
    await card.waitFor({state:"visible",timeout:6000});
    assert.match(await card.locator(".match-clock").innerText(),/20:00/);
