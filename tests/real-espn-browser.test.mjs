@@ -110,7 +110,10 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
       const page=await context.newPage();
       await page.route("**/*",route=>route.request().url().startsWith(origin+"/")?route.continue():route.abort());
       await page.addInitScript(({espn,payloads})=>{
-       localStorage.setItem("mam_session_token","local-browser-acceptance");
+       localStorage.removeItem("mam_session_token");
+       sessionStorage.removeItem("mam_auth_refresh_v1");
+       window.__mamSessionReady=false;
+       document.addEventListener("mam:session-ready",()=>{window.__mamSessionReady=true;},{once:true});
        const native=window.fetch.bind(window);
        const bodies=new Map(payloads);
        window.__mamEspnSummaryReads=Object.create(null);
@@ -122,7 +125,6 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
         if(url.origin===location.origin)return native(input,options);
         if((options?.method||"GET").toUpperCase()!=="GET"||!navigator.onLine)
          return Promise.reject(new TypeError("External writes and offline requests are blocked"));
-        if(url.origin===worker&&url.pathname==="/auth/check")return Promise.resolve(new Response('{"ok":true}'));
         const path=url.origin===worker&&url.pathname.startsWith("/api/espn/")
          ?"/apis/site/v2/sports/soccer/"+url.pathname.slice("/api/espn/".length)+url.search
          :url.origin===espn?url.pathname+url.search:"";
@@ -134,7 +136,9 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
        };
       },{espn,payloads:[...payloads]});
       await page.goto(origin+"/index.html");
-      await page.locator("#mamAuthGate").waitFor({state:"detached"});
+      await page.waitForFunction(()=>window.__mamSessionReady===true&&window.mamAuth?.role==="FREE");
+      assert.equal(await page.evaluate(()=>window.mamAuth.token),"","public ESPN acceptance must exercise the unauthenticated guest path");
+      await page.locator("#mamAuthGate").waitFor({state:"hidden"});
       for(const [mode,{slug,leagueId,event}] of [["today",daily],["upcoming",future],["finished",finished]]){
        await page.locator(`[data-match-mode="${mode}"]`).click();
        if(mode!=="today"){
@@ -219,7 +223,9 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
        await page.locator("#mamFavoriteBottom").click();
        await page.locator(`[data-fav-matches] [data-mam-remove-match="${favoriteId}"]`).waitFor();
        await page.reload();
-       await page.locator("#mamAuthGate").waitFor({state:"detached"});
+       await page.waitForFunction(()=>window.__mamSessionReady===true&&window.mamAuth?.role==="FREE");
+       assert.equal(await page.evaluate(()=>window.mamAuth.token),"","reloaded ESPN acceptance must remain unauthenticated");
+       await page.locator("#mamAuthGate").waitFor({state:"hidden"});
        await page.locator("#mamFavoriteBottom").click();
        await page.locator(`[data-fav-matches] [data-mam-remove-match="${favoriteId}"]`).waitFor();
 

@@ -51,7 +51,7 @@ async function verifyStartupAndBrowserHistory(context,browserName){
    };
   });
   await page.goto(origin+'/index.html');
-  await page.locator('#mamAuthGate').waitFor({state:'detached'});
+  await page.locator('#mamAuthGate').waitFor({state:'hidden'});
   await page.waitForTimeout(50);
   const statusRequests=await page.evaluate(()=>window.__mamDashboardStatusRequests);
   assert.equal(statusRequests.filter(url=>url.includes('/api/archive/d1-status')).length,1,browserName+' should preserve the archive-league lookup');
@@ -79,15 +79,32 @@ async function verifyMainApp(context,browserName){
   await main.route('**/*',route=>route.request().url().startsWith(origin+'/')?route.continue():route.abort());
   await main.addInitScript(()=>{
    localStorage.setItem('mam_session_token','local-browser-acceptance');
+   sessionStorage.setItem('mam_auth_refresh_v1','local-browser-refresh');
+   const worker='https://odd-sunset-6c83.m-ahmetisildak34.workers.dev';
+   const model={
+    role:'PREMIUM',quota:{used:1,limit:50,remaining:49},day:'2026-11-24',
+    lambdaHome:1.5,lambdaAway:1.2,homeWin:.45,draw:.3,awayWin:.25,
+    over15:.65,over25:.45,over35:.28,btts:.52,hasHalf:false,
+    first05:null,first15:null,second05:null,second15:null,
+    topScores:[{h:1,a:0,p:.2},{h:1,a:1,p:.15},{h:2,a:0,p:.12},{h:0,a:0,p:.1},{h:0,a:1,p:.08}],
+    outcome:{label:'Ev sahibi kazanır',chance:.45}
+   };
+   const respond=data=>Promise.resolve(new Response(JSON.stringify(data)));
    const fetchNetwork=window.fetch.bind(window);
-   window.fetch=(input,options)=>String(input)==='https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/auth/check'
-    ?Promise.resolve(new Response('{"ok":true}'))
-    :new URL(String(input),location.href).origin===location.origin
+   window.fetch=(input,options)=>{
+    const url=String(input);
+    if(url===worker+'/membership/config')return respond({configured:false,turnstileSiteKey:null});
+    if(url===worker+'/membership/auth/refresh')return respond({access_token:'local-premium-access',refresh_token:'local-browser-refresh'});
+    if(url===worker+'/membership/me')return respond({role:'PREMIUM',quota:{used:0,limit:50,remaining:50}});
+    if(url===worker+'/membership/analysis')return respond(model);
+    if(url===worker+'/auth/check')return respond({ok:true});
+    return new URL(url,location.href).origin===location.origin
      ?fetchNetwork(input,options)
      :Promise.reject(new TypeError('External requests disabled in the acceptance test'));
+   };
   });
   await main.goto(origin+'/index.html');
-  await main.locator('#mamAuthGate').waitFor({state:'detached'});
+  await main.locator('#mamAuthGate').waitFor({state:'hidden'});
   const measurements=await main.evaluate(()=>({openingMs:Math.round(performance.getEntriesByType('navigation')[0].domContentLoadedEventEnd)}));
   const initialFavorites=await main.evaluate(()=>localStorage.getItem('mam-product-hub-v1'));
   // Real ESPN tur.1 result 401888243, captured 2026-11-22.
@@ -376,6 +393,7 @@ async function verifyMainApp(context,browserName){
    const forecastCard=main.locator('#matches article.match');
    await forecastCard.locator('.mam-match-open').click();
    const forecast=main.getByRole('dialog',{name:sample.teams.home.name+' – '+sample.teams.away.name});
+   await forecast.locator('.match-detail-tab[data-pane="analysis"]').click();
    await forecast.getByText('Maç önü tahmini',{exact:true}).waitFor();
    await forecast.getByText(/En yeni örnek maç: 2026-/).waitFor();
    await forecast.getByText('En olası 5 skor',{exact:true}).waitFor();
@@ -413,7 +431,7 @@ async function verifyMainApp(context,browserName){
      for(const width of [375,390,430]){
       await visual.setViewportSize({width,height:844});
       await visual.goto(origin+'/index.html?visual='+mode+width);
-      await visual.locator('#mamAuthGate').waitFor({state:'detached'});
+      await visual.locator('#mamAuthGate').waitFor({state:'hidden'});
       await visual.evaluate(match=>{
        setMamScreen('finished');
        allMatches=[match];
@@ -573,11 +591,11 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
       ?fetchNetwork(input,options):Promise.reject(new TypeError('Test connection unavailable'));
     });
     await offlineMain.goto(origin+'/');
-    await offlineMain.locator('#mamAuthGate').waitFor({state:'visible'});
-    await offlineMain.getByText(/Cihazdaki favoriler korunuyor/).waitFor();
+    await offlineMain.locator('#mamAuthGate').waitFor({state:'hidden'});
+    await offlineMain.waitForFunction(()=>Boolean(navigator.serviceWorker.controller));
     assert.equal(await offlineMain.evaluate(()=>localStorage.getItem('mam_session_token')),'local-browser-acceptance');
-    await offlineMain.getByRole('link',{name:'Cihazdaki kayıtları aç'}).click();
-    await offlineMain.waitForURL('**/mobile/product-hub.html');
+    await offlineMain.evaluate(()=>sessionStorage.setItem('mam_open_saved_records','1'));
+    await offlineMain.goto(url);
     await offlineMain.locator('[data-tab="favorites"]').click();
     await offlineMain.locator('#favTeams').getByText(/Fenerbahçe/).waitFor();
     await offlineMain.locator('[data-tab="live"]').click();
@@ -605,7 +623,7 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
       :new URL(String(input),location.href).origin===location.origin?fetchNetwork(input,options):Promise.reject(new TypeError('External requests disabled'));
     });
     await reconnected.goto(origin+'/');
-    await reconnected.locator('#mamAuthGate').waitFor({state:'detached'});
+    await reconnected.locator('#mamAuthGate').waitFor({state:'hidden'});
     assert.equal(await reconnected.getByText('Old offline shell').count(),0);
     await reconnected.locator('#mamFavoriteBottom').click();
     await reconnected.locator('[data-fav-teams]').getByText(/Fenerbahçe/).waitFor();
