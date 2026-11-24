@@ -27,7 +27,53 @@ async function waitForServer(server){
 const fixture={id:'101',homeTeamId:'1',awayTeamId:'2',homeTeamName:'Fenerbahçe',awayTeamName:'Galatasaray',homeGoals:2,awayGoals:1,status:'FT',kickoff:'2026-11-22T17:00:00Z',leagueId:'tr',leagueName:'Süper Lig',events:[{time:{elapsed:15},team:{name:'Fenerbahçe'},player:{name:'Örnek Oyuncu'},type:'Goal'}],statistics:[{type:'Topla sahip olma',home:'55%',away:'45%'}]};
 const url='http://127.0.0.1:'+port+'/mobile/product-hub.html';
 const origin=new URL(url).origin;
+async function verifyStartupAndBrowserHistory(context,browserName){
+ const isolated=await context.browser().newContext({serviceWorkers:'block'});
+ const pageErrors=[];
+ try{
+  const page=await isolated.newPage();
+  page.on('pageerror',error=>pageErrors.push(error.message));
+  await page.route('**/*',route=>route.request().url().startsWith(origin+'/')?route.continue():route.abort());
+  await page.addInitScript(()=>{
+   localStorage.setItem('mam_session_token','local-browser-acceptance');
+   window.__mamDashboardStatusRequests=[];
+   const fetchNetwork=window.fetch.bind(window);
+   window.fetch=(input,options)=>{
+    const url=String(input);
+    if(url.includes('/api/archive/d1-status')||url.includes('/api/archive/sync-status')){
+     window.__mamDashboardStatusRequests.push(url);
+     return Promise.resolve(new Response('{"ok":true,"total":12,"statistics":{"withStatistics":8,"missingStatistics":4,"coveragePercent":67},"statisticsQueuePending":2,"complete":false,"leagues":[]}'));
+    }
+    if(url==='https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/auth/check')return Promise.resolve(new Response('{"ok":true}'));
+    return new URL(url,location.href).origin===location.origin
+     ?fetchNetwork(input,options)
+     :Promise.reject(new TypeError('External requests disabled in the acceptance test'));
+   };
+  });
+  await page.goto(origin+'/index.html');
+  await page.locator('#mamAuthGate').waitFor({state:'detached'});
+  await page.waitForTimeout(50);
+  const statusRequests=await page.evaluate(()=>window.__mamDashboardStatusRequests);
+  assert.equal(statusRequests.filter(url=>url.includes('/api/archive/d1-status')).length,1,browserName+' should preserve the archive-league lookup');
+  assert.equal(statusRequests.filter(url=>url.includes('/api/archive/sync-status')).length,0,browserName+' should skip unused KPI sync stats when no KPI widgets exist');
+  assert.equal(pageErrors.some(message=>message.includes('Cannot set properties of null')),false,browserName+' should not throw while dashboard KPI widgets are absent');
+  const match={fixture:{id:'history-test-1',date:'2026-11-24T12:00:00Z',status:{short:'FT'}},league:{id:'203',name:'Süper Lig',country:'Türkiye'},teams:{home:{id:'1',name:'Ev sahibi'},away:{id:'2',name:'Deplasman'}},goals:{home:1,away:0}};
+  await page.evaluate(match=>{setMamScreen('finished');document.getElementById('date').value='2026-11-24';allMatches=[match];renderMatches();},match);
+  const opener=page.locator('#matches .mam-match-open').first();
+  await opener.click();
+  const dialog=page.getByRole('dialog',{name:/Ev sahibi/});
+  await dialog.waitFor({state:'visible'});
+  await page.goBack();
+  await page.waitForFunction(()=>location.hash!=='#match-detail');
+  assert.equal(await dialog.isVisible(),false,browserName+' browser Back should close match details');
+  await page.goForward();
+  await page.waitForFunction(()=>location.hash==='#match-detail');
+  await page.waitForTimeout(50);
+  assert.equal(await dialog.isVisible(),true,browserName+' browser Forward should restore match details');
+ }finally{await isolated.close();}
+}
 async function verifyMainApp(context,browserName){
+ await verifyStartupAndBrowserHistory(context,browserName);
  const main=await context.newPage();
  try{
   await main.route('**/*',route=>route.request().url().startsWith(origin+'/')?route.continue():route.abort());
