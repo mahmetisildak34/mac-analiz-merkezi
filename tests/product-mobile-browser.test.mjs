@@ -593,6 +593,7 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
     await offlineMain.locator('#mamAuthGate').waitFor({state:'hidden'});
     await offlineMain.waitForFunction(()=>Boolean(navigator.serviceWorker.controller));
     assert.equal(await offlineMain.evaluate(()=>localStorage.getItem('mam_session_token')),'local-browser-acceptance');
+    await offlineMain.evaluate(()=>sessionStorage.setItem('mam_open_saved_records','1'));
     await offlineMain.goto(url);
     await offlineMain.locator('[data-tab="favorites"]').click();
     await offlineMain.locator('#favTeams').getByText(/Fenerbahçe/).waitFor();
