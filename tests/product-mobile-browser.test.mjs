@@ -87,7 +87,7 @@ async function verifyMainApp(context,browserName){
      :Promise.reject(new TypeError('External requests disabled in the acceptance test'));
   });
   await main.goto(origin+'/index.html');
-  await main.locator('#mamAuthGate').waitFor({state:'detached'});
+  await main.locator('#mamAuthGate').waitFor({state:'hidden'});
   const measurements=await main.evaluate(()=>({openingMs:Math.round(performance.getEntriesByType('navigation')[0].domContentLoadedEventEnd)}));
   const initialFavorites=await main.evaluate(()=>localStorage.getItem('mam-product-hub-v1'));
   // Real ESPN tur.1 result 401888243, captured 2026-11-22.
@@ -413,7 +413,7 @@ async function verifyMainApp(context,browserName){
      for(const width of [375,390,430]){
       await visual.setViewportSize({width,height:844});
       await visual.goto(origin+'/index.html?visual='+mode+width);
-      await visual.locator('#mamAuthGate').waitFor({state:'detached'});
+      await visual.locator('#mamAuthGate').waitFor({state:'hidden'});
       await visual.evaluate(match=>{
        setMamScreen('finished');
        allMatches=[match];
@@ -605,7 +605,7 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
       :new URL(String(input),location.href).origin===location.origin?fetchNetwork(input,options):Promise.reject(new TypeError('External requests disabled'));
     });
     await reconnected.goto(origin+'/');
-    await reconnected.locator('#mamAuthGate').waitFor({state:'detached'});
+    await reconnected.locator('#mamAuthGate').waitFor({state:'hidden'});
     assert.equal(await reconnected.getByText('Old offline shell').count(),0);
     await reconnected.locator('#mamFavoriteBottom').click();
     await reconnected.locator('[data-fav-teams]').getByText(/Fenerbahçe/).waitFor();
