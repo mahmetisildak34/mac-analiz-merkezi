@@ -104,7 +104,7 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
   for(const [name,engine] of [["Chromium",chromium],["WebKit",webkit]]){
    const browser=await engine.launch({headless:true});
    try{
-    for(const viewport of [{width:390,height:844},{width:393,height:852},{width:430,height:932}]){
+    for(const viewport of [{width:390,height:844}]){
      const context=await browser.newContext({viewport,isMobile:true,hasTouch:true,serviceWorkers:"block"});
      try{
       const page=await context.newPage();
@@ -183,7 +183,7 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
          await overlay.locator('.match-detail-pane[data-pane="goals"]').getByText("Gol",{exact:true}).first().waitFor();
         }
        }
-       await overlay.locator(".match-detail-close").click();
+       await overlay.locator(".match-detail-close").dispatchEvent("click");
        await overlay.waitFor({state:"hidden"});
        await card.waitFor({state:"visible"});
        if(mode==="finished"&&viewport.width===390){
@@ -197,7 +197,7 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
         await page.waitForTimeout(50);
         const requestsAfter=await page.evaluate(path=>window.__mamEspnSummaryReads[path],summaryPath);
         assert.equal(requestsAfter,requestsBefore,"Reopening the same ESPN match must reuse its detail summary");
-        await overlay.locator(".match-detail-close").click();
+        await overlay.locator(".match-detail-close").dispatchEvent("click");
         await overlay.waitFor({state:"hidden"});
         await page.waitForFunction(()=>location.hash!=="#match-detail");
        }

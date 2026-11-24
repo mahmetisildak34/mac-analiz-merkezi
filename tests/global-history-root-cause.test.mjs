@@ -19,12 +19,75 @@ function helperApi() {
   });
 }
 
+function serviceWorkerReloadHarness(storage, controlled = true) {
+  const listeners = new Map();
+  let reloads = 0;
+  const serviceWorker = {
+    controller: controlled ? {} : null,
+    addEventListener(name, callback) { listeners.set(name, callback); },
+    register() { return { catch() {} }; }
+  };
+  const sessionStorage = {
+    getItem(key) { return storage.has(key) ? storage.get(key) : null; },
+    setItem(key, value) { storage.set(key, String(value)); },
+    removeItem(key) { storage.delete(key); }
+  };
+  const start = source.indexOf('if("serviceWorker" in navigator){');
+  const end = source.indexOf('window.addEventListener("offline"', start);
+  assert.ok(start >= 0 && end > start);
+  vm.runInNewContext(source.slice(start, end), {
+    navigator: { serviceWorker }, sessionStorage, location: { reload() { reloads++; } }
+  });
+  return { fireControllerChange() { listeners.get("controllerchange")?.(); }, get reloads() { return reloads; } };
+}
+
 test("Service Worker sürümü eski app-shell cache'ini geçersiz kılar", () => {
   assert.match(sw, /cachePrefix:'mam-main-shell-',version:'v3'/);
   assert.match(mobileSw, /cachePrefix:'mam-mobile-shell-',version:'v3'/);
   assert.match(source, /updateViaCache:"none"/);
   assert.match(source, /mam_sw_reloaded_v3/);
   assert.match(readFileSync(new URL("../mobile/shell-worker.js", import.meta.url), "utf8"), /key\.startsWith\(cachePrefix\)/);
+});
+
+test("Service Worker her yeni controllerchange için sekme oturumunda yeniden yükler, ilk kurulumda döngü oluşturmaz", () => {
+  const storage = new Map();
+  const firstPage = serviceWorkerReloadHarness(storage, true);
+  firstPage.fireControllerChange();
+  assert.equal(firstPage.reloads, 1);
+
+  const nextPage = serviceWorkerReloadHarness(storage, true);
+  nextPage.fireControllerChange();
+  assert.equal(nextPage.reloads, 1, "aynı sekmedeki sonraki worker güncellemesi de sayfayı yenilemeli");
+
+  const firstInstall = serviceWorkerReloadHarness(new Map(), false);
+  firstInstall.fireControllerChange();
+  assert.equal(firstInstall.reloads, 0, "ilk controller edinimi sayfayı yeniden yüklememeli");
+});
+
+test("Kayıtlı lig restore olayı render ve ek yükleme yan etkilerini bastırır", () => {
+  const handlerMatch = source.match(/\$\("league"\)\.addEventListener\("change",\(\)=>\{([\s\S]*?)\n\}\);/);
+  assert.ok(handlerMatch, "lig change handler bulunmalı");
+  const runHandler = restoring => {
+    let saved = JSON.stringify({ mode: "upcoming" });
+    let renders = 0, loads = 0;
+    const context = {
+      window: { mamRestoringViewState: restoring },
+      localStorage: { getItem() { return saved; }, setItem(_key, value) { saved = value; } },
+      $(selector) { assert.equal(selector, "league"); return { value: "39" }; },
+      mamScreenMode: "upcoming", renderMatches() { renders++; }, loadMatches() { loads++; }
+    };
+    vm.runInNewContext(`(()=>{${handlerMatch[1]}})()`, context);
+    return { renders, loads };
+  };
+  assert.deepEqual(runHandler(true), { renders: 0, loads: 0 });
+  assert.deepEqual(runHandler(false), { renders: 1, loads: 1 });
+
+  const restoreStart = source.indexOf('if(mode!=="today"&&saved.league&&$("league")){');
+  const restoreEnd = source.indexOf('if(mode==="live")', restoreStart);
+  assert.ok(restoreStart >= 0 && restoreEnd > restoreStart);
+  const restoreCode = source.slice(restoreStart, restoreEnd);
+  assert.match(restoreCode, /window\.mamRestoringViewState=true/);
+  assert.match(restoreCode, /finally\s*\{window\.mamRestoringViewState=false;\}/);
 });
 
 test("Hapoel Be'er ve sağlayıcı kısa adları ortak takım kimliğine bağlanır", () => {
