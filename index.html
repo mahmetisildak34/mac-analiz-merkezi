@@ -2211,7 +2211,8 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
  .lineup-player-profile summary{min-height:44px;padding:11px;cursor:pointer}
  .lineup-player-profile dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}
  .lineup-player-profile dd{margin:0}
- #mamAuthGate a[hidden]{display:none!important}
+#mamAuthGate[hidden]{display:none!important}
+#mamAuthGate a[hidden]{display:none!important}
  #mamAuthGate a:not([hidden]){display:block;padding:12px;min-height:44px;color:#80e9d2}
 </style>
 <style id="mamCompactMobile">
@@ -2438,13 +2439,18 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
 <body>
 
 
-<div id="mamAuthGate" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:22px;background:#07111f">
+<div id="mamAuthGate" hidden style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(7,17,31,.94)">
  <form id="mamAuthForm" style="width:min(100%,380px);padding:24px;border:1px solid #30445f;border-radius:20px;background:#101d30;color:#f4f8ff;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
-  <div style="font-size:12px;letter-spacing:1px;color:#35e0b5;font-weight:800">MRTYLT • GÜVENLİ GİRİŞ</div>
+  <div style="font-size:12px;letter-spacing:1px;color:#35e0b5;font-weight:800">GÜVENLİ ÜYELİK</div>
   <h2 style="margin:12px 0 6px">Maç Analiz Merkezi</h2>
-  <p style="color:#aebed2;font-size:14px">Devam etmek için erişim şifresini gir.</p>
-  <input id="mamAuthPassword" type="password" autocomplete="current-password" placeholder="Erişim şifresi" required style="width:100%;padding:14px;border-radius:12px;border:1px solid #30445f;background:#091626;color:white;font-size:16px">
+  <p id="mamAuthIntro" style="color:#aebed2;font-size:14px">Premium analiz ve kupon özellikleri için giriş yap veya hesap oluştur.</p>
+  <input id="mamAuthEmail" type="email" autocomplete="email" placeholder="E-posta adresi" required style="width:100%;margin:5px 0;padding:14px;border-radius:12px;border:1px solid #30445f;background:#091626;color:white;font-size:16px">
+  <input id="mamAuthPassword" type="password" autocomplete="current-password" placeholder="Parola" required style="width:100%;margin:5px 0;padding:14px;border-radius:12px;border:1px solid #30445f;background:#091626;color:white;font-size:16px">
+  <div id="mamTurnstile" style="margin:8px 0"></div>
   <button id="mamAuthSubmit" type="submit" style="width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;background:#35e0b5;color:#06251f;font-weight:800">Giriş yap</button>
+  <button id="mamAuthSignup" type="button" style="width:100%;margin-top:8px;padding:12px;border:1px solid #35e0b5;border-radius:12px;background:transparent;color:#d7fff5;font-weight:800">E-posta ile hesap oluştur</button>
+  <button id="mamAuthReset" type="button" style="width:100%;margin-top:8px;padding:8px;border:0;background:transparent;color:#b8c8db">Parolamı sıfırla</button>
+  <button id="mamAuthClose" type="button" style="width:100%;margin-top:4px;padding:8px;border:0;background:transparent;color:#b8c8db">Kapat</button>
   <p id="mamAuthMessage" style="min-height:20px;color:#ffc66e;font-size:13px"></p>
  </form>
 </div>
@@ -6134,7 +6140,7 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
    </div>
    ${isFinishedStatus&&score?'<div class="analysis-preview">✓ Gerçekleşen sonuç: <b>'+esc(score)+'</b>. Maç önü tahmini bu karşılaşma için artık üretilemez.</div>':""}
 
-   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isSportScore?rawId.slice("sportscore-".length):isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(matchDay)+'" data-live-minute="'+esc(effectiveElapsed??"")+'" data-live-home-score="'+esc(g.home??0)+'" data-live-away-score="'+esc(g.away??0)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
+   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||"")))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isSportScore?rawId.slice("sportscore-".length):isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(matchDay)+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-minute="'+esc(effectiveElapsed??"")+'" data-live-home-score="'+esc(g.home??0)+'" data-live-away-score="'+esc(g.away??0)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(matchDay)+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
    <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-status="${esc(statusCode)}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(matchDay)}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
@@ -6493,7 +6499,8 @@ function recordCouponCandidates(id,home,away,date,markets){
  try{localStorage.setItem(COUPON_CANDIDATES_KEY,JSON.stringify(couponCandidates));}catch(e){}
  $("couponSuggestionStatus").textContent=couponCandidates.length+" analiz tahmini hazır.";
 }
-function buildSuggestedCoupon(mode){
+async function buildSuggestedCoupon(mode){
+ if(!window.mamAuth||!(await window.mamAuth.requirePremium())){window.mamAuthOpen?.("Kupon oluşturucu Premium üyelik gerektirir.");return;}
  const safe=mode==="safe";
  const pool=couponCandidates.filter(x=>safe?Number(x.probability)>=.65:Number(x.probability)>=.35&&Number(x.probability)<.65)
   .sort((a,b)=>safe?Number(b.probability)-Number(a.probability):Number(a.probability)-Number(b.probability));
@@ -6538,11 +6545,13 @@ function addCouponSelection(button){
  $("status").textContent="Maç kupona eklendi. Oranı artık kupon listesindeki Oran kutusuna girebilirsin.";
 }
 const couponPanel=$("couponPanel"),couponToggle=$("couponToggle");
-function setCouponOpen(open){
+async function setCouponOpen(open){
+ if(open&&(!window.mamAuth||!(await window.mamAuth.requirePremium()))){window.mamAuthOpen?.("Kupon oluşturucu Premium üyelik gerektirir.");return false;}
  couponPanel.hidden=!open;
  couponToggle.setAttribute("aria-expanded",String(open));
  couponToggle.textContent=open?"🎟️ Kupon oluşturucuyu kapat":"🎟️ Kupon oluşturucuyu aç";
  if(open)couponPanel.scrollIntoView({behavior:"smooth",block:"start"});
+ return true;
 }
 couponToggle.addEventListener("click",()=>setCouponOpen(couponPanel.hidden));
 $("couponClose").addEventListener("click",()=>setCouponOpen(false));
@@ -7683,6 +7692,7 @@ async function analyzeLiveMatch(button){
  const card=button.closest(".match"),panel=card?.querySelector(".liveAnalysis");
  const id=String(button.dataset.liveId||""),espn=button.dataset.liveSource==="espn";
  if(!panel||!id)return;
+ if(!window.mamAuth||!(await window.mamAuth.requirePremium())){panel.innerHTML='<div class="match-detail-note"><b>Premium canlı analiz</b><p>Canlı analiz için e-posta doğrulamalı Premium üyelik gerekir.</p><button type="button" onclick="window.mamAuthOpen?.()">Giriş yap / Üye ol</button></div>';return;}
  button.disabled=true;const old=button.textContent;button.textContent="Canlı veriler hesaplanıyor…";
  panel.innerHTML='<p class="note">Canlı istatistikler alınıyor…</p>';
  try{
@@ -7715,13 +7725,13 @@ async function analyzeLiveMatch(button){
   }
   const [h,a]=rows;if(!h||!a||(!Object.keys(h).length&&!Object.keys(a).length))throw new Error("Bu maç için henüz canlı istatistik verisi yayınlanmıyor. Veri gelmeden tahmin üretmedim.");
   const minuteValue=Number(button.dataset.liveMinute),minute=Number.isFinite(minuteValue)&&minuteValue>0?Math.min(120,minuteValue):45;
-  const remaining=Math.max(0,90-minute),homeScore=Number(button.dataset.liveHomeScore||0),awayScore=Number(button.dataset.liveAwayScore||0);
-  const baseRate=x=>{const sot=Number(x.sot||0),shots=Number(x.shots||0),pos=Number(x.possession??50),corners=Number(x.corners||0),shotSignal=sot*.115+Math.max(0,shots-sot)*.018+Math.min(corners,12)*.006,posFactor=1+(Math.max(0,Math.min(100,pos))-50)/350,shotRate=.10+shotSignal/Math.max(12,minute)*45,xg=Number(x.xg);const xgRate=Number.isFinite(xg)&&xg>0?Math.max(.04,Math.min(1.35,xg/Math.max(12,minute)*45)):shotRate;return Math.max(.04,Math.min(1.35,(Number.isFinite(xg)&&xg>0?xgRate*.65+shotRate*.35:shotRate)*posFactor));};
-  const redBoost=(attacking,opponent)=>Math.max(.68,Math.min(1.35,1+Math.min(2,Number(opponent.redCards||0))*.18-Math.min(2,Number(attacking.redCards||0))*.18));
-  const lh=remaining/45*baseRate(h)*redBoost(h,a),la=remaining/45*baseRate(a)*redBoost(a,h),pois=(l,k)=>Math.exp(-l)*Math.pow(l,k)/factorialLive(k);
-  let win=0,draw=0,lose=0,o15=0,o25=0,o35=0,btts=0;
-  for(let x=0;x<=8;x++)for(let y=0;y<=8;y++){const p=pois(lh,x)*pois(la,y),fh=homeScore+x,fa=awayScore+y;if(fh>fa)win+=p;else if(fh===fa)draw+=p;else lose+=p;if(fh+fa>=2)o15+=p;if(fh+fa>=3)o25+=p;if(fh+fa>=4)o35+=p;if(fh>0&&fa>0)btts+=p;}
-  const next=1-Math.exp(-(lh+la)),nextH=lh+la?next*lh/(lh+la):0,nextA=lh+la?next*la/(lh+la):0,noGoal=1-next,pct=x=>(x*100).toFixed(1)+"%";
+  const homeScore=Number(button.dataset.liveHomeScore||0),awayScore=Number(button.dataset.liveAwayScore||0);
+  const liveDate=String(button.dataset.liveDate||"");
+  const homeName=String(button.dataset.liveHomeName||""),awayName=String(button.dataset.liveAwayName||"");
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(liveDate))throw new Error("Canlı maç tarihi doğrulanamadı.");
+  if(!homeName||!awayName)throw new Error("Canlı maç takım bilgileri doğrulanamadı.");
+  const model=await window.mamAuth.analyze({modelType:"live-v1",fixtureId:id,homeName,awayName,kickoff:liveDate+"T00:00:00Z",modelInput:{home:h,away:a,minute,homeScore,awayScore}});
+  const remaining=model.remaining,win=model.homeWin,draw=model.draw,lose=model.awayWin,o15=model.over15,o25=model.over25,o35=model.over35,btts=model.btts,nextH=model.nextHome,nextA=model.nextAway,noGoal=model.noGoal,pct=x=>(x*100).toFixed(1)+"%";
   const bar=(label,v)=>'<div style="margin:8px 0"><div style="display:flex;justify-content:space-between"><span>'+label+'</span><b>'+pct(v)+'</b></div><div style="height:7px;background:#e7edf0;border-radius:8px;overflow:hidden"><div style="height:7px;width:'+Math.max(0,Math.min(100,v*100))+'%;background:#16a36a"></div></div></div>';
   const cell=(label,x,y)=>'<div class="stat"><span>'+label+'</span><b>'+(x??"—")+' / '+(y??"—")+'</b></div>';
   panel.innerHTML='<div class="section-title">⚡ Canlı analiz · '+minute+'&#39;</div><p class="note">Skor '+homeScore+' – '+awayScore+' · Kalan süre yaklaşık '+remaining+' dk</p><div class="statgrid">'+cell("İsabetli şut",h.sot,a.sot)+cell("Toplam şut",h.shots,a.shots)+cell("Topla oynama",h.possession==null?"—":h.possession+"%",a.possession==null?"—":a.possession+"%")+cell("Korner",h.corners,a.corners)+cell("Kırmızı kart",h.redCards??0,a.redCards??0)+'</div><div class="section-title">Maç sonu sonucu</div>'+bar("Ev sahibi kazanır",win)+bar("Beraberlik",draw)+bar("Deplasman kazanır",lose)+'<div class="section-title">Toplam gol</div>'+bar("1.5 Üst",o15)+bar("2.5 Üst",o25)+bar("3.5 Üst",o35)+bar("Karşılıklı gol",btts)+'<div class="section-title">Bir sonraki gol</div>'+bar("Ev sahibi sonraki gol",nextH)+bar("Deplasman sonraki gol",nextA)+bar("Maçta başka gol olmaz",noGoal)+'<p class="note">Canlı skor, dakika, şut, isabetli şut, topa sahip olma, korner ve varsa sağlayıcının xG/kırmızı kart verisi kullanılır. xG yoksa şut temelli yaklaşık oran uygulanır. Model canlı veriye dayalı tahmindir; kesinlik garantisi değildir.</p>';
@@ -7729,7 +7739,6 @@ async function analyzeLiveMatch(button){
  }catch(error){panel.innerHTML='<div class="match-detail-note"><b>Canlı analiz yapılamadı</b><p>'+esc(error.message||error)+'</p></div>';button.textContent=old;
  }finally{button.disabled=false;}
 }
-function factorialLive(n){let x=1;for(let i=2;i<=n;i++)x*=i;return x;}
 
 /* ANALİZ */
 function mamCanAnalyzePrematch(status,kickoff,now=Date.now()){
@@ -7745,6 +7754,11 @@ async function analyze(button){
   target=document.createElement("div");target.className="pred";
   target.id="pred-"+(button.dataset.id||("analysis-"+Date.now()));
   button.closest(".match")?.appendChild(target);
+ }
+ if(!window.mamAuth||!(await window.mamAuth.requirePremium())){
+  target.hidden=false;
+  target.innerHTML='<div class="match-detail-note"><b>Premium analiz</b><p>Analiz için e-posta doğrulamalı Premium üyelik gerekir.</p><button type="button" onclick="window.mamAuthOpen?.()">Giriş yap / Üye ol</button></div>';
+  return;
  }
  // Gelecek fikstür kartlarında analiz paneli başlangıçta hidden gelir.
  // Analiz çağrıldığında görünür hale getirilmezse buton çalışsa bile kullanıcı sonuç göremez.
@@ -7806,43 +7820,24 @@ async function analyze(button){
   const hs=homeVenueFallback?homeOverall:homeVenue;
   const as=awayVenueFallback?awayOverall:awayVenue;
   const lowSample=hs.count<5||as.count<5;
-
-  const lh=Math.max(.15,Math.min(4,(hs.gf+as.ga)/2));
-  const la=Math.max(.15,Math.min(4,(as.gf+hs.ga)/2));
+  const hc=optionalMetric(homeMatches,homeId,"corners","home");
+  const ac=optionalMetric(awayMatches,awayId,"corners","away");
+  const model=await window.mamAuth.analyze({
+   fixtureId:button.dataset.id,homeName:button.dataset.homeName,awayName:button.dataset.awayName,kickoff:button.dataset.kickoff,
+   modelInput:{homeOverall,awayOverall,homeVenue,awayVenue,corners:{home:hc,away:ac}}
+  });
+  const lh=model.lambdaHome,la=model.lambdaAway;
   const total=lh+la;
-  let win=0,draw=0,lose=0;
-
-  for(let h=0;h<=10;h++)for(let a=0;a<=10;a++){
-   const p=poisson(lh,h)*poisson(la,a);
-   if(h>a)win+=p;else if(h===a)draw+=p;else lose+=p;
-  }
-
-  const over15=overProb(total,2);
-  const over25=overProb(total,3);
-  const over35=overProb(total,4);
-  const btts=(1-Math.exp(-lh))*(1-Math.exp(-la));
-  const hasHalf=hs.halfCount>=3&&as.halfCount>=3;
-  let first05=null,first15=null,second05=null,second15=null;
-
-  if(hasHalf){
-   const firstL=Math.max(.1,(hs.firstGF+as.firstGA+as.firstGF+hs.firstGA)/2);
-   const secondL=Math.max(.1,(hs.secondGF+as.secondGA+as.secondGF+hs.secondGA)/2);
-   first05=overProb(firstL,1);
-   first15=overProb(firstL,2);
-   second05=overProb(secondL,1);
-   second15=overProb(secondL,2);
-  }
+  const win=model.homeWin,draw=model.draw,lose=model.awayWin;
+  const over15=model.over15,over25=model.over25,over35=model.over35,btts=model.btts;
+  const hasHalf=model.hasHalf,first05=model.first05,first15=model.first15,second05=model.second05,second15=model.second15;
 
   const homeName=button.dataset.homeName;
   const awayName=button.dataset.awayName;
   const leagueId=button.dataset.league;
-  const outcome = win>=draw && win>=lose
-    ? {label:homeName+" kazanır",chance:win}
-    : draw>=win && draw>=lose
-      ? {label:"Beraberlik",chance:draw}
-      : {label:awayName+" kazanır",chance:lose};
+  const outcome=model.outcome;
   const venue=v=>v==="home"?"iç saha":v==="away"?"deplasman":"son maçlar";
-  const scores=topScores(lh,la);
+  const scores=model.topScores;
 
   // Maç önü için ev sahibi iç saha, konuk takım deplasman örneklemini ayrı göster.
   const metricCell=(teamId,matches,metric,side)=>{
@@ -7873,8 +7868,9 @@ async function analyze(button){
     '<p class="note">Şut, korner ve kart ortalamaları yalnızca ilgili doğrulanmış maç verisi yeterliyse gösterilir. Maç sonucu tahmini ayrı gol modelidir.</p>'+venueFallbackNote;
   const latestSample=Math.max(...[...homeMatches,...awayMatches].map(match=>Date.parse(match.fixture?.date??"")).filter(Number.isFinite));
   const latestSampleDay=Number.isFinite(latestSample)?mamIstanbulDay(new Date(latestSample).toISOString()):"Bilinmiyor";
+  const quotaNote=model.role==="ADMIN"?"Yönetici hesabı: günlük analiz limiti yok.":`Bugün kalan analiz hakkı: ${model.quota?.remaining??"—"}/${model.quota?.limit??"—"} · Türkiye saatiyle yenilenir.`;
   let html=`<b>Maç önü tahmini</b>
-   <p class="note">Model: Ön yüz Poisson modeli · Sürüm bilgisi yayımlanmadı · En yeni örnek maç: ${esc(latestSampleDay)}</p>
+   <p class="note">Model: Poisson v1.2 · En yeni örnek maç: ${esc(latestSampleDay)}</p><p class="note">${esc(quotaNote)}</p>
    <div class="section-title">🏆 Modelin maç sonucu tahmini</div>
    <div class="statgrid">
     <div class="stat"><span>En olası sonuç</span><b>${esc(outcome.label)}</b></div>
@@ -7921,8 +7917,8 @@ async function analyze(button){
    html+=probHTML("İlk yarı 1.5 Üst",first15);
    html+=probHTML("İkinci yarı 0.5 Üst",second05);
    html+=probHTML("İkinci yarı 1.5 Üst",second15);
-   const firstBttsYes=(hs.firstBothRate+as.firstBothRate)/2;
-   const secondBttsYes=(hs.secondBothRate+as.secondBothRate)/2;
+   const firstBttsYes=model.firstBttsYes;
+   const secondBttsYes=model.secondBttsYes;
    html+='<div class="section-title">🤝 İlk yarı / ikinci yarı karşılıklı gol</div>';
    html+=probHTML("İlk yarı KG Var",firstBttsYes);
    html+=probHTML("İlk yarı KG Yok",1-firstBttsYes);
@@ -7933,17 +7929,15 @@ async function analyze(button){
    html+='<p class="note">Devre skorları için yeterli geçmiş veri bulunamadı. İlk yarı ve ikinci yarı karşılıklı gol olasılıkları gerçek veri olmadan gösterilmez.</p>';
   }
 
-  const hc=optionalMetric(homeMatches,homeId,"corners","home");
-  const ac=optionalMetric(awayMatches,awayId,"corners","away");
   html+=venueComparison;
   html+='<div class="section-title">🚩 Korner analizi</div>';
-  if(hc.count>=3&&ac.count>=3){
-   const expectedCorners=hc.average+ac.average;
+  if(model.corners){
+   const expectedCorners=model.corners.expected;
    html+='<p class="note">Takımların korner ortalamalarından Poisson yaklaşımı. Lig ve rakip gücü düzeltmesi yapılmamıştır.</p>';
    html+=`<div class="statgrid">
     <div class="stat"><span>${esc(homeName)} korner · ${hc.count} maç</span><b>${hc.average.toFixed(2)}</b></div>
     <div class="stat"><span>${esc(awayName)} korner · ${ac.count} maç</span><b>${ac.average.toFixed(2)}</b></div></div>`;
-   const cornerOver85=overProb(expectedCorners,9),cornerOver95=overProb(expectedCorners,10),cornerOver105=overProb(expectedCorners,11);
+   const cornerOver85=model.corners.over85,cornerOver95=model.corners.over95,cornerOver105=model.corners.over105;
    html+=probHTML("8.5 Korner Üst",cornerOver85);
    html+=probHTML("8.5 Korner Alt",1-cornerOver85);
    html+=probHTML("9.5 Korner Üst",cornerOver95);
@@ -8035,7 +8029,7 @@ async function analyze(button){
   if(action==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için yukarıdan bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});}
   if(action==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="search"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
-  if(action==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
+  if(action==="coupon"){setMamScreen("home");await setCouponOpen(true);}
  }));
  drawer.querySelectorAll("[data-mam-nav]").forEach(button=>button.addEventListener("click",async()=>{
   const action=button.dataset.mamNav;shut();
@@ -8044,7 +8038,7 @@ async function analyze(button){
   if(action==="upcoming"){setMamScreen("upcoming");await loadMatches();$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
   if(action==="fixtures"){setMamScreen("home");await loadMatches();$("date")?.scrollIntoView({behavior:"smooth",block:"center"});}
   if(action==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için yukarıdan bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});}
-  if(action==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel")?.scrollIntoView({behavior:"smooth",block:"start"});}
+  if(action==="coupon"){setMamScreen("home");await setCouponOpen(true);}
   if(action==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});}
  }));
  $("mamSectionBack")?.addEventListener("click",()=>{setMamScreen("home");window.scrollTo({top:0,behavior:"smooth"});});
@@ -9000,51 +8994,28 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
 <a class="mam-provider-credit" href="https://sportscore.com/" rel="dofollow">Powered by SportScore</a>
 <script>
 (async function(){
- const gate=document.getElementById("mamAuthGate"), form=document.getElementById("mamAuthForm");
- const pass=document.getElementById("mamAuthPassword"), msg=document.getElementById("mamAuthMessage"), submit=document.getElementById("mamAuthSubmit");
- const key="mam_session_token", base="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
- async function check(token){
-  try{
-   const response=await fetch(base+"/auth/check",{headers:{Authorization:"Bearer "+token},signal:AbortSignal.timeout(6000)});
-   if(response.status===401||response.status===403)return false;
-   if(!response.ok)return null;
-   return (await response.json()).ok===true;
-  }catch{return null;}
- }
- const retry=document.createElement("button");
- retry.type="button";retry.textContent="Bağlantıyı yeniden dene";retry.hidden=true;
- const cached=document.createElement("a");
- cached.href="./mobile/product-hub.html";
- cached.addEventListener("click",()=>{try{sessionStorage.setItem("mam_open_saved_records","1");}catch{}});
- cached.textContent="Cihazdaki kayıtları aç";
- cached.hidden=true;
- form.after(retry,cached);
- async function restoreSession(){
-  const token=localStorage.getItem(key);
-  const available=navigator.onLine!==false;
-  const valid=available&&token?await check(token):null;
-  if(valid===true){
-   if(gate.isConnected){gate.remove();document.dispatchEvent(new Event("mam:session-ready"));}
-   return;
-  }
-  if(valid===false)localStorage.removeItem(key);
-  retry.hidden=available&&(!token||valid===false);
-  cached.hidden=retry.hidden;
-  if(!retry.hidden)msg.textContent="Bağlantı kurulamadı. Canlı veriler görüntülenemiyor. Cihazdaki favoriler korunuyor. Kayıt ekranı salt okunur maç verisini gösterir.";
- }
- retry.addEventListener("click",restoreSession);
- window.addEventListener("online",()=>{if(gate.isConnected)restoreSession();});
- await restoreSession();
- form.addEventListener("submit",async function(e){
-  e.preventDefault();msg.textContent="Kontrol ediliyor…";submit.disabled=true;
-  try{
-   const r=await fetch(base+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pass.value})});
-   const data=await r.json();
-   if(!r.ok||!data.token)throw new Error(data.error||"Giriş başarısız");
-   localStorage.setItem(key,data.token);gate.remove();
-   location.reload();
-  }catch(err){msg.textContent=err.message||"Bağlantı hatası";submit.disabled=false;}
- });
+ const gate=document.getElementById("mamAuthGate"), form=document.getElementById("mamAuthForm"), base="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+ const email=document.getElementById("mamAuthEmail"), pass=document.getElementById("mamAuthPassword"), msg=document.getElementById("mamAuthMessage"), submit=document.getElementById("mamAuthSubmit"), intro=document.getElementById("mamAuthIntro"), captchaBox=document.getElementById("mamTurnstile");
+ const refreshKey="mam_auth_refresh_v1"; let accessToken="", role="FREE", captchaWidget=null, turnstileReady=null, config=null, recoveryMode=false;
+ const showGate=text=>{if(text)msg.textContent=text;gate.hidden=false;gate.style.display="flex";};
+ const hideGate=()=>{gate.hidden=true;gate.style.display="none";};
+ function setRecoveryMode(enabled){recoveryMode=enabled;email.required=!enabled;email.hidden=enabled;captchaBox.hidden=enabled;document.getElementById("mamAuthSignup").hidden=enabled;document.getElementById("mamAuthReset").hidden=enabled;pass.autocomplete=enabled?"new-password":"current-password";pass.placeholder=enabled?"Yeni parola (en az 12 karakter)":"Parola";intro.textContent=enabled?"Yeni parolanızı belirleyin.":"Premium analiz ve kupon özellikleri için giriş yap veya hesap oluştur.";submit.textContent=enabled?"Yeni parolayı kaydet":"Giriş yap";}
+ async function post(path,data){const r=await fetch(base+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"İşlem tamamlanamadı.");return d;}
+ async function captcha(){if(!config?.turnstileSiteKey||!window.turnstile||captchaWidget===null)throw new Error("Bot doğrulaması henüz hazır değil; biraz sonra tekrar deneyin.");const value=window.turnstile.getResponse(captchaWidget);if(!value)throw new Error("Lütfen bot doğrulamasını tamamlayın.");return value;}
+ function resetCaptcha(){try{if(captchaWidget!==null)window.turnstile?.reset(captchaWidget);}catch{}}
+ function acceptSession(data){accessToken=String(data.access_token||"");if(data.refresh_token)sessionStorage.setItem(refreshKey,data.refresh_token);}
+ async function loadRole(){if(!accessToken)return false;const r=await fetch(base+"/membership/me",{headers:{Authorization:"Bearer "+accessToken},cache:"no-store"});if(!r.ok){role="FREE";return false;}const data=await r.json();role=data.role||"FREE";window.mamMembership=data;document.dispatchEvent(new Event("mam:membership-ready"));return true;}
+ async function refreshSession(){const token=sessionStorage.getItem(refreshKey);if(!token)return false;try{acceptSession(await post("/membership/auth/refresh",{refresh_token:token}));return await loadRole();}catch{sessionStorage.removeItem(refreshKey);accessToken="";role="FREE";return false;}}
+ try{const r=await fetch(base+"/membership/config",{cache:"no-store"});if(r.ok)config=await r.json();}catch{}
+ if(config?.turnstileSiteKey){turnstileReady=new Promise(resolve=>{const s=document.createElement("script");s.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";s.async=true;s.defer=true;s.onload=()=>resolve(true);s.onerror=()=>resolve(false);document.head.appendChild(s);});if(await turnstileReady){try{captchaWidget=window.turnstile.render("#mamTurnstile",{sitekey:config.turnstileSiteKey,theme:"dark"});}catch{captchaWidget=null;}}}
+ if(location.hash){const p=new URLSearchParams(location.hash.slice(1));const type=p.get("type");if(p.get("error_description")){msg.textContent=p.get("error_description");showGate();history.replaceState(null,"",location.pathname+location.search);}if(p.get("access_token")){acceptSession({access_token:p.get("access_token"),refresh_token:p.get("refresh_token")});history.replaceState(null,"",location.pathname+location.search);await loadRole();if(type==="recovery"){setRecoveryMode(true);showGate();msg.textContent="E-posta bağlantısı doğrulandı. Yeni parolanızı belirleyin.";}else msg.textContent=type==="signup"?"E-posta doğrulandı. Hesabınız hazır.":"Oturum doğrulandı.";}}
+ if(!accessToken)await refreshSession();
+ window.mamAuth={get token(){return accessToken;},get role(){return role;},async requirePremium(){if(role==="PREMIUM"||role==="ADMIN")return true;showGate(role==="FREE"&&accessToken?"Bu özellik Premium üyelik gerektirir.":"Premium analiz için giriş yapın veya hesap oluşturun.");return false;},async analyze(payload){if(!(await this.requirePremium()))throw new Error("Premium üyelik gerekli.");const r=await fetch(base+"/membership/analysis",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+accessToken},body:JSON.stringify(payload),cache:"no-store"});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Analiz tamamlanamadı.");window.mamMembership={...(window.mamMembership||{}),quota:d.quota,day:d.day};return d;},logout:async()=>{const refresh=sessionStorage.getItem(refreshKey);try{if(accessToken)await post("/membership/auth/logout",{access_token:accessToken});}catch{}accessToken="";role="FREE";sessionStorage.removeItem(refreshKey);}};
+ document.getElementById("mamAuthClose")?.addEventListener("click",hideGate);
+ form.addEventListener("submit",async e=>{e.preventDefault();submit.disabled=true;msg.textContent=recoveryMode?"Parola güncelleniyor…":"Giriş yapılıyor…";try{if(recoveryMode){await post("/membership/auth/update-password",{access_token:accessToken,password:pass.value});setRecoveryMode(false);pass.value="";msg.textContent="Parolanız güncellendi. Şimdi giriş yapabilirsiniz.";return;}const token=await captcha();acceptSession(await post("/membership/auth/login",{email:email.value,password:pass.value,turnstileToken:token}));if(!(await loadRole()))throw new Error("E-posta doğrulanmamış veya oturum geçersiz.");hideGate();document.dispatchEvent(new Event("mam:session-ready"));}catch(error){msg.textContent=error.message||"Giriş yapılamadı.";}finally{submit.disabled=false;resetCaptcha();}});
+ document.getElementById("mamAuthSignup")?.addEventListener("click",async()=>{const b=document.getElementById("mamAuthSignup");b.disabled=true;msg.textContent="Hesap oluşturuluyor…";try{const token=await captcha();await post("/membership/auth/signup",{email:email.value,password:pass.value,turnstileToken:token});msg.textContent="Doğrulama bağlantısı e-posta adresinize gönderildiyse gelen kutunuzu kontrol edin.";}catch(error){msg.textContent=error.message||"Kayıt tamamlanamadı.";}finally{b.disabled=false;resetCaptcha();}});
+ document.getElementById("mamAuthReset")?.addEventListener("click",async()=>{msg.textContent="Sıfırlama isteği gönderiliyor…";try{const token=await captcha();await post("/membership/auth/password-reset",{email:email.value,turnstileToken:token});msg.textContent="Adres kayıtlıysa parola sıfırlama bağlantısı gönderildi.";}catch(error){msg.textContent=error.message||"İstek tamamlanamadı.";}finally{resetCaptcha();}});
+ window.mamAuthOpen=showGate;
 })();
 </script>
 
@@ -9086,7 +9057,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   if(mode==="live"){setMamScreen("live");await loadLiveMatches();window.scrollTo({top:0,behavior:"smooth"});return;}
   if(mode==="analysis"){setMamScreen("home");$("matches")?.scrollIntoView({behavior:"smooth",block:"start"});if(!allMatches.length)await loadMatches();return;}
   if(mode==="standings"){setMamScreen("standings");$("mamStandingsTable").innerHTML='<div class="empty">Puan durumunu görmek için bir lig seç.</div>';window.scrollTo({top:0,behavior:"smooth"});return;}
-  if(mode==="coupon"){setMamScreen("home");$("couponPanel").hidden=false;$("couponToggle").setAttribute("aria-expanded","true");$("couponPanel").scrollIntoView({behavior:"smooth",block:"start"});}
+  if(mode==="coupon"){setMamScreen("home");await setCouponOpen(true);}
   if(mode==="special"){setMamScreen("special");window.scrollTo({top:0,behavior:"smooth"});return;}
  }
  navButtons.forEach(button=>button.addEventListener("click",()=>go(button.dataset.mamShortcut||button.dataset.mamBottom)));
