@@ -278,9 +278,15 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
      await page.locator("#couponClear").click();
      await page.locator("#couponCount").getByText("0 seçim").waitFor();
      assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(call=>call.body?.action==="clear")),true);
+     await page.locator("#couponBuildSafe").click();
+     await page.locator("#couponCount").getByText("1 seçim").waitFor();
+     const savedCouponsBeforeLogout=await page.evaluate(()=>localStorage.getItem("mam_test_coupon_store"));
+     const clearCallsBeforeLogout=await page.evaluate(()=>window.__mamMembershipCalls.filter(call=>call.path==="/membership/coupon"&&call.body?.action==="clear").length);
      await page.evaluate(()=>window.mamAuth.logout());
      await page.waitForFunction(()=>window.mamAuth.role==="FREE"&&!window.mamAuth.token&&!sessionStorage.getItem("mam_auth_refresh_v1"));
      assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(call=>call.path==="/membership/auth/logout")),true);
+     assert.equal(await page.evaluate(()=>localStorage.getItem("mam_test_coupon_store")),savedCouponsBeforeLogout);
+     assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.filter(call=>call.path==="/membership/coupon"&&call.body?.action==="clear").length),clearCallsBeforeLogout);
      await page.locator("#couponPanel").waitFor({state:"hidden"});
      assert.equal(await page.locator("#couponToggle").getAttribute("aria-expanded"),"false");
      const couponCallsBeforeGate=await page.evaluate(()=>window.__mamMembershipCalls.filter(call=>call.path==="/membership/coupon").length);
@@ -298,7 +304,7 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
 }
 
 for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
- test(engineName+" opens fixtures automatically and preserves them through failed refresh and reconnect",async()=>{
+ test(engineName+" keeps guest match tracking available through membership and provider outages",async()=>{
   const server=await launchServer();
   const browser=await engine.launch();
   try{
@@ -328,7 +334,7 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
     window.fetch=(input,options)=>{
      const url=new URL(String(input),location.href);
      if(url.origin===location.origin)return native(input,options);
-     if(url.pathname==="/membership/config")return Promise.resolve(Response.json({turnstileSiteKey:null}));
+     if(url.pathname==="/membership/config")return Promise.reject(new TypeError("Simulated membership service failure"));
      if(window.testScoreboard.unavailable)return Promise.reject(new TypeError("Simulated provider failure"));
      if(url.pathname.includes("football-data/matches"))return Promise.resolve(Response.json({matches:[]}));
      if(url.pathname.includes("/summary"))return Promise.resolve(Response.json({keyEvents:window.testScoreboard.events||[]}));
