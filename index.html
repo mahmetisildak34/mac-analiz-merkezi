@@ -5646,7 +5646,9 @@ function openMamMatchDetail(article,preferredPane=null){
  requestAnimationFrame(()=>setTimeout(()=>{
   if(article._mamDetailOpenToken!==openToken||mamActiveMatch!==article||overlay.hidden)return;
   void mamLoadAdvancedEspnDetails(article);
-  if(first)first.click();
+  // Opening a detail must not invoke Premium analysis or charge quota implicitly.
+  // The active analysis tab and its button remain available for an explicit user action.
+  if(first&&first.dataset.pane!=="analysis")first.click();
   if(liveButton)refreshOpenLiveScore();
  },0));
  overlay.querySelector(".match-detail-close")?.focus({preventScroll:true});

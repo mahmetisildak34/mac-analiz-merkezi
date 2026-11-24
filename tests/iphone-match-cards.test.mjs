@@ -86,7 +86,16 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
      await card.click();
      const overlay=page.locator(".match-detail-overlay:not([hidden])");
      await overlay.waitFor({state:"visible"});
+     await page.waitForTimeout(50);
+     assert.equal(await page.locator("#mamAuthGate").isVisible(),false,"Opening public match details must not invoke Premium analysis");
      assert.match(await overlay.innerText(),new RegExp(expected));
+     if(mode==="upcoming"&&viewport.width===375){
+      await overlay.locator('.match-detail-tab[data-pane="analysis"]').click();
+      await page.locator("#mamAuthGate").waitFor({state:"visible"});
+      assert.match(await page.locator("#mamAuthMessage").innerText(),/Premium analiz için giriş yapın/);
+      await page.locator("#mamAuthClose").click();
+      await page.locator("#mamAuthGate").waitFor({state:"hidden"});
+     }
      await overlay.locator(".match-detail-close").click();
      await overlay.waitFor({state:"hidden"});
      await card.waitFor({state:"visible"});
@@ -94,6 +103,79 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
     }
     console.log(engineName+" iPhone "+viewport.width+"x"+viewport.height+": all 3 captured fixture tabs opened and closed");
     await page.close();
+   }
+  }finally{
+   await browser.close();
+   const stopped=once(server,"exit");server.kill();await stopped;
+  }
+ });
+}
+
+for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
+ test(engineName+" guest/FREE/PREMIUM match-detail authorization acceptance",async()=>{
+  const server=await launchServer();
+  const browser=await engine.launch();
+  try{
+   for(const state of ["GUEST","FREE","PREMIUM"]){
+    const context=await browser.newContext({viewport:{width:393,height:852},isMobile:true,hasTouch:true});
+    const page=await context.newPage();
+    await page.route("**/*",route=>route.request().url().startsWith(origin+"/")?route.continue():route.abort());
+    await page.addInitScript(role=>{
+     const worker="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+     if(role!=="GUEST")sessionStorage.setItem("mam_auth_refresh_v1","local-"+role.toLowerCase()+"-refresh");
+     window.__mamMembershipCalls=[];
+     const native=window.fetch.bind(window);
+     const respond=(data,status=200)=>Promise.resolve(new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json"}}));
+     window.fetch=(input,options)=>{
+      const url=new URL(String(input),location.href);
+      if(url.origin===worker){
+       window.__mamMembershipCalls.push({path:url.pathname,method:options?.method||"GET"});
+       if(url.pathname==="/membership/config")return respond({configured:false,turnstileSiteKey:null});
+       if(url.pathname==="/membership/auth/refresh"&&role!=="GUEST")return respond({access_token:"local-"+role.toLowerCase()+"-access",refresh_token:"local-"+role.toLowerCase()+"-refresh"});
+       if(url.pathname==="/membership/me"&&role!=="GUEST")return respond({role,quota:{used:0,limit:50,remaining:50}});
+       if(url.pathname==="/membership/analysis"&&role==="PREMIUM")return respond({accepted:true,role});
+       return respond({error:"Blocked by isolated membership fixture"},403);
+      }
+      if(url.origin===location.origin)return native(input,options);
+      return Promise.reject(new TypeError("External requests disabled in role acceptance fixture"));
+     };
+    },state);
+    await page.goto(origin+"/index.html");
+    await page.waitForFunction(expected=>{
+     const auth=window.mamAuth;
+     return Boolean(auth)&&(expected==="GUEST"?!auth.token:auth.token&&auth.role===expected&&window.mamMembership?.role===expected);
+    },state,{timeout:10000});
+    const fixture=match("membership-"+state.toLowerCase(),new Date(Date.now()+3600000).toISOString(),"NS","Membership Home","Membership Away");
+    await page.evaluate(fixture=>{
+     setMamScreen("upcoming");
+     document.getElementById("league").value="all";
+     document.getElementById("date").value=mamIstanbulDay(fixture.fixture.date);
+     allMatches=[fixture];
+     renderMatches();
+    },fixture);
+    const card=page.locator("#matches article.match");
+    await card.waitFor({state:"visible"});
+    await card.locator(".mam-match-open").click();
+    const overlay=page.locator(".match-detail-overlay:not([hidden])");
+    await overlay.waitFor({state:"visible"});
+    await page.waitForTimeout(50);
+    assert.equal(await page.locator("#mamAuthGate").isVisible(),false,state+" detail open must not trigger a gate");
+    if(state==="GUEST"||state==="FREE"){
+     await overlay.locator('.match-detail-tab[data-pane="analysis"]').click();
+     await page.locator("#mamAuthGate").waitFor({state:"visible"});
+     const message=await page.locator("#mamAuthMessage").innerText();
+     assert.match(message,state==="GUEST"?/Premium analiz için giriş yapın/:/Bu özellik Premium üyelik gerektirir/);
+     assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(x=>x.path==="/membership/analysis")),false,state+" must not reach the protected analysis API");
+     await page.locator("#mamAuthClose").click();
+     await page.locator("#mamAuthGate").waitFor({state:"hidden"});
+    }else{
+     const result=await page.evaluate(()=>window.mamAuth.analyze({fixtureId:"premium-role-test",modelInput:{}}));
+     assert.deepEqual(result,{accepted:true,role:"PREMIUM"});
+     assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(x=>x.path==="/membership/analysis")),true,"PREMIUM should reach the isolated analysis endpoint");
+    }
+    await overlay.locator(".match-detail-close").click();
+    await overlay.waitFor({state:"hidden"});
+    await context.close();
    }
   }finally{
    await browser.close();
