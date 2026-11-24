@@ -281,6 +281,8 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
      await page.evaluate(()=>window.mamAuth.logout());
      await page.waitForFunction(()=>window.mamAuth.role==="FREE"&&!window.mamAuth.token&&!sessionStorage.getItem("mam_auth_refresh_v1"));
      assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(call=>call.path==="/membership/auth/logout")),true);
+     await page.locator("#couponPanel").waitFor({state:"hidden"});
+     assert.equal(await page.locator("#couponToggle").getAttribute("aria-expanded"),"false");
      const couponCallsBeforeGate=await page.evaluate(()=>window.__mamMembershipCalls.filter(call=>call.path==="/membership/coupon").length);
      await page.evaluate(()=>document.getElementById("couponToggle").click());
      await page.locator("#mamAuthGate").waitFor({state:"visible"});

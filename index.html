@@ -6561,6 +6561,7 @@ async function setCouponOpen(open){
 }
 couponToggle.addEventListener("click",()=>setCouponOpen(couponPanel.hidden));
 $("couponClose").addEventListener("click",()=>setCouponOpen(false));
+document.addEventListener("mam:auth-logout",()=>{void setCouponOpen(false);});
 $("couponStake").addEventListener("input",renderCoupon);
 $("couponClear").addEventListener("click",async()=>{if(await updateCoupon({action:"clear"}))$("status").textContent="Kupon temizlendi.";});
 $("couponBuildSafe").addEventListener("click",()=>buildSuggestedCoupon("safe"));
@@ -9021,7 +9022,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   async requirePremium(){if(role==="PREMIUM"||role==="ADMIN")return true;showGate(role==="FREE"&&accessToken?"Bu özellik Premium üyelik gerektirir.":"Premium analiz için giriş yapın veya hesap oluşturun.");return false;},
   async analyze(payload){if(!(await this.requirePremium()))throw new Error("Premium üyelik gerekli.");const r=await fetch(base+"/membership/analysis",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+accessToken},body:JSON.stringify(payload),cache:"no-store"});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Analiz tamamlanamadı.");window.mamMembership={...(window.mamMembership||{}),quota:d.quota,day:d.day};return d;},
   async coupon(payload){if(!(await this.requirePremium()))throw new Error("Premium üyelik gerekli.");const init={method:payload?"POST":"GET",headers:{"Content-Type":"application/json",Authorization:"Bearer "+accessToken},cache:"no-store"};if(payload)init.body=JSON.stringify(payload);const r=await fetch(base+"/membership/coupon",init);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Kupon işlemi tamamlanamadı.");return d;},
-  logout:async()=>{const refresh=sessionStorage.getItem(refreshKey);try{if(accessToken)await post("/membership/auth/logout",{access_token:accessToken});}catch{}accessToken="";role="FREE";sessionStorage.removeItem(refreshKey);}
+  logout:async()=>{const refresh=sessionStorage.getItem(refreshKey);try{if(accessToken)await post("/membership/auth/logout",{access_token:accessToken});}catch{}accessToken="";role="FREE";sessionStorage.removeItem(refreshKey);document.dispatchEvent(new Event("mam:auth-logout"));}
  };
  document.getElementById("mamAuthClose")?.addEventListener("click",hideGate);
  form.addEventListener("submit",async e=>{e.preventDefault();submit.disabled=true;msg.textContent=recoveryMode?"Parola güncelleniyor…":"Giriş yapılıyor…";try{if(recoveryMode){await post("/membership/auth/update-password",{access_token:accessToken,password:pass.value});setRecoveryMode(false);pass.value="";msg.textContent="Parolanız güncellendi. Şimdi giriş yapabilirsiniz.";return;}const token=await captcha();acceptSession(await post("/membership/auth/login",{email:email.value,password:pass.value,turnstileToken:token}));if(!(await loadRole()))throw new Error("E-posta doğrulanmamış veya oturum geçersiz.");hideGate();document.dispatchEvent(new Event("mam:session-ready"));}catch(error){msg.textContent=error.message||"Giriş yapılamadı.";}finally{submit.disabled=false;resetCaptcha();}});
