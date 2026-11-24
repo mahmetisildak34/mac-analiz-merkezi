@@ -10,7 +10,9 @@ const port=18788,origin='http://127.0.0.1:'+port, now=Date.now();
 const cases=[
  {slug:'tur.1',leagueId:'203',day:'20261123'},
  {slug:'eng.1',leagueId:'39',day:'20261123'},
- {slug:'uefa.champions',leagueId:'2',day:'20261124'}
+ {slug:'uefa.champions',leagueId:'2',day:'20261124'},
+ {slug:'uefa.europa',leagueId:'3',day:'20261126'},
+ {slug:'uefa.europa.conf',leagueId:'848',day:'20261126'}
 ];
 async function getSource(sample){
  const url='https://site.api.espn.com/apis/site/v2/sports/soccer/'+sample.slug+'/scoreboard?dates='+sample.day;

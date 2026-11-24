@@ -8713,16 +8713,18 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
      if(!league?.slug||!code)throw new Error("UEFA fikstür kaynağı tanımlı değil.");
      // UEFA gelecek fikstürünü de geçmiş arşivle aynı FixtureDownload kaynağından al.
      // Böylece Football-data.org ücretsiz planındaki UEFA erişim kısıtları fikstürü bozmaz.
-     // Avrupa fikstürü: seçili turnuva ile sınırlama yapma; kulübün üç UEFA kupasındaki
-     // (Şampiyonlar Ligi, Avrupa Ligi, Konferans Ligi) gelecek maçlarını isim eşleşmesiyle birleştir.
-     const feedMap=[
-      {slug:"champions-league",id:"2",name:"UEFA Şampiyonlar Ligi"},
-      {slug:"europa-league",id:"3",name:"UEFA Avrupa Ligi"},
-      {slug:"conference-league",id:"848",name:"UEFA Konferans Ligi"}
-     ];
+     // Her turnuvanın feed’i ayrı tutulur; başka UEFA kupalarındaki aynı takım maçları
+     // seçili turnuvanın geçmişine veya gelecek fikstürüne karışmamalıdır.
+     const feedMap={
+      "2":{slug:"champions-league",id:"2",name:"UEFA Şampiyonlar Ligi"},
+      "3":{slug:"europa-league",id:"3",name:"UEFA Avrupa Ligi"},
+      "848":{slug:"conference-league",id:"848",name:"UEFA Konferans Ligi"}
+     };
+     const selectedFeed=feedMap[String(leagueId)];
+     if(!selectedFeed)throw new Error("UEFA seçili turnuva feed’i tanımlı değil.");
      const now=new Date(),seasonStart=now.getMonth()>=6?now.getFullYear():now.getFullYear()-1;
-     const feedResults=await Promise.allSettled(feedMap.map(async comp=>{
-      const feedCacheKey="mam_uefa_fixture_archive_"+comp.slug+"_"+seasonStart+"_v5";
+     const feedResults=await Promise.allSettled([selectedFeed].map(async comp=>{
+      const feedCacheKey="mam_uefa_fixture_archive_"+comp.slug+"_"+seasonStart+"_v6";
       let rows=null;
       try{
        const saved=JSON.parse(localStorage.getItem(feedCacheKey)||"null");
@@ -8755,7 +8757,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
        Date.parse(m.fixture.date)>=Date.now()-60*60*1000&&
        (m.goals.home==null||m.goals.away==null))
       .sort((a,b)=>Date.parse(a.fixture.date)-Date.parse(b.fixture.date));
-     if(!leagueFixtures.length)throw new Error("Üç UEFA kupasında gelecek maç bulunamadı."+ (feedErrors.length?" "+feedErrors.join(" | "):""));
+     if(!leagueFixtures.length)throw new Error("Seçili UEFA kupasında gelecek maç bulunamadı."+ (feedErrors.length?" "+feedErrors.join(" | "):""));
     }else if(teamSource==="api-football"){
      const data=await api("fixtures?"+qs({team:teamId,next:20,timezone:"Europe/Istanbul"}));
      const response=Array.isArray(data.response)?data.response:[];
