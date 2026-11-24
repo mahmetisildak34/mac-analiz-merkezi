@@ -78,6 +78,7 @@ async function verifyMainApp(context,browserName){
  try{
   await main.route('**/*',route=>route.request().url().startsWith(origin+'/')?route.continue():route.abort());
   await main.addInitScript(()=>{
+   localStorage.setItem('mam_session_token','local-browser-acceptance');
    sessionStorage.setItem('mam_auth_refresh_v1','local-browser-refresh');
    const worker='https://odd-sunset-6c83.m-ahmetisildak34.workers.dev';
    const model={
