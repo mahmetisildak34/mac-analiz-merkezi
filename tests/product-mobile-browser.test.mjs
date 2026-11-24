@@ -393,6 +393,7 @@ async function verifyMainApp(context,browserName){
    const forecastCard=main.locator('#matches article.match');
    await forecastCard.locator('.mam-match-open').click();
    const forecast=main.getByRole('dialog',{name:sample.teams.home.name+' – '+sample.teams.away.name});
+   await forecast.locator('.match-detail-tab[data-pane="analysis"]').click();
    await forecast.getByText('Maç önü tahmini',{exact:true}).waitFor();
    await forecast.getByText(/En yeni örnek maç: 2026-/).waitFor();
    await forecast.getByText('En olası 5 skor',{exact:true}).waitFor();
