@@ -41,7 +41,7 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
      };
     });
     await page.goto(origin+"/index.html");
-    await page.locator("#mamAuthGate").waitFor({state:"detached"});
+    await page.locator("#mamAuthGate").waitFor({state:"hidden"});
     const rows=await page.evaluate(()=>{
      const current=new Date(Date.now()+15*60000).toISOString();
      const later=new Date(Date.now()+8*86400000).toISOString();
@@ -147,7 +147,7 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
     };
    });
    await page.goto(origin+"/index.html");
-   await page.locator("#mamAuthGate").waitFor({state:"detached"});
+   await page.locator("#mamAuthGate").waitFor({state:"hidden"});
    const card=page.locator("#matches article.match").filter({hasText:"Çorum FK"});
    await card.waitFor({state:"visible",timeout:6000});
    assert.match(await card.locator(".match-clock").innerText(),/20:00/);
@@ -249,7 +249,7 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
     };
    });
    await page.goto(serverOrigin+"/index.html");
-   await page.locator("#mamAuthGate").waitFor({state:"detached"});
+   await page.locator("#mamAuthGate").waitFor({state:"hidden"});
    await page.evaluate(()=>clearInterval(window.mamLiveStatsTimer));
    const live=match("espn-tur.1-401888243",new Date(Date.now()+15*60000).toISOString(),"1H","Canlı Ev Sahibi","Canlı Deplasman",{home:1,away:0});
    live.fixture.status.elapsed=17;live.fixture.status.displayClock="17'";
