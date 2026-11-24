@@ -51,7 +51,7 @@ async function verifyStartupAndBrowserHistory(context,browserName){
    };
   });
   await page.goto(origin+'/index.html');
-  await page.locator('#mamAuthGate').waitFor({state:'detached'});
+  await page.locator('#mamAuthGate').waitFor({state:'hidden'});
   await page.waitForTimeout(50);
   const statusRequests=await page.evaluate(()=>window.__mamDashboardStatusRequests);
   assert.equal(statusRequests.filter(url=>url.includes('/api/archive/d1-status')).length,1,browserName+' should preserve the archive-league lookup');
