@@ -185,6 +185,117 @@ for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
 }
 
 for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
+ test(engineName+" isolated coupon flow and membership session acceptance",async()=>{
+  const serverPort=port+1,serverOrigin="http://127.0.0.1:"+serverPort;
+  const server=await launchServer(serverPort);
+  const browser=await engine.launch({headless:true});
+  try{
+   for(const role of ["GUEST","FREE","PREMIUM","ADMIN"]){
+    const context=await browser.newContext({viewport:{width:393,height:852},isMobile:true,hasTouch:true,serviceWorkers:"block"});
+    const page=await context.newPage();
+    page.setDefaultTimeout(10000);
+    await page.route("**/*",route=>route.request().url().startsWith(serverOrigin+"/")?route.continue():route.abort());
+    await page.addInitScript(role=>{
+     const worker="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+     const refreshKey="mam_auth_refresh_v1";
+     if(role!=="GUEST"&&!sessionStorage.getItem(refreshKey))sessionStorage.setItem(refreshKey,"local-"+role.toLowerCase()+"-refresh");
+     window.__mamMembershipCalls=[];
+     const native=window.fetch.bind(window);
+     const respond=(data,status=200)=>Promise.resolve(new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json"}}));
+     const readMockCoupons=()=>{try{return JSON.parse(localStorage.getItem("mam_test_coupon_store")||"[]");}catch{return [];}};
+     window.fetch=(input,options)=>{
+      const url=new URL(String(input),location.href),method=String(options?.method||"GET").toUpperCase();
+      if(url.origin===worker){
+       let body=null;try{if(options?.body)body=JSON.parse(options.body);}catch{}
+       window.__mamMembershipCalls.push({path:url.pathname,method,body});
+       if(url.pathname==="/membership/config")return respond({configured:false,turnstileSiteKey:null});
+       if(url.pathname==="/membership/auth/refresh"&&role!=="GUEST")return respond({access_token:"local-"+role.toLowerCase()+"-access",refresh_token:"local-"+role.toLowerCase()+"-rotated-refresh"});
+       if(url.pathname==="/membership/auth/logout")return respond({ok:true});
+       if(url.pathname==="/membership/me"&&role!=="GUEST")return respond({role,quota:{used:0,limit:50,remaining:50}});
+       if(url.pathname==="/membership/coupon"){
+        if(role!=="PREMIUM"&&role!=="ADMIN")return respond({error:"Premium required"},403);
+        let items=readMockCoupons();
+        if(method==="GET")return respond({items,role});
+        if(method!=="POST"||!body)return respond({error:"Invalid coupon request"},400);
+        if(body.action==="build")items=(body.candidates||[]).filter(item=>body.mode==="safe"?item.probability>=.65:item.probability>=.35&&item.probability<.65).slice(0,body.mode==="safe"?10:6).map(item=>({...item,odds:null}));
+        else if(body.action==="set-odds"&&items[body.index])items[body.index]={...items[body.index],odds:body.odds};
+        else if(body.action==="remove"&&Number.isInteger(body.index))items.splice(body.index,1);
+        else if(body.action==="clear")items=[];
+        else if(body.action==="add"&&body.item)items.push(body.item);
+        else return respond({error:"Invalid coupon action"},400);
+        localStorage.setItem("mam_test_coupon_store",JSON.stringify(items));
+        return respond({items,role});
+       }
+       return respond({error:"Blocked by isolated Worker fixture"},403);
+      }
+      if(url.origin===location.origin)return native(input,options);
+      return Promise.reject(new TypeError("External requests disabled in coupon acceptance fixture"));
+     };
+    },role);
+    await page.goto(serverOrigin+"/index.html");
+    await page.waitForFunction(expected=>{
+     const auth=window.mamAuth;
+     return Boolean(auth)&&(expected==="GUEST"?!auth.token:auth.token&&auth.role===expected);
+    },role,{timeout:10000});
+    if(role!=="GUEST"){
+     assert.equal(await page.evaluate(()=>sessionStorage.getItem("mam_auth_refresh_v1")),"local-"+role.toLowerCase()+"-rotated-refresh");
+     assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(call=>call.path==="/membership/auth/refresh")),true);
+    }
+    // The current shell hides its coupon launch buttons; exercise the existing bound handler without changing the UI or accessing a live service.
+    if(role==="GUEST"||role==="FREE"){
+     await page.evaluate(()=>document.getElementById("couponToggle").click());
+     await page.locator("#mamAuthGate").waitFor({state:"visible"});
+     assert.match(await page.locator("#mamAuthMessage").innerText(),/Kupon oluşturucu Premium üyelik gerektirir/);
+     assert.equal(await page.locator("#couponPanel").evaluate(el=>el.hidden),true);
+     assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(call=>call.path==="/membership/coupon")),false);
+    }else{
+     await page.evaluate(()=>recordCouponCandidates("coupon-fixture","İstanbul Home","Ankara Away","2026-11-26",[{name:"1X",probability:.8}]));
+     await page.evaluate(()=>document.getElementById("couponToggle").click());
+     await page.locator("#couponPanel").waitFor({state:"visible"});
+     assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(call=>call.path==="/membership/coupon"&&call.method==="GET")),true);
+     await page.locator("#couponBuildSafe").click();
+     await page.locator("#couponCount").getByText("1 seçim").waitFor();
+     assert.match(await page.locator("#couponItems").innerText(),/İstanbul Home – Ankara Away/);
+     const buildCall=await page.evaluate(()=>window.__mamMembershipCalls.filter(call=>call.path==="/membership/coupon"&&call.body?.action==="build").at(-1));
+     assert.equal(buildCall.body.mode,"safe");
+     assert.equal(buildCall.body.candidates.length,1);
+     const odds=page.locator(".coupon-leg-odds").first();
+     await odds.fill("1.75");await odds.press("Tab");
+     await page.waitForFunction(()=>document.getElementById("couponTotalOdds").textContent==="1.75");
+     assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(call=>call.body?.action==="set-odds")),true);
+     await page.reload();
+     await page.waitForFunction(expected=>window.mamAuth?.token&&window.mamAuth.role===expected,role,{timeout:10000});
+     assert.equal(await page.evaluate(()=>sessionStorage.getItem("mam_auth_refresh_v1")),"local-"+role.toLowerCase()+"-rotated-refresh");
+     await page.evaluate(()=>document.getElementById("couponToggle").click());
+     await page.locator("#couponPanel").waitFor({state:"visible"});
+     await page.locator("#couponCount").getByText("1 seçim").waitFor();
+     assert.equal(await page.locator(".coupon-leg-odds").first().inputValue(),"1.75");
+     await page.locator(".coupon-remove").first().click();
+     await page.locator("#couponCount").getByText("0 seçim").waitFor();
+     assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(call=>call.body?.action==="remove")),true);
+     await page.locator("#couponBuildSafe").click();
+     await page.locator("#couponCount").getByText("1 seçim").waitFor();
+     await page.locator("#couponClear").click();
+     await page.locator("#couponCount").getByText("0 seçim").waitFor();
+     assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(call=>call.body?.action==="clear")),true);
+     await page.evaluate(()=>window.mamAuth.logout());
+     await page.waitForFunction(()=>window.mamAuth.role==="FREE"&&!window.mamAuth.token&&!sessionStorage.getItem("mam_auth_refresh_v1"));
+     assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.some(call=>call.path==="/membership/auth/logout")),true);
+     const couponCallsBeforeGate=await page.evaluate(()=>window.__mamMembershipCalls.filter(call=>call.path==="/membership/coupon").length);
+     await page.evaluate(()=>document.getElementById("couponToggle").click());
+     await page.locator("#mamAuthGate").waitFor({state:"visible"});
+     assert.equal(await page.evaluate(()=>window.__mamMembershipCalls.filter(call=>call.path==="/membership/coupon").length),couponCallsBeforeGate);
+    }
+    await context.close();
+   }
+  }finally{
+   await browser.close();
+   const stopped=once(server,"exit");server.kill();await stopped;
+  }
+ });
+}
+
+for(const [engineName,engine] of [["Chromium",chromium],["WebKit",webkit]]){
  test(engineName+" opens fixtures automatically and preserves them through failed refresh and reconnect",async()=>{
   const server=await launchServer();
   const browser=await engine.launch();
