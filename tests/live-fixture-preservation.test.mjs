@@ -62,6 +62,23 @@ test("SportScore supplemental lookup has a 3.5-second cold-request budget",()=>{
  assert.doesNotMatch(live,/setTimeout\(\(\)=>controller\.abort\(\),1400\)/);
 });
 
+test("historical cross-provider identity does not split a fixture when scores differ",()=>{
+ const start=source.indexOf("const addMatch=m=>"),end=source.indexOf("\n\n  // Süper Lig geçmişi",start);
+ const merge=source.slice(start,end);
+ assert.match(merge,/const identity=\[d,normalize\(h\),normalize\(a\)\]\.join\("\\|"\)/);
+ assert.doesNotMatch(merge,/const identity=\[d,normalize\(h\),normalize\(a\),Number\(gh\),Number\(ga\)\]/);
+ assert.match(source,/const key=\[date,home,away\]\.join\("\\|"\)/);
+});
+
+test("ESPN profile history enriches optional statistics without API-Football fallback",()=>{
+ const historyStart=source.indexOf("const openStandingTeamHistory=async");
+ const historyEnd=source.indexOf("\n\nfunction renderStandings",historyStart);
+ const history=source.slice(historyStart,historyEnd);
+ assert.match(history,/if\(useEspnProfile&&recent\.length\)\{[\s\S]*?mamEnrichHistoricalStats\(recent,leagueId\)/);
+ assert.match(history,/if\(useEspnProfile&&recent\.length\)\{[\s\S]*?catch\(_\)\{/);
+ assert.match(source,/const isEspn=id\.startsWith\("espn-"\)/);
+});
+
 test("SportScore parses the provider ID from the observed match URL and rejects incomplete event identity",async()=>{
 	const start=source.indexOf("function mamSportScoreMatchSlug("),end=source.indexOf("\n\nconst MAM_LIVE_MATCH_CACHE_KEY",start);
 	assert.ok(start>=0&&end>start,"shared SportScore URL identity helper and live parser must exist");
