@@ -6490,6 +6490,10 @@ let couponItems=[],couponCandidates=[];
 try{couponItems=JSON.parse(localStorage.getItem(COUPON_KEY)||"[]");if(!Array.isArray(couponItems))couponItems=[];}catch(e){couponItems=[];}
 try{couponCandidates=JSON.parse(localStorage.getItem(COUPON_CANDIDATES_KEY)||"[]");if(!Array.isArray(couponCandidates))couponCandidates=[];}catch(e){couponCandidates=[];}
 function saveCoupon(){try{localStorage.setItem(COUPON_KEY,JSON.stringify(couponItems));}catch(e){}renderCoupon();}
+async function updateCoupon(payload){
+ try{const result=await window.mamAuth.coupon(payload);couponItems=result.items;saveCoupon();return true;}
+ catch(error){$("couponSuggestionStatus").textContent=error.message||"Kupon güncellenemedi.";renderCoupon();return false;}
+}
 function recordCouponCandidates(id,home,away,date,markets){
  for(const m of markets.filter(x=>Number.isFinite(x.probability)&&x.probability>0&&x.probability<1)){
   const item={id:String(id),home,away,date,market:m.name,probability:m.probability,odds:null};
@@ -6502,11 +6506,9 @@ function recordCouponCandidates(id,home,away,date,markets){
 async function buildSuggestedCoupon(mode){
  if(!window.mamAuth||!(await window.mamAuth.requirePremium())){window.mamAuthOpen?.("Kupon oluşturucu Premium üyelik gerektirir.");return;}
  const safe=mode==="safe";
- const pool=couponCandidates.filter(x=>safe?Number(x.probability)>=.65:Number(x.probability)>=.35&&Number(x.probability)<.65)
-  .sort((a,b)=>safe?Number(b.probability)-Number(a.probability):Number(a.probability)-Number(b.probability));
- const picks=[],seen=new Set();
- for(const x of pool){if(seen.has(String(x.id)))continue;seen.add(String(x.id));picks.push({...x,odds:null});if(picks.length===(safe?10:6))break;}
- couponItems=picks;saveCoupon();
+ let picks=[];
+ try{const result=await window.mamAuth.coupon({action:"build",mode:safe?"safe":"risky",candidates:couponCandidates});picks=result.items;couponItems=picks;saveCoupon();}
+ catch(error){$("couponSuggestionStatus").textContent=error.message||"Kupon sunucuda oluşturulamadı.";return;}
  const name=safe?"Güvenli":"Riskli";
  $("couponSuggestionStatus").textContent=picks.length?name+" kupon için "+picks.length+" farklı maç seçildi. Her satırdaki oran alanını doldur. "+(safe?"En az %65 tahmin olasılığı şartı kullanıldı.":"%35–65 tahmin olasılığı aralığı kullanıldı."):"Uygun analiz edilmiş maç yok. Daha fazla maç analiz et; sistem eksik seçim uydurmaz.";
 }
@@ -6519,12 +6521,11 @@ function renderCoupon(){
    const o=Number(x.odds),valid=Number.isFinite(o)&&o>1;
    return '<div class="coupon-leg"><div><strong>'+esc(x.home)+' – '+esc(x.away)+'</strong><small>'+esc(x.market)+' · '+esc(x.date||"Tarih yok")+' · '+(Number(x.probability)>0?'Tahmin '+(Number(x.probability)*100).toFixed(1)+'%':'Manuel seçim')+'</small></div><input class="coupon-leg-odds" data-odds-index="'+i+'" type="number" min="1.01" step="0.01" placeholder="Oran" value="'+(valid?o.toFixed(2):'')+'"><button class="coupon-remove" type="button" data-remove-coupon="'+i+'">×</button></div>';
   }).join("");
-  box.querySelectorAll("[data-remove-coupon]").forEach(b=>b.addEventListener("click",()=>{couponItems.splice(Number(b.dataset.removeCoupon),1);saveCoupon();}));
+  box.querySelectorAll("[data-remove-coupon]").forEach(b=>b.addEventListener("click",()=>updateCoupon({action:"remove",index:Number(b.dataset.removeCoupon)})));
   box.querySelectorAll("[data-odds-index]").forEach(input=>input.addEventListener("change",()=>{
    const i=Number(input.dataset.oddsIndex),v=input.value.trim()===""?null:Number(input.value);
    if(v!==null&&(!Number.isFinite(v)||v<=1)){$("couponSuggestionStatus").textContent="Oran 1.00'dan büyük olmalı.";input.value="";return;}
-   if(couponItems[i])couponItems[i].odds=v===null?null:Number(v.toFixed(2));
-   try{localStorage.setItem(COUPON_KEY,JSON.stringify(couponItems));}catch(e){}renderCoupon();
+   void updateCoupon({action:"set-odds",index:i,odds:v===null?null:Number(v.toFixed(2))});
   }));
  }
  const vals=couponItems.map(x=>Number(x.odds)),ok=couponItems.length>0&&vals.every(x=>Number.isFinite(x)&&x>1);
@@ -6532,21 +6533,22 @@ function renderCoupon(){
  $("couponTotalOdds").textContent=ok?total.toFixed(2):(couponItems.length?"Oranları gir":"1.00");
  $("couponReturn").textContent=ok?(stake*total).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" ₺":"—";
 }
-function addCouponSelection(button){
+async function addCouponSelection(button){
+ if(!window.mamAuth||!(await window.mamAuth.requirePremium())){window.mamAuthOpen?.("Kupon oluşturucu Premium üyelik gerektirir.");return;}
  const card=button.closest(".match"),market=card.querySelector(".coupon-market"),input=card.querySelector(".coupon-odds");
  const raw=input?input.value.trim():"",odds=raw===""?null:Number(raw);
  if(odds!==null&&(!Number.isFinite(odds)||odds<=1)){
   $("status").textContent="Oran gireceksen 1.00'dan büyük olmalı.";input.focus();return;
  }
  const item={id:button.dataset.id,home:button.dataset.homeName,away:button.dataset.awayName,date:button.dataset.date,market:market.value,odds:odds===null?null:Number(odds.toFixed(2))};
- const i=couponItems.findIndex(x=>String(x.id)===String(item.id)&&x.market===item.market);
- if(i>=0)couponItems[i]=item;else couponItems.push(item);
- saveCoupon();
+ try{const result=await window.mamAuth.coupon({action:"add",item});couponItems=result.items;saveCoupon();}
+ catch(error){$("status").textContent=error.message||"Kupon seçimi sunucuya kaydedilemedi.";return;}
  $("status").textContent="Maç kupona eklendi. Oranı artık kupon listesindeki Oran kutusuna girebilirsin.";
 }
 const couponPanel=$("couponPanel"),couponToggle=$("couponToggle");
 async function setCouponOpen(open){
  if(open&&(!window.mamAuth||!(await window.mamAuth.requirePremium()))){window.mamAuthOpen?.("Kupon oluşturucu Premium üyelik gerektirir.");return false;}
+ if(open){try{const result=await window.mamAuth.coupon();couponItems=result.items;saveCoupon();}catch(error){$("couponSuggestionStatus").textContent=error.message||"Premium kupon deposuna ulaşılamadı.";return false;}}
  couponPanel.hidden=!open;
  couponToggle.setAttribute("aria-expanded",String(open));
  couponToggle.textContent=open?"🎟️ Kupon oluşturucuyu kapat":"🎟️ Kupon oluşturucuyu aç";
@@ -6556,7 +6558,7 @@ async function setCouponOpen(open){
 couponToggle.addEventListener("click",()=>setCouponOpen(couponPanel.hidden));
 $("couponClose").addEventListener("click",()=>setCouponOpen(false));
 $("couponStake").addEventListener("input",renderCoupon);
-$("couponClear").addEventListener("click",()=>{couponItems=[];saveCoupon();$("status").textContent="Kupon temizlendi.";});
+$("couponClear").addEventListener("click",async()=>{if(await updateCoupon({action:"clear"}))$("status").textContent="Kupon temizlendi.";});
 $("couponBuildSafe").addEventListener("click",()=>buildSuggestedCoupon("safe"));
 $("couponBuildRisky").addEventListener("click",()=>buildSuggestedCoupon("risky"));
 renderCoupon();
@@ -9010,7 +9012,13 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
  if(config?.turnstileSiteKey){turnstileReady=new Promise(resolve=>{const s=document.createElement("script");s.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";s.async=true;s.defer=true;s.onload=()=>resolve(true);s.onerror=()=>resolve(false);document.head.appendChild(s);});if(await turnstileReady){try{captchaWidget=window.turnstile.render("#mamTurnstile",{sitekey:config.turnstileSiteKey,theme:"dark"});}catch{captchaWidget=null;}}}
  if(location.hash){const p=new URLSearchParams(location.hash.slice(1));const type=p.get("type");if(p.get("error_description")){msg.textContent=p.get("error_description");showGate();history.replaceState(null,"",location.pathname+location.search);}if(p.get("access_token")){acceptSession({access_token:p.get("access_token"),refresh_token:p.get("refresh_token")});history.replaceState(null,"",location.pathname+location.search);await loadRole();if(type==="recovery"){setRecoveryMode(true);showGate();msg.textContent="E-posta bağlantısı doğrulandı. Yeni parolanızı belirleyin.";}else msg.textContent=type==="signup"?"E-posta doğrulandı. Hesabınız hazır.":"Oturum doğrulandı.";}}
  if(!accessToken)await refreshSession();
- window.mamAuth={get token(){return accessToken;},get role(){return role;},async requirePremium(){if(role==="PREMIUM"||role==="ADMIN")return true;showGate(role==="FREE"&&accessToken?"Bu özellik Premium üyelik gerektirir.":"Premium analiz için giriş yapın veya hesap oluşturun.");return false;},async analyze(payload){if(!(await this.requirePremium()))throw new Error("Premium üyelik gerekli.");const r=await fetch(base+"/membership/analysis",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+accessToken},body:JSON.stringify(payload),cache:"no-store"});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Analiz tamamlanamadı.");window.mamMembership={...(window.mamMembership||{}),quota:d.quota,day:d.day};return d;},logout:async()=>{const refresh=sessionStorage.getItem(refreshKey);try{if(accessToken)await post("/membership/auth/logout",{access_token:accessToken});}catch{}accessToken="";role="FREE";sessionStorage.removeItem(refreshKey);}};
+ window.mamAuth={
+  get token(){return accessToken;},get role(){return role;},
+  async requirePremium(){if(role==="PREMIUM"||role==="ADMIN")return true;showGate(role==="FREE"&&accessToken?"Bu özellik Premium üyelik gerektirir.":"Premium analiz için giriş yapın veya hesap oluşturun.");return false;},
+  async analyze(payload){if(!(await this.requirePremium()))throw new Error("Premium üyelik gerekli.");const r=await fetch(base+"/membership/analysis",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+accessToken},body:JSON.stringify(payload),cache:"no-store"});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Analiz tamamlanamadı.");window.mamMembership={...(window.mamMembership||{}),quota:d.quota,day:d.day};return d;},
+  async coupon(payload){if(!(await this.requirePremium()))throw new Error("Premium üyelik gerekli.");const init={method:payload?"POST":"GET",headers:{"Content-Type":"application/json",Authorization:"Bearer "+accessToken},cache:"no-store"};if(payload)init.body=JSON.stringify(payload);const r=await fetch(base+"/membership/coupon",init);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Kupon işlemi tamamlanamadı.");return d;},
+  logout:async()=>{const refresh=sessionStorage.getItem(refreshKey);try{if(accessToken)await post("/membership/auth/logout",{access_token:accessToken});}catch{}accessToken="";role="FREE";sessionStorage.removeItem(refreshKey);}
+ };
  document.getElementById("mamAuthClose")?.addEventListener("click",hideGate);
  form.addEventListener("submit",async e=>{e.preventDefault();submit.disabled=true;msg.textContent=recoveryMode?"Parola güncelleniyor…":"Giriş yapılıyor…";try{if(recoveryMode){await post("/membership/auth/update-password",{access_token:accessToken,password:pass.value});setRecoveryMode(false);pass.value="";msg.textContent="Parolanız güncellendi. Şimdi giriş yapabilirsiniz.";return;}const token=await captcha();acceptSession(await post("/membership/auth/login",{email:email.value,password:pass.value,turnstileToken:token}));if(!(await loadRole()))throw new Error("E-posta doğrulanmamış veya oturum geçersiz.");hideGate();document.dispatchEvent(new Event("mam:session-ready"));}catch(error){msg.textContent=error.message||"Giriş yapılamadı.";}finally{submit.disabled=false;resetCaptcha();}});
  document.getElementById("mamAuthSignup")?.addEventListener("click",async()=>{const b=document.getElementById("mamAuthSignup");b.disabled=true;msg.textContent="Hesap oluşturuluyor…";try{const token=await captcha();await post("/membership/auth/signup",{email:email.value,password:pass.value,turnstileToken:token});msg.textContent="Doğrulama bağlantısı e-posta adresinize gönderildiyse gelen kutunuzu kontrol edin.";}catch(error){msg.textContent=error.message||"Kayıt tamamlanamadı.";}finally{b.disabled=false;resetCaptcha();}});

@@ -21,6 +21,15 @@ test("coupon entry points use Premium authorization rather than directly exposin
  assert.match(html,/async function setCouponOpen\(open\)\{\s*if\(open&&\(!window\.mamAuth\|\|!\(await window\.mamAuth\.requirePremium\(\)\)\)\)/);
  assert.match(html,/if\(action==="coupon"\)\{setMamScreen\("home"\);await setCouponOpen\(true\);\}/);
  assert.match(html,/if\(mode==="coupon"\)\{setMamScreen\("home"\);await setCouponOpen\(true\);\}/);
+ assert.match(html,/async coupon\(payload\)/);
+ assert.match(html,/fetch\(base\+"\/membership\/coupon",init\)/);
+ assert.match(html,/action:"build",mode:safe\?"safe":"risky",candidates:couponCandidates/);
+ assert.match(html,/action:"add",item/);
+ assert.match(html,/action:"remove",index:/);
+ assert.match(html,/action:"set-odds",index:/);
+ assert.match(html,/action:"clear"/);
+ assert.doesNotMatch(html,/const pool=couponCandidates\.filter/);
+ assert.doesNotMatch(html,/couponItems\.push\(item\)/);
  assert.doesNotMatch(html,/\$\("couponPanel"\)\.hidden=false/);
 });
 
