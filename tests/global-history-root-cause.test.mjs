@@ -11,7 +11,7 @@ function helperApi() {
   const start = source.indexOf("const MAM_UEFA_TEAM_GROUPS=");
   const end = source.indexOf("// D1 kalıcı maç arşivi", start);
   assert.ok(start >= 0 && end > start);
-  return vm.runInNewContext(`${source.slice(start, end)};({mamUefaTeamMatch,mamCanonicalHistoryTeamKey,mamHistoricalIdentity,mamDeduplicateHistoricalMatches})`, {
+  return vm.runInNewContext(`${source.slice(start, end)};({mamUefaTeamMatch,mamCanonicalHistoryTeamKey,mamHistoryTeamSearchNames,mamHistoricalIdentity,mamDeduplicateHistoricalMatches})`, {
     mamFixtureTeamKey(value) {
       return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i").replace(/[^a-z0-9]/g, "");
     },
@@ -116,6 +116,23 @@ test("aynı gerçek maçta skor güncellemesi duplicate oluşturmaz, ayrı maçl
   assert.deepEqual(rows.map(match => match.fixture.id), originalIds, "presentation dedupe never deletes or mutates archived source rows");
 });
 
+test("conflicting completed D1 duplicates keep the first archive-preferred score for analysis", () => {
+  const api = helperApi();
+  const row = (source, score) => ({
+    mamArchiveOnly: true,
+    mamSource: source,
+    fixture: { id: "espn-tur.1-401888370", date: "2026-11-23T17:00:00Z", status: { short: "FT" } },
+    league: { id: "203", name: "Süper Lig" },
+    teams: { home: { name: "Istanbul Basaksehir" }, away: { name: "Çorum FK" } },
+    goals: { home: score[0], away: score[1] }
+  });
+  const merged = api.mamDeduplicateHistoricalMatches([row("app", [4, 2]), row("espn", [0, 0])]);
+  assert.equal(merged.length, 1);
+  assert.deepEqual([merged[0].goals.home, merged[0].goals.away], [4, 2]);
+  assert.equal(merged[0].mamArchiveOnly, true);
+  assert.deepEqual(Array.from(merged[0].mamSources), ["app", "espn"]);
+});
+
 test("Sabah FA/FK and Barcelona provider aliases merge across score updates without losing source matches", () => {
   const api = helperApi();
   const row = (id, home, away, date, score, source = id, league = "UEFA Europa League") => ({ fixture: { id, date }, league: { name: league }, teams: { home: { name: home }, away: { name: away } }, goals: { home: score[0], away: score[1] }, mamSource: source });
@@ -145,7 +162,16 @@ test("UEFA fixture-download kayıtları gerçek ESPN event eşlemesine ve şut a
 });
 
 test("Geçmiş cache anahtarı yenilenmiş sürümü kullanır ve kickoff sonrası maçları dışarıda bırakır", () => {
-  assert.match(source, /mam_history_v77_/);
+  assert.match(source, /mam_history_v78_/);
   assert.match(source, /day&&day<matchDate/);
   assert.match(source, /const uniqueOutput=mamDeduplicateHistoricalMatches\(output\)/);
+});
+
+test("D1 takım sorgusu doğrulanmış sağlayıcı alias grubunun tüm adlarını içerir", () => {
+  const api = helperApi();
+  const names = api.mamHistoryTeamSearchNames("TSG 1899 Hoffenheim", ["tsg 1899 hoffenheim"]);
+  assert.ok(names.includes("TSG 1899 Hoffenheim"));
+  assert.ok(names.includes("Hoffenheim"));
+  assert.ok(names.includes("TSG Hoffenheim"));
+  assert.equal(api.mamCanonicalHistoryTeamKey("Hoffenheim"), api.mamCanonicalHistoryTeamKey("TSG 1899 Hoffenheim"));
 });
