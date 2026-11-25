@@ -17,10 +17,12 @@ test('live no-results branch preserves non-live fixtures for all screens',()=>{
 
 test('known provider aliases collapse to one fixture without combining unrelated games',()=>{
 
- const start=source.indexOf('const mamFixtureTeamKey=value=>');
+ const start=source.indexOf('const mamFixtureTeamKeyBase=value=>');
  const end=source.indexOf('let mamFixtureLoadQueued=false;',start);
  assert.ok(start>0&&end>start);
- const snippet=source.slice(start,end);
+ const groupsStart=source.indexOf('const MAM_UEFA_TEAM_GROUPS=');
+ const groupsEnd=source.indexOf(';',groupsStart)+1;
+ const snippet=source.slice(groupsStart,groupsEnd)+'\n'+source.slice(start,end);
  const create=(id,home,away,date='2026-11-23T17:00:00Z',league='203')=>({
   fixture:{id,date,status:{short:'NS'}},league:{id:league},
   teams:{home:{name:home},away:{name:away}},goals:{home:null,away:null}

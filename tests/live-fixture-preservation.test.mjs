@@ -4,6 +4,13 @@ import test from "node:test";
 import {runInNewContext} from "node:vm";
 const source=readFileSync(new URL("../index.html",import.meta.url),"utf8");
 const live=source.slice(source.indexOf("function loadLiveMatchesNow(){"),source.indexOf("\n\nasync function mamSportScoreLiveStats("));
+const teamGroupsStart=source.indexOf("const MAM_UEFA_TEAM_GROUPS=");
+const teamGroupsEnd=source.indexOf(";",teamGroupsStart)+1;
+const fixtureHelpers=expression=>{
+ const start=source.indexOf("const mamFixtureTeamKeyBase=value=>"),end=source.indexOf("let mamFixtureLoadQueued=false;",start);
+ assert.ok(teamGroupsStart>=0&&teamGroupsEnd>teamGroupsStart&&end>start);
+ return source.slice(teamGroupsStart,teamGroupsEnd)+"\n"+source.slice(start,end)+"\n"+expression;
+};
 test("live polling publishes ESPN fixtures alongside live matches",()=>{
  assert.match(live,/const publishLiveSnapshot=liveRows=>/);
  assert.ok(live.includes("[...allMatches,...fallbackSchedule].filter"));
@@ -18,11 +25,10 @@ test("partial ESPN live coverage is supplemented without querying API-Football",
  assert.match(live,/supplementalLive\.forEach\(match=>\{/);
 });
 test("live provider union removes same-kickoff AFC duplicates and keeps the distinct Bodrum fixture",()=>{
- const start=source.indexOf("const mamFixtureTeamKey=value=>"),end=source.indexOf("let mamFixtureLoadQueued=false;",start);
- const merge=runInNewContext(source.slice(start,end)+";mamUnrepresentedLiveFixtures",{
+	 const merge=runInNewContext(fixtureHelpers("mamUnrepresentedLiveFixtures"),{
   mamFixtureInstant:value=>Date.parse(value)
  });
- const fixture=(id,league,home,away,date)=>({fixture:{id,date,status:{short:"LIVE"}},league:{id},
+ const fixture=(id,league,home,away,date)=>({fixture:{id,date,status:{short:"LIVE"}},league:{id,name:"AFC Champions League Elite"},
   teams:{home:{name:home},away:{name:away}},goals:{home:0,away:0}});
  const primary=[
   fixture("espn-afc-1","afc_champions","Al Ain","Esteghlal FC","2026-11-23T16:00:00Z"),
@@ -43,9 +49,8 @@ test("today and upcoming still render match cards",()=>{
 });
 
 test("SportScore's observed AFC spellings deduplicate without replacing ESPN scores",()=>{
- const start=source.indexOf("const mamFixtureTeamKey=value=>"),end=source.indexOf("let mamFixtureLoadQueued=false;",start);
- const merge=runInNewContext(source.slice(start,end)+";mamUnrepresentedLiveFixtures",{mamFixtureInstant:value=>Date.parse(value)});
- const fixture=(id,home,away,score,date="2026-11-23T18:15:00Z")=>({fixture:{id,date,status:{short:"LIVE"}},league:{id:"afc_champions"},
+	 const merge=runInNewContext(fixtureHelpers("mamUnrepresentedLiveFixtures"),{mamFixtureInstant:value=>Date.parse(value)});
+ const fixture=(id,home,away,score,date="2026-11-23T18:15:00Z")=>({fixture:{id,date,status:{short:"LIVE"}},league:{id:"afc_champions",name:"AFC Champions League Elite"},
   teams:{home:{name:home},away:{name:away}},goals:{home:score[0],away:score[1]}});
  const primary=[fixture("espn-ittihad","Al Ittihad","Pakhtakor",[1,0]),fixture("espn-jawiya","Al-Quwa Al-Jawiya","Al-Gharafa",[0,0])];
  const supplemental=[
@@ -65,9 +70,8 @@ test("SportScore supplemental lookup has a 3.5-second cold-request budget",()=>{
 test("historical cross-provider identity does not split a fixture when scores differ",()=>{
  const start=source.indexOf("const addMatch=m=>"),end=source.indexOf("\n\n  // Süper Lig geçmişi",start);
  const merge=source.slice(start,end);
- assert.match(merge,/const identity=\[d,normalize\(h\),normalize\(a\)\]\.join\("\\|"\)/);
- assert.doesNotMatch(merge,/const identity=\[d,normalize\(h\),normalize\(a\),Number\(gh\),Number\(ga\)\]/);
- assert.match(source,/const key=\[date,home,away\]\.join\("\\|"\)/);
+ assert.match(merge,/output\.findIndex\(previous=>mamSameFixture\(previous,normalizedMatch\)\)/);
+ assert.doesNotMatch(merge,/const identity=\[d,mamCanonicalHistoryTeamKey\(h\),mamCanonicalHistoryTeamKey\(a\)\]/);
 });
 
 test("ESPN profile history enriches optional statistics without API-Football fallback",()=>{
@@ -113,8 +117,8 @@ test("SportScore parses the provider ID from the observed match URL and rejects 
 });
 
 test("Today refresh reconciles the same ESPN and API fixture despite provider league IDs, without status regression",async()=>{
-	const start=source.indexOf("const mamFixtureTeamKey=value=>"),end=source.indexOf("let mamFixtureLoadQueued=false;",start);
-	const helpers=runInNewContext(source.slice(start,end)+";({mamSameFixture,mamMergeFixtureRows})",{
+		const start=source.indexOf("const mamFixtureTeamKeyBase=value=>"),end=source.indexOf("let mamFixtureLoadQueued=false;",start);
+		const helpers=runInNewContext(fixtureHelpers("({mamSameFixture,mamMergeFixtureRows})"),{
   mamFixtureInstant:value=>Date.parse(value),
   mamCanonicalMatchStatus:row=>String(row.fixture?.status?.short||"UNK").toUpperCase(),
   mamHasCompletedScore:row=>row.goals?.home!=null&&row.goals?.away!=null
@@ -152,10 +156,63 @@ test("Today refresh reconciles the same ESPN and API fixture despite provider le
  const afterFinal=helpers.mamMergeFixtureRows([final,lateLive]);
  assert.equal(afterFinal.length,1);
  assert.equal(afterFinal[0].fixture.status.short,"FT","a late live response cannot regress a final fixture");
- assert.deepEqual([afterFinal[0].goals.home,afterFinal[0].goals.away],[2,0]);
- const sameProviderOtherLeague={...espn,fixture:{...espn.fixture,id:"espn-afc-cup-7"},league:{id:"afc.cup"}};
- assert.equal(helpers.mamSameFixture(espn,sameProviderOtherLeague),false,"different ESPN competitions are not merged from team/time alone");
+	 assert.deepEqual([afterFinal[0].goals.home,afterFinal[0].goals.away],[2,0]);
+	 const sameProviderOtherLeague={...espn,fixture:{...espn.fixture,id:"espn-afc-cup-7"},league:{id:"afc.cup"}};
+	 assert.equal(helpers.mamSameFixture(espn,sameProviderOtherLeague),false,"different ESPN competitions are not merged from team/time alone");
  const apiThenEspnThenOtherLeague=helpers.mamMergeFixtureRows([api,espn,sameProviderOtherLeague]);
  assert.equal(apiThenEspnThenOtherLeague.length,2,"after API and ESPN are reconciled, another ESPN competition remains a separate fixture");
- assert.equal(apiThenEspnThenOtherLeague[1].fixture.id,"espn-afc-cup-7");
+	 assert.equal(apiThenEspnThenOtherLeague[1].fixture.id,"espn-afc-cup-7");
+	});
+
+test("Explicit club aliases merge across providers, but ID collisions and distinct competitions remain separate",()=>{
+ const api=runInNewContext(fixtureHelpers("({mamSameFixture,mamMergeFixtureRows,mamFixtureTeamKey})"),{
+  mamFixtureInstant:value=>Date.parse(value),
+  mamCanonicalMatchStatus:row=>String(row.fixture?.status?.short||"UNK").toUpperCase(),
+  mamHasCompletedScore:row=>row.goals?.home!=null&&row.goals?.away!=null
+ });
+ const row=(id,source,league,home,away,date="2026-11-23T18:15:00Z",score=[0,0])=>({
+  mamSource:source,fixture:{id,date,status:{short:"LIVE",elapsed:30}},league:{id:league,name:"UEFA Europa League"},
+  teams:{home:{name:home},away:{name:away}},goals:{home:score[0],away:score[1]}
+ });
+ const slavia=row("espn-1","ESPN","uefa.europa","Slavia Prague","Villarreal CF");
+ const apiFootball=row("991","API_FOOTBALL","3","SK Slavia Praha","Villarreal");
+ assert.equal(api.mamFixtureTeamKey("Slavia Prague"),api.mamFixtureTeamKey("SK Slavia Praha"));
+ assert.equal(api.mamFixtureTeamKey("Villarreal CF"),api.mamFixtureTeamKey("Villarreal"));
+ assert.equal(api.mamSameFixture(slavia,apiFootball),true,"explicit aliases + same competition + kickoff reconcile provider IDs");
+ assert.equal(api.mamMergeFixtureRows([slavia,apiFootball]).length,1);
+ const collision=row("991","ESPN","uefa.europa","Real Madrid","Arsenal");
+ assert.equal(api.mamSameFixture(apiFootball,collision),false,"identical raw IDs cannot merge unrelated teams");
+ assert.equal(api.mamMergeFixtureRows([apiFootball,collision]).length,2);
+ const ambiguousIdA={...slavia,mamSource:undefined,fixture:{...slavia.fixture,id:"777"},league:{id:"7",name:"UEFA Europa League"}};
+ const ambiguousIdB={...ambiguousIdA,league:{id:"7",name:"National Cup"}};
+ assert.equal(api.mamSameFixture(ambiguousIdA,ambiguousIdB),false,"unidentified numeric provider IDs do not override conflicting competition names");
+ assert.equal(api.mamMergeFixtureRows([ambiguousIdA,ambiguousIdB]).length,2);
+ const otherCompetition={...apiFootball,fixture:{...apiFootball.fixture,id:"espn-cup-2"},league:{id:"cup",name:"National Cup"}};
+ assert.equal(api.mamSameFixture(slavia,otherCompetition),false,"same teams/time in a different known competition remain distinct");
+ assert.equal(api.mamMergeFixtureRows([slavia,otherCompetition]).length,2);
+ const differentKickoff={...apiFootball,fixture:{...apiFootball.fixture,id:"api-late",date:"2026-11-23T18:30:00Z"}};
+ assert.equal(api.mamSameFixture(slavia,differentKickoff),false,"kickoff outside the established tolerance remains separate");
+});
+
+test("Today, Live, Finished, Upcoming, Favorites and team-history views use their shared fixture/archive paths",()=>{
+ assert.match(source,/mamScreenMode==="live"\)list=list\.filter/);
+ assert.match(source,/mamScreenMode==="finished"\)list=list\.filter/);
+ assert.match(source,/mamScreenMode==="upcoming"\)\{/);
+ assert.match(source,/mamScreenMode==="today"\)\{/);
+ assert.match(source,/allMatches=mamMergeFixtureRows\(\[\.\.\.schedule,\.\.\.liveRows\]\)/);
+ assert.match(source,/const uniqueOutput=mamDeduplicateHistoricalMatches\(output\)/);
+ const tffStart=source.indexOf("async function getTFFSuperLigUpcoming()"),tffEnd=source.indexOf("async function loadSuperLigFixtures()",tffStart);
+ const tff=source.slice(tffStart,tffEnd);
+ assert.match(tff,/fixtures=mamMergeFixtureRows\(combined\)/);
+ assert.doesNotMatch(tff,/similarity\(/,"TFF no longer uses a separate fuzzy identity rule");
+ assert.match(source,/allMatches=mamMergeFixtureRows\(instantCache\.matches\)/);
+ assert.match(source,/allMatches=mamMergeFixtureRows\(fallbackMatches\)/);
+ const historyStart=source.indexOf("async function getTeamFixtures("),historyEnd=source.indexOf("\n/* TAKIM İSTATİSTİKLERİ */",historyStart);
+ const history=source.slice(historyStart,historyEnd);
+ assert.match(history,/const archiveMatches=saved\.matches\.slice\(\)/);
+ assert.match(history,/matches:preservedArchive/,"cache enrichment must retain every original archive row");
+ assert.match(history,/mamSaveMatchesToD1\(preservedArchive,leagueId\)/);
+ const favorites=readFileSync(new URL("../mobile/main-favorites.mjs",import.meta.url),"utf8");
+ assert.match(favorites,/snapshot\(\)/);
+ assert.match(source,/mam_product_hub_fixtures_v1/);
 });

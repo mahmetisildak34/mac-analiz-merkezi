@@ -17,8 +17,8 @@ const parseStats=vm.runInNewContext(`${source.slice(statsStart,statsEnd)};mamPar
 test("Maccabi Tel-Aviv ad varyantları aynı geçmiş maç kimliğinde birleşir",()=>{
   assert.equal(api.mamCanonicalHistoryTeamKey("Maccabi Tel-Aviv"),api.mamCanonicalHistoryTeamKey("M. Tel-Aviv"));
   const rows=[
-    {fixture:{id:"a",date:"2026-09-01T18:00:00Z"},teams:{home:{name:"Maccabi Tel-Aviv"},away:{name:"Besiktas"}},goals:{home:1,away:0},mamSource:"espn"},
-    {fixture:{id:"b",date:"2026-09-01T18:00:00Z"},teams:{home:{name:"M. Tel-Aviv"},away:{name:"Beşiktaş"}},goals:{home:1,away:0},mamSource:"archive"}
+    {fixture:{id:"a",date:"2026-09-01T18:00:00Z"},league:{name:"UEFA Europa League"},teams:{home:{name:"Maccabi Tel-Aviv"},away:{name:"Besiktas"}},goals:{home:1,away:0},mamSource:"espn"},
+    {fixture:{id:"b",date:"2026-09-01T18:00:00Z"},league:{name:"UEFA Europa League"},teams:{home:{name:"M. Tel-Aviv"},away:{name:"Beşiktaş"}},goals:{home:1,away:0},mamSource:"archive"}
   ];
   assert.equal(api.mamDeduplicateHistoricalMatches(rows).length,1);
 });

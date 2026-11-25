@@ -275,7 +275,8 @@ test("source kickoffs keep the Istanbul date, respect European DST and reject am
 });
 
 test("duplicate source rows preserve fixture identity and protect a verified final score",()=>{
- const helpers=html.slice(html.indexOf("const mamFixtureTeamKey="),html.indexOf("let mamFixtureLoadQueued="));
+ const groupsStart=html.indexOf("const MAM_UEFA_TEAM_GROUPS="),groupsEnd=html.indexOf(";",groupsStart)+1;
+ const helpers=html.slice(groupsStart,groupsEnd)+"\n"+html.slice(html.indexOf("const mamFixtureTeamKeyBase="),html.indexOf("let mamFixtureLoadQueued="));
  const methods=["mamFixtureInstant","mamCanonicalMatchStatus","mamHasCompletedScore"];
  const js=methods.map(name=>html.match(new RegExp("function "+name+"\\([\\s\\S]*?\\n\\}"))[0]).join("\n");
  const merge=require("node:vm").runInNewContext(helpers+"\n"+js+";mamMergeFixtureRows");
