@@ -34,7 +34,7 @@ assert.match(html, /api\("espn\/".*?\/teams\?/, "ESPN team-directory fallback mi
 assert.match(html, /api\("teams\?"\+qs\(\{league:leagueId,season\}\)\)/, "API-Football team-directory fallback missing");
 assert.match(html, /teamSource==="api-football"/, "Provider-aware history/future fallback missing");
 assert.match(html, /fixtures\?"\+qs\(\{team:teamId,next:20/, "API-Football upcoming fixtures fallback missing");
-assert.match(html, /mam_history_v77_/, "Provider-scoped history cache missing");
+assert.match(html, /mam_history_v78_/, "Provider-scoped history cache missing");
 assert.match(html, /teamSource="football-data"/, "Football-data standings provider is not identified");
 assert.match(html, /Football-data takım geçmişi:/, "Football-data team-history fallback missing");
 assert.match(html, /ESPN yedek geçmişi:/, "ESPN team-history fallback missing");
@@ -116,8 +116,8 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
 
 // Directory profile IDs must win over provider-specific fixture IDs for the same club.
 {
- const start=html.indexOf(" function teams(){",html.indexOf('id="mamTeamSearchLogic"'));
- const end=html.indexOf(" function draw(){",start);
+ const start=html.indexOf(" function buildTeams(){",html.indexOf('id="mamTeamSearchLogic"'));
+ const end=html.indexOf(" function getTeamSearchCatalog()",start);
  assert.ok(start!==-1&&end>start,"Team-search data merger must exist");
  const source=html.slice(start,end);
  const ctx={
@@ -131,7 +131,7 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
   read:()=>({}),
   normalize:value=>String(value||"").toLocaleLowerCase("tr-TR"),
  };
- vm.runInNewContext(source+"\n globalThis.mergeTeams=teams;",ctx);
+ vm.runInNewContext(source+"\n globalThis.mergeTeams=buildTeams;",ctx);
  const merged=ctx.mergeTeams();
  const arsenal=Array.from(merged).filter(team=>team.name==="Arsenal");
  assert.equal(arsenal.length,1,"Search should not duplicate the same team");

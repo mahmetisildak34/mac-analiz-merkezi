@@ -3721,14 +3721,22 @@ const mamFixtureTeamKey=value=>{
    arcaorum:"corum",arcaorumspor:"corum",orum:"corum",
    caykurrizespor:"rizespor",caykurrzespor:"rizespor",
   alshamalsports:"alshamal",algharafasports:"algharafa",esteghlaltehran:"esteghlal",belediyevanspor:"vanspor",
-   kasimpasa:"kasimpasa",kasmpasa:"kasimpasa"
- };
- const aliasKey=aliases[key]||key;
- const groupKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/&/g," and ").replace(/[^a-z0-9]/g,"");
- const groups=typeof MAM_UEFA_TEAM_GROUPS==="undefined"?[]:MAM_UEFA_TEAM_GROUPS;
- const group=groups.find(names=>names.some(name=>groupKey(name)===groupKey(value)));
- return group?aliases[mamFixtureTeamKeyBase(group[0])]||mamFixtureTeamKeyBase(group[0]):aliasKey;
-};
+	  kasimpasa:"kasimpasa",kasmpasa:"kasimpasa"
+	 };
+	 const aliasKey=aliases[key]||key;
+	 const groupKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/&/g," and ").replace(/[^a-z0-9]/g,"");
+	 const groups=typeof MAM_UEFA_TEAM_GROUPS==="undefined"?[]:MAM_UEFA_TEAM_GROUPS;
+	 let groupIndex=mamFixtureTeamKey.groupKeyIndex;
+	 if(!groupIndex||mamFixtureTeamKey.groupKeySource!==groups){
+	  groupIndex=new Map();
+	  for(const names of groups){
+	   const canonical=aliases[mamFixtureTeamKeyBase(names[0])]||mamFixtureTeamKeyBase(names[0]);
+	   for(const name of names){const normalized=groupKey(name);if(!groupIndex.has(normalized))groupIndex.set(normalized,canonical);}
+	  }
+	  mamFixtureTeamKey.groupKeyIndex=groupIndex;mamFixtureTeamKey.groupKeySource=groups;
+	 }
+	 return groupIndex.get(groupKey(value))||aliasKey;
+	};
 function mamFixturePair(match){
 	const league=String(match.league?.id??"");
 	const home=mamFixtureTeamKey(match.teams?.home?.name),away=mamFixtureTeamKey(match.teams?.away?.name);
@@ -6566,13 +6574,23 @@ function mamUefaTeamMatch(a,b){
  const x=norm(a),y=norm(b);
  if(!x||!y)return false;
  if(x===y)return true;
- return MAM_UEFA_TEAM_GROUPS.some(group=>{const names=group.map(norm);return names.includes(x)&&names.includes(y);});
+ const groupsByName=mamUefaTeamMatch.groupIndex||(mamUefaTeamMatch.groupIndex=new Map());
+ if(!groupsByName.size)for(let index=0;index<MAM_UEFA_TEAM_GROUPS.length;index++)for(const name of MAM_UEFA_TEAM_GROUPS[index]){
+  const key=norm(name);let memberships=groupsByName.get(key);if(!memberships)groupsByName.set(key,memberships=new Set());memberships.add(index);
+ }
+ const xGroups=groupsByName.get(x),yGroups=groupsByName.get(y);
+ return !!xGroups&&!!yGroups&&[...xGroups].some(index=>yGroups.has(index));
 }
 
 function mamCanonicalHistoryTeamKey(value){
  const base=mamFixtureTeamKey(value);if(!base)return "";
  for(const group of MAM_UEFA_TEAM_GROUPS)if(group.some(name=>mamUefaTeamMatch(name,value)))return mamFixtureTeamKey(group[0]);
  return base;
+}
+function mamHistoryTeamSearchNames(teamName,acceptedNames){
+ const names=new Set([String(teamName||"").trim(),...Array.from(acceptedNames||[])].filter(Boolean));
+ for(const group of MAM_UEFA_TEAM_GROUPS)if(group.some(name=>mamUefaTeamMatch(name,teamName)))group.forEach(name=>names.add(name));
+ return Array.from(names);
 }
 function mamHistoricalIdentity(match){
  const day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);
@@ -6589,7 +6607,12 @@ function mamDeduplicateHistoricalMatches(matches){
   const key=mamHistoricalIdentity(match);if(!key){out.push(match);continue;}
   const index=byKey.get(key);if(index===undefined){byKey.set(key,out.length);out.push(match);continue;}
   const previous=out[index],merge=(older={},newer={})=>({...newer,...older});
-  out[index]={...match,...previous,fixture:{...(match.fixture||{}),...(previous.fixture||{})},goals:{...(previous.goals||{}),...(match.goals||{})},statistics:{home:merge(match.statistics?.home,previous.statistics?.home),away:merge(match.statistics?.away,previous.statistics?.away)},mamSources:[...new Set([...(previous.mamSources||[previous.mamSource||"unknown"]),match.mamSource||"unknown"])]};
+  const hasFinishedScore=row=>["FT","AET","PEN","AWD","WO"].includes(String(row?.fixture?.status?.short||"").toUpperCase())&&
+   [row?.goals?.home,row?.goals?.away].every(value=>(typeof value==="number"||typeof value==="string"&&/^\d+$/.test(value))&&Number.isSafeInteger(Number(value))&&Number(value)>=0);
+  const conflictingArchiveScores=previous.mamArchiveOnly===true&&match.mamArchiveOnly===true&&hasFinishedScore(previous)&&hasFinishedScore(match)&&
+   (Number(previous.goals.home)!==Number(match.goals.home)||Number(previous.goals.away)!==Number(match.goals.away));
+  const goals=conflictingArchiveScores?{...(match.goals||{}),...(previous.goals||{})}:{...(previous.goals||{}),...(match.goals||{})};
+  out[index]={...match,...previous,fixture:{...(match.fixture||{}),...(previous.fixture||{})},goals,statistics:{home:merge(match.statistics?.home,previous.statistics?.home),away:merge(match.statistics?.away,previous.statistics?.away)},mamSources:[...new Set([...(previous.mamSources||[previous.mamSource||"unknown"]),match.mamSource||"unknown"])]};
  }
  return out;
 }
@@ -6644,57 +6667,50 @@ async function mamPersistLiveStatsToD1(fixtureId, sourceLabel, statsRows){
   record.statistics={source:String(sourceLabel||"live"),rows:statsRows};
   await mamSaveMatchesToD1([record],record.league?.id);
 }
-// Share one league/date archive download across all team-history requests on this device.
+// Share an in-flight D1 archive read for the same league/date/team on this device.
 const mamD1ArchiveInFlight = new Map();
 async function mamLoadD1LeagueArchive(leagueId, matchDate, teamName, teamId, teamSource, acceptedNames){
   const aliases=Array.from(acceptedNames||[]);
-  const teamCacheKey="mam_d1_archive_v3_"+String(leagueId)+"_"+String(matchDate)+"_"+String(teamSource||"")+"_"+String(teamId||"")+"_"+aliases.join("_");
-  const sharedCacheKey="mam_d1_archive_v2_"+String(leagueId)+"_"+String(matchDate);
+  const searchNames=mamHistoryTeamSearchNames(teamName,aliases);
+  const teamCacheKey="mam_d1_archive_v4_"+String(leagueId)+"_"+String(matchDate)+"_"+String(teamSource||"")+"_"+String(teamId||"")+"_"+searchNames.join("_");
   const normalizeArchiveTeam=value=>String(value||"").normalize("NFD").toLowerCase()
     .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
     .replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim()
     .replace(/\b(football club|football|club|de|the|fc|cf|afc|a s|as|anonim sirketi|sirketi)\b/g,"")
     .replace(/\s+/g," ").trim();
-  const accepted=acceptedNames instanceof Set?acceptedNames:new Set(aliases.map(normalizeArchiveTeam));
+  const accepted=new Set([...searchNames,...aliases].map(normalizeArchiveTeam).filter(Boolean));
+  const targetKey=mamCanonicalHistoryTeamKey(teamName);
   const filterForTeam=rows=>{
     if(!Array.isArray(rows))return [];
     return rows.filter(match=>{
       const home=normalizeArchiveTeam(match?.teams?.home?.name);
       const away=normalizeArchiveTeam(match?.teams?.away?.name);
-      return accepted.has(home)||accepted.has(away);
+      return accepted.has(home)||accepted.has(away)||!!targetKey&&(
+        mamCanonicalHistoryTeamKey(match?.teams?.home?.name)===targetKey||
+        mamCanonicalHistoryTeamKey(match?.teams?.away?.name)===targetKey
+      );
     });
   };
   try{
     const cached=JSON.parse(localStorage.getItem(teamCacheKey)||"null");
-    if(Array.isArray(cached?.matches)&&Date.now()-cached.time<10*60*1000)return cached.matches;
+    if(Array.isArray(cached?.matches)&&Date.now()-cached.time<10*60*1000)return filterForTeam(cached.matches);
   }catch(_){}
-  let allMatches=null;
-  try{
-    const cached=JSON.parse(localStorage.getItem(sharedCacheKey)||"null");
-    if(Array.isArray(cached?.matches)&&Date.now()-cached.time<10*60*1000)allMatches=cached.matches;
-  }catch(_){}
-  if(!allMatches){
-    let pending=mamD1ArchiveInFlight.get(sharedCacheKey);
-    if(!pending){
-      pending=(async()=>{
-        const payload=await api("archive/matches?"+qs({
-          league:String(leagueId||""),before:String(matchDate||""),limit:2000
-        }));
-        const rows=Array.isArray(payload?.response)?payload.response:[];
-        try{localStorage.setItem(sharedCacheKey,JSON.stringify({time:Date.now(),matches:rows}));}catch(_){}
-        return rows;
-      })();
-      mamD1ArchiveInFlight.set(sharedCacheKey,pending);
-    }
-    try{
-      allMatches=await pending;
-    }finally{
-      if(mamD1ArchiveInFlight.get(sharedCacheKey)===pending)mamD1ArchiveInFlight.delete(sharedCacheKey);
-    }
+  let pending=mamD1ArchiveInFlight.get(teamCacheKey);
+  if(!pending){
+    pending=(async()=>{
+      const payload=await api("archive/matches?"+qs({
+        league:String(leagueId||""),before:String(matchDate||""),limit:240,teamNames:searchNames.join(",")
+      }));
+      const rows=Array.isArray(payload?.response)?payload.response.map(match=>({
+        ...match,mamSource:String(match?.mamSource||match?.source||"app").toLowerCase(),mamArchiveOnly:true
+      })):[];
+      try{localStorage.setItem(teamCacheKey,JSON.stringify({time:Date.now(),matches:rows}));}catch(_){}
+      return rows;
+    })();
+    mamD1ArchiveInFlight.set(teamCacheKey,pending);
   }
-  const matches=filterForTeam(allMatches);
-  try{localStorage.setItem(teamCacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
-  return matches;
+  try{return filterForTeam(await pending);}
+  finally{if(mamD1ArchiveInFlight.get(teamCacheKey)===pending)mamD1ArchiveInFlight.delete(teamCacheKey);}
 }
 const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 async function mamFindEspnHistoricalEvent(match,leagueId){
@@ -6732,7 +6748,7 @@ function mamEnrichHistoricalStats(matches,leagueId){
   if(!needsStats(match))return false;
   const id=String(match.fixture?.id||"");
   const isEspn=id.startsWith("espn-")||String(match.mamSource||"").toLowerCase()==="espn";
-  const isFixtureDownload=id.startsWith("fd-uefa-");
+  const isFixtureDownload=id.startsWith("fd-uefa-")||String(match.mamSource||match.source||"").toLowerCase()==="fixture-download-uefa";
   const providerId=isEspn&&id.startsWith("espn-")?id.slice(id.lastIndexOf("-")+1):id;
   return isFixtureDownload||/^\d+$/.test(providerId);
  }).slice(0,String(leagueId)==="848"?20:8);
@@ -6741,7 +6757,7 @@ function mamEnrichHistoricalStats(matches,leagueId){
   try{
    const id=String(match.fixture?.id||"");
    const isEspn=id.startsWith("espn-")||String(match.mamSource||"").toLowerCase()==="espn";
-   const isFixtureDownload=id.startsWith("fd-uefa-");
+   const isFixtureDownload=id.startsWith("fd-uefa-")||String(match.mamSource||match.source||"").toLowerCase()==="fixture-download-uefa";
    let providerId=isEspn&&id.startsWith("espn-")?id.slice(id.lastIndexOf("-")+1):id;
    if(isFixtureDownload){if(!["2","3","848"].includes(String(leagueId)))return;providerId=await mamFindEspnHistoricalEvent(match,leagueId);if(!providerId)return;}
    const fresh=(isEspn||isFixtureDownload)?await getEspnMatchStats(leagueId,providerId):await getApiFootballMatchStats(providerId);
@@ -6754,7 +6770,7 @@ function mamEnrichHistoricalStats(matches,leagueId){
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false, teamSource=""){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v77_"+leagueId+"_"+teamSource+"_"+teamId+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v78_"+leagueId+"_"+teamSource+"_"+teamId+"_"+mamCanonicalHistoryTeamKey(teamName)+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -6765,7 +6781,8 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         if(saved.matches.length<10)throw new Error("Geçmiş cache duplicate temizliği sonrası yetersiz.");
         // Eski cache kayıtlarında maç sonucu var ama istatistikler eksik olabilir.
         // Cache hit olsa bile yalnızca eksik istatistikleri tamamlamayı dene.
-        const enriched=await mamEnrichHistoricalStats(saved.matches,leagueId);
+        const d1ArchiveMatchCount=saved.matches.filter(match=>match?.mamArchiveOnly===true).length;
+        const enriched=d1ArchiveMatchCount>=10?{changed:false}:await mamEnrichHistoricalStats(saved.matches,leagueId);
         if(enriched.changed){
           const preservedArchive=archiveMatches.map(match=>{
            const identity=mamHistoricalIdentity(match);
@@ -7009,12 +7026,13 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   };
   const targetCanonical=serieACanonical(teamName);
   const isUefaTarget=["2","3","848"].includes(String(leagueId));
-  const isTarget=name=>isUefaTarget?mamUefaTeamMatch(name,teamName):(accepted.has(normalize(name))||serieACanonical(name)===targetCanonical);
+  const canonicalTeamTarget=mamCanonicalHistoryTeamKey(teamName);
+  const isTarget=name=>isUefaTarget?mamUefaTeamMatch(name,teamName):(accepted.has(normalize(name))||serieACanonical(name)===targetCanonical||!!canonicalTeamTarget&&mamCanonicalHistoryTeamKey(name)===canonicalTeamTarget);
   const output=[];
   let sourceError="";
 
   const addMatch=m=>{
-    if(!mamHistoryCompetitionAllowed(m,leagueId))return;
+    if(!mamHistoryCompetitionAllowed(m,leagueId)||!mamHasCompletedScore(m))return;
     const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
     const hm=(m.mamSource==="football-data-team"&&Number(m.teams?.home?.id)===Number(teamId))||isTarget(h),am=(m.mamSource==="football-data-team"&&Number(m.teams?.away?.id)===Number(teamId))||isTarget(a);
     if(hm===am)return;
@@ -7086,13 +7104,14 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // Önce kalıcı D1 arşivini oku; yerel CSV ve canlı sağlayıcılar eksik kalan maçları tamamlar.
   try{
     const d1Matches=await mamLoadD1LeagueArchive(leagueId,matchDate,teamName,teamId,teamSource,accepted);
-    for(const match of d1Matches)addMatch(match);
+    for(const match of d1Matches)addMatch({...match,mamSource:String(match?.mamSource||match?.source||"app").toLowerCase(),mamArchiveOnly:true});
   }catch(d1Error){
     sourceError+=" D1 arşivi: "+String(d1Error?.message||d1Error);
   }
+  const d1ArchiveMatchCount=output.filter(match=>match?.mamArchiveOnly===true).length;
 
   const folder=leagues[String(leagueId)];
-  if(folder){
+  if(folder&&output.length<10){
     // Mevcut sezon ve önceki iki sezonun CSV arşivini paralel tara; iki ayna kaynağı da zaman aşımıyla sınırla.
     // Eski seri istek düzeni iPhone'da uzun süre "geçmiş maçlar alınıyor" ekranında kalabiliyordu.
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
@@ -7199,7 +7218,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // 2024/25, 2025/26 ve mevcut sezon sonuçlarını birlikte tara.
   // Örnek: Fenerbahçe 2025/26'da Avrupa Ligi'nde oynadığı için CL analizinde de
   // bu gerçek maçlar takım geçmişine katılmalıdır.
-  if(["2","3","848"].includes(String(leagueId))){
+  if(["2","3","848"].includes(String(leagueId))&&output.length<10){
     const uefaFeeds=String(leagueId)==="848"?["conference-league"]:String(leagueId)==="3"?["europa-league"]:["champions-league"];
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const currentSeasonStart=matchMonth>=7?matchYear:matchYear-1;
@@ -7263,7 +7282,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
 
   // UEFA geçmiş sezonları: tüm turnuvayı tek sefer indirip yerel ortak önbellekte tut.
   // Böylece her takım için ayrı ayrı API çağrısı yapılmaz; bütün takımlar aynı doğrulanmış arşivi kullanır.
-  if(["2","3"].includes(String(leagueId))){
+  if(["2","3"].includes(String(leagueId))&&output.length<10){
     const competitionCode=({"2":"CL","3":"EL"})[String(leagueId)];
     const matchYear=Number(matchDate.slice(0,4)),matchMonth=Number(matchDate.slice(5,7));
     const seasonStart=matchMonth>=7?matchYear:matchYear-1;
@@ -7301,7 +7320,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // Football-data team endpoint: UEFA takımlarının yalnızca Avrupa maçlarını değil,
   // aynı kulübün lig ve kupa maçlarını da tek bir doğrulanmış takım ID'siyle getir.
   // Böylece yeni katılan veya önceki sezonlarda Avrupa'da az maç yapan takımlar da analiz edilebilir.
-  if(["2","3"].includes(String(leagueId))&&String(sourceFixtureId||"").startsWith("fd-")&&/^\d+$/.test(String(teamId))){
+  if(["2","3"].includes(String(leagueId))&&output.length<10&&String(sourceFixtureId||"").startsWith("fd-")&&/^\d+$/.test(String(teamId))){
     try{
       const endDate=matchDate;
       const startDate=new Date(matchDate+"T12:00:00Z");
@@ -7505,7 +7524,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   uniqueOutput.sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
   const result=uniqueOutput.slice(0,20);
   // Eksik alanları kaynak sağlayıcıdan tamamla; mevcut CSV/ESPN alanlarını koru.
-  await mamEnrichHistoricalStats(result,leagueId);
+  if(d1ArchiveMatchCount<10)await mamEnrichHistoricalStats(result,leagueId);
   // Bulunan tamamlanmış takım maçlarını merkezi D1 arşivine kaydet.
   await mamSaveMatchesToD1(result,leagueId);
   try{localStorage.setItem(key,JSON.stringify({time:Date.now(),matches:result}));}catch(e){}
@@ -8637,7 +8656,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   screen.setAttribute("role","dialog");
   screen.setAttribute("aria-modal","true");
   screen.setAttribute("aria-label",teamName+" takım profili");
-  screen.style.cssText="position:fixed!important;top:0!important;right:0!important;bottom:0!important;left:0!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;z-index:2147483000!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;transform:none!important;contain:none!important;background:#07131d!important;color:#f4faf8!important;font-family:Arial,sans-serif!important;font-size:14px!important;line-height:1.35!important;-webkit-text-size-adjust:100%!important;box-sizing:border-box!important;";
+  screen.style.cssText="position:fixed!important;top:0!important;right:0!important;bottom:0!important;left:0!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;z-index:2147483647!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;transform:none!important;contain:none!important;background:#07131d!important;color:#f4faf8!important;font-family:Arial,sans-serif!important;font-size:14px!important;line-height:1.35!important;-webkit-text-size-adjust:100%!important;box-sizing:border-box!important;";
   screen.innerHTML='<style>#mamTeamHistoryScreen,#mamTeamHistoryScreen *{box-sizing:border-box!important;-webkit-text-size-adjust:100%!important;letter-spacing:normal!important}#mamTeamHistoryScreen header{flex:0 0 auto!important;min-height:64px!important;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px!important;gap:10px!important}#mamTeamHistoryScreen header button{flex:0 0 38px!important;width:38px!important;height:38px!important;min-height:38px!important;padding:0!important;font-size:22px!important;line-height:1!important}#mamTeamHistoryScreen header small{font-size:9px!important;line-height:1.2!important}#mamTeamHistoryScreen header strong{font-size:16px!important;line-height:1.25!important}#mamTeamHistoryScreen header span{font-size:10px!important}#mamTeamHistoryContent{flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px)!important}#mamTeamHistoryContent article{min-height:64px!important;padding:10px!important;gap:8px!important;border-radius:12px!important}#mamTeamHistoryContent article b{font-size:12px!important;line-height:1.3!important}#mamTeamHistoryContent article small{font-size:10px!important;line-height:1.2!important}#mamTeamHistoryContent article strong{font-size:15px!important;line-height:1!important}#mamTeamHistoryContent article>span:first-child{width:28px!important;height:28px!important;font-size:12px!important} /* MAM_TEAM_HISTORY_RED_GOLD_V6: approved red-black-gold team history and fixture design */ #mamTeamHistoryScreen{background:radial-gradient(ellipse at 50% 18%,rgba(190,0,38,.18),transparent 48%),linear-gradient(160deg,#080912 0%,#170912 54%,#080912 100%)!important;color:#fff!important} #mamTeamHistoryScreen header{background:linear-gradient(110deg,#160a14,#250913 58%,#100a16)!important;border-bottom:1px solid rgba(255,55,82,.42)!important;box-shadow:0 6px 22px rgba(0,0,0,.38)!important} #mamTeamHistoryScreen header small{color:#ff687b!important} #mamTeamHistoryScreen header strong{color:#fff!important} #mamTeamHistoryScreen header button{background:linear-gradient(135deg,#a90d2b,#4b071d)!important;border:1px solid #ff3e5d!important;color:#fff!important;box-shadow:0 0 14px rgba(255,35,75,.2)!important} #mamTeamHistoryContent{background:radial-gradient(ellipse at 80% 10%,rgba(255,0,50,.12),transparent 45%),linear-gradient(180deg,#100a13,#080912)!important} #mamTeamHistoryContent [data-history-view]{min-height:44px!important;border:1px solid rgba(255,70,95,.42)!important;border-radius:13px!important;background:linear-gradient(145deg,#1b111c,#100c16)!important;color:#f7edf1!important;font-size:12px!important;box-shadow:none!important} #mamTeamHistoryContent [data-history-view][aria-selected="true"]{background:linear-gradient(135deg,#ffbd18,#e58a00)!important;color:#160d06!important} #mamTeamHistoryContent .mam-team-history-banner{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:14px;border:1px solid #ff405c;border-radius:18px;background:radial-gradient(ellipse at 85% 20%,rgba(255,0,58,.28),transparent 55%),linear-gradient(110deg,#3a0718,#170a17 70%,#310b1b);box-shadow:0 0 18px rgba(255,35,75,.18)} #mamTeamHistoryContent .mam-team-history-banner-mark{display:grid;place-items:center;flex:0 0 54px;width:54px;height:54px;border-radius:50%;border:2px solid #ffb800;background:#100b14;color:#ffc928;font-size:27px} #mamTeamHistoryContent .mam-team-history-banner strong{display:block;color:#fff;font-size:19px;font-weight:950} #mamTeamHistoryContent .mam-team-history-banner small{display:block;margin-top:4px;color:#ffbd23;font-size:12px;font-weight:850} #mamTeamHistoryContent #mamHistoryPastView>section>div:first-child span:first-child,#mamTeamHistoryContent #mamHistoryUpcomingView>section>div:first-child{color:#ffbd2e!important} #mamTeamHistoryContent #mamHistoryPastView article{min-height:72px!important;padding:11px!important;gap:11px!important;border:1px solid rgba(255,67,91,.68)!important;border-radius:15px!important;background:linear-gradient(110deg,#250d1a,#110d18 62%,#1d0b19)!important;box-shadow:inset 0 0 16px rgba(255,25,62,.07),0 5px 16px rgba(0,0,0,.22)!important} #mamTeamHistoryContent #mamHistoryPastView article>span:first-child{width:34px!important;height:34px!important;border-radius:11px!important;font-size:13px!important;font-weight:950!important} #mamTeamHistoryContent #mamHistoryPastView article>span:nth-child(2) b{color:#fff!important;font-size:13px!important} #mamTeamHistoryContent #mamHistoryPastView article>span:nth-child(2) small{color:#c9b9c2!important;font-size:11px!important} #mamTeamHistoryContent #mamHistoryPastView article>strong{color:#fff!important;font-size:17px!important;font-weight:950!important} #mamTeamHistoryContent #mamHistoryUpcomingView>section>div[style*="overflow:hidden"]{border:1px solid rgba(255,67,91,.7)!important;border-radius:17px!important;background:#100b15!important;box-shadow:0 0 16px rgba(255,30,70,.13)!important} #mamTeamHistoryContent #mamHistoryUpcomingView>section>div[style*="overflow:hidden"]>div:first-child{background:linear-gradient(110deg,#3a0718,#180d19)!important;color:#fff!important;border-bottom:1px solid rgba(255,67,91,.4)!important} #mamTeamHistoryContent .mam-upcoming-match{margin:10px 0!important;padding:12px!important;border:1px solid rgba(255,70,95,.78)!important;border-radius:17px!important;background:linear-gradient(145deg,#230d1b,#100c17 58%,#1b0b19)!important;box-shadow:inset 0 0 16px rgba(255,25,62,.07),0 5px 16px rgba(0,0,0,.24)!important} #mamTeamHistoryContent .mam-upcoming-match .match-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:7px!important;padding:0 0 10px!important;border-bottom:1px solid rgba(255,75,95,.28)!important} #mamTeamHistoryContent .mam-upcoming-match .league-label{color:#f1dce4!important;font-size:10px!important} #mamTeamHistoryContent .mam-upcoming-match .match-time{color:#ffca35!important;font-weight:900!important;font-size:11px!important} #mamTeamHistoryContent .mam-upcoming-match .match-versus{display:grid!important;grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr)!important;align-items:center!important;gap:5px!important;padding:14px 0!important} #mamTeamHistoryContent .mam-upcoming-match .team-block{display:flex!important;flex-direction:column!important;align-items:center!important;gap:6px!important;min-width:0!important} #mamTeamHistoryContent .mam-upcoming-match .team-block strong{color:#fff!important;text-align:center!important;font-size:13px!important;line-height:1.25!important} #mamTeamHistoryContent .mam-upcoming-match .team-block img{width:38px!important;height:38px!important;object-fit:contain!important} #mamTeamHistoryContent .mam-upcoming-match .match-center .match-clock{color:#ffcf36!important;font-size:18px!important;font-weight:950!important} #mamTeamHistoryContent .mam-upcoming-match .match-center small{color:#cbb9c4!important;font-size:10px!important} #mamTeamHistoryContent .mam-upcoming-match .match-actions{display:block!important;border:0!important;padding:0!important} #mamTeamHistoryContent .mam-upcoming-match .match-actions .small{display:none!important} #mamTeamHistoryContent .mam-upcoming-match .predBtn{width:100%!important;min-height:43px!important;border:1px solid #ffd13c!important;border-radius:13px!important;background:linear-gradient(135deg,#ffc928,#e38b00)!important;color:#1b1005!important;font-size:12px!important;font-weight:950!important;box-shadow:0 0 14px rgba(255,183,25,.22)!important} #mamTeamHistoryContent .mam-upcoming-match .pred{color:#d8cbd2!important;font-size:10px!important} #mamTeamHistoryContent .mam-history-empty{padding:14px;border:1px dashed rgba(255,89,110,.48);border-radius:14px;background:#180e19;color:#d8c4ce} @media(max-width:390px){#mamTeamHistoryContent .mam-upcoming-match{padding:9px!important}#mamTeamHistoryContent .mam-upcoming-match .team-block strong{font-size:11px!important}#mamTeamHistoryContent .mam-upcoming-match .match-versus{grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr)!important}} /* MAM_APPROVED_NAVY_GOLD_SYSTEM_V9 */ :root{color-scheme:dark;--bg:#061226!important;--panel:#0d1b34!important;--muted:#aab9d1!important;--line:rgba(118,151,205,.38)!important;--accent:#ffc52e!important;--accent-2:#8c69ff!important;--warn:#ffd36a!important} html,body{background:#061226!important;color:#f5f7ff!important} body{background:radial-gradient(ellipse at 12% -8%,rgba(124,84,255,.18),transparent 35rem),radial-gradient(ellipse at 100% 8%,rgba(255,192,43,.09),transparent 28rem),linear-gradient(180deg,#07152c 0%,#061226 55%,#08172d 100%)!important} main{max-width:900px!important} .mam-appbar,.top.mam-appbar{background:linear-gradient(110deg,#0a1730,#101a38 62%,#0a142b)!important;border:1px solid rgba(137,160,220,.38)!important;border-radius:19px!important;box-shadow:0 10px 28px rgba(0,0,0,.3)!important} .mam-brand,.mam-brand span{color:#fff!important} .mam-search-trigger{background:linear-gradient(135deg,#7650e8,#4324a7)!important;border:1px solid #9c83ff!important;color:#fff!important;box-shadow:0 0 16px rgba(125,85,255,.24)!important} .mam-new-page-link{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:38px;padding:0 8px;border:1px solid #ffc52e;border-radius:11px;background:linear-gradient(135deg,#17264a,#0d1933);color:#fff!important;text-decoration:none;font-size:10px;font-weight:900;white-space:nowrap} .mam-section-header,.mam-live-nav,.mam-bottom-nav{background:rgba(7,18,39,.97)!important;border-color:rgba(132,157,218,.4)!important;box-shadow:0 8px 26px rgba(0,0,0,.25)!important} .mam-bottom-nav button{color:#c7d2e8!important}.mam-bottom-nav button.active{color:#c29aff!important;background:linear-gradient(180deg,rgba(125,83,255,.24),rgba(125,83,255,.08))!important} .panel,.mam-standings-card,.mam-standings-group,.mam-standings-leagues button{background:linear-gradient(145deg,#101f3d,#0a1730)!important;border:1px solid rgba(115,148,207,.4)!important;color:#f4f7ff!important;box-shadow:0 10px 28px rgba(0,0,0,.2)!important} button,.mam-standings-card-head button,.mam-date-chip{background:linear-gradient(135deg,#ffc72e,#e99c12)!important;color:#171326!important;border:1px solid #ffda68!important;box-shadow:0 5px 15px rgba(255,190,35,.14)!important} button.secondary,.mam-section-back,.mam-date-chip:not(.active){background:linear-gradient(135deg,#17294c,#0c1a34)!important;color:#f3f6ff!important;border:1px solid rgba(143,166,224,.48)!important;box-shadow:none!important} input,select,.league-trigger{background:#09172e!important;color:#fff!important;border:1px solid rgba(137,162,220,.52)!important} .mam-home-intro h1{font-size:clamp(23px,5vw,31px)!important;line-height:1.15!important}.mam-home-intro p,.sub,.hint,.note,.footer{color:#aebdd5!important} .match,.match-modern,#matches .match,.mam-upcoming-match{background:linear-gradient(145deg,#101f3d,#0a1730)!important;border:1px solid rgba(255,197,46,.55)!important;border-radius:17px!important;box-shadow:0 7px 20px rgba(0,0,0,.23)!important;color:#f5f7ff!important} .meta,.match .meta,.match-modern .match-meta{color:#c1cce2!important}.teams,.team-block strong{color:#fff!important}.score,.match-clock,.match-time{color:#ffd34f!important} .stat,.statgrid .stat{background:linear-gradient(145deg,#13264a,#0b1933)!important;border:1px solid rgba(111,145,207,.52)!important;border-radius:15px!important;color:#f5f7ff!important} .stat span,.stat .note{color:#b9c8e1!important}.section-title{color:#c29aff!important;font-size:13px!important;letter-spacing:.2px!important} .bar{background:#263b60!important}.bar i{background:linear-gradient(90deg,#8b69ff,#ffc52e)!important} #mamStandingsScreen .mam-standings-intro>span{color:#c29aff!important}#mamStandingsScreen .mam-standings-intro h2{color:#fff!important;font-size:clamp(25px,5vw,32px)!important}#mamStandingsScreen .mam-standings-intro p{color:#b8c6df!important} #mamStandingsScreen .mam-standings-leagues button{background:linear-gradient(145deg,#13264a,#0b1933)!important;color:#f4f7ff!important;border:1px solid rgba(125,151,214,.46)!important} #mamStandingsScreen .mam-standings-leagues button.active{background:linear-gradient(135deg,#ffc72e,#e99c12)!important;color:#191326!important;border-color:#ffe080!important} #mamStandingsScreen .mam-standings-card{background:linear-gradient(145deg,#101f3d,#0a1730)!important;border:1px solid rgba(255,197,46,.62)!important;border-radius:20px!important} #mamStandingsScreen .mam-standings-banner{background:radial-gradient(ellipse at 80% 20%,rgba(255,197,46,.16),transparent 55%),linear-gradient(110deg,#18284c,#0b1730 68%,#182447)!important;border:1px solid #ffc52e!important;border-radius:18px!important;box-shadow:0 0 17px rgba(255,197,46,.12)!important} #mamStandingsScreen .mam-standings-flag{border-color:#ffc52e!important;color:#ffc52e!important} #mamStandingsScreen .mam-standings-card-head{border-color:rgba(142,164,219,.3)!important}#mamStandingsScreen .mam-standings-card-head small{color:#ffc52e!important}#mamStandingsScreen .mam-standings-card-head h3{color:#fff!important;font-size:18px!important} #mamStandingsScreen .mam-standings-card-head button{background:linear-gradient(135deg,#17294c,#0c1a34)!important;color:#fff!important;border:1px solid #ffc52e!important} #mamStandingsScreen .mam-standings-table th{background:#1a2b50!important;color:#e4ebff!important;border-color:rgba(146,169,223,.3)!important} #mamStandingsScreen .mam-standings-table td{background:#0d1b35!important;color:#dce6fa!important;border-color:rgba(130,157,216,.25)!important} #mamStandingsScreen .mam-standings-table .mam-team-name-cell{color:#fff!important}#mamStandingsScreen .mam-standings-table td:first-child{color:#ffc52e!important} #mamStandingsScreen .mam-standings-table .mam-points-cell b{background:rgba(255,197,46,.13)!important;border-color:rgba(255,197,46,.55)!important;color:#ffda68!important} #mamStandingsScreen .mam-standings-table tr.zone-top td{background:rgba(10,72,65,.55)!important}#mamStandingsScreen .mam-standings-table tr.zone-europe td{background:rgba(16,49,99,.65)!important}#mamStandingsScreen .mam-standings-table tr.zone-mid td{background:#0d1b35!important}#mamStandingsScreen .mam-standings-table tr.zone-bottom td{background:rgba(77,25,54,.5)!important} #mamStandingsScreen .mam-standings-legend,#mamStandingsScreen .mam-standings-note{color:#bdcbe3!important} #mamTeamHistoryScreen{background:radial-gradient(ellipse at 50% 10%,rgba(121,82,255,.14),transparent 44%),linear-gradient(160deg,#061226,#0c1b37 55%,#061226)!important;color:#f5f7ff!important} #mamTeamHistoryScreen header{background:linear-gradient(110deg,#0a1730,#142348 58%,#0a142b)!important;border-bottom:1px solid rgba(255,197,46,.45)!important} #mamTeamHistoryScreen header small{color:#ffc52e!important}#mamTeamHistoryScreen header button{background:linear-gradient(135deg,#7650e8,#4324a7)!important;border:1px solid #9c83ff!important;color:#fff!important} #mamTeamHistoryContent{background:linear-gradient(180deg,#0a1730,#061226)!important} #mamTeamHistoryContent .mam-team-history-banner{border:1px solid #ffc52e!important;background:radial-gradient(ellipse at 85% 20%,rgba(255,197,46,.12),transparent 55%),linear-gradient(110deg,#17294c,#0a1730 70%,#172447)!important;box-shadow:0 0 17px rgba(255,197,46,.1)!important} #mamTeamHistoryContent .mam-team-history-banner-mark{border-color:#ffc52e!important;color:#ffc52e!important}#mamTeamHistoryContent .mam-team-history-banner small{color:#ffc52e!important} #mamTeamHistoryContent [data-history-view]{border:1px solid rgba(255,197,46,.5)!important;background:linear-gradient(145deg,#17294c,#0c1a34)!important;color:#fff!important} #mamTeamHistoryContent [data-history-view][aria-selected="true"]{background:linear-gradient(135deg,#ffc72e,#e99c12)!important;color:#171326!important} #mamTeamHistoryContent #mamHistoryPastView article,#mamTeamHistoryContent .mam-upcoming-match{border:1px solid rgba(255,197,46,.58)!important;border-radius:16px!important;background:linear-gradient(145deg,#13264a,#0a1730)!important;box-shadow:0 7px 18px rgba(0,0,0,.23)!important} #mamTeamHistoryContent #mamHistoryPastView article b,#mamTeamHistoryContent .mam-upcoming-match .team-block strong{color:#fff!important}#mamTeamHistoryContent #mamHistoryPastView article small{color:#b9c8e1!important} #mamTeamHistoryContent #mamHistoryPastView article>strong,#mamTeamHistoryContent .mam-upcoming-match .match-time{color:#ffd34f!important} #mamTeamHistoryContent .mam-upcoming-match .match-head{border-color:rgba(255,197,46,.35)!important}#mamTeamHistoryContent .mam-upcoming-match .league-label{color:#dce6fa!important} #mamTeamHistoryContent .mam-upcoming-match .predBtn{background:linear-gradient(135deg,#ffc72e,#e99c12)!important;color:#171326!important;border:1px solid #ffe080!important} #mamTeamHistoryContent #mamHistoryPastView article>span:first-child{border:1px solid rgba(255,197,46,.35)!important} @media(max-width:560px){.mam-new-page-link{min-height:34px;padding:0 7px;font-size:9px}.mam-new-page-link span{display:inline}.mam-standings-card{padding:11px!important}} /* FINAL REFERENCE OVERRIDE: team fixtures screen */ #mamTeamHistoryScreen{background:radial-gradient(ellipse at 50% 0%,#183465 0%,#0a1b39 48%,#050e22 100%)!important;color:#f7f8ff!important} #mamTeamHistoryScreen header{background:linear-gradient(110deg,#172f5d,#091832)!important;border-bottom:1px solid #f4bd36!important} #mamTeamHistoryScreen header small{color:#ffe08a!important} #mamTeamHistoryScreen header button{background:linear-gradient(145deg,#1d3b70,#0d1d3c)!important;border:1px solid #f4bd36!important;color:#ffe08a!important} #mamTeamHistoryContent{background:transparent!important} #mamTeamHistoryContent .mam-team-history-banner{background:linear-gradient(110deg,#1c3a70,#0a1a37)!important;border:1.5px solid #f4bd36!important;border-radius:15px!important;box-shadow:0 0 18px rgba(244,189,54,.13)!important} #mamTeamHistoryContent .mam-team-history-banner-mark{background:#0a1b38!important;border:2px solid #f4bd36!important;color:#ffe08a!important} #mamTeamHistoryContent [data-history-view]{background:linear-gradient(145deg,#172f59,#0c1c39)!important;border:1px solid rgba(244,189,54,.55)!important;color:#f4f6ff!important;border-radius:11px!important} #mamTeamHistoryContent [data-history-view][aria-selected="true"]{background:linear-gradient(135deg,#ffe08a,#e7aa2b)!important;color:#15213a!important;border-color:#fff0b5!important} #mamTeamHistoryContent #mamHistoryPastView article,#mamTeamHistoryContent .mam-upcoming-match{background:linear-gradient(145deg,#17325f,#0a1a36)!important;border:1px solid rgba(244,189,54,.7)!important;border-radius:14px!important;box-shadow:0 6px 18px rgba(0,0,0,.3)!important} #mamTeamHistoryContent #mamHistoryPastView article>strong,#mamTeamHistoryContent #mamHistoryPastView article b,#mamTeamHistoryContent .mam-upcoming-match .team-block strong{color:#fff!important} #mamTeamHistoryContent #mamHistoryPastView article small,#mamTeamHistoryContent .mam-upcoming-match .league-label{color:#c4d1e8!important} #mamTeamHistoryContent .mam-upcoming-match .match-time,#mamTeamHistoryContent .mam-upcoming-match .match-clock{color:#ffe08a!important} #mamTeamHistoryContent .mam-upcoming-match .match-head{border-bottom:1px solid rgba(244,189,54,.32)!important} #mamTeamHistoryContent .mam-upcoming-match .predBtn{background:linear-gradient(135deg,#ffe08a,#e8aa2a)!important;color:#14203a!important;border:1px solid #fff0b5!important;border-radius:11px!important;box-shadow:0 0 13px rgba(244,189,54,.16)!important} #mamTeamHistoryContent .mam-history-empty{background:#102448!important;border:1px dashed rgba(244,189,54,.55)!important;color:#dce6fa!important}<\/style><header style="flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px;background:#0d1c29;border-bottom:1px solid rgba(255,255,255,.12);"><button type="button" id="mamTeamHistoryBack" style="width:38px;height:38px;min-height:38px;border-radius:50%;background:#203345;color:#fff;border:1px solid rgba(255,255,255,.16);font-size:22px;">‹</button><div style="flex:1;min-width:0;"><small style="display:block;color:#66dcb2;font-size:9px;font-weight:900;">'+(esc(standingCompetitionNames[String(leagueId)]||ESPN_LEAGUES[String(leagueId)]?.name||"LİG")+" · TAKIM MAÇLARI")+'</small><strong style="display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(teamName)+'</strong></div><span style="font-size:10px;color:#a9bac6;">SON 10</span></header><main id="mamTeamHistoryContent" style="flex:1 1 0;min-height:0;overflow-y:auto!important;-webkit-overflow-scrolling:touch;padding:12px 12px calc(env(safe-area-inset-bottom) + 16px);background:linear-gradient(180deg,#0b1c29,#07131d);"><div style="padding:12px;border-radius:12px;background:#132b38;color:#b9cbd0;font-size:12px;">Son 10 tamamlanmış maç aranıyor…</div></main>';
   const standing=document.createElement("p");
   standing.style.cssText="margin:8px 14px;color:#b9d7eb";
@@ -8649,15 +8668,52 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   for(const [element] of background)element.inert=true;
   document.body.appendChild(screen);
   document.body.style.overflow="hidden";
+  let closed=false,touchCloseTimer=0;
   const close=()=>{
+   if(closed)return;
+   closed=true;
+   window.clearTimeout(touchCloseTimer);
+   touchCloseTimer=0;
    screen.remove();
    document.body.style.overflow=previousOverflow;
    for(const [element,wasInert] of background)element.inert=wasInert;
    document.querySelectorAll(".mam-standing-team-row").forEach(x=>x.classList.remove("active"));
-   returnFocus?.focus({preventScroll:true});
+   try{returnFocus?.focus({preventScroll:true});}catch(_){try{returnFocus?.focus();}catch(__){}}
   };
-  const back=screen.querySelector("#mamTeamHistoryBack");
-  back.addEventListener("click",close);
+  let back=screen.querySelector("#mamTeamHistoryBack");
+  if(!back){
+   back=document.createElement("button");
+   back.id="mamTeamHistoryBack";
+   back.type="button";
+   back.textContent="‹";
+   const header=screen.querySelector("header");
+   if(header)header.prepend(back);
+   else{
+    const fallbackHeader=document.createElement("header");
+    fallbackHeader.style.cssText="flex:0 0 auto;display:flex;align-items:center;min-height:64px;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px;";
+    fallbackHeader.append(back);
+    screen.prepend(fallbackHeader);
+   }
+  }
+  const header=screen.querySelector("header");
+  header?.style.setProperty("display","flex","important");
+  header?.style.setProperty("visibility","visible","important");
+  back.setAttribute("aria-label","Geri");
+  back.style.setProperty("display","grid","important");
+  back.style.setProperty("place-items","center","important");
+  back.style.setProperty("position","relative","important");
+  back.style.setProperty("z-index","1","important");
+  back.style.setProperty("visibility","visible","important");
+  back.style.setProperty("opacity","1","important");
+  back.style.setProperty("pointer-events","auto","important");
+  back.style.setProperty("flex-basis","44px","important");
+  back.style.setProperty("width","44px","important");
+  back.style.setProperty("height","44px","important");
+  back.style.setProperty("min-height","44px","important");
+  back.style.setProperty("touch-action","manipulation","important");
+  back.style.setProperty("-webkit-tap-highlight-color","transparent");
+  back.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();window.clearTimeout(touchCloseTimer);touchCloseTimer=0;close();});
+  back.addEventListener("pointerup",event=>{if(event.pointerType==="touch"){event.stopPropagation();window.clearTimeout(touchCloseTimer);touchCloseTimer=window.setTimeout(()=>{touchCloseTimer=0;close();},120);}},{passive:true});
   back.focus();
   screen.addEventListener("keydown",event=>{if(event.key==="Escape"){event.preventDefault();event.stopPropagation();close();}});
 
@@ -9318,7 +9374,8 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
  const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const normalize=value=>String(value??'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i');
  const read=key=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{return {};}};
- let previousFocus=null;
+ let previousFocus=null,teamSearchCatalog=null,teamSearchSource=null,teamSearchSourceLength=-1,teamSearchCatalogVersion=-1,teamSearchDirectoryVersion=0,drawTimer=0;
+ const teamSearchRendered=new Map();
  // Public ESPN team directories supplement fixture-only results. No API-Football calls.
  const ESPN_LEAGUES=['tur.1','eng.1','esp.1','ita.1','ger.1','fra.1','ned.1','por.1','usa.1','bra.1','arg.1','uefa.champions','uefa.europa','uefa.europa.conf'];
  // Keep essential Turkish clubs searchable when ESPN's directory is partial or blocked in Safari.
@@ -9330,6 +9387,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
  async function loadDirectory(){
   if(directoryLoading||directoryLoaded)return;
   directoryLoading=true;
+  const initialDirectorySize=directory.size;
   const requests=ESPN_LEAGUES.map(async league=>{
    try{
     const response=await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/'+encodeURIComponent(league)+'/teams?limit=500',{signal:AbortSignal.timeout(9000)});
@@ -9341,10 +9399,11 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   });
   await Promise.all(requests);
   directoryLoading=false;
+  if(directory.size!==initialDirectorySize)teamSearchDirectoryVersion++;
   if(directory.size){directoryLoaded=true;try{localStorage.setItem(catalogKey,JSON.stringify({savedAt:Date.now(),teams:[...directory.values()]}));}catch{}}
-  if(!panel.hidden)draw();
+  if(!panel.hidden){teamSearchCatalog=null;scheduleDraw(false);}
  }
- function teams(){
+ function buildTeams(){
   const map=new Map();
   let rows=typeof allMatches!=='undefined'&&Array.isArray(allMatches)?allMatches:[];
   if(!rows.length){const saved=read('mam_product_hub_fixtures_v1');rows=Array.isArray(saved.matches)?saved.matches:[];}
@@ -9376,17 +9435,39 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   }
   return [...directoryTeams.values(),...unique.values()].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
  }
+ function getTeamSearchCatalog(){
+  const source=typeof allMatches!=='undefined'&&Array.isArray(allMatches)?allMatches:null;
+  const sourceLength=source?.length||0;
+  if(!teamSearchCatalog||source!==teamSearchSource||sourceLength!==teamSearchSourceLength||teamSearchCatalogVersion!==teamSearchDirectoryVersion){
+   teamSearchSource=source;teamSearchSourceLength=sourceLength;teamSearchCatalogVersion=teamSearchDirectoryVersion;
+   teamSearchCatalog=buildTeams().map(team=>({...team,searchText:[team.name,window.mamDisplayTeamName(team.name),team.league,window.mamDisplayLeagueName(team.league,team.country)].map(normalize).join('|')}));
+  }
+  return teamSearchCatalog;
+ }
  function draw(){
   const q=normalize(input.value.trim());
-  const all=teams();
-  const filtered=q?all.filter(t=>normalize(t.name).includes(q)||normalize(window.mamDisplayTeamName(t.name)).includes(q)||normalize(t.league).includes(q)||normalize(window.mamDisplayLeagueName(t.league,t.country)).includes(q)).slice(0,60):[];
-  document.getElementById('mamTeamSearchHelp').textContent=directoryLoading?'Takım rehberi yükleniyor…':q?'Takım arama sonuçları':'Takım adı veya lig yaz.';
+  const help=document.getElementById('mamTeamSearchHelp');
+  help.textContent=directoryLoading?'Takım rehberi yükleniyor…':q?'Takım arama sonuçları':'Takım adı veya lig yaz.';
+  if(!q){teamSearchRendered.clear();results.replaceChildren();return;}
+  const filtered=[];
+  for(const team of getTeamSearchCatalog())if(team.searchText.includes(q)){filtered.push(team);if(filtered.length===60)break;}
+  teamSearchRendered.clear();for(const team of filtered)teamSearchRendered.set(team.id,team);
   results.innerHTML=!q?'':filtered.map(t=>'<button type="button" class="mam-team-result" data-search-team="'+escapeHtml(t.id)+'" style="display:flex;width:100%;text-align:left;background:transparent;color:inherit;border:0;border-bottom:1px solid #41516f;padding:12px 0;cursor:pointer"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span></button>').join('')||'<p>'+(directoryLoading?'Takımlar yükleniyor…':'Bu isimde takım bulunamadı.')+'</p>';
+ }
+ function scheduleDraw(clearResults=true){
+  window.clearTimeout(drawTimer);
+  if(clearResults){
+   teamSearchRendered.clear();
+   results.replaceChildren();
+   const help=document.getElementById('mamTeamSearchHelp');
+   if(help)help.textContent=input.value.trim()?'Aranıyor…':directoryLoading?'Takım rehberi yükleniyor…':'Takım adı veya lig yaz.';
+  }
+  drawTimer=window.setTimeout(()=>{drawTimer=0;draw();},80);
  }
  results.addEventListener('click',event=>{
   const button=event.target.closest('[data-search-team]');
   if(!button)return;
-  const team=teams().find(t=>t.id===button.dataset.searchTeam);
+  const team=teamSearchRendered.get(button.dataset.searchTeam);
   if(!team)return;
   const open=window.mamOpenStandingTeamHistory;
   if(typeof open!=='function')return;
@@ -9402,11 +9483,11 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   open(row,profileLeagueIds[espnCode]||'203');
  });
  function hide(){panel.hidden=true;trigger.setAttribute('aria-expanded','false');document.body.style.overflow='';previousFocus?.focus();}
- trigger.addEventListener('click',()=>{previousFocus=document.activeElement;panel.hidden=false;trigger.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';input.value='';draw();loadDirectory();input.focus();});
+ trigger.addEventListener('click',()=>{previousFocus=document.activeElement;teamSearchCatalog=null;panel.hidden=false;trigger.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';input.value='';draw();loadDirectory();input.focus();});
  close.addEventListener('click',hide);
  panel.addEventListener('click',e=>{if(e.target===panel)hide();});
  document.addEventListener('keydown',e=>{if(!panel.hidden&&e.key==='Escape')hide();});
- input.addEventListener('input',draw);
+ input.addEventListener('input',scheduleDraw);
 
 })();
 </script>
