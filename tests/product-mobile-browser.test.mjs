@@ -118,13 +118,12 @@ async function verifyMainApp(context,browserName){
   await dialog.locator('[data-mam-star="1"]').click();
   await dialog.getByRole('button',{name:'⚽ Detay'}).click();
   const profileLink=dialog.getByRole('button',{name:'Erzurum BB takım profili'});
-  await main.evaluate(()=>{window.__teamHistoryLifecycle=[];const remove=Element.prototype.remove;Element.prototype.remove=function(){if(this.id==='mamTeamHistoryScreen')window.__teamHistoryLifecycle.push({type:'remove',stack:new Error().stack});return remove.apply(this,arguments);};new MutationObserver(records=>records.forEach(record=>record.removedNodes.forEach(node=>{if(node.id==='mamTeamHistoryScreen')window.__teamHistoryLifecycle.push({type:'detached',html:node.innerHTML.slice(-500)});}))).observe(document.body,{childList:true,subtree:true});});
   await profileLink.click();
   const fromDetail=main.getByRole('dialog',{name:'Erzurum BB takım profili',exact:true});
-  await main.waitForTimeout(100);
-  console.log(browserName+' team-history lifecycle '+JSON.stringify(await main.evaluate(()=>{const screen=document.getElementById('mamTeamHistoryScreen');return {exists:!!screen,buttons:[...(screen?.querySelectorAll('button')||[])].map(button=>({id:button.id,text:button.textContent,display:getComputedStyle(button).display,visibility:getComputedStyle(button).visibility,rect:button.getBoundingClientRect().toJSON()})),htmlTail:screen?.innerHTML.slice(-700),removals:window.__teamHistoryLifecycle};})));
   await fromDetail.waitFor({state:'visible',timeout:10000});
   await fromDetail.locator('#mamTeamHistoryBack').tap();
+  await fromDetail.waitFor({state:'detached'});
+  assert.equal(await dialog.isVisible(),true,browserName+' team-history back tap must leave match details open');
   assert.equal(await profileLink.evaluate(button=>button===document.activeElement),true);
   await dialog.getByRole('button',{name:/Olaylar/}).click();
   const events=dialog.locator('.match-detail-pane[data-pane="goals"]');

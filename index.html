@@ -8655,10 +8655,12 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   for(const [element] of background)element.inert=true;
   document.body.appendChild(screen);
   document.body.style.overflow="hidden";
-  let closed=false;
+  let closed=false,touchCloseTimer=0;
   const close=()=>{
    if(closed)return;
    closed=true;
+   window.clearTimeout(touchCloseTimer);
+   touchCloseTimer=0;
    screen.remove();
    document.body.style.overflow=previousOverflow;
    for(const [element,wasInert] of background)element.inert=wasInert;
@@ -8697,8 +8699,8 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   back.style.setProperty("min-height","44px","important");
   back.style.setProperty("touch-action","manipulation","important");
   back.style.setProperty("-webkit-tap-highlight-color","transparent");
-  back.addEventListener("click",event=>{event.preventDefault();close();});
-  back.addEventListener("pointerup",event=>{if(event.pointerType==="touch"){event.preventDefault();close();}},{passive:false});
+  back.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();window.clearTimeout(touchCloseTimer);touchCloseTimer=0;close();});
+  back.addEventListener("pointerup",event=>{if(event.pointerType==="touch"){event.stopPropagation();window.clearTimeout(touchCloseTimer);touchCloseTimer=window.setTimeout(()=>{touchCloseTimer=0;close();},120);}},{passive:true});
   back.focus();
   screen.addEventListener("keydown",event=>{if(event.key==="Escape"){event.preventDefault();event.stopPropagation();close();}});
 
