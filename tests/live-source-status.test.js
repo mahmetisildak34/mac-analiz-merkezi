@@ -157,20 +157,21 @@ test("today's ESPN scoreboard refreshes after five seconds and concurrent refres
  const key="mam_api_cache_v2_"+path;
  const payload={events:[{id:"401888243",date:"2026-11-22T10:30Z",status:{type:{state:"post",name:"STATUS_FULL_TIME",completed:true}}}]};
  const entries=new Map([[key,JSON.stringify({time:Date.now()-6000,data:payload})]]);
- let requests=0;
+ let requests=0,requestCache="";
  let respond;
  const api=require("node:vm").runInNewContext("const mamEspnPending=new Map();\n"+source+"\napi",{
   WORKER:"https://fixture.invalid",
   mamIstanbulDateString:()=>"2026-11-22",
   localStorage:{getItem:key=>entries.get(key),setItem:(key,value)=>entries.set(key,value)},
   AbortController,setTimeout,clearTimeout,
-  fetch:()=>{requests++;return new Promise(resolve=>{respond=()=>resolve({ok:true,json:async()=>payload});});}
+  fetch:(_url,options)=>{requests++;requestCache=options?.cache||"";return new Promise(resolve=>{respond=()=>resolve({ok:true,json:async()=>payload});});}
  });
  const first=api(path),second=api(path);
  assert.equal(requests,1);
  respond();
  assert.deepEqual(await first,payload);
  assert.deepEqual(await second,payload);
+ assert.equal(requestCache,"no-store","current ESPN scoreboard must bypass browser and intermediary HTTP caches");
  assert.equal(JSON.stringify(await api(path)),JSON.stringify(payload));
  assert.equal(requests,1);
 });
@@ -237,6 +238,8 @@ test("ESPN stoppage time and exact known status survive the real parser",()=>{
  assert.equal(parse[1]({competitions:[{status:{clock:540}}]}).displayClock,"9'");
  assert.equal(parse[1]({status:{displayClock:"2'",clock:2129}}).displayClock,"35'","a stale display label cannot mask a newer numeric ESPN clock");
  assert.equal(parse[1]({status:{displayClock:"90'+2'",clock:5400}}).displayClock,"90+2'","stoppage time remains authoritative at the same base minute");
+ assert.equal(parse[1]({status:{displayClock:"20'"},competitions:[{status:{displayClock:"26'"}}]}).displayClock,"26'","the newer competition display clock wins over stale event status");
+ assert.equal(parse[1]({status:{clock:1200},competitions:[{status:{clock:1575}}]}).displayClock,"26'","all numeric status clocks are compared, not only the first valid one");
  assert.equal(parse[1]({status:{clock:null}}).elapsed,null);
  assert.equal(parse[1]({status:{displayClock:"Nov 23, 2026"}}).elapsed,null);
 });

@@ -2814,7 +2814,7 @@ async function api(path){
     const timeoutId=setTimeout(()=>controller.abort(),cleanPath.startsWith("archive/backfill-all?")?60000:isLiveStats?9000:15000);
     let response;
     try{
-      response=await fetch(url,{signal:controller.signal,headers:{Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||"")}});
+      response=await fetch(url,{signal:controller.signal,cache:isEspnLiveScoreboard?"no-store":"default",headers:{Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||"")}});
     }catch(networkError){
       // Ağ veya sağlayıcı hatasında en fazla 10 dakikalık son başarılı canlı istatistiği kullan.
       if(isLiveStats&&cachedEntry?.time&&cachedEntry.data&&Date.now()-cachedEntry.time<10*60*1000){
@@ -4954,21 +4954,24 @@ function mamNormalizeLiveTeamName(value){
 }
 function mamEspnClock(event){
  const status=event?.status??{},competitionStatus=event?.competitions?.[0]?.status??{};
- const candidates=[status.displayClock,competitionStatus.displayClock,status.type?.displayClock,competitionStatus.type?.displayClock,status.type?.shortDetail,competitionStatus.type?.shortDetail];
- let parsed=null;
- for(const value of candidates){
-  const label=String(value??"").trim();
-  const match=label.match(/^(\d{1,3})(?::[0-5]\d|')?(?:\+(\d{1,2})'?)?$/);
-  if(!match)continue;
-  const minute=Number(match[1]);
-  if(minute>130)continue;
-  parsed={displayClock:match[2]?minute+"+"+match[2]+"'":label,elapsed:minute};
-  break;
+ const statuses=[status,competitionStatus],candidates=[];
+ for(const current of statuses){
+  for(const value of [current.displayClock,current.type?.displayClock,current.type?.shortDetail]){
+   const label=String(value??"").trim(),match=label.match(/^(\d{1,3})(?::([0-5]\d)|'?)?(?:\+(\d{1,2})'?)?$/);
+   if(!match)continue;
+   const minute=Number(match[1]),added=Number(match[3]||0);
+   if(minute>130)continue;
+   candidates.push({displayClock:match[3]?minute+"+"+match[3]+"'":label,elapsed:minute,rank:(minute+added)*60+Number(match[2]||0),isDisplay:true});
+  }
+  for(const value of [current.clock,current.type?.clock]){
+   const seconds=value==null||String(value).trim()===""?NaN:Number(value);
+   if(!Number.isFinite(seconds)||seconds<0||seconds>7800)continue;
+   const minute=Math.floor(seconds/60);
+   candidates.push({displayClock:minute+"'",elapsed:minute,rank:seconds,isDisplay:false});
+  }
  }
- const seconds=[status.clock,competitionStatus.clock].map(value=>value==null||String(value).trim()===""?NaN:Number(value)).find(value=>Number.isFinite(value)&&value>=0&&value<=7800);
- if(seconds!==undefined){const minute=Math.floor(seconds/60);if(!parsed||minute>parsed.elapsed)return {displayClock:minute+"'",elapsed:minute};}
- if(parsed)return parsed;
- return {displayClock:"",elapsed:null};
+ const latest=candidates.reduce((best,current)=>!best||current.rank>best.rank||current.rank===best.rank&&current.isDisplay&&!best.isDisplay?current:best,null);
+ return latest?{displayClock:latest.displayClock,elapsed:latest.elapsed}:{displayClock:"",elapsed:null};
 }
 
 async function mamFindEspnLiveEvent({slug,date,eventId,homeName,awayName}){
@@ -6642,6 +6645,14 @@ function mamHistoryCompetitionAllowed(match,leagueId){
  }
  return !matchLeague||matchLeague===selected;
 }
+function mamTeamHistoryCompetitionAllowed(match,leagueId){
+ const selected=mamCanonicalFixtureLeagueId(leagueId);
+ if(!["2","3","848"].includes(selected))return mamHistoryCompetitionAllowed(match,leagueId);
+ if(mamHistoryCompetitionAllowed(match,leagueId))return true;
+ const rawLeague=String(match?.league?.id??match?.leagueId??"").trim();
+ const leagueName=String(match?.league?.name||match?.competition?.name||"").trim();
+ return Boolean(leagueName||/^\d+$/.test(rawLeague)&&Number(rawLeague)>0);
+}
 
 // D1 kalıcı maç arşivi: analiz için bulunan geçmiş maçları idempotent olarak kaydet.
 async function mamSaveMatchesToD1(matches, leagueId){
@@ -7044,7 +7055,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   let sourceError="";
 
   const addMatch=m=>{
-    if(!mamHistoryCompetitionAllowed(m,leagueId)||!mamHasCompletedScore(m))return;
+    if(!mamTeamHistoryCompetitionAllowed(m,leagueId)||!mamHasCompletedScore(m))return;
     const h=m.teams?.home?.name||"",a=m.teams?.away?.name||"";
     const hm=(m.mamSource==="football-data-team"&&Number(m.teams?.home?.id)===Number(teamId))||isTarget(h),am=(m.mamSource==="football-data-team"&&Number(m.teams?.away?.id)===Number(teamId))||isTarget(a);
     if(hm===am)return;
