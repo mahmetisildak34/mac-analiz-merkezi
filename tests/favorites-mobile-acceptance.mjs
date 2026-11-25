@@ -25,7 +25,15 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     assert.equal(await page.locator('#mamTeamSearchResults [data-search-league]').count(),0,name+' no league result rows');
     assert.ok(await results.count()>0,name+' league filters teams');
     await page.locator('#mamTeamSearchInput').fill('Beşiktaş');
+    await page.evaluate(()=>{
+      window.__teamHistoryLifecycle=[];
+      const remove=Element.prototype.remove;
+      Element.prototype.remove=function(){if(this.id==='mamTeamHistoryScreen')window.__teamHistoryLifecycle.push({type:'remove',stack:new Error().stack});return remove.apply(this,arguments);};
+      new MutationObserver(records=>records.forEach(record=>record.removedNodes.forEach(node=>{if(node.id==='mamTeamHistoryScreen')window.__teamHistoryLifecycle.push({type:'detached',html:node.innerHTML.slice(-500)});}))).observe(document.body,{childList:true,subtree:true});
+    });
     await results.first().click();
+    await page.waitForTimeout(100);
+    console.log(name+' team-history lifecycle '+JSON.stringify(await page.evaluate(()=>{const screen=document.getElementById('mamTeamHistoryScreen');return {exists:!!screen,buttons:[...(screen?.querySelectorAll('button')||[])].map(button=>({id:button.id,text:button.textContent,display:getComputedStyle(button).display,rect:button.getBoundingClientRect().toJSON()})),htmlTail:screen?.innerHTML.slice(-700),removals:window.__teamHistoryLifecycle};})));
     await page.locator('#mamTeamHistoryScreen').waitFor({state:'visible',timeout:10000});
     assert.equal(await search.isVisible(),false,name+' search closes on team selection');
     const screenState = await page.locator('#mamTeamHistoryScreen').evaluate(screen=>({htmlTail:screen.innerHTML.slice(-900),buttons:[...screen.querySelectorAll('button')].map(button=>({id:button.id,text:button.textContent,display:getComputedStyle(button).display,rect:button.getBoundingClientRect().toJSON()})),screenDisplay:getComputedStyle(screen).display,openHandler:String(window.mamOpenStandingTeamHistory).slice(0,100)}));
