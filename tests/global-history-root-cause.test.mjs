@@ -100,15 +100,18 @@ test("Hapoel Be'er ve sağlayıcı kısa adları ortak takım kimliğine bağlan
 
 test("İstanbul günü ve skor ile aynı gerçek maç duplicate olarak birleşir, ayrı maç korunur", () => {
   const api = helperApi();
-  const row = (id, home, away, date, score = [2, 1]) => ({ fixture: { id, date }, teams: { home: { name: home }, away: { name: away } }, goals: { home: score[0], away: score[1] }, mamSource: id });
+  const row = (id, home, away, date, score = [2, 1], league = "UEFA Europa League") => ({ fixture: { id, date }, league: { name: league }, teams: { home: { name: home }, away: { name: away } }, goals: { home: score[0], away: score[1] }, mamSource: id });
   const rows = [
     row("fd-uefa-1", "Hapoel Be'er", "Beşiktaş", "2026-09-25T01:00:00Z"),
-    row("espn-401", "Hapoel Beer-Sheva", "Besiktas", "2026-09-25T00:00:00+03:00"),
-    row("espn-402", "Hapoel Beer-Sheva", "Besiktas", "2026-09-25T00:00:00+03:00", [1, 0])
+    row("espn-401", "Hapoel Beer-Sheva", "Besiktas", "2026-09-25T04:00:00+03:00"),
+    row("espn-402", "Hapoel Beer-Sheva", "Besiktas", "2026-09-25T04:00:00+03:00", [1, 0]),
+    row("espn-cup-403", "Hapoel Beer-Sheva", "Besiktas", "2026-09-25T04:00:00+03:00", [2, 1], "National Cup")
   ];
+  const originalIds = rows.map(match => match.fixture.id);
   const merged = api.mamDeduplicateHistoricalMatches(rows);
-  assert.equal(merged.length, 2);
+  assert.equal(merged.length, 3, "different score and separate competition rows remain distinct");
   assert.match(merged[0].mamSources.join(","), /fd-uefa-1/);
+  assert.deepEqual(rows.map(match => match.fixture.id), originalIds, "presentation dedupe never deletes or mutates archived source rows");
 });
 
 test("UEFA fixture-download kayıtları gerçek ESPN event eşlemesine ve şut alanlarına sahip", () => {

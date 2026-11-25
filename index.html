@@ -3711,18 +3711,23 @@ async function espnFixtures(date,includeAllLeagues=false,endDate=date,istanbulWi
  return sorted;
 }
 
+const mamFixtureTeamKeyBase=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
 const mamFixtureTeamKey=value=>{
- const key=String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
+ const key=mamFixtureTeamKeyBase(value);
  // Explicit provider aliases only; never use broad fuzzy matching between unrelated clubs.
  const aliases={
   istanbulbasaksehir:"basaksehir",istanbulbasaksehirspor:"basaksehir",
-  stanbulbaakehr:"basaksehir",istanbulbaakehr:"basaksehir",basakehr:"basaksehir",
+  stanbulbaakehr:"basaksehir",istanbulbaakehr:"basaksehir",stanbulbaehr:"basaksehir",basakehr:"basaksehir",
    arcaorum:"corum",arcaorumspor:"corum",orum:"corum",
    caykurrizespor:"rizespor",caykurrzespor:"rizespor",
   alshamalsports:"alshamal",algharafasports:"algharafa",esteghlaltehran:"esteghlal",belediyevanspor:"vanspor",
    kasimpasa:"kasimpasa",kasmpasa:"kasimpasa"
  };
- return aliases[key]||key;
+ const aliasKey=aliases[key]||key;
+ const groupKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/&/g," and ").replace(/[^a-z0-9]/g,"");
+ const groups=typeof MAM_UEFA_TEAM_GROUPS==="undefined"?[]:MAM_UEFA_TEAM_GROUPS;
+ const group=groups.find(names=>names.some(name=>groupKey(name)===groupKey(value)));
+ return group?aliases[mamFixtureTeamKeyBase(group[0])]||mamFixtureTeamKeyBase(group[0]):aliasKey;
 };
 function mamFixturePair(match){
 	const league=String(match.league?.id??"");
@@ -3741,38 +3746,46 @@ function mamFixtureProviderKeys(match){
 	else if(id.startsWith("espn-"))providers.add("ESPN");
 	else if(id.startsWith("sportscore-"))providers.add("SPORTSCORE");
 	else if(id.startsWith("football-data-"))providers.add("FOOTBALL_DATA");
-	else if(id.startsWith("apif-")||/^\d+$/.test(id))providers.add("API_FOOTBALL");
+	else if(id.startsWith("apif-"))providers.add("API_FOOTBALL");
 	else if(id)providers.add("OTHER");
 	return [...providers];
 }
-function mamDifferentFixtureProviders(a,b){
-	const providersA=new Set(mamFixtureProviderKeys(a)),providersB=new Set(mamFixtureProviderKeys(b));
-	return providersA.size>0&&providersB.size>0&&![...providersA].some(provider=>providersB.has(provider));
+function mamFixtureCompetitionKey(match){
+ const league=match?.league||{};
+ const name=String(league.name||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/&/g," and ").replace(/[^a-z0-9]/g,"");
+ const id=String(league.id??match?.leagueId??"");
+ return {id,name};
+}
+function mamFixtureCompetitionCompatible(a,b){
+	const left=mamFixtureCompetitionKey(a),right=mamFixtureCompetitionKey(b);
+	const providersA=mamFixtureProviderKeys(a).filter(provider=>provider!=="OTHER");
+	const providersB=mamFixtureProviderKeys(b).filter(provider=>provider!=="OTHER");
+	const sameProvider=providersA.some(provider=>providersB.includes(provider));
+	if(left.id&&right.id&&left.id===right.id){
+		if(left.name&&right.name&&left.name!==right.name&&!sameProvider)return false;
+		return true;
+	}
+	return Boolean(left.name&&right.name&&left.name===right.name);
 }
 function mamMergeFixtureSources(existing,incoming){
 	const providers=[...new Set([...mamFixtureProviderKeys(existing),...mamFixtureProviderKeys(incoming)])];
 	return providers.length?{...existing,_mamSourceProviders:providers}:existing;
 }
 function mamSameFixture(a,b){
-	const aId=String(a.fixture?.id??a.id??""),bId=String(b.fixture?.id??b.id??"");
-	if(aId&&bId&&aId===bId)return true;
-	const pair=mamFixturePair(a),otherPair=mamFixturePair(b);
-	if(pair&&pair===otherPair)return mamSameLiveProviderFixture(a,b);
-	return mamDifferentFixtureProviders(a,b)&&mamSameLiveProviderFixture(a,b);
+ return mamSameLiveProviderFixture(a,b);
 }
 function mamFindSameFixtureIndex(rows,target){
 	const list=Array.isArray(rows)?rows:[];
-	const id=String(target?.fixture?.id??target?.id??"");
-	if(id){const exact=list.findIndex(row=>String(row?.fixture?.id??row?.id??"")===id);if(exact>=0)return exact;}
 	const candidates=[];
 	for(let i=0;i<list.length;i++)if(mamSameFixture(list[i],target))candidates.push(i);
 	return candidates.length===1?candidates[0]:-1;
 }
 function mamSameLiveProviderFixture(a,b){
 	const homeA=mamFixtureTeamKey(a?.teams?.home?.name),awayA=mamFixtureTeamKey(a?.teams?.away?.name);
- const homeB=mamFixtureTeamKey(b?.teams?.home?.name),awayB=mamFixtureTeamKey(b?.teams?.away?.name);
- if(!homeA||!awayA||homeA!==homeB||awayA!==awayB)return false;
- const timeA=mamFixtureInstant(a?.fixture?.date),timeB=mamFixtureInstant(b?.fixture?.date);
+  const homeB=mamFixtureTeamKey(b?.teams?.home?.name),awayB=mamFixtureTeamKey(b?.teams?.away?.name);
+  if(!homeA||!awayA||homeA!==homeB||awayA!==awayB)return false;
+ if(!mamFixtureCompetitionCompatible(a,b))return false;
+  const timeA=mamFixtureInstant(a?.fixture?.date),timeB=mamFixtureInstant(b?.fixture?.date);
  return Number.isFinite(timeA)&&Number.isFinite(timeB)&&Math.abs(timeA-timeB)<=10*60*1000;
 }
 function mamUnrepresentedLiveFixtures(primaryRows,supplementRows){
@@ -3798,7 +3811,8 @@ function mamMergeFixtureRows(rows){
 		const id=String(incoming.fixture?.id??incoming.id??"");
 		const pair=mamFixturePair(incoming);
 		const teamPair=mamFixtureTeamPair(incoming);
-		let index=byId.get(id);
+		const idCandidates=id?(byId.get(id)||[]).filter(i=>mamSameFixture(matches[i],incoming)):[];
+		let index=idCandidates.length===1?idCandidates[0]:undefined;
 		if(index===undefined&&pair)index=byPair.get(pair)?.find(i=>mamSameFixture(matches[i],incoming));
 		if(index===undefined&&teamPair){
 			const compatible=(byTeams.get(teamPair)||[]).filter(i=>mamSameFixture(matches[i],incoming));
@@ -3831,7 +3845,7 @@ function mamMergeFixtureRows(rows){
     }
    }
   }
-  if(id)byId.set(id,index);
+   if(id){if(!byId.has(id))byId.set(id,[]);if(!byId.get(id).includes(index))byId.get(id).push(index);}
  }
  return matches;
 }
@@ -3861,7 +3875,7 @@ async function loadMatches(){
  try{
   const instantCache=JSON.parse(localStorage.getItem(fixtureCacheKey)||"null");
   if(Array.isArray(instantCache?.matches)&&instantCache.matches.length&&Number(instantCache.time)>Date.now()-10*60*1000){
-   allMatches=instantCache.matches;
+   allMatches=mamMergeFixtureRows(instantCache.matches);
    renderMatches();
    $("status").textContent="Maçlar yükleniyor…";
   }
@@ -3985,8 +3999,7 @@ async function loadMatches(){
    try{
     const espnSupplement=await loadEspn();
     if(espnSupplement.length){
-     const existingKeys=new Set(matches.map(match=>String(match.fixture?.id??"")));
-     const additions=espnSupplement.filter(match=>!existingKeys.has(String(match.fixture?.id??"")));
+     const additions=espnSupplement.filter(match=>mamFindSameFixtureIndex(matches,match)<0);
      espnSupplementCount=additions.length;
      if(additions.length)matches=[...matches,...additions];
      if(espnSupplementCount)source="API-Football + ESPN fikstür tamamlayıcısı";
@@ -4001,8 +4014,7 @@ async function loadMatches(){
     const supplementEnd=latest;
     const fdSupplement=await footballDataFixtures(date,supplementEnd);
     if(fdSupplement.length){
-     const existingKeys=new Set(matches.map(match=>String(match.fixture?.id??"")));
-     const additions=fdSupplement.filter(match=>!existingKeys.has(String(match.fixture?.id??"")));
+     const additions=fdSupplement.filter(match=>mamFindSameFixtureIndex(matches,match)<0);
      if(additions.length){matches=[...matches,...additions];source+=" + Football-data.org tamamlayıcısı";}
     }
    }catch(fdSupplementError){console.warn("Football-data.org tamamlayıcısı alınamadı; mevcut fikstür korunuyor.",fdSupplementError);}
@@ -4025,7 +4037,7 @@ async function loadMatches(){
    if(Array.isArray(cached?.matches)&&cached.matches.length)fallbackMatches=cached.matches;
   }catch(_){}
   if(!stillSelected())return;
-  allMatches=fallbackMatches;
+  allMatches=mamMergeFixtureRows(fallbackMatches);
   renderMatches();
   const errorText=esc(e.message||e);
   if(allMatches.length){
@@ -4048,7 +4060,7 @@ async function getTFFSuperLigUpcoming(){
  const key="mam_tff_superlig_upcoming_analysis_v6";
  try{
   const cached=JSON.parse(localStorage.getItem(key)||"null");
-  if(cached?.time&&Date.now()-cached.time<2*60*1000&&Array.isArray(cached.matches))return cached.matches;
+  if(cached?.time&&Date.now()-cached.time<2*60*1000&&Array.isArray(cached.matches))return mamMergeFixtureRows(cached.matches);
  }catch(e){}
  let snapshot=null;
  try{
@@ -4085,44 +4097,7 @@ async function getTFFSuperLigUpcoming(){
   if(response.ok){
    const archived=await response.json();
    const combined=[...fixtures,...(Array.isArray(archived?.fixtures)?archived.fixtures.map(normalizeTffFixture):[])];
-   const cleanTeam=value=>String(value||"").toLocaleLowerCase("tr-TR")
-    .normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")
-    .replace(/�/g,"").replace(/[^a-z0-9]/g,"")
-    .replace(/(as|aş|fk|sk|spor|kulubu|kulubu|futbol|club)$/g,"");
-   const similarity=(left,right)=>{
-    if(!left||!right)return 0;
-    if(left===right||left.includes(right)||right.includes(left))return 1;
-    const previous=Array.from({length:right.length+1},(_,i)=>i);
-    for(let i=1;i<=left.length;i++){
-     let diagonal=previous[0];previous[0]=i;
-     for(let j=1;j<=right.length;j++){
-      const above=previous[j];
-      previous[j]=Math.min(previous[j]+1,previous[j-1]+1,diagonal+(left[i-1]===right[j-1]?0:1));
-      diagonal=above;
-     }
-    }
-    return 1-previous[right.length]/Math.max(left.length,right.length);
-   };
-   const matchQuality=match=>{
-    const names=[match.teams?.home?.name,match.teams?.away?.name].map(name=>String(name||""));
-    return names.reduce((score,name)=>score+(name.includes("�")?0:2)+Math.min(name.length,30)/100,0);
-   };
-   const unique=[];
-   for(const match of combined){
-    const kickoff=Date.parse(match.fixture?.date||"");
-    const minute=Number.isFinite(kickoff)?Math.floor(kickoff/60000):String(match.fixture?.date||"").slice(0,16);
-    const home=cleanTeam(match.teams?.home?.name),away=cleanTeam(match.teams?.away?.name);
-    const duplicateIndex=unique.findIndex(existing=>{
-     const existingTime=Date.parse(existing.fixture?.date||"");
-     const existingMinute=Number.isFinite(existingTime)?Math.floor(existingTime/60000):String(existing.fixture?.date||"").slice(0,16);
-     if(existingMinute!==minute)return false;
-     const eh=cleanTeam(existing.teams?.home?.name),ea=cleanTeam(existing.teams?.away?.name);
-     return similarity(home,eh)>=0.72&&similarity(away,ea)>=0.72;
-    });
-    if(duplicateIndex<0)unique.push(match);
-    else if(matchQuality(match)>matchQuality(unique[duplicateIndex]))unique[duplicateIndex]=match;
-   }
-   fixtures=unique;
+   fixtures=mamMergeFixtureRows(combined);
   }
  }catch(mergeError){console.warn("TFF statik fikstür tamamlayıcısı alınamadı.",mergeError);}
  const stableTeamId=name=>{
@@ -4153,7 +4128,7 @@ async function loadSuperLigFixtures(){
  button.textContent="Süper Lig fikstürü alınıyor…";
  $("status").textContent="TFF resmî fikstüründen tüm açıklanmış Süper Lig maçları getiriliyor…";
  try{
-  const fixtures=await getTFFSuperLigUpcoming();
+  const fixtures=mamMergeFixtureRows(await getTFFSuperLigUpcoming());
   allMatches=fixtures;
   $("league").value="203";
   $("league").dispatchEvent(new Event("change",{bubbles:true}));
@@ -5556,7 +5531,7 @@ function mamRestorePendingDetail(){
   String(b.dataset.liveLeagueId||"")===String(saved.league||""));
  if(!button&&saved.match){
   const exists=allMatches.some(m=>String(m.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===String(saved.id||"")&&String(m.league?.id||"")===String(saved.league||""));
-  if(!exists)allMatches=[saved.match,...allMatches];
+  if(!exists)allMatches=mamMergeFixtureRows([saved.match,...allMatches]);
   renderMatches();
   button=[...document.querySelectorAll("#matches .liveStatsBtn")].find(b=>
    String(b.dataset.liveId||"")===String(saved.id||"")&&
@@ -6602,32 +6577,11 @@ function mamCanonicalHistoryTeamKey(value){
 function mamHistoricalIdentity(match){
  const day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);
  const home=mamCanonicalHistoryTeamKey(match?.teams?.home?.name),away=mamCanonicalHistoryTeamKey(match?.teams?.away?.name);
+ const rawDate=String(match?.fixture?.date||""),instant=Date.parse(rawDate),league=match?.league||{};
+ const competition=String(league.name||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/&/g," and ").replace(/[^a-z0-9]/g,"");
  const gh=match?.goals?.home,ga=match?.goals?.away;
- if(!day||!home||!away||gh===null||gh===undefined||ga===null||ga===undefined)return "";
- return [day,home,away,Number(gh),Number(ga)].join("|");
-}
-function mamDeduplicateHistoricalMatches(matches){
- const out=[],byKey=new Map();
- for(const match of Array.isArray(matches)?matches:[]){
-  const key=mamHistoricalIdentity(match);if(!key){out.push(match);continue;}
-  const index=byKey.get(key);if(index===undefined){byKey.set(key,out.length);out.push(match);continue;}
-  const previous=out[index],merge=(older={},newer={})=>({...newer,...older});
-  out[index]={...match,...previous,fixture:{...(match.fixture||{}),...(previous.fixture||{})},statistics:{home:merge(match.statistics?.home,previous.statistics?.home),away:merge(match.statistics?.away,previous.statistics?.away)},mamSources:[...new Set([...(previous.mamSources||[previous.mamSource||"unknown"]),match.mamSource||"unknown"])]};
- }
- return out;
-}
-
-function mamCanonicalHistoryTeamKey(value){
- const base=mamFixtureTeamKey(value);if(!base)return "";
- for(const group of MAM_UEFA_TEAM_GROUPS)if(group.some(name=>mamUefaTeamMatch(name,value)))return mamFixtureTeamKey(group[0]);
- return base;
-}
-function mamHistoricalIdentity(match){
- const day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);
- const home=mamCanonicalHistoryTeamKey(match?.teams?.home?.name),away=mamCanonicalHistoryTeamKey(match?.teams?.away?.name);
- const gh=match?.goals?.home,ga=match?.goals?.away;
- if(!day||!home||!away||gh===null||gh===undefined||ga===null||ga===undefined)return "";
- return [day,home,away,Number(gh),Number(ga)].join("|");
+ if(!day||!home||!away||!competition||match?.fixture?.timeUnknown===true||!/[T ]\d{2}:\d{2}/.test(rawDate)||!Number.isFinite(instant)||gh===null||gh===undefined||ga===null||ga===undefined)return "";
+ return [day,Math.round(instant/60000),competition,home,away,Number(gh),Number(ga)].join("|");
 }
 function mamDeduplicateHistoricalMatches(matches){
  const out=[],byKey=new Map();
@@ -6806,19 +6760,24 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     try{
       const saved=JSON.parse(cached);
       if(Array.isArray(saved.matches)&&Date.now()-saved.time<6*60*60*1000){
-        saved.matches=mamDeduplicateHistoricalMatches(saved.matches).filter(match=>{const day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);return day&&day<matchDate&&Number.isFinite(Number(match?.goals?.home))&&Number.isFinite(Number(match?.goals?.away));});
-        if(saved.matches.length<10)throw new Error("Geçmiş cache duplicate temizliği sonrası yetersiz.");
-        saved.matches=mamDeduplicateHistoricalMatches(saved.matches).filter(match=>{const day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);return day&&day<matchDate&&Number.isFinite(Number(match?.goals?.home))&&Number.isFinite(Number(match?.goals?.away));});
+        const archiveMatches=saved.matches.slice();
+        saved.matches=mamDeduplicateHistoricalMatches(archiveMatches).filter(match=>{const day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);return day&&day<matchDate&&Number.isFinite(Number(match?.goals?.home))&&Number.isFinite(Number(match?.goals?.away));});
         if(saved.matches.length<10)throw new Error("Geçmiş cache duplicate temizliği sonrası yetersiz.");
         // Eski cache kayıtlarında maç sonucu var ama istatistikler eksik olabilir.
         // Cache hit olsa bile yalnızca eksik istatistikleri tamamlamayı dene.
         const enriched=await mamEnrichHistoricalStats(saved.matches,leagueId);
         if(enriched.changed){
-          try{localStorage.setItem(key,JSON.stringify({time:saved.time,matches:saved.matches}));}catch(_){}
+          const preservedArchive=archiveMatches.map(match=>{
+           const identity=mamHistoricalIdentity(match);
+           const enrichedMatch=identity?saved.matches.find(candidate=>mamHistoricalIdentity(candidate)===identity):null;
+           if(!enrichedMatch)return match;
+           return {...match,statistics:{home:{...(match.statistics?.home||{}),...(enrichedMatch.statistics?.home||{})},away:{...(match.statistics?.away||{}),...(enrichedMatch.statistics?.away||{})}}};
+          });
+          try{localStorage.setItem(key,JSON.stringify({time:saved.time,matches:preservedArchive}));}catch(_){}
           // Persist successful historical-stat enrichment to the central D1 archive too.
           // The archive endpoint performs the existing idempotent match save; do not
           // rewrite anything when no new statistics were obtained.
-          await mamSaveMatchesToD1(saved.matches,leagueId);
+          await mamSaveMatchesToD1(preservedArchive,leagueId);
         }
         return saved.matches;
       }
@@ -7052,7 +7011,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   const isUefaTarget=["2","3","848"].includes(String(leagueId));
   const isTarget=name=>isUefaTarget?mamUefaTeamMatch(name,teamName):(accepted.has(normalize(name))||serieACanonical(name)===targetCanonical);
   const output=[];
-  const seen=new Map();
   let sourceError="";
 
   const addMatch=m=>{
@@ -7064,18 +7022,16 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     if(gh===null||ga===null||gh===undefined||ga===undefined)return;
     const d=mamIstanbulDay(m.fixture?.date)||String(m.fixture?.date||"").slice(0,10);
     if(!d||d>=matchDate)return;
-    // Cross-provider identity deliberately excludes provider fixture IDs, league labels,
-    // and scores: the same real-world fixture can have a transient or corrected score
-    // in one provider. Scores remain payload data and are preserved from the first
-    // trusted row while statistics and other fields are merged below.
-    const identity=[d,mamCanonicalHistoryTeamKey(h),mamCanonicalHistoryTeamKey(a)].join("|");
+    // Reuse the central fixture identity: team aliases, competition and kickoff must
+    // agree before rows from separate providers can enrich the same historical match.
     const normalizedMatch={...m,teams:{
       home:{...m.teams.home,id:hm?Number(teamId):-1},
       away:{...m.teams.away,id:am?Number(teamId):-1}
     }};
-    if(seen.has(identity)){
+    const existingIndex=output.findIndex(previous=>mamSameFixture(previous,normalizedMatch));
+    if(existingIndex>=0){
       // Keep one fixture row, but merge useful fields from every source.
-      const index=seen.get(identity),previous=output[index];
+      const index=existingIndex,previous=output[index];
       const mergeSide=(older={},newer={})=>({...newer,...older});
       output[index]={
         ...normalizedMatch,...previous,
@@ -7089,7 +7045,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       };
       return;
     }
-    seen.set(identity,output.length);
     output.push({...normalizedMatch,mamSources:[m.mamSource||"unknown"]});
   };
 
