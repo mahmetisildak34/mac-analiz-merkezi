@@ -14,7 +14,7 @@ function helperApi() {
   const end = source.indexOf("// D1 kalıcı maç arşivi", start);
   assert.ok(start >= 0 && end > start);
   assert.ok(competitionStart >= 0 && competitionEnd > competitionStart);
-  return vm.runInNewContext(`${source.slice(competitionStart, competitionEnd)}\n${source.slice(start, end)};({mamUefaTeamMatch,mamCanonicalHistoryTeamKey,mamHistoryTeamSearchNames,mamHistoricalIdentity,mamDeduplicateHistoricalMatches})`, {
+  return vm.runInNewContext(`${source.slice(competitionStart, competitionEnd)}\n${source.slice(start, end)};({mamUefaTeamMatch,mamCanonicalHistoryTeamKey,mamHistoryTeamSearchNames,mamHistoricalIdentity,mamDeduplicateHistoricalMatches,mamHistoryCompetitionAllowed,mamTeamHistoryCompetitionAllowed})`, {
     mamFixtureTeamKey(value) {
       return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i").replace(/[^a-z0-9]/g, "");
     },
@@ -99,6 +99,17 @@ test("Hapoel Be'er ve sağlayıcı kısa adları ortak takım kimliğine bağlan
   assert.equal(api.mamCanonicalHistoryTeamKey("Hapoel Be'er"), api.mamCanonicalHistoryTeamKey("Hapoel Beer-Sheva"));
   assert.equal(api.mamCanonicalHistoryTeamKey("Hoffenheim"), api.mamCanonicalHistoryTeamKey("TSG 1899 Hoffenheim"));
   assert.equal(api.mamCanonicalHistoryTeamKey("Bodø/Glimt"), api.mamCanonicalHistoryTeamKey("FK Bodø/Glimt"));
+});
+
+test("UEFA takım analizi doğrulanmış farklı yerel lig geçmişini alır, lig kimliğiyle duplicate ayrımı korunur", () => {
+  const api = helperApi();
+  const domestic = { fixture: { id: "tur-1", date: "2026-09-20T17:00:00Z" }, league: { id: "203", name: "Süper Lig" }, teams: { home: { name: "Beşiktaş" }, away: { name: "Trabzonspor" } }, goals: { home: 2, away: 1 }, mamSource: "api-football" };
+  const uefa = { ...domestic, fixture: { id: "uel-1", date: domestic.fixture.date }, league: { id: "3", name: "UEFA Europa League" } };
+  assert.equal(api.mamHistoryCompetitionAllowed(domestic, "3"), false, "mevcut turnuva eşlemesi sıkı kalır");
+  assert.equal(api.mamTeamHistoryCompetitionAllowed(domestic, "3"), true, "bilinen yerel lig kaydı UEFA takım örneklemine girer");
+  assert.equal(api.mamTeamHistoryCompetitionAllowed({ ...domestic, league: {}, mamSource: "football-data-team" }, "3"), false, "turnuva bilgisi olmayan takım-API kaydı kabul edilmez");
+  assert.equal(api.mamDeduplicateHistoricalMatches([domestic, uefa]).length, 2, "farklı lig kimlikleri ayrı gerçek maç olarak kalır");
+  assert.equal(api.mamTeamHistoryCompetitionAllowed(domestic, "39"), false, "yerel lig örneklemi kendi lig filtresini korur");
 });
 
 test("aynı gerçek maçta skor güncellemesi duplicate oluşturmaz, ayrı maçlar korunur", () => {
