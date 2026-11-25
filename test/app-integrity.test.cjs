@@ -116,8 +116,8 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
 
 // Directory profile IDs must win over provider-specific fixture IDs for the same club.
 {
- const start=html.indexOf(" function teams(){",html.indexOf('id="mamTeamSearchLogic"'));
- const end=html.indexOf(" function draw(){",start);
+ const start=html.indexOf(" function buildTeams(){",html.indexOf('id="mamTeamSearchLogic"'));
+ const end=html.indexOf(" function getTeamSearchCatalog()",start);
  assert.ok(start!==-1&&end>start,"Team-search data merger must exist");
  const source=html.slice(start,end);
  const ctx={
@@ -131,7 +131,7 @@ console.log("PASS: 40 competition entries, 39 ESPN mappings, Turkish Cup excepti
   read:()=>({}),
   normalize:value=>String(value||"").toLocaleLowerCase("tr-TR"),
  };
- vm.runInNewContext(source+"\n globalThis.mergeTeams=teams;",ctx);
+ vm.runInNewContext(source+"\n globalThis.mergeTeams=buildTeams;",ctx);
  const merged=ctx.mergeTeams();
  const arsenal=Array.from(merged).filter(team=>team.name==="Arsenal");
  assert.equal(arsenal.length,1,"Search should not duplicate the same team");

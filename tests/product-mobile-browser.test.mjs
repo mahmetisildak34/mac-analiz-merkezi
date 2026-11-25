@@ -120,7 +120,7 @@ async function verifyMainApp(context,browserName){
   const profileLink=dialog.getByRole('button',{name:'Erzurum BB takım profili'});
   await profileLink.click();
   const fromDetail=main.getByRole('dialog',{name:'Erzurum BB takım profili',exact:true});
-  await fromDetail.locator('#mamTeamHistoryBack').click();
+  await fromDetail.locator('#mamTeamHistoryBack').tap();
   assert.equal(await profileLink.evaluate(button=>button===document.activeElement),true);
   await dialog.getByRole('button',{name:/Olaylar/}).click();
   const events=dialog.locator('.match-detail-pane[data-pane="goals"]');
@@ -227,7 +227,7 @@ async function verifyMainApp(context,browserName){
   await foundProfile.locator('#mamHistoryUpcomingView').getByText(/Önümüzdeki 30 gün/).waitFor();
   assert.equal(await main.evaluate(()=>window.fixtureProfileRequests.some(x=>x.includes('/teams/42/'))),false);
   assert.equal(await foundProfile.evaluate(el=>el.scrollWidth<=el.clientWidth),true);
-  await foundProfile.locator('#mamTeamHistoryBack').click();
+  await foundProfile.locator('#mamTeamHistoryBack').tap();
   assert.equal(await search.evaluate(el=>el===document.activeElement),true);
   await main.evaluate(()=>{
    const now=Date.now();
@@ -318,7 +318,7 @@ async function verifyMainApp(context,browserName){
   await profileRow.press('Enter');
   const teamProfile=main.getByRole('dialog',{name:'Galatasaray takım profili'});
   await teamProfile.getByText(/1\. sıra.*31 puan/).waitFor();
-  await teamProfile.locator('#mamTeamHistoryBack').click();
+  await teamProfile.locator('#mamTeamHistoryBack').tap();
   assert.equal(await profileRow.evaluate(row=>row===document.activeElement),true);
   const season=main.locator('#mamStandingsSeasonSelect');
   await season.selectOption('2025');

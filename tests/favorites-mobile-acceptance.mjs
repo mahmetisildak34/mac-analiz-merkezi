@@ -29,9 +29,13 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     await page.locator('#mamTeamHistoryScreen').waitFor({state:'visible',timeout:10000});
     assert.equal(await search.isVisible(),false,name+' search closes on team selection');
     const back = page.locator('#mamTeamHistoryBack');
-    await back.waitFor({state:'visible',timeout:10000});
+    await back.waitFor({state:'attached',timeout:10000});
     const backBox = await back.boundingBox();
-    assert.ok(backBox && backBox.width >= 44 && backBox.height >= 44,name+' team-history back control must be touch-sized');
+    const backState = await back.evaluate(button=>{
+      const rect=button.getBoundingClientRect(),style=getComputedStyle(button),header=button.closest('header');
+      return {rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},display:style.display,visibility:style.visibility,opacity:style.opacity,pointerEvents:style.pointerEvents,headerDisplay:header&&getComputedStyle(header).display,screen:button.closest('#mamTeamHistoryScreen')?.getBoundingClientRect().toJSON()};
+    });
+    assert.ok(backBox && backBox.width >= 44 && backBox.height >= 44,name+' team-history back control must be visible and touch-sized: '+JSON.stringify(backState));
     await back.tap();
     await page.locator('#mamTeamHistoryScreen').waitFor({state:'detached'});
     await page.locator('#mamFavoriteBottom').click();
