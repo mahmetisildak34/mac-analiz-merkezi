@@ -120,6 +120,8 @@ async function verifyMainApp(context,browserName){
   const profileLink=dialog.getByRole('button',{name:'Erzurum BB takım profili'});
   await profileLink.click();
   const fromDetail=main.getByRole('dialog',{name:'Erzurum BB takım profili',exact:true});
+  await fromDetail.waitFor({state:'visible'});
+  console.log(browserName+' team-history DOM '+JSON.stringify(await main.evaluate(()=>{const screen=document.getElementById('mamTeamHistoryScreen');return {htmlTail:screen?.innerHTML.slice(-900),buttons:[...(screen?.querySelectorAll('button')||[])].map(button=>({id:button.id,text:button.textContent,display:getComputedStyle(button).display,visibility:getComputedStyle(button).visibility,rect:button.getBoundingClientRect().toJSON()})),screenDisplay:screen&&getComputedStyle(screen).display,openHandler:String(window.mamOpenStandingTeamHistory).slice(0,100)};})));
   await fromDetail.locator('#mamTeamHistoryBack').tap();
   assert.equal(await profileLink.evaluate(button=>button===document.activeElement),true);
   await dialog.getByRole('button',{name:/Olaylar/}).click();

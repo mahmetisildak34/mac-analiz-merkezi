@@ -28,6 +28,8 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     await results.first().click();
     await page.locator('#mamTeamHistoryScreen').waitFor({state:'visible',timeout:10000});
     assert.equal(await search.isVisible(),false,name+' search closes on team selection');
+    const screenState = await page.locator('#mamTeamHistoryScreen').evaluate(screen=>({htmlTail:screen.innerHTML.slice(-900),buttons:[...screen.querySelectorAll('button')].map(button=>({id:button.id,text:button.textContent,display:getComputedStyle(button).display,rect:button.getBoundingClientRect().toJSON()})),screenDisplay:getComputedStyle(screen).display,openHandler:String(window.mamOpenStandingTeamHistory).slice(0,100)}));
+    console.log(name+' team-history DOM '+JSON.stringify(screenState));
     const back = page.locator('#mamTeamHistoryBack');
     await back.waitFor({state:'attached',timeout:10000});
     const backBox = await back.boundingBox();
