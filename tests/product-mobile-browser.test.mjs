@@ -264,6 +264,24 @@ async function verifyMainApp(context,browserName){
   assert.doesNotMatch(await missingClock.locator('.match-time').innerText(),/\d+'/);
   assert.equal(await missingClock.locator('.match-clock').innerText(),'—');
   assert.equal(await main.locator('#matches article').filter({hasText:/Ertelenen Test|İptal Test|Biten Test/}).count(),0);
+  await main.evaluate(()=>{
+   const kickoff=new Date(Date.now()-35*60*1000).toISOString();
+   const teams={home:{id:7001,name:'Bayern Munich'},away:{id:7002,name:'Chelsea Test'}};
+   const clock=mamEspnClock({status:{displayClock:"2'",clock:2129}});
+   const apiRow={mamSource:'API_FOOTBALL',fixture:{id:99101,date:kickoff,status:{short:'LIVE',elapsed:2}},
+    league:{id:'39',name:'Premier League',country:'England'},teams,goals:{home:1,away:0}};
+   const espnRow={fixture:{id:'espn-eng.1-99101',date:kickoff,status:{short:'LIVE',elapsed:clock.elapsed,displayClock:clock.displayClock}},
+    league:{id:'39',name:'2026 Premier League',country:'England'},teams,goals:{home:1,away:0}};
+   const merged=mamMergeFixtureRows([apiRow,espnRow]);
+   if(merged.length!==1||merged[0].fixture.status.elapsed!==35)throw new Error('Cross-provider fixture identity or fresh ESPN minute was not preserved');
+   allMatches=[...allMatches.filter(match=>match.teams?.home?.name!=='Bayern Munich'),...merged];
+   document.getElementById('date').value=mamIstanbulDay(kickoff);
+   renderMatches();
+  });
+  const mergedProviderCard=main.locator('#matches article.match').filter({hasText:'Bayern Münih'});
+  await mergedProviderCard.waitFor();
+  assert.equal(await mergedProviderCard.count(),1,'mobile live view shows one card for the provider variants');
+  assert.match(await mergedProviderCard.locator('.match-time').innerText(),/35'/,'the live card uses the fresh shared provider minute');
   // Regression for the original 8849f62 Chromium/WebKit hidden #matches article timeout.
   // Hidden cards must be excluded from visibility-based checks, never assumed visible
   // just because a text selector resolves to a DOM node.

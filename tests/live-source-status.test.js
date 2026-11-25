@@ -90,10 +90,10 @@ test("published standings keep missing fields blank and prefer source goal diffe
  assert.match(standings,/isTeamDirectory\?"Puan tablosu yok"/);
 });
 
-test("fresh terminal ESPN statuses suppress old live entries within the same league",()=>{
- assert.match(html,/const matchPair=match=>String\(match\.league\?\.id\?\?""\)/);
- assert.match(html,/const freshPairs=new Set\(fallback\.map\(matchPair\)\)/);
- assert.match(html,/recentCachedLive\.forEach\(match=>\{const key=matchPair\(match\);if\(!freshPairs\.has\(key\)\)/);
+test("fresh terminal ESPN statuses suppress old live entries through shared fixture identity",()=>{
+ assert.match(html,/const freshFixtures=\[\.\.\.fallback,\.\.\.previousDayFixtures\]/);
+ assert.match(html,/const unrepresentedCache=recentCachedLive\.filter\(match=>!freshFixtures\.some\(row=>mamSameFixture\(row,match\)\)\)/);
+ assert.match(html,/const combinedLive=mamMergeFixtureRows\(\[\.\.\.unrepresentedCache,\.\.\.supplementalLive,\.\.\.checkedFallback,\.\.\.primaryLiveMatches\]\)/);
 });
 
 test("ESPN tur.1 scoreboard captured on 22 November keeps all four full-time results out of live",async()=>{
@@ -233,7 +233,21 @@ test("ESPN stoppage time and exact known status survive the real parser",()=>{
  assert.equal(parse[0](null,{state:"in",name:"STATUS_HALFTIME"}),"HT");
  assert.equal(parse[0]({state:"post",name:"STATUS_FINAL_PEN"}),"PEN");
  assert.equal(parse[1]({status:{displayClock:"90'+10'"}}).displayClock,"90+10'");
+ assert.equal(parse[1]({status:{clock:2129}}).elapsed,35,"numeric ESPN clock seconds produce the current elapsed minute");
+ assert.equal(parse[1]({competitions:[{status:{clock:540}}]}).displayClock,"9'");
+ assert.equal(parse[1]({status:{displayClock:"2'",clock:2129}}).displayClock,"35'","a stale display label cannot mask a newer numeric ESPN clock");
+ assert.equal(parse[1]({status:{displayClock:"90'+2'",clock:5400}}).displayClock,"90+2'","stoppage time remains authoritative at the same base minute");
+ assert.equal(parse[1]({status:{clock:null}}).elapsed,null);
  assert.equal(parse[1]({status:{displayClock:"Nov 23, 2026"}}).elapsed,null);
+});
+
+test("active detail refresh clears an old elapsed minute when neither fresh provider supplies a clock",()=>{
+ const start=html.indexOf("async function refreshActiveMatchScore()"),end=html.indexOf("\n\n",start);
+ const detail=html.slice(start,end);
+ assert.match(detail,/const safeElapsed=clock\.elapsed!=null\?clock\.elapsed:Number\.isFinite\(apiElapsed\)/);
+ assert.doesNotMatch(detail,/existingStatus\.elapsed!=null\?existingStatus\.elapsed/);
+ assert.match(detail,/apiElapsed=apiStatus\.elapsed==null\|\|apiStatus\.elapsed===""\?NaN:Number\(apiStatus\.elapsed\)/);
+ assert.match(detail,/displayClock=clock\.displayClock\|\|String\(freshApi\?apiStatus\.displayClock/);
 });
 
 test("real ESPN historical and monthly fixtures use exact team IDs across Istanbul month boundaries",async()=>{

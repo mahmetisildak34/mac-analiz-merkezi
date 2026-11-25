@@ -3738,7 +3738,7 @@ const mamFixtureTeamKey=value=>{
 	 return groupIndex.get(groupKey(value))||aliasKey;
 	};
 function mamFixturePair(match){
-	const league=String(match.league?.id??"");
+	const league=mamFixtureCompetitionKey(match).id;
 	const home=mamFixtureTeamKey(match.teams?.home?.name),away=mamFixtureTeamKey(match.teams?.away?.name);
 	return league&&home&&away?league+"|"+home+"|"+away:"";
 }
@@ -3750,7 +3750,8 @@ function mamFixtureProviderKeys(match){
 	const providers=new Set(Array.isArray(match?._mamSourceProviders)?match._mamSourceProviders.map(String):[]);
 	const source=String(match?.mamSource||"").toUpperCase();
 	const id=String(match?.fixture?.id??match?.id??"").toLowerCase();
-	if(source)providers.add(source);
+	const sourceAliases={"API":"API_FOOTBALL","API-FOOTBALL":"API_FOOTBALL","FOOTBALL-DATA":"FOOTBALL_DATA"};
+	if(source)providers.add(sourceAliases[source]||source);
 	else if(id.startsWith("espn-"))providers.add("ESPN");
 	else if(id.startsWith("sportscore-"))providers.add("SPORTSCORE");
 	else if(id.startsWith("football-data-"))providers.add("FOOTBALL_DATA");
@@ -3758,11 +3759,22 @@ function mamFixtureProviderKeys(match){
 	else if(id)providers.add("OTHER");
 	return [...providers];
 }
+function mamCanonicalFixtureLeagueId(value){
+	const id=String(value??"");
+	const registry=typeof ESPN_LEAGUES==="undefined"?{}:ESPN_LEAGUES;
+	const entries=Object.entries(registry);
+	const mapped=registry[id]||entries.find(([,league])=>league?.slug===id)?.[1];
+	const canonicalEntry=mapped&&(entries.find(([key,league])=>/^\d+$/.test(key)&&league?.slug===mapped.slug)||entries.find(([,league])=>league?.slug===mapped.slug));
+	return canonicalEntry?.[0]||id;
+}
 function mamFixtureCompetitionKey(match){
  const league=match?.league||{};
  const name=String(league.name||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/&/g," and ").replace(/[^a-z0-9]/g,"");
- const id=String(league.id??match?.leagueId??"");
- return {id,name};
+ const rawId=String(league.id??match?.leagueId??"");
+ const registry=typeof ESPN_LEAGUES==="undefined"?{}:ESPN_LEAGUES;
+ const mapped=registry[rawId]||Object.entries(registry).find(([,value])=>value?.slug===rawId)?.[1];
+ const id=mamCanonicalFixtureLeagueId(rawId);
+ return {id,name,canonical:Boolean(mapped)};
 }
 function mamFixtureCompetitionCompatible(a,b){
 	const left=mamFixtureCompetitionKey(a),right=mamFixtureCompetitionKey(b);
@@ -3770,7 +3782,7 @@ function mamFixtureCompetitionCompatible(a,b){
 	const providersB=mamFixtureProviderKeys(b).filter(provider=>provider!=="OTHER");
 	const sameProvider=providersA.some(provider=>providersB.includes(provider));
 	if(left.id&&right.id&&left.id===right.id){
-		if(left.name&&right.name&&left.name!==right.name&&!sameProvider)return false;
+		if(left.name&&right.name&&left.name!==right.name&&!sameProvider&&!(left.canonical&&right.canonical))return false;
 		return true;
 	}
 	return Boolean(left.name&&right.name&&left.name===right.name);
@@ -3917,7 +3929,7 @@ async function loadMatches(){
    const fixtureParams=mode==="upcoming"?{from:date,to:latest,timezone:"Europe/Istanbul"}:{date,timezone:"Europe/Istanbul"};
    const data=await api("fixtures?"+qs(fixtureParams));
    if(!stillSelected())return;
-   const freshMatches=Array.isArray(data.response)?data.response:[];
+   const freshMatches=Array.isArray(data.response)?data.response.map(match=>({...match,mamSource:"API_FOOTBALL"})):[];
    primaryFixtureCount=freshMatches.length;
    matches=freshMatches;
    if(freshMatches.length){
@@ -4475,26 +4487,16 @@ async function loadLiveMatchesNow(){
     // Son 10 dakikada başarıyla alınan ana canlı listeyi silme; ESPN sonuçlarıyla birleştir.
     const recentCachedLive=savedLiveCache&&Date.now()-Number(savedLiveCache.savedAt||0)<=3*60*1000
      ?savedLiveCache.matches.filter(isLive):[];
-    const cleanTeamName=value=>String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
-    const matchPair=match=>String(match.league?.id??"")+"|"+cleanTeamName(match.teams?.home?.name)+"|"+cleanTeamName(match.teams?.away?.name);
-    // Taze ESPN skoru, aynı takımlar için cihazdaki eski API önbelleğinin daima önüne geçer.
-    const freshPairs=new Set(fallback.map(matchPair));
-    previousDayFixtures.forEach(match=>freshPairs.add(matchPair(match)));
-    const mergedByPair=new Map();
-    recentCachedLive.forEach(match=>{const key=matchPair(match);if(!freshPairs.has(key))mergedByPair.set(key,match);});
-    supplementalLive.forEach(match=>{const key=matchPair(match);if(!mergedByPair.has(key))mergedByPair.set(key,match);});
-    const primaryChecksByPair=new Map(primaryLiveMatches.filter(match=>match._mamLiveCrossCheck).map(match=>[matchPair(match),match._mamLiveCrossCheck]));
-    fallbackLive.forEach(match=>{
-     const check=primaryChecksByPair.get(matchPair(match));
-     mergedByPair.set(matchPair(match),check?{...match,_mamLiveCrossCheck:check}:match);
+    const freshFixtures=[...fallback,...previousDayFixtures];
+    // Use the same competition/team/kickoff identity as the schedule and archive paths.
+    // A refreshed ESPN fixture replaces its cached/API copy; supplements and API rows
+    // are then folded into that one canonical row rather than keyed by raw league IDs.
+    const unrepresentedCache=recentCachedLive.filter(match=>!freshFixtures.some(row=>mamSameFixture(row,match)));
+    const checkedFallback=fallbackLive.map(match=>{
+     const check=primaryLiveMatches.find(row=>row._mamLiveCrossCheck&&mamSameFixture(row,match))?._mamLiveCrossCheck;
+     return check?{...match,_mamLiveCrossCheck:check}:match;
     });
-    // API-Football ve ESPN sonuçlarını takım eşleşmesiyle birleştir.
-    // ESPN dakikası ve skoru daha sık yenilendiğinden aynı maçta ESPN kazanır.
-    primaryLiveMatches.forEach(match=>{
-     const key=matchPair(match);
-     if(!mergedByPair.has(key))mergedByPair.set(key,match);
-    });
-    const combinedLive=[...mergedByPair.values()];
+    const combinedLive=mamMergeFixtureRows([...unrepresentedCache,...supplementalLive,...checkedFallback,...primaryLiveMatches]);
     mamNotifyLiveGoalChanges(combinedLive);
     publishLiveSnapshot(combinedLive);
      mamSaveLiveMatchCache(combinedLive);
@@ -4512,7 +4514,7 @@ async function loadLiveMatchesNow(){
    try{
     const data=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
     const primaryCount=Array.isArray(data.response)?data.response.length:0;
-    primaryLiveMatches=(data.response||[]).filter(isLive);
+    primaryLiveMatches=(data.response||[]).filter(isLive).map(match=>({...match,mamSource:"API_FOOTBALL"}));
     if(data.errors&&Object.keys(data.errors).length)primaryErrorText=JSON.stringify(data.errors);
     else primaryErrorText=primaryCount
      ? "API-Football "+primaryCount+" kayıt döndürdü ancak canlı durum kodu eşleşmedi."
@@ -4953,14 +4955,19 @@ function mamNormalizeLiveTeamName(value){
 function mamEspnClock(event){
  const status=event?.status??{},competitionStatus=event?.competitions?.[0]?.status??{};
  const candidates=[status.displayClock,competitionStatus.displayClock,status.type?.displayClock,competitionStatus.type?.displayClock,status.type?.shortDetail,competitionStatus.type?.shortDetail];
+ let parsed=null;
  for(const value of candidates){
   const label=String(value??"").trim();
   const match=label.match(/^(\d{1,3})(?::[0-5]\d|')?(?:\+(\d{1,2})'?)?$/);
   if(!match)continue;
   const minute=Number(match[1]);
   if(minute>130)continue;
-  return {displayClock:match[2]?minute+"+"+match[2]+"'":label,elapsed:minute};
+  parsed={displayClock:match[2]?minute+"+"+match[2]+"'":label,elapsed:minute};
+  break;
  }
+ const seconds=[status.clock,competitionStatus.clock].map(value=>value==null||String(value).trim()===""?NaN:Number(value)).find(value=>Number.isFinite(value)&&value>=0&&value<=7800);
+ if(seconds!==undefined){const minute=Math.floor(seconds/60);if(!parsed||minute>parsed.elapsed)return {displayClock:minute+"'",elapsed:minute};}
+ if(parsed)return parsed;
  return {displayClock:"",elapsed:null};
 }
 
@@ -6260,7 +6267,8 @@ async function refreshActiveMatchScore(){
    button.dataset.primaryScoreRefresh=String(Date.now());
    try{
     const payload=await api("fixtures?"+qs({live:"all",timezone:"Europe/Istanbul"}));
-    fresh=(Array.isArray(payload.response)?payload.response:[]).find(match=>String(match.fixture?.id||"")===rawId)||null;
+    const apiMatch=(Array.isArray(payload.response)?payload.response:[]).find(match=>String(match.fixture?.id||"")===rawId)||null;
+    fresh=apiMatch?{...apiMatch,mamSource:"API_FOOTBALL"}:null;
    }catch(primaryError){console.warn("API-Football açık maç skoru alınamadı; ESPN yedeği deneniyor.",primaryError);}
   }
   // ESPN kotasız yedek: desteklenen liglerde her skor turunda güncel skoru ve dakika bilgisini al.
@@ -6276,15 +6284,19 @@ async function refreshActiveMatchScore(){
      const existing=fresh||allMatches.find(match=>
       (source==="api"?String(match.fixture?.id||"")===rawId:String(match.league?.id||"")===leagueId&&String(match.fixture?.id||"").replace(/^espn-[a-z0-9._-]+-/,"")===rawId)
      );
-     // API-Football'dan bu turda taze maç verisi geldiyse ESPN scoreboard'un
-     // gecikmeli kopyasıyla skoru/dakikayı ezme. ESPN yalnızca ana veri yoksa
-     // yedek olsun; ESPN kaynaklı maçlarda ise kendi skorunu kullan.
-     const homeScore=mamEspnGoal(home?.score),awayScore=mamEspnGoal(away?.score);
-     if((source==="espn"||!fresh)&&existing&&homeScore!=null&&awayScore!=null){
+     // Keep fresh API-Football scores, but take ESPN's current clock when available.
+     // If ESPN provides no clock, prefer the fresh API clock; never retain an older
+     // elapsed/displayClock value from the cached row.
+     const freshApi=source==="api"&&fresh;
+     const homeScore=freshApi?mamEspnGoal(fresh.goals?.home):mamEspnGoal(home?.score);
+     const awayScore=freshApi?mamEspnGoal(fresh.goals?.away):mamEspnGoal(away?.score);
+     if(existing&&homeScore!=null&&awayScore!=null){
       const existingStatus=existing.fixture?.status||{};
-      const safeElapsed=clock.elapsed!=null?clock.elapsed:
-       (existingStatus.elapsed!=null?existingStatus.elapsed:null);
-      const candidate={...existing,goals:{home:homeScore,away:awayScore},fixture:{...existing.fixture,status:{...existingStatus,short:statusShort,elapsed:safeElapsed,displayClock:clock.displayClock||existingStatus.displayClock||""}}};
+      const apiStatus=freshApi?fresh.fixture?.status||{}:{};
+      const apiElapsed=apiStatus.elapsed==null||apiStatus.elapsed===""?NaN:Number(apiStatus.elapsed);
+      const safeElapsed=clock.elapsed!=null?clock.elapsed:Number.isFinite(apiElapsed)&&apiElapsed>=0?apiElapsed:null;
+      const displayClock=clock.displayClock||String(freshApi?apiStatus.displayClock||"":"");
+      const candidate={...existing,goals:{home:homeScore,away:awayScore},fixture:{...existing.fixture,status:{...existingStatus,short:statusShort,elapsed:safeElapsed,displayClock}}};
       if(mamCanApplyFixtureStatus(existing,candidate))fresh=candidate;
      }
     }
@@ -6595,8 +6607,8 @@ function mamHistoryTeamSearchNames(teamName,acceptedNames){
 function mamHistoricalIdentity(match){
  const day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);
  const home=mamCanonicalHistoryTeamKey(match?.teams?.home?.name),away=mamCanonicalHistoryTeamKey(match?.teams?.away?.name);
- const rawDate=String(match?.fixture?.date||""),instant=Date.parse(rawDate),league=match?.league||{};
- const competition=String(league.name||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/&/g," and ").replace(/[^a-z0-9]/g,"");
+ const rawDate=String(match?.fixture?.date||""),instant=Date.parse(rawDate),competitionKey=mamFixtureCompetitionKey(match);
+ const competition=competitionKey.canonical?"id:"+competitionKey.id:competitionKey.name;
  const gh=match?.goals?.home,ga=match?.goals?.away;
  if(!day||!home||!away||!competition||match?.fixture?.timeUnknown===true||!/[T ]\d{2}:\d{2}/.test(rawDate)||!Number.isFinite(instant)||gh===null||gh===undefined||ga===null||ga===undefined)return "";
  return [day,Math.round(instant/60000),competition,home,away].join("|");
@@ -6618,7 +6630,7 @@ function mamDeduplicateHistoricalMatches(matches){
 }
 
 function mamHistoryCompetitionAllowed(match,leagueId){
- const selected=String(leagueId||""),matchLeague=String(match?.league?.id??match?.leagueId??"");
+ const selected=mamCanonicalFixtureLeagueId(leagueId),matchLeague=mamCanonicalFixtureLeagueId(match?.league?.id??match?.leagueId??"");
  const source=String(match?.mamSource||"").toLowerCase();
  const normalize=value=>String(value||"").normalize("NFD").toLowerCase().replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();
  const name=normalize(match?.league?.name||match?.competition?.name||"");
@@ -7358,7 +7370,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
       const cutoff=new Date(matchDate+"T00:00:00");
       for(const match of (data.response||[])){
         if(!match.fixture?.date||new Date(match.fixture.date)>=cutoff)continue;
-        addMatch(match);
+        addMatch({...match,mamSource:"API_FOOTBALL"});
       }
     }catch(e){sourceError+=" API-Football: "+String(e.message||e);}
   }
