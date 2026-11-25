@@ -6341,7 +6341,8 @@ async function refreshActiveMatchScore(){
    ?previousSeconds+Math.max(0,(now-previousSecondsAt)/1000):NaN;
   const providerMinute=Number.isFinite(elapsed)&&elapsed>=0?elapsed:
    Number(String(status.displayClock||"").match(/^\d{1,3}/)?.[0]);
-  const providerSeconds=Number.isFinite(Number(status.elapsedSeconds))&&Number(status.elapsedSeconds)>=0?Number(status.elapsedSeconds):NaN;
+  const rawProviderSeconds=status.elapsedSeconds;
+  const providerSeconds=rawProviderSeconds!==null&&rawProviderSeconds!==undefined&&String(rawProviderSeconds).trim()!==""&&Number.isFinite(Number(rawProviderSeconds))&&Number(rawProviderSeconds)>=0?Number(rawProviderSeconds):NaN;
   // Aynı devre içinde sağlayıcı gecikmeli/eski dakika döndürürse ekrandaki saati geriye alma.
   const isStopped=["HT","SUSP","INT","FT","AET","PEN","POST"].includes(statusShort);
   const clockBase=!isStopped&&Number.isFinite(providerMinute)&&Number.isFinite(previousMinute)

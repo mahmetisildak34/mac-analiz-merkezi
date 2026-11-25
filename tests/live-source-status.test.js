@@ -266,10 +266,12 @@ test("active detail refresh clears an old elapsed minute when neither fresh prov
 
 test("live clock keeps precise seconds while minute-only providers do not invent them",()=>{
  const tick=html.match(/function mamTickVisibleMatchClock\(\)[\s\S]*?\n\}/)?.[0];
+ const refresh=html.match(/async function refreshActiveMatchScore\(\)[\s\S]*?\n\}/)?.[0];
  assert.match(tick,/liveClockSecondsBase/);
  assert.match(tick,/liveClockPrecise!=="true"/);
  assert.match(tick,/SUSP.*INT.*FT/);
  assert.match(tick,/Math\.floor\(elapsed\/60\)/);
+ assert.match(refresh,/rawProviderSeconds!==null&&rawProviderSeconds!==undefined/);
 });
 
 test("live statistics merge preserves verified sides when a refresh omits fields",()=>{
