@@ -8,10 +8,13 @@ const sw = readFileSync(new URL("../sw.js", import.meta.url), "utf8");
 const mobileSw = readFileSync(new URL("../mobile/sw.js", import.meta.url), "utf8");
 
 function helperApi() {
+  const competitionStart = source.indexOf("function mamCanonicalFixtureLeagueId(");
+  const competitionEnd = source.indexOf("function mamFixtureCompetitionCompatible(", competitionStart);
   const start = source.indexOf("const MAM_UEFA_TEAM_GROUPS=");
   const end = source.indexOf("// D1 kalıcı maç arşivi", start);
   assert.ok(start >= 0 && end > start);
-  return vm.runInNewContext(`${source.slice(start, end)};({mamUefaTeamMatch,mamCanonicalHistoryTeamKey,mamHistoryTeamSearchNames,mamHistoricalIdentity,mamDeduplicateHistoricalMatches})`, {
+  assert.ok(competitionStart >= 0 && competitionEnd > competitionStart);
+  return vm.runInNewContext(`${source.slice(competitionStart, competitionEnd)}\n${source.slice(start, end)};({mamUefaTeamMatch,mamCanonicalHistoryTeamKey,mamHistoryTeamSearchNames,mamHistoricalIdentity,mamDeduplicateHistoricalMatches})`, {
     mamFixtureTeamKey(value) {
       return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i").replace(/[^a-z0-9]/g, "");
     },
