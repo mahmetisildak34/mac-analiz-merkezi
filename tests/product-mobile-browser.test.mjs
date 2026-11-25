@@ -120,7 +120,7 @@ async function verifyMainApp(context,browserName){
   const profileLink=dialog.getByRole('button',{name:'Erzurum BB takım profili'});
   await profileLink.click();
   const fromDetail=main.getByRole('dialog',{name:'Erzurum BB takım profili',exact:true});
-  await fromDetail.locator('#mamTeamHistoryBack').press('Escape');
+  await fromDetail.locator('#mamTeamHistoryBack').click();
   assert.equal(await profileLink.evaluate(button=>button===document.activeElement),true);
   await dialog.getByRole('button',{name:/Olaylar/}).click();
   const events=dialog.locator('.match-detail-pane[data-pane="goals"]');
@@ -192,10 +192,19 @@ async function verifyMainApp(context,browserName){
   await midnightCard.locator('.match-clock').getByText('00:30',{exact:true}).waitFor();
   await midnightCard.locator('[data-mam-star="0"]').waitFor();
   assert.equal(await midnightCard.locator('[data-mam-star="2"]').count(),0);
+  await main.evaluate(()=>{
+   let scans=0;const rows=allMatches;
+   allMatches=new Proxy(rows,{get(target,key,receiver){if(key===Symbol.iterator)scans++;return Reflect.get(target,key,receiver);}});
+   window.__mamTeamSearchFixtureScans=()=>scans;
+  });
   const search=main.locator('#mamSearchToggle');
   await search.click();
   assert.equal(await main.locator('#mamTeamSearchResults button').count(),0);
   const input=main.locator('#mamTeamSearchInput');
+  await input.fill('A');
+  await main.waitForTimeout(120);
+  await input.fill('Ar');
+  await main.waitForTimeout(120);
   await input.fill('Ars');
   const arsenal=main.locator('#mamTeamSearchResults [data-search-team="espn:eng.1:359"]');
   await arsenal.waitFor().catch(async error=>{
@@ -205,9 +214,10 @@ async function verifyMainApp(context,browserName){
      results:document.getElementById('mamTeamSearchResults')?.innerText,
      requests:window.espnDirectoryRequests||[],
      cache:localStorage.getItem('mam_search_espn_teams_v1')?.slice(0,500)
-    }));
-    throw new Error('ESPN directory search failed: '+JSON.stringify(diagnostic),{cause:error});
-   });
+   }));
+   throw new Error('ESPN directory search failed: '+JSON.stringify(diagnostic),{cause:error});
+  });
+  assert.ok(await main.evaluate(()=>window.__mamTeamSearchFixtureScans()<=2),'typing should reuse the team catalog instead of rescanning every fixture');
   assert.equal(await main.locator('#mamTeamSearchResults button').count(),1);
   await arsenal.click();
   const foundProfile=main.getByRole('dialog',{name:'Arsenal takım profili',exact:true});
@@ -217,7 +227,7 @@ async function verifyMainApp(context,browserName){
   await foundProfile.locator('#mamHistoryUpcomingView').getByText(/Önümüzdeki 30 gün/).waitFor();
   assert.equal(await main.evaluate(()=>window.fixtureProfileRequests.some(x=>x.includes('/teams/42/'))),false);
   assert.equal(await foundProfile.evaluate(el=>el.scrollWidth<=el.clientWidth),true);
-  await foundProfile.locator('#mamTeamHistoryBack').press('Escape');
+  await foundProfile.locator('#mamTeamHistoryBack').click();
   assert.equal(await search.evaluate(el=>el===document.activeElement),true);
   await main.evaluate(()=>{
    const now=Date.now();
@@ -308,7 +318,7 @@ async function verifyMainApp(context,browserName){
   await profileRow.press('Enter');
   const teamProfile=main.getByRole('dialog',{name:'Galatasaray takım profili'});
   await teamProfile.getByText(/1\. sıra.*31 puan/).waitFor();
-  await teamProfile.locator('#mamTeamHistoryBack').press('Escape');
+  await teamProfile.locator('#mamTeamHistoryBack').click();
   assert.equal(await profileRow.evaluate(row=>row===document.activeElement),true);
   const season=main.locator('#mamStandingsSeasonSelect');
   await season.selectOption('2025');

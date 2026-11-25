@@ -28,7 +28,11 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     await results.first().click();
     await page.locator('#mamTeamHistoryScreen').waitFor({state:'visible',timeout:10000});
     assert.equal(await search.isVisible(),false,name+' search closes on team selection');
-    await page.locator('#mamTeamHistoryBack').click();
+    const back = page.locator('#mamTeamHistoryBack');
+    await back.waitFor({state:'visible',timeout:10000});
+    const backBox = await back.boundingBox();
+    assert.ok(backBox && backBox.width >= 44 && backBox.height >= 44,name+' team-history back control must be touch-sized');
+    await back.tap();
     await page.locator('#mamTeamHistoryScreen').waitFor({state:'detached'});
     await page.locator('#mamFavoriteBottom').click();
     await page.locator('#mamFavoritePanel').waitFor({state:'visible'});
