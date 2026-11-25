@@ -28,6 +28,7 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     await results.first().click();
     await page.locator('#mamTeamHistoryScreen').waitFor({state:'visible',timeout:10000});
     assert.equal(await search.isVisible(),false,name+' search closes on team selection');
+    console.log(name+' history DOM '+JSON.stringify(await page.locator('#mamTeamHistoryScreen').evaluate(screen=>({exists:screen.isConnected,header:screen.querySelector('header')?.innerText,buttonIds:[...screen.querySelectorAll('button')].map(button=>button.id),documentBack:!!document.getElementById('mamTeamHistoryBack'),text:screen.innerText.slice(0,180)}))));
     const back = page.locator('#mamTeamHistoryBack');
     await back.waitFor({state:'attached',timeout:10000});
     const backBox = await back.boundingBox();
