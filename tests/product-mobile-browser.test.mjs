@@ -118,6 +118,7 @@ async function verifyMainApp(context,browserName){
   await dialog.locator('[data-mam-star="1"]').click();
   await dialog.getByRole('button',{name:'⚽ Detay'}).click();
   const profileLink=dialog.getByRole('button',{name:'Erzurum BB takım profili'});
+  await main.waitForFunction(()=>typeof window.mamOpenStandingTeamHistory==='function',null,{timeout:10000});
   await profileLink.click();
   const fromDetail=main.getByRole('dialog',{name:'Erzurum BB takım profili',exact:true});
   await main.waitForTimeout(100);

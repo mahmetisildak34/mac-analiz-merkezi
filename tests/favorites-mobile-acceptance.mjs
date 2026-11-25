@@ -25,7 +25,10 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     assert.equal(await page.locator('#mamTeamSearchResults [data-search-league]').count(),0,name+' no league result rows');
     assert.ok(await results.count()>0,name+' league filters teams');
     await page.locator('#mamTeamSearchInput').fill('Beşiktaş');
-    await results.first().click();
+    const besiktasResult=results.filter({hasText:/Beşiktaş/i}).first();
+    await besiktasResult.waitFor({state:'visible',timeout:10000});
+    assert.match(await besiktasResult.innerText(),/Beşiktaş/i,name+' final debounced search result');
+    await besiktasResult.click();
     await page.waitForTimeout(100);
     await page.locator('#mamTeamHistoryScreen').waitFor({state:'visible',timeout:10000});
     assert.equal(await search.isVisible(),false,name+' search closes on team selection');
