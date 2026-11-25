@@ -28,8 +28,14 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     const besiktasResult=results.filter({hasText:/Beşiktaş/i}).first();
     await besiktasResult.waitFor({state:'visible',timeout:10000});
     assert.match(await besiktasResult.innerText(),/Beşiktaş/i,name+' final debounced search result');
+    await page.waitForTimeout(100);
+    const pageErrors=[];
+    page.on('pageerror',error=>pageErrors.push(error.message));
+    await page.evaluate(()=>{const open=window.mamOpenStandingTeamHistory;window.__mamHistoryOpenCalls=0;if(typeof open==='function')window.mamOpenStandingTeamHistory=function(){window.__mamHistoryOpenCalls++;return open.apply(this,arguments);};});
     await besiktasResult.click();
     await page.waitForTimeout(100);
+    const openerState=await page.evaluate(()=>({openCalls:window.__mamHistoryOpenCalls,screen:!!document.getElementById('mamTeamHistoryScreen'),searchHidden:document.getElementById('mamTeamSearch')?.hidden}));
+    console.log(name+' opener state '+JSON.stringify({...openerState,pageErrors}));
     await page.locator('#mamTeamHistoryScreen').waitFor({state:'visible',timeout:10000});
     assert.equal(await search.isVisible(),false,name+' search closes on team selection');
     const back = page.locator('#mamTeamHistoryBack');
