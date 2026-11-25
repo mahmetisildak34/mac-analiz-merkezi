@@ -119,10 +119,10 @@ async function verifyMainApp(context,browserName){
   await dialog.getByRole('button',{name:'⚽ Detay'}).click();
   const profileLink=dialog.getByRole('button',{name:'Erzurum BB takım profili'});
   await profileLink.click();
-  const fromDetail=main.locator('#mamTeamHistoryScreen');
+  const fromDetail=main.getByRole('dialog',{name:'Erzurum BB takım profili',exact:true});
+  await main.waitForTimeout(100);
   await fromDetail.waitFor({state:'visible',timeout:10000});
-  console.log(browserName+' history DOM '+JSON.stringify(await fromDetail.evaluate(screen=>({exists:screen.isConnected,header:screen.querySelector('header')?.innerText,buttonIds:[...screen.querySelectorAll('button')].map(button=>button.id),documentBack:!!document.getElementById('mamTeamHistoryBack'),text:screen.innerText.slice(0,180)}))));
-  await main.locator('#mamTeamHistoryBack').tap();
+  await fromDetail.locator('#mamTeamHistoryBack').tap();
   await fromDetail.waitFor({state:'detached'});
   assert.equal(await dialog.isVisible(),true,browserName+' team-history back tap must leave match details open');
   assert.equal(await profileLink.evaluate(button=>button===document.activeElement),true);
