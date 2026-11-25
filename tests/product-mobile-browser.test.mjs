@@ -119,13 +119,9 @@ async function verifyMainApp(context,browserName){
   await dialog.getByRole('button',{name:'⚽ Detay'}).click();
   const profileLink=dialog.getByRole('button',{name:'Erzurum BB takım profili'});
   await main.waitForFunction(()=>typeof window.mamOpenStandingTeamHistory==='function',null,{timeout:10000});
-  const pageErrors=[];
-  main.on('pageerror',error=>pageErrors.push(error.message));
-  await main.evaluate(()=>{const open=window.mamOpenStandingTeamHistory;window.__mamHistoryOpenCalls=0;window.mamOpenStandingTeamHistory=function(){window.__mamHistoryOpenCalls++;return open.apply(this,arguments);};});
   await profileLink.click();
   const fromDetail=main.getByRole('dialog',{name:'Erzurum BB takım profili',exact:true});
   await main.waitForTimeout(100);
-  console.log(browserName+' opener state '+JSON.stringify({...await main.evaluate(()=>({openCalls:window.__mamHistoryOpenCalls,screen:!!document.getElementById('mamTeamHistoryScreen'),detailsOpen:!!document.querySelector('.match-detail-overlay')})),pageErrors}));
   await fromDetail.waitFor({state:'visible',timeout:10000});
   await fromDetail.locator('#mamTeamHistoryBack').tap();
   await fromDetail.waitFor({state:'detached'});
@@ -214,7 +210,9 @@ async function verifyMainApp(context,browserName){
   await main.waitForTimeout(120);
   await input.fill('Ar');
   await main.waitForTimeout(120);
+  assert.ok(await main.locator('#mamTeamSearchResults button').count()>0,browserName+' prior query should render results before replacement');
   await input.fill('Ars');
+  assert.equal(await main.locator('#mamTeamSearchResults button').count(),0,browserName+' query change must synchronously clear stale results');
   const arsenal=main.locator('#mamTeamSearchResults [data-search-team="espn:eng.1:359"]');
   await arsenal.waitFor().catch(async error=>{
     const diagnostic=await main.evaluate(()=>({

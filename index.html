@@ -3721,14 +3721,22 @@ const mamFixtureTeamKey=value=>{
    arcaorum:"corum",arcaorumspor:"corum",orum:"corum",
    caykurrizespor:"rizespor",caykurrzespor:"rizespor",
   alshamalsports:"alshamal",algharafasports:"algharafa",esteghlaltehran:"esteghlal",belediyevanspor:"vanspor",
-   kasimpasa:"kasimpasa",kasmpasa:"kasimpasa"
- };
- const aliasKey=aliases[key]||key;
- const groupKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/&/g," and ").replace(/[^a-z0-9]/g,"");
- const groups=typeof MAM_UEFA_TEAM_GROUPS==="undefined"?[]:MAM_UEFA_TEAM_GROUPS;
- const group=groups.find(names=>names.some(name=>groupKey(name)===groupKey(value)));
- return group?aliases[mamFixtureTeamKeyBase(group[0])]||mamFixtureTeamKeyBase(group[0]):aliasKey;
-};
+	  kasimpasa:"kasimpasa",kasmpasa:"kasimpasa"
+	 };
+	 const aliasKey=aliases[key]||key;
+	 const groupKey=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/&/g," and ").replace(/[^a-z0-9]/g,"");
+	 const groups=typeof MAM_UEFA_TEAM_GROUPS==="undefined"?[]:MAM_UEFA_TEAM_GROUPS;
+	 let groupIndex=mamFixtureTeamKey.groupKeyIndex;
+	 if(!groupIndex||mamFixtureTeamKey.groupKeySource!==groups){
+	  groupIndex=new Map();
+	  for(const names of groups){
+	   const canonical=aliases[mamFixtureTeamKeyBase(names[0])]||mamFixtureTeamKeyBase(names[0]);
+	   for(const name of names){const normalized=groupKey(name);if(!groupIndex.has(normalized))groupIndex.set(normalized,canonical);}
+	  }
+	  mamFixtureTeamKey.groupKeyIndex=groupIndex;mamFixtureTeamKey.groupKeySource=groups;
+	 }
+	 return groupIndex.get(groupKey(value))||aliasKey;
+	};
 function mamFixturePair(match){
 	const league=String(match.league?.id??"");
 	const home=mamFixtureTeamKey(match.teams?.home?.name),away=mamFixtureTeamKey(match.teams?.away?.name);
@@ -6566,7 +6574,12 @@ function mamUefaTeamMatch(a,b){
  const x=norm(a),y=norm(b);
  if(!x||!y)return false;
  if(x===y)return true;
- return MAM_UEFA_TEAM_GROUPS.some(group=>{const names=group.map(norm);return names.includes(x)&&names.includes(y);});
+ const groupsByName=mamUefaTeamMatch.groupIndex||(mamUefaTeamMatch.groupIndex=new Map());
+ if(!groupsByName.size)for(let index=0;index<MAM_UEFA_TEAM_GROUPS.length;index++)for(const name of MAM_UEFA_TEAM_GROUPS[index]){
+  const key=norm(name);let memberships=groupsByName.get(key);if(!memberships)groupsByName.set(key,memberships=new Set());memberships.add(index);
+ }
+ const xGroups=groupsByName.get(x),yGroups=groupsByName.get(y);
+ return !!xGroups&&!!yGroups&&[...xGroups].some(index=>yGroups.has(index));
 }
 
 function mamCanonicalHistoryTeamKey(value){
@@ -9388,7 +9401,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   directoryLoading=false;
   if(directory.size!==initialDirectorySize)teamSearchDirectoryVersion++;
   if(directory.size){directoryLoaded=true;try{localStorage.setItem(catalogKey,JSON.stringify({savedAt:Date.now(),teams:[...directory.values()]}));}catch{}}
-  if(!panel.hidden){teamSearchCatalog=null;scheduleDraw();}
+  if(!panel.hidden){teamSearchCatalog=null;scheduleDraw(false);}
  }
  function buildTeams(){
   const map=new Map();
@@ -9441,7 +9454,16 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   teamSearchRendered.clear();for(const team of filtered)teamSearchRendered.set(team.id,team);
   results.innerHTML=!q?'':filtered.map(t=>'<button type="button" class="mam-team-result" data-search-team="'+escapeHtml(t.id)+'" style="display:flex;width:100%;text-align:left;background:transparent;color:inherit;border:0;border-bottom:1px solid #41516f;padding:12px 0;cursor:pointer"><span class="mam-team-name"><strong>'+escapeHtml(t.name)+'</strong><small style="display:block;color:#afc0dc">'+escapeHtml(t.league)+'</small></span></button>').join('')||'<p>'+(directoryLoading?'Takımlar yükleniyor…':'Bu isimde takım bulunamadı.')+'</p>';
  }
- function scheduleDraw(){window.clearTimeout(drawTimer);drawTimer=window.setTimeout(()=>{drawTimer=0;draw();},80);}
+ function scheduleDraw(clearResults=true){
+  window.clearTimeout(drawTimer);
+  if(clearResults){
+   teamSearchRendered.clear();
+   results.replaceChildren();
+   const help=document.getElementById('mamTeamSearchHelp');
+   if(help)help.textContent=input.value.trim()?'Aranıyor…':directoryLoading?'Takım rehberi yükleniyor…':'Takım adı veya lig yaz.';
+  }
+  drawTimer=window.setTimeout(()=>{drawTimer=0;draw();},80);
+ }
  results.addEventListener('click',event=>{
   const button=event.target.closest('[data-search-team]');
   if(!button)return;
