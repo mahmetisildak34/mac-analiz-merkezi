@@ -4668,14 +4668,23 @@ async function mamSportScoreLiveStats(button){
  return {homeName:match.home||button.dataset.liveHomeName,awayName:match.away||button.dataset.liveAwayName,rows:labels.map(label=>[label,h[label]??"—",a[label]??"—"]),source:"SportScore"};
 }
 
+function mamMergeLiveStatsRows(rows,previousRows=[]){
+ const prior=new Map(previousRows.map(row=>[String(row[0]),row]));
+ const labels=[...new Set([...previousRows.map(row=>String(row[0])),...rows.map(row=>String(row[0]))])];
+ return labels.map(label=>{
+  const incoming=rows.find(row=>String(row[0])===label)||[label,"—","—"],old=prior.get(label);
+  return [label,(incoming[1]==null||incoming[1]==="—")&&old?.[1]!=null&&old[1]!=="—"?old[1]:incoming[1],(incoming[2]==null||incoming[2]==="—")&&old?.[2]!=null&&old[2]!=="—"?old[2]:incoming[2]];
+ });
+}
 async function loadLiveStats(button,forceRefresh=false){
  const fixtureId=String(button.dataset.liveId||"");
  const source=String(button.dataset.liveSource||"api");
  const leagueSlug=String(button.dataset.liveLeague||"");
  const panel=document.getElementById(button.dataset.livePanel||("live-stats-"+fixtureId));
  if(!panel||!fixtureId)return;
+ const previousRows=Array.isArray(button._mamVerifiedStatsRows)?button._mamVerifiedStatsRows:[];
  if(!forceRefresh&&!panel.hidden){panel.hidden=true;button.textContent="📊 Canlı istatistikler";return;}
- panel.hidden=false;panel.innerHTML='<div class="small">Canlı istatistikler alınıyor…</div>';
+ panel.hidden=false;if(!previousRows.length)panel.innerHTML='<div class="small">Canlı istatistikler alınıyor…</div>';
  button.disabled=true;
  try{
   let homeTeam,awayTeam,statsRows=[],sourceLabel,payload=null,statsCrossCheckNote="";
@@ -4744,7 +4753,7 @@ async function loadLiveStats(button,forceRefresh=false){
    awayTeam=away?.team?.displayName||button.dataset.liveAwayName||"Deplasman";
    const labels=[...new Set([...Object.keys(h),...Object.keys(a)])];
    statsRows=labels.map(label=>[label,h[label]??"—",a[label]??"—"]);
-   if(!statsRows.length)throw new Error("ESPN bu maç için henüz canlı takım istatistiği yayınlamıyor. Skor ve dakika akışı ayrı kaynaktan geliyor.");
+   if(!statsRows.length&&!previousRows.length)throw new Error("ESPN bu maç için henüz canlı takım istatistiği yayınlamıyor. Skor ve dakika akışı ayrı kaynaktan geliyor.");
    sourceLabel=payload?._mamStale?"ESPN · son başarılı kayıt":"ESPN";
   }else{
    if(!/^\d+$/.test(fixtureId))throw new Error("API-Football maç kimliği geçersiz.");
@@ -4829,6 +4838,8 @@ async function loadLiveStats(button,forceRefresh=false){
     sourceLabel="ESPN yedek kaynak";
    }
   }
+  statsRows=mamMergeLiveStatsRows(statsRows,previousRows);
+  button._mamVerifiedStatsRows=statsRows.map(row=>[...row]);
   // Compare API-Football live metrics with ESPN for the same event. Primary values remain authoritative.
   if(source!=="espn"&&source!=="sportscore"&&statsRows.length){
    try{
@@ -4924,10 +4935,11 @@ async function loadLiveStats(button,forceRefresh=false){
   }).join("");
   panel.innerHTML='<div class="mam-live-stats-title">Genel İstatistikler</div>'+(rows||'<div class="mam-live-stats-foot">Bu karşılaşma için sağlayıcı henüz istatistik paylaşmadı. Maç devam ederken tekrar kontrol edebilirsin.</div>')+'<div class="mam-live-stats-foot">Kaynak: '+sourceLabel+'. Panel açıkken maç sürerken 60 saniyede bir yenilenir.'+(!hasRealXg?' Model xG yaklaşık hesaplamadır; gerçek sağlayıcı xG verisi değildir.':' Gerçek xG sağlayıcıdan alınmıştır.')+(statsCrossCheckNote?" "+esc(statsCrossCheckNote):"")+'</div>';
   await mamPersistLiveStatsToD1(fixtureId,sourceLabel,statsRows);
+  mamMaybeRefreshLiveAnalysis(button);
  }catch(primaryError){
   // SportScore zaten doğrudan denenmiştir; diğer kaynaklarda yedek olarak kullanılır.
   if(source==="sportscore"){
-   panel.innerHTML='<span class="error">SportScore istatistikleri alınamadı: '+esc(String(primaryError.message||primaryError))+'</span>';
+   if(!previousRows.length)panel.innerHTML='<span class="error">SportScore istatistikleri alınamadı: '+esc(String(primaryError.message||primaryError))+'</span>';
   }else try{
    const backup=await mamSportScoreLiveStats(button);
    const rows=backup.rows.map(([label,left,right])=>{
@@ -4940,7 +4952,7 @@ async function loadLiveStats(button,forceRefresh=false){
    panel.innerHTML='<div class="mam-live-stats-title">Genel İstatistikler</div>'+rows+'<div class="mam-live-stats-foot">Kaynak: SportScore. Sağlayıcı verisi; panel açıkken 60 saniyede bir yenilenir. '+esc(String(primaryError.message||primaryError))+'</div>';
    await mamPersistLiveStatsToD1(fixtureId,"SportScore",backup.rows);
   }catch(backupError){
-   panel.innerHTML='<span class="error">'+esc(String(primaryError.message||primaryError))+' SportScore yedeği: '+esc(String(backupError.message||backupError))+'</span>';
+    if(!previousRows.length)panel.innerHTML='<span class="error">'+esc(String(primaryError.message||primaryError))+' SportScore yedeği: '+esc(String(backupError.message||backupError))+'</span>';
   }
  }
  finally{button.disabled=false;button.textContent=panel.hidden?"📊 Canlı istatistikler":"İstatistikleri gizle";}
@@ -4956,22 +4968,23 @@ function mamEspnClock(event){
  const status=event?.status??{},competitionStatus=event?.competitions?.[0]?.status??{};
  const statuses=[status,competitionStatus],candidates=[];
  for(const current of statuses){
-  for(const value of [current.displayClock,current.type?.displayClock,current.type?.shortDetail]){
+   for(const value of [current.displayClock,current.type?.displayClock,current.type?.shortDetail]){
    const label=String(value??"").trim(),match=label.match(/^(\d{1,3})(?::([0-5]\d)|'?)?(?:\+(\d{1,2})'?)?$/);
    if(!match)continue;
-   const minute=Number(match[1]),added=Number(match[3]||0);
+   const minute=Number(match[1]),seconds=match[2]===undefined||match[2]===""?null:Number(match[2]),added=Number(match[3]||0);
    if(minute>130)continue;
-   candidates.push({displayClock:match[3]?minute+"+"+match[3]+"'":label,elapsed:minute,rank:(minute+added)*60+Number(match[2]||0),isDisplay:true});
+   const elapsedSeconds=seconds===null?null:(minute*60)+seconds;
+   candidates.push({displayClock:match[3]?minute+"+"+match[3]+"'":label,elapsed:minute,elapsedSeconds,precise:elapsedSeconds!==null,rank:(minute+added)*60+(seconds||0),isDisplay:true});
   }
   for(const value of [current.clock,current.type?.clock]){
    const seconds=value==null||String(value).trim()===""?NaN:Number(value);
    if(!Number.isFinite(seconds)||seconds<0||seconds>7800)continue;
-   const minute=Math.floor(seconds/60);
-   candidates.push({displayClock:minute+"'",elapsed:minute,rank:seconds,isDisplay:false});
+   const minute=Math.floor(seconds/60),precise=seconds%60!==0;
+   candidates.push({displayClock:precise?String(minute).padStart(2,"0")+":"+String(Math.floor(seconds%60)).padStart(2,"0"):minute+"'",elapsed:minute,elapsedSeconds:precise?seconds:null,precise,rank:seconds,isDisplay:false});
   }
  }
  const latest=candidates.reduce((best,current)=>!best||current.rank>best.rank||current.rank===best.rank&&current.isDisplay&&!best.isDisplay?current:best,null);
- return latest?{displayClock:latest.displayClock,elapsed:latest.elapsed}:{displayClock:"",elapsed:null};
+ return latest?{displayClock:latest.displayClock,elapsed:latest.elapsed,elapsedSeconds:latest.elapsedSeconds??null,precise:Boolean(latest.precise)}:{displayClock:"",elapsed:null,elapsedSeconds:null,precise:false};
 }
 
 async function mamFindEspnLiveEvent({slug,date,eventId,homeName,awayName}){
@@ -6030,7 +6043,9 @@ function renderMatches(){
  const mamNow=Date.now();
  const mamTodayKey=mamIstanbulDay(new Date(mamNow).toISOString());
  const selectedDay=$("date")?.value||mamTodayKey;
- if(mamScreenMode==="live")list=list.filter(m=>navigator.onLine!==false&&liveCodes.has(mamCanonicalMatchStatus(m))&&mamIstanbulDay(m.fixture?.date)===selectedDay);
+ // Canlı ekran tarih seçicisine bağlı değildir: Istanbul gece yarısından sonra
+ // önceki gün başlayıp hâlâ süren maçlar da canlı kart olarak kalmalıdır.
+ if(mamScreenMode==="live")list=list.filter(m=>navigator.onLine!==false&&liveCodes.has(mamCanonicalMatchStatus(m)));
  if(mamScreenMode==="upcoming"){
   list=list.filter(m=>{
    const day=mamIstanbulDay(m.fixture?.date);
@@ -6299,7 +6314,7 @@ async function refreshActiveMatchScore(){
       const apiElapsed=apiStatus.elapsed==null||apiStatus.elapsed===""?NaN:Number(apiStatus.elapsed);
       const safeElapsed=clock.elapsed!=null?clock.elapsed:Number.isFinite(apiElapsed)&&apiElapsed>=0?apiElapsed:null;
       const displayClock=clock.displayClock||String(freshApi?apiStatus.displayClock||"":"");
-      const candidate={...existing,goals:{home:homeScore,away:awayScore},fixture:{...existing.fixture,status:{...existingStatus,short:statusShort,elapsed:safeElapsed,displayClock}}};
+     const candidate={...existing,goals:{home:homeScore,away:awayScore},fixture:{...existing.fixture,status:{...existingStatus,short:statusShort,elapsed:safeElapsed,elapsedSeconds:clock.elapsedSeconds,clockPrecise:clock.precise,displayClock}}};
       if(mamCanApplyFixtureStatus(existing,candidate))fresh=candidate;
      }
     }
@@ -6320,15 +6335,23 @@ async function refreshActiveMatchScore(){
   const previousAt=Number(button.dataset.liveClockAt);
   const previousMinute=Number.isFinite(previousBase)&&Number.isFinite(previousAt)
    ?previousBase+Math.max(0,(now-previousAt)/60000):NaN;
+  const previousSeconds=Number(button.dataset.liveClockSecondsBase);
+  const previousSecondsAt=Number(button.dataset.liveClockSecondsAt);
+  const locallyAdvancedSeconds=Number.isFinite(previousSeconds)&&Number.isFinite(previousSecondsAt)
+   ?previousSeconds+Math.max(0,(now-previousSecondsAt)/1000):NaN;
   const providerMinute=Number.isFinite(elapsed)&&elapsed>=0?elapsed:
    Number(String(status.displayClock||"").match(/^\d{1,3}/)?.[0]);
+  const rawProviderSeconds=status.elapsedSeconds;
+  const providerSeconds=rawProviderSeconds!==null&&rawProviderSeconds!==undefined&&String(rawProviderSeconds).trim()!==""&&Number.isFinite(Number(rawProviderSeconds))&&Number(rawProviderSeconds)>=0?Number(rawProviderSeconds):NaN;
   // Aynı devre içinde sağlayıcı gecikmeli/eski dakika döndürürse ekrandaki saati geriye alma.
-  const isStopped=["HT","FT","AET","PEN","POST"].includes(statusShort);
+  const isStopped=["HT","SUSP","INT","FT","AET","PEN","POST"].includes(statusShort);
   const clockBase=!isStopped&&Number.isFinite(providerMinute)&&Number.isFinite(previousMinute)
    ?Math.max(providerMinute,previousMinute)
    :providerMinute;
   const shownMinute=Number.isFinite(clockBase)?Math.floor(clockBase):NaN;
-  const minute=statusShort==="HT"?"Devre arası":source==="espn"?status.displayClock||"Canlı":Number.isFinite(shownMinute)?shownMinute+"'":status.displayClock||"Canlı";
+  const preciseSeconds=!isStopped&&Number.isFinite(providerSeconds)?Math.max(providerSeconds,Number.isFinite(locallyAdvancedSeconds)?locallyAdvancedSeconds:providerSeconds):NaN;
+  const preciseClock=Number.isFinite(preciseSeconds)?String(Math.floor(preciseSeconds/60)).padStart(2,"0")+":"+String(Math.floor(preciseSeconds%60)).padStart(2,"0"):"";
+  const minute=statusShort==="HT"?"Devre arası":preciseClock?preciseClock:source==="espn"?status.displayClock||"Canlı":Number.isFinite(shownMinute)?shownMinute+"'":status.displayClock||"Canlı";
   const stoppedLabel=statusShort==="HT"?"Devre arası":["FT","AET","PEN","POST"].includes(statusShort)?"Maç bitti":statusShort==="SUSP"?"Durduruldu":statusShort==="INT"?"Oyun durdu":"Canlı";
   const headClock=article.querySelector(".match-head .match-time");
   if(headClock)headClock.textContent=(isStopped?"⚪ ":"🔴 ")+minute+" · "+stoppedLabel;
@@ -6338,10 +6361,13 @@ async function refreshActiveMatchScore(){
    button.dataset.liveClockBase=String(clockBase);
    button.dataset.liveClockAt=String(now);
    button.dataset.liveClockStatus=statusShort;
+   if(Number.isFinite(preciseSeconds)){button.dataset.liveClockSecondsBase=String(preciseSeconds);button.dataset.liveClockSecondsAt=String(now);button.dataset.liveClockPrecise="true";}
+   else {delete button.dataset.liveClockSecondsBase;delete button.dataset.liveClockSecondsAt;delete button.dataset.liveClockPrecise;}
   }
   button.dataset.liveMinute=Number.isFinite(elapsed)?String(elapsed):"";
   button.dataset.liveHomeScore=String(fresh.goals.home);
   button.dataset.liveAwayScore=String(fresh.goals.away);
+  mamMaybeRefreshLiveAnalysis(button);
   try{mamSaveLiveMatchCache(allMatches.filter(match=>["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"].includes(mamCanonicalMatchStatus(match))));}catch(_){}
  }catch(error){console.warn("Açık maç skoru yenilenemedi:",error);}
 }
@@ -6367,6 +6393,7 @@ async function refreshOpenLiveStats(){
    if(Date.now()-last<statsInterval)continue;
    button.dataset.statsLastRefresh=String(Date.now());
    await loadLiveStats(button,true);
+   mamMaybeRefreshLiveAnalysis(button);
   }
   const goalPanes=[...document.querySelectorAll(".match-detail-pane[data-pane='goals']")].filter(panel=>{
    const overlay=panel.closest(".match-detail-overlay");
@@ -6426,15 +6453,13 @@ function mamSeedVisibleMatchClock(button){
 function mamTickVisibleMatchClock(){
  const buttons=[...document.querySelectorAll(".match-detail-overlay:not([hidden]) .liveStatsBtn")];
  for(const button of buttons){
-  if(button.dataset.liveSource==="espn")continue;
-  mamSeedVisibleMatchClock(button);
-  const base=Number(button.dataset.liveClockBase),at=Number(button.dataset.liveClockAt);
-  if(!Number.isFinite(base)||!Number.isFinite(at))continue;
+  const preciseBase=Number(button.dataset.liveClockSecondsBase),preciseAt=Number(button.dataset.liveClockSecondsAt);
+  if(!Number.isFinite(preciseBase)||!Number.isFinite(preciseAt)||button.dataset.liveClockPrecise!=="true")continue;
   const status=String(button.dataset.liveClockStatus||"LIVE").toUpperCase();
-  if(["HT","FT","AET","PEN","POST"].includes(status))continue;
-  const elapsed=Math.max(0,Math.floor(base+(Date.now()-at)/60000));
+  if(["HT","SUSP","INT","FT","AET","PEN","POST"].includes(status))continue;
+  const elapsed=Math.max(0,Math.floor(preciseBase+(Date.now()-preciseAt)/1000));
   const clock=button.closest(".match.in-detail")?.querySelector(".match-head .match-time");
-  if(clock)clock.textContent="🔴 "+elapsed+"' · Canlı";
+  if(clock)clock.textContent="🔴 "+String(Math.floor(elapsed/60)).padStart(2,"0")+":"+String(elapsed%60).padStart(2,"0")+" · Canlı";
  }
 }
 let mamTodayScoreRequest=null;
@@ -7703,11 +7728,21 @@ function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 
 
 /* CANLI MAÇ ANALİZ MOTORU */
+function mamMaybeRefreshLiveAnalysis(button){
+ if(!button||button.dataset.liveAnalysisOpen!=="true"||button.disabled)return;
+ const panel=button.closest(".match")?.querySelector(".liveAnalysis");
+ if(!panel||panel.hidden)return;
+ const now=Date.now(),last=Number(button.dataset.liveAnalysisRefresh||0);
+ if(now-last<15000)return;
+ button.dataset.liveAnalysisRefresh=String(now);
+ analyzeLiveMatch(button).catch(error=>console.warn("Canlı analiz otomatik yenilenemedi:",error));
+}
 async function analyzeLiveMatch(button){
  if(!button||button.disabled)return;
  const card=button.closest(".match"),panel=card?.querySelector(".liveAnalysis");
  const id=String(button.dataset.liveId||""),espn=button.dataset.liveSource==="espn";
  if(!panel||!id)return;
+ button.dataset.liveAnalysisOpen="true";
  button.disabled=true;const old=button.textContent;button.textContent="Canlı veriler hesaplanıyor…";
  panel.innerHTML='<p class="note">Canlı istatistikler alınıyor…</p>';
  try{

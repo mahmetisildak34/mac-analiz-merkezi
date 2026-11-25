@@ -236,12 +236,23 @@ test("ESPN stoppage time and exact known status survive the real parser",()=>{
  assert.equal(parse[1]({status:{displayClock:"90'+10'"}}).displayClock,"90+10'");
  assert.equal(parse[1]({status:{clock:2129}}).elapsed,35,"numeric ESPN clock seconds produce the current elapsed minute");
  assert.equal(parse[1]({competitions:[{status:{clock:540}}]}).displayClock,"9'");
- assert.equal(parse[1]({status:{displayClock:"2'",clock:2129}}).displayClock,"35'","a stale display label cannot mask a newer numeric ESPN clock");
+ assert.equal(parse[1]({status:{displayClock:"2'",clock:2129}}).displayClock,"35:29","a stale display label cannot mask a newer numeric ESPN clock");
  assert.equal(parse[1]({status:{displayClock:"90'+2'",clock:5400}}).displayClock,"90+2'","stoppage time remains authoritative at the same base minute");
  assert.equal(parse[1]({status:{displayClock:"20'"},competitions:[{status:{displayClock:"26'"}}]}).displayClock,"26'","the newer competition display clock wins over stale event status");
- assert.equal(parse[1]({status:{clock:1200},competitions:[{status:{clock:1575}}]}).displayClock,"26'","all numeric status clocks are compared, not only the first valid one");
+ assert.equal(parse[1]({status:{clock:1200},competitions:[{status:{clock:1575}}]}).displayClock,"26:15","all numeric status clocks are compared, not only the first valid one");
  assert.equal(parse[1]({status:{clock:null}}).elapsed,null);
  assert.equal(parse[1]({status:{displayClock:"Nov 23, 2026"}}).elapsed,null);
+});
+
+test("ESPN precise provider seconds are retained for a local one-second display tick",()=>{
+ const clock=html.match(/function mamEspnClock[\s\S]*?\n\}/)?.[0];
+ const parse=require("node:vm").runInNewContext(clock+";mamEspnClock");
+ const display=parse({status:{displayClock:"26:15"}});
+ assert.equal(display.displayClock,"26:15");assert.equal(display.elapsed,26);assert.equal(display.elapsedSeconds,1575);assert.equal(display.precise,true);
+ const minute=parse({status:{displayClock:"26'"}});
+ assert.equal(minute.displayClock,"26'");assert.equal(minute.elapsed,26);assert.equal(minute.elapsedSeconds,null);assert.equal(minute.precise,false);
+ const numeric=parse({status:{clock:1575}});
+ assert.equal(numeric.displayClock,"26:15");assert.equal(numeric.elapsed,26);assert.equal(numeric.elapsedSeconds,1575);assert.equal(numeric.precise,true);
 });
 
 test("active detail refresh clears an old elapsed minute when neither fresh provider supplies a clock",()=>{
@@ -251,6 +262,41 @@ test("active detail refresh clears an old elapsed minute when neither fresh prov
  assert.doesNotMatch(detail,/existingStatus\.elapsed!=null\?existingStatus\.elapsed/);
  assert.match(detail,/apiElapsed=apiStatus\.elapsed==null\|\|apiStatus\.elapsed===""\?NaN:Number\(apiStatus\.elapsed\)/);
  assert.match(detail,/displayClock=clock\.displayClock\|\|String\(freshApi\?apiStatus\.displayClock/);
+});
+
+test("live clock keeps precise seconds while minute-only providers do not invent them",()=>{
+ const tick=html.match(/function mamTickVisibleMatchClock\(\)[\s\S]*?\n\}/)?.[0];
+ const refresh=html.match(/async function refreshActiveMatchScore\(\)[\s\S]*?\n\}/)?.[0];
+ assert.match(tick,/liveClockSecondsBase/);
+ assert.match(tick,/liveClockPrecise!=="true"/);
+ assert.match(tick,/SUSP.*INT.*FT/);
+ assert.match(tick,/Math\.floor\(elapsed\/60\)/);
+ assert.match(refresh,/rawProviderSeconds!==null&&rawProviderSeconds!==undefined/);
+});
+
+test("live statistics merge preserves verified sides when a refresh omits fields",()=>{
+ const source=html.match(/function mamMergeLiveStatsRows\([\s\S]*?\n\}/)?.[0];
+ const merge=require("node:vm").runInNewContext(source+";mamMergeLiveStatsRows");
+ const result=merge([["Toplam şut","12","—"],["Korner","3","4"]],[["Toplam şut","10","8"],["İsabetli şut","2","1"]]);
+ assert.equal(JSON.stringify(result),JSON.stringify([
+  ["Toplam şut","12","8"],["İsabetli şut","2","1"],["Korner","3","4"]
+ ]));
+});
+
+test("live analysis auto-refresh is throttled and only runs after the user opens it",()=>{
+ const helper=html.match(/function mamMaybeRefreshLiveAnalysis\([\s\S]*?\n\}/)?.[0];
+ assert.match(helper,/liveAnalysisOpen!=="true"/);
+ assert.match(helper,/now-last<15000/);
+ assert.match(helper,/analyzeLiveMatch\(button\)/);
+ assert.match(html,/button\.dataset\.liveAnalysisOpen="true"/);
+});
+
+test("live screen keeps previous-Istanbul-day matches after midnight while date screens remain day-scoped",()=>{
+ const render=html.slice(html.indexOf("function renderMatches()"),html.indexOf("\nfunction mamRenderMatchCard",html.indexOf("function renderMatches()")));
+ assert.match(render,/if\(mamScreenMode==="live"\)list=list\.filter\(m=>navigator\.onLine!==false&&liveCodes\.has\(mamCanonicalMatchStatus\(m\)\)\);/);
+ assert.match(render,/if\(mamScreenMode==="today"\)[\s\S]*?mamIstanbulDay\(m\.fixture\?\.date\)===selectedDay/);
+ assert.match(render,/if\(mamScreenMode==="upcoming"\)[\s\S]*?day===selectedDay/);
+ assert.match(render,/if\(mamScreenMode==="finished"\)list=list\.filter\(m=>mamIstanbulDay\(m\.fixture\?\.date\)===selectedDay/);
 });
 
 test("real ESPN historical and monthly fixtures use exact team IDs across Istanbul month boundaries",async()=>{
