@@ -142,7 +142,7 @@ test("ESPN summary event types retain goals, cards and substitutions from the ca
 
 test("ESPN player profiles show only published match statistics and preserve zero values",()=>{
  const source=html.match(/function lineupPlayerProfiles\([\s\S]*?\n\}/)?.[0];
- const render=require("node:vm").runInNewContext(source+"; lineupPlayerProfiles",{esc:String});
+ const render=require("node:vm").runInNewContext(source+"; lineupPlayerProfiles",{esc:String,mamDisplayStatisticName:value=>value,mamDisplayPositionName:value=>value});
  const {rosters}=require("./fixtures/espn-tur1-401888243-summary.json");
  const goalkeeper=rosters[0].roster[0];
  const profile=render([{player:{source:"espn",name:goalkeeper.athlete.displayName,stats:goalkeeper.stats}}]);

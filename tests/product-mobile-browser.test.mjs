@@ -24,7 +24,7 @@ async function waitForServer(server){
  }
  throw new Error('Isolated HTTP fixture server did not become ready within 5 seconds');
 }
-const fixture={id:'101',homeTeamId:'1',awayTeamId:'2',homeTeamName:'Fenerbahçe',awayTeamName:'Galatasaray',homeGoals:2,awayGoals:1,status:'FT',kickoff:'2026-11-22T17:00:00Z',leagueId:'tr',leagueName:'Süper Lig',events:[{time:{elapsed:15},team:{name:'Fenerbahçe'},player:{name:'Örnek Oyuncu'},type:'Goal'}],statistics:[{type:'Topla sahip olma',home:'55%',away:'45%'}]};
+const fixture={id:'101',homeTeamId:'1',awayTeamId:'2',homeTeamName:'Fenerbahçe',awayTeamName:'Galatasaray',homeGoals:2,awayGoals:1,status:'FT',kickoff:'2026-11-22T17:00:00Z',leagueId:'tr',leagueName:'Turkish Super League',events:[{time:{elapsed:15},team:{name:'Fenerbahçe'},player:{name:'Örnek Oyuncu'},type:'Goal'}],statistics:[{type:'Topla sahip olma',home:'55%',away:'45%'}]};
 const url='http://127.0.0.1:'+port+'/mobile/product-hub.html';
 const origin=new URL(url).origin;
 async function verifyStartupAndBrowserHistory(context,browserName){
@@ -147,10 +147,13 @@ async function verifyMainApp(context,browserName){
   assert.equal(await opener.evaluate(button=>document.activeElement===button),true);
   assert.equal(await main.locator('#date').inputValue(),'2026-11-22');
   await main.evaluate(()=>{allMatches=[];renderMatches();localStorage.removeItem('mam_product_hub_fixtures_v1');});
+  await main.evaluate(()=>{const key='mam-product-hub-v1',prefs=JSON.parse(localStorage.getItem(key)||'{}');prefs.favoriteTeams=[...new Set([...(prefs.favoriteTeams||[]),'display-fixture'])];localStorage.setItem(key,JSON.stringify(prefs));const labels=JSON.parse(localStorage.getItem('mam_favorite_labels_v1')||'{}');labels.teams={...(labels.teams||{}),'display-fixture':'Bayern Munich'};localStorage.setItem('mam_favorite_labels_v1',JSON.stringify(labels));window.dispatchEvent(new Event('mam-favorites-updated'));});
   const favorites=main.locator('#mamFavoriteBottom');
   await favorites.click();
   await main.locator('[data-fav-matches]').getByText(/Erzurum BB.*Goztepe/).waitFor();
   await main.locator('[data-fav-teams]').getByText(/Erzurum BB/).waitFor();
+  await main.locator('[data-fav-teams]').getByText('Bayern Münih').waitFor();
+  await main.locator('[data-fav-teams] [data-mam-remove-team="display-fixture"]').waitFor();
   await main.reload();
   await favorites.click();
   await main.locator('[data-fav-matches]').getByText(/Erzurum BB.*Goztepe/).waitFor();
@@ -227,11 +230,16 @@ async function verifyMainApp(context,browserName){
     live('espn-eng.1-802',league,'Saat Verisi Yok',{short:'LIVE',elapsed:null,displayClock:'Nov 23, 2026'},{home:null,away:null}),
     live('espn-eng.1-803',league,'Ertelenen Test',{short:'PST'}),
     live('espn-eng.1-804',league,'İptal Test',{short:'CANC'}),
-    live('espn-eng.1-805',league,'Biten Test',{short:'FT'})];
+    live('espn-eng.1-805',league,'Biten Test',{short:'FT'}),
+    live('espn-eng.1-806',league,'Bayern Munich',{short:'LIVE',elapsed:1})];
    document.getElementById('date').value=mamIstanbulDay(allMatches[0].fixture.date);
    renderMatches();
   });
-  assert.equal(await main.locator('#matches .mam-league-heading strong').first().innerText(),'Premier League');
+  assert.equal(await main.locator('#matches .mam-league-heading strong').first().innerText(),'İngiltere Premier Ligi');
+  const translatedTeamCard=main.locator('#matches article.match').filter({hasText:'Bayern Münih'}).first();
+  await translatedTeamCard.waitFor();
+  assert.equal(await translatedTeamCard.locator('.predBtn[data-home-name]').getAttribute('data-home-name'),'Bayern Munich');
+  assert.equal(await main.evaluate(()=>allMatches.find(m=>m.teams?.home?.name==='Bayern Munich')?.league.id),'39');
   const halftimeClock=main.locator('#matches article').filter({hasText:'Arsenal Test'}).locator('.match-time');
   await halftimeClock.waitFor();
   assert.match(await halftimeClock.innerText(),/Devre arası/);
@@ -473,6 +481,11 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    const session=await open(type);
    browser=session.browser;
    const {page}=session;
+   const initialCard=page.locator('#homeList article.card').first();
+   assert.match(await initialCard.innerText(),/Türkiye Süper Ligi/);
+   assert.match(await initialCard.innerText(),/Bitti/);
+   assert.equal(await initialCard.locator('[data-match="101"]').getAttribute('data-match'),'101');
+   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('mam_product_hub_fixtures_v1')).matches[0].leagueName),'Turkish Super League');
    await page.locator('#homeList [data-favmatch="101"]').click();
    await page.locator('[data-tab="favorites"]').click();
    assert.match(await page.locator('#favMatches').innerText(),/Fenerbahçe/);
@@ -486,6 +499,8 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
    await page.locator('[data-tab="favorites"]').click();
    assert.match(await page.locator('#favTeams').innerText(),/Fenerbahçe/);
    await page.locator('[data-tab="search"]').click();
+   await page.locator('#query').fill('Türkiye Süper Ligi');
+   assert.match(await page.locator('#results').innerText(),/Türkiye Süper Ligi/);
    await page.locator('#query').fill('fenerbahçe');
    assert.match(await page.locator('#results').innerText(),/Fenerbahçe/);
    await page.locator('#results [data-match="101"]').click();
