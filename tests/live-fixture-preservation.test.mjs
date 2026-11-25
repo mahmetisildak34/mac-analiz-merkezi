@@ -22,7 +22,7 @@ test("partial ESPN live coverage is supplemented without querying API-Football",
  assert.match(live,/if\(fallbackLive\.length\)\{[\s\S]*?mamSportScoreLiveFixtures\(\)/);
  assert.match(live,/supplementalLive=mamUnrepresentedLiveFixtures\(fallbackLive,sportScoreLive\)/);
  assert.match(live,/if\(!espnLiveCount\)[\s\S]*?api\("fixtures\?"/);
- assert.match(live,/supplementalLive\.forEach\(match=>\{/);
+ assert.match(live,/const combinedLive=mamMergeFixtureRows\(\[\.\.\.unrepresentedCache,\.\.\.supplementalLive,\.\.\.checkedFallback,\.\.\.primaryLiveMatches\]\)/);
 });
 test("live provider union removes same-kickoff AFC duplicates and keeps the distinct Bodrum fixture",()=>{
 	 const merge=runInNewContext(fixtureHelpers("mamUnrepresentedLiveFixtures"),{
@@ -192,6 +192,24 @@ test("Explicit club aliases merge across providers, but ID collisions and distin
  assert.equal(api.mamMergeFixtureRows([slavia,otherCompetition]).length,2);
  const differentKickoff={...apiFootball,fixture:{...apiFootball.fixture,id:"api-late",date:"2026-11-23T18:30:00Z"}};
  assert.equal(api.mamSameFixture(slavia,differentKickoff),false,"kickoff outside the established tolerance remains separate");
+});
+
+test("known ESPN league IDs unify provider names in archive identity and team-history filtering",()=>{
+ const identityStart=source.indexOf("function mamHistoricalIdentity("),identityEnd=source.indexOf("\nfunction mamHistoryCompetitionAllowed",identityStart);
+ const allowance=source.match(/function mamHistoryCompetitionAllowed\([\s\S]*?\n\}/)?.[0];
+ assert.ok(identityStart>=0&&identityEnd>identityStart&&allowance);
+ const history=runInNewContext(fixtureHelpers("")+source.slice(identityStart,identityEnd)+"\n"+allowance+"\n({mamHistoricalIdentity,mamDeduplicateHistoricalMatches,mamHistoryCompetitionAllowed})",{
+  ESPN_LEAGUES:{"3":{slug:"uefa.europa",name:"UEFA Europa League"},uefa_europa:{slug:"uefa.europa",name:"UEFA Europa League"}},
+  mamIstanbulDay:value=>String(value||"").slice(0,10),mamCanonicalHistoryTeamKey:value=>String(value||"").toLowerCase()
+ });
+ const row=(id,name)=>({fixture:{id,date:"2026-11-23T18:15:00Z",status:{short:"FT"}},league:{id,name},
+  teams:{home:{name:"Home Club"},away:{name:"Away Club"}},goals:{home:1,away:0}});
+ const apiMatch=row("3","UEFA Europa League"),espnMatch=row("uefa.europa","2026/27 UEFA Europa League");
+ const otherCompetition=row("501","National Cup");
+ assert.equal(history.mamHistoricalIdentity(apiMatch),history.mamHistoricalIdentity(espnMatch));
+ assert.notEqual(history.mamHistoricalIdentity(apiMatch),history.mamHistoricalIdentity(otherCompetition));
+ assert.equal(history.mamDeduplicateHistoricalMatches([apiMatch,espnMatch,otherCompetition]).length,2);
+ assert.equal(history.mamHistoryCompetitionAllowed({...espnMatch,mamSource:"espn"},"3"),true);
 });
 
 test("Today, Live, Finished, Upcoming, Favorites and team-history views use their shared fixture/archive paths",()=>{
