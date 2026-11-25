@@ -2945,6 +2945,7 @@ $("loadStandings").addEventListener("click",loadStandings);
 
 $("league").addEventListener("change",()=>{
  try{const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"{}");localStorage.setItem("mam_app_view_state",JSON.stringify({...saved,league:$("league").value}));}catch(_){}
+ if(window.mamRestoringViewState)return;
  renderMatches();
  if(mamScreenMode==="upcoming")void loadMatches();
 });
@@ -8975,7 +8976,11 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
    if(["home","live","today","upcoming","finished","standings"].includes(mode)){
     setMamScreen(mode);
     if(mode!=="today"&&saved.date&&$("date")){const todayLocal=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());$("date").value=saved.date<todayLocal?todayLocal:saved.date;}
-    if(mode!=="today"&&saved.league&&$("league")){$("league").value=saved.league;$("league").dispatchEvent(new Event("change"));}
+    if(mode!=="today"&&saved.league&&$("league")){
+     window.mamRestoringViewState=true;
+     try{$("league").value=saved.league;$("league").dispatchEvent(new Event("change"));}
+     finally{window.mamRestoringViewState=false;}
+    }
     if(mode==="live")mamRestoreTask=loadLiveMatches();
     else if(["home","today","upcoming","finished"].includes(mode))mamRestoreTask=loadMatches();
     else if(mode==="standings"&&saved.standingsLeague){
@@ -9426,6 +9431,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
 <script>
 if("serviceWorker" in navigator){
  const mamHadServiceWorkerController=Boolean(navigator.serviceWorker.controller);
+ if(mamHadServiceWorkerController){try{sessionStorage.removeItem("mam_sw_reloaded_v3");}catch(_){}}
  navigator.serviceWorker.addEventListener("controllerchange",()=>{
   if(!mamHadServiceWorkerController)return;
   try{if(sessionStorage.getItem("mam_sw_reloaded_v3"))return;sessionStorage.setItem("mam_sw_reloaded_v3","1");}catch(_){return;}
