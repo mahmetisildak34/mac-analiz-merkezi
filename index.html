@@ -337,6 +337,7 @@ input,select{background:#fff!important;color:#17212b!important;border-color:#dce
 .match-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid #edf0f2}
 .league-label{font-size:12px;font-weight:800;color:#657181}
 .match-time{font-size:12px;font-weight:800;color:#168b43;white-space:nowrap}
+.match-time .mam-clock-text{font-weight:inherit;font-style:normal;font-size:inherit;color:inherit}
 .match-time i{font-style:normal;font-weight:600;color:#8a95a1;margin-left:4px}
 .match-versus{display:grid;grid-template-columns:minmax(0,1fr) 74px minmax(0,1fr);align-items:center;gap:8px;padding:17px 2px}
 .team-block{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;min-width:0}
@@ -3680,7 +3681,7 @@ async function espnFixtures(date,includeAllLeagues=false,endDate=date,istanbulWi
      const toGoals=value=>["NS","TBD","UNK","PST","CANC"].includes(statusShort)?null:mamEspnGoal(value);
      const teamId=value=>{const n=Number(value);return Number.isFinite(n)&&n!==0?n:-1;};
      return {
-      fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||competition.date||null,status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock}},
+      fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||competition.date||null,status:{short:statusShort,elapsed:clock.elapsed,elapsedSeconds:clock.elapsedSeconds,clockPrecise:clock.precise,displayClock:clock.displayClock}},
       league:{id:leagueId,name:league.name,country:league.country},
       teams:{
        home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||home.team?.logos?.[0]?.url||""},
@@ -4207,15 +4208,220 @@ async function footballDataLiveFixtures(){
 }
 
 function mamSportScoreMatchSlug(item){
-	const direct=[item?._sportScoreSlug,item?.slug,item?.id,item?.fixture_id,item?.fixture?.id].find(value=>value!==null&&value!==undefined&&String(value).trim()!=="");
-	if(direct!==undefined){const value=String(direct).trim();return /^[a-z0-9_-]+$/i.test(value)?value:"";}
+		const raw=String(item?.url||"").trim();
+		if(raw){
+			let pathname="";
+			try{pathname=new URL(raw,"https://www.thesports.com").pathname;}catch(_){pathname="";}
+			const parts=pathname.split("/").filter(Boolean);
+			// TheSports exposes an internal id beside the route slug. The route
+			// slug is the identifier accepted by the match detail endpoint.
+			if(parts.length===4&&parts[0]==="football"&&parts[1]==="match"&&parts[2]&&/^[a-z0-9]+$/i.test(parts[3]))return parts[3];
+		}
+		const direct=[item?._sportScoreSlug,item?.slug,item?.id,item?.fixture_id,item?.fixture?.id].find(value=>value!==null&&value!==undefined&&String(value).trim()!=="");
+		if(direct===undefined)return "";
+		const value=String(direct).trim();
+		return /^[a-z0-9_-]+$/i.test(value)?value:"";
+}
+/* TheSports maç detayı, URL'deki okunabilir rota kimliğini kabul eder
+ ("oakleigh-cannons-vs-south-melbourne"); yanındaki iç kimlik ("3glrw7h4wdyxqdy")
+ detay uç noktasında 404 döner. Maç kimliği (fixture.id) iç kimlikte kalır ki
+ önbellek, D1 kayıtları ve favoriler eşleşmeye devam etsin; yalnızca detay
+ isteği rota kimliğini kullanır. */
+function mamSportScoreDetailSlug(item){
 	const raw=String(item?.url||"").trim();
-	if(!raw)return "";
-	let pathname="";
-	try{pathname=new URL(raw,"https://www.thesports.com").pathname;}catch(_){return "";}
-	const parts=pathname.split("/").filter(Boolean);
-	if(parts.length!==4||parts[0]!=="football"||parts[1]!=="match"||!parts[2])return "";
-	return /^[a-z0-9]+$/i.test(parts[3])?parts[3]:"";
+	if(raw){
+		let pathname="";
+		try{pathname=new URL(raw,"https://www.thesports.com").pathname;}catch(_){pathname="";}
+		const parts=pathname.split("/").filter(Boolean);
+		if(parts.length>=3&&parts[0]==="football"&&parts[1]==="match"&&/^[a-z0-9][a-z0-9-]{2,}$/i.test(parts[2]||""))return parts[2];
+	}
+	const explicit=String(item?._sportScoreDetailSlug||item?.route_slug||item?.match_slug||"").trim();
+	if(/^[a-z0-9][a-z0-9-]{2,}$/i.test(explicit))return explicit;
+	return mamSportScoreMatchSlug(item);
+}
+/* Sağlayıcının düz istatistik etiketlerini uygulama diliyle eşler. */
+function mamSportScoreStatLabel(raw){
+	const name=String(raw||"").toLowerCase().replace(/[^a-z]/g,"");
+	if(!name)return null;
+	if(name.includes("possession"))return "Topla oynama";
+	if(name.includes("shotsontarget")||name.includes("shotsongoal"))return "İsabetli şut";
+	if(name.includes("shotsofftarget")||name.includes("shotsoffgoal"))return "İsabetsiz şut";
+	if(name.includes("blockedshot"))return "Engellenen şut";
+	if(name==="totalshots"||name==="shots"||name.includes("totalattempts"))return "Toplam şut";
+	if(name.includes("corner"))return "Korner";
+	if(name.includes("foul"))return "Faul";
+	if(name.includes("offside"))return "Ofsayt";
+	if(name.includes("yellow"))return "Sarı kart";
+	if(name.includes("red"))return "Kırmızı kart";
+	if(name.includes("save"))return "Kurtarış";
+	if(name.includes("pass"))return "Pas";
+	if(name==="xg"||name.includes("expectedgoal"))return "Gerçek xG";
+	if(name.includes("attack"))return name.includes("dangerous")?"Tehlikeli atak":"Atak";
+	return null;
+}
+function mamSportScoreDetailSlugCandidates(item){
+	const out=[];
+	for(const value of [mamSportScoreDetailSlug(item),mamSportScoreMatchSlug(item)]){
+		const clean=String(value||"").trim();
+		if(clean&&!out.includes(clean))out.push(clean);
+	}
+	return out;
+}
+/* "67", "67'", "45+2", "90+" gibi sağlayıcı saatlerini yapısal hale getirir.
+ "2nd half" gibi durum etiketleri dakika olarak yorumlanmaz. */
+function mamLiveClockNumber(value){
+	if(value===null||value===undefined)return null;
+	const text=String(value).trim();
+	if(!text)return null;
+	const numeric=Number(text);
+	return Number.isFinite(numeric)?numeric:null;
+}
+function mamParseLiveClockText(value){
+	const text=String(value??"").trim();
+	if(!text||!/^\d{1,3}(\s*\+\s*\d{1,2})?\s*(?:['′]|min(?:ute)?s?)?$/i.test(text))return null;
+	const match=text.match(/^(\d{1,3})(?:\s*\+\s*(\d{1,2}))?/);
+	if(!match)return null;
+	const minute=Number(match[1]);
+	if(!Number.isFinite(minute)||minute<0||minute>130)return null;
+	const added=match[2]===undefined?null:Number(match[2]);
+	const stoppage=added===null&&/\+/.test(text);
+	return {minute,added,stoppage,label:(added!==null?minute+"+"+added:minute+(stoppage?"+":""))+"'"};
+}
+/* Canlı saat kayıt defteri: sağlayıcı dakikası geldikçe taban saniyeyi ileri
+ taşır, arada yerel sayaç saniye saniye ilerler, geri saymaz. */
+const MAM_LIVE_CLOCK_KEY="mam_live_clock_v1";
+const mamLiveClockRegistry=new Map();
+let mamLiveClockLoaded=false;
+function mamLiveClockLoad(){
+	if(mamLiveClockLoaded)return;
+	mamLiveClockLoaded=true;
+	try{
+		const saved=JSON.parse(localStorage.getItem(MAM_LIVE_CLOCK_KEY)||"null");
+		if(!saved||typeof saved!=="object")return;
+		for(const [key,entry] of Object.entries(saved)){
+			if(!entry||!Number.isFinite(Number(entry.seconds)))continue;
+			if(Date.now()-Number(entry.at||0)>30*60*1000)continue;
+			mamLiveClockRegistry.set(key,{seconds:Number(entry.seconds),at:Number(entry.at),minute:entry.minute??null,added:entry.added??null,label:entry.label||"",status:entry.status||"LIVE"});
+		}
+	}catch(_){}
+}
+let mamLiveClockSaveTimer=null;
+function mamLiveClockSave(){
+	if(mamLiveClockSaveTimer)return;
+	const flush=()=>{
+		mamLiveClockSaveTimer=null;
+		try{
+			const out={};
+			for(const [key,entry] of mamLiveClockRegistry)out[key]={seconds:entry.seconds,at:entry.at,minute:entry.minute,added:entry.added,label:entry.label,status:entry.status};
+			localStorage.setItem(MAM_LIVE_CLOCK_KEY,JSON.stringify(out));
+		}catch(_){}
+	};
+	try{mamLiveClockSaveTimer=setTimeout(flush,800);}catch(_){flush();}
+}
+function mamLiveClockRemember(key,clock,status="LIVE"){
+	if(!key||!clock||!Number.isFinite(Number(clock.minute)))return null;
+	mamLiveClockLoad();
+	const now=Date.now();
+	const addedClock=mamLiveClockNumber(clock.added);
+	const parsed=Number(clock.minute)*60+(addedClock!==null?addedClock*60:0);
+	const previous=mamLiveClockRegistry.get(key)||null;
+	const displayed=previous?previous.seconds+Math.max(0,(now-previous.at)/1000):NaN;
+	// Sağlayıcı geriye düşerse yalnızca büyük sapmada (3 dk+) tabanı düzelt;
+	// küçük gecikmelerde ekrandaki sayaç geri saymaz.
+	const base=!Number.isFinite(displayed)?parsed:displayed-parsed>180?parsed:Math.max(parsed,displayed);
+	const entry={seconds:base,at:now,minute:Number(clock.minute),added:addedClock,label:clock.label||"",status:String(status||"LIVE").toUpperCase()};
+	mamLiveClockRegistry.set(key,entry);
+	mamLiveClockSave();
+	return entry;
+}
+function mamLiveClockCurrent(key){
+	mamLiveClockLoad();
+	const entry=mamLiveClockRegistry.get(key);
+	if(!entry)return null;
+	const elapsed=entry.seconds+Math.max(0,(Date.now()-entry.at)/1000);
+	return {...entry,elapsed,minuteNow:Math.floor(elapsed/60)};
+}
+/* Kartta gösterilen dakika: sağlayıcının ek süre etiketi > sağlayıcı saniyesi >
+	 sağlayıcı dakikası > doğrulanmış kayıt defteri. Başlama saatinden tahmin yapılmaz. */
+function mamLiveMinuteLabel(match,{preciseSeconds=null,providerMinute=null,providerLabel=""}={}){
+	const key=String(match?.fixture?.id||"");
+	const status=match?.fixture?.status?.short;
+	const secondsValue=mamLiveClockNumber(preciseSeconds);
+	const minuteValue=mamLiveClockNumber(providerMinute);
+	const stoppage=String(providerLabel||"").trim().match(/^(\d{1,3})\s*\+\s*(\d{1,2})'?$/);
+	if(stoppage){
+		const minute=Number(stoppage[1]),added=Number(stoppage[2]),label=minute+"+"+added+"'";
+		const entry=mamLiveClockRemember(key,secondsValue!==null?{minute:Math.floor(secondsValue/60),added:null,label}:{minute,added,label},status);
+		return {text:entry?.label||label,estimated:false,seconds:secondsValue??entry?.seconds??null};
+	}
+	if(secondsValue!==null&&secondsValue>=0){
+		const entry=mamLiveClockRemember(key,{minute:Math.floor(secondsValue/60),added:null,label:""},status);
+		return {text:String(Math.floor(entry.seconds/60))+"'",estimated:false,seconds:entry.seconds};
+	}
+	if(minuteValue!==null&&minuteValue>=0){
+		const minute=Math.floor(minuteValue);
+		const entry=mamLiveClockRemember(key,{minute,added:null,label:minute+"'"},status);
+		return {text:String(Math.floor(entry.seconds/60))+"'",estimated:false,seconds:entry.seconds};
+	}
+	const current=mamLiveClockCurrent(key);
+	if(current)return {text:current.label||(current.minuteNow+"'"),estimated:false,seconds:current.seconds};
+	return {text:"",estimated:true,seconds:null};
+}
+/* Görünen canlı SportScore kartları için sağlayıcı dakikasını toplar.
+ Detay uç noktası tek maç kabul eder; istekler sınırlı eşzamanlılıkla ve
+ 60 saniyelik önbellekle yapılır. */
+const mamSportScoreMinuteCache=new Map();
+let mamLiveMinuteEnrichBusy=false;
+async function mamFetchSportScoreDetail(button,{force=false}={}){
+	const slug=String(button?.dataset.liveDetailSlug||"").trim();
+	if(!slug)return null;
+	const cached=mamSportScoreMinuteCache.get(slug);
+	if(!force&&cached&&Date.now()-cached.at<60000)return cached;
+	const url=WORKER+"/api/sportscore/widget/match/?"+qs({sport:"football",slug,src:"mac-analiz-merkezi"});
+	const response=await fetch(url,{headers:{Accept:"application/json"},cache:"no-store"});
+	if(!response.ok)throw new Error("SportScore maç detayı HTTP "+response.status);
+	const payload=await response.json();
+	const root=payload?.match||payload?.data?.match||payload?.data||payload;
+	const clock=mamParseLiveClockText(root?.live_minute??root?.liveMinute??root?.minute??"");
+	const entry={at:Date.now(),clock,root};
+	if(clock)mamSportScoreMinuteCache.set(slug,entry);
+	return entry;
+}
+function mamApplyMinuteToCard(button,clock,status){
+	if(!clock)return;
+	const article=button.closest(".match");
+	const key=String(button.dataset.liveClockKey||button.dataset.liveId||"");
+	const remembered=mamLiveClockRemember(key,clock,status);
+	if(!article)return;
+	const clockEl=article.querySelector(".match-head .match-time .mam-clock-text");
+	if(clockEl&&!article.classList.contains("in-detail"))clockEl.textContent=clock.label||String(clock.minute)+"'";
+	if(Number.isFinite(remembered?.seconds)){
+		button.dataset.liveClockSecondsBase=String(remembered.seconds);
+		button.dataset.liveClockSecondsAt=String(remembered.at);
+		button.dataset.liveClockPrecise="true";
+		button.dataset.liveClockLabel=clock.label||"";
+		button.dataset.liveClockSecondsSource="provider-minute";
+	}
+}
+async function mamEnrichVisibleLiveMinutes(){
+	if(mamLiveMinuteEnrichBusy||document.hidden||navigator.onLine===false)return;
+	const buttons=[...document.querySelectorAll("#matches .liveStatsBtn[data-live-source='sportscore']")]
+		.filter(button=>button.dataset.liveDetailSlug&&!button.closest(".match")?.classList.contains("in-detail"))
+		.slice(0,30);
+	if(!buttons.length)return;
+	mamLiveMinuteEnrichBusy=true;
+	const queue=buttons.slice();
+	const worker=async()=>{
+		while(queue.length){
+			const button=queue.shift();
+			try{
+				const entry=await mamFetchSportScoreDetail(button);
+				if(entry?.clock)mamApplyMinuteToCard(button,entry.clock,button.dataset.liveClockStatus||"LIVE");
+			}catch(error){/* Tek maç hatası listeyi düşürmez. */}
+		}
+	};
+	try{await Promise.all([worker(),worker(),worker(),worker()]);}
+	finally{mamLiveMinuteEnrichBusy=false;}
 }
 function mamSportScoreKickoff(item){
 	const utcDate=typeof item?.utc_date==="string"?mamExplicitUtc(item.utc_date):"";
@@ -4273,8 +4479,14 @@ async function mamSportScoreLiveFixtures(force=false,signal=null){
   const as=number(item.away_score??item.awayScore??item.score?.away??item.goals?.away);
 		const clock=item.status_text||item.statusText||statusObject.displayClock||item.elapsed||statusObject.elapsed||item.minute||statusObject.minute||"";
   const explicitElapsed=item.elapsed??statusObject.elapsed??item.minute??statusObject.minute;
-  const elapsed=number(explicitElapsed)??minute(explicitElapsed)??minute(clock);
-		return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff,timeUnknown:false,status:{short,elapsed,displayClock:String(clock)}},league:{id:String(leagueId),name:competitionName,country:String(item.country||competitionObject.country||item.league?.country||item.tournament?.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug};
+  const providerMinuteClock=mamParseLiveClockText(item.live_minute??item.liveMinute??item.live_minutes??"");
+  const elapsed=number(explicitElapsed)??minute(explicitElapsed)??minute(clock)??(providerMinuteClock?providerMinuteClock.minute:null);
+  const clockText=String(explicitElapsed??clock).trim();
+  const clockMatch=clockText.match(/^(?:live\s+)?(\d{1,3}):([0-5]\d)$/i);
+  const explicitSeconds=item.elapsedSeconds??statusObject.elapsedSeconds;
+  const elapsedSeconds=clockMatch?Number(clockMatch[1])*60+Number(clockMatch[2]):number(explicitSeconds);
+  const normalizedClock=clockMatch?String(Number(clockMatch[1])).padStart(2,"0")+":"+clockMatch[2]:String(clock);
+		return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff,timeUnknown:false,status:{short,elapsed,elapsedSeconds,clockPrecise:Number.isFinite(elapsedSeconds),displayClock:normalizedClock}},league:{id:String(leagueId),name:competitionName,country:String(item.country||competitionObject.country||item.league?.country||item.tournament?.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug,_sportScoreDetailSlug:mamSportScoreDetailSlug(item)};
  }).filter(Boolean);
  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
  return matches;
@@ -4614,9 +4826,17 @@ async function mamSportScoreLiveStats(button){
 	const match=mamSportScoreFindLiveMatch(matches,homeName,awayName,clean);
 	const slug=mamSportScoreMatchSlug(match);
 	if(!match||!slug)throw new Error("SportScore canlı listesinde bu maç için eşleşen detay kaydı yok.");
- const detailResponse=await fetch(base+"match/?sport=football&slug="+encodeURIComponent(slug)+"&src=mac-analiz-merkezi");
- if(!detailResponse.ok)throw new Error("SportScore maç detayı HTTP "+detailResponse.status);
- const detail=await detailResponse.json();
+ // Detay uç noktası rota kimliğini kabul eder; iç kimlik 404 döner.
+ const detailCandidates=mamSportScoreDetailSlugCandidates(match);
+ const datasetSlug=String(button.dataset.liveDetailSlug||"").trim();
+ if(datasetSlug&&!detailCandidates.includes(datasetSlug))detailCandidates.unshift(datasetSlug);
+ let detail=null,detailStatus=0;
+ for(const candidate of detailCandidates){
+  const detailResponse=await fetch(base+"match/?sport=football&slug="+encodeURIComponent(candidate)+"&src=mac-analiz-merkezi");
+  detailStatus=detailResponse.status;
+  if(detailResponse.ok){detail=await detailResponse.json();break;}
+ }
+ if(!detail)throw new Error("SportScore maç detayı HTTP "+detailStatus);
  const root=detail.match||detail.data?.match||detail.data||detail;
  const nodes=[];
  const walk=(value,depth=0)=>{
@@ -4660,6 +4880,22 @@ async function mamSportScoreLiveStats(button){
  };
  let h=statMap(hTeam),a=statMap(aTeam);
  if(!Object.keys(h).length&&!Object.keys(a).length){
+  // Sağlayıcı istatistikleri düz dizi olarak verir: {label,home,away,suffix}.
+  const flatRows=Array.isArray(root?.stats)?root.stats:[];
+  for(const stat of flatRows){
+   const label=mamSportScoreStatLabel(stat.label||stat.name||stat.type||"");
+   if(!label)continue;
+   const suffix=String(stat.suffix||"");
+   const cell=value=>{
+    if(value===null||value===undefined||value==="")return "—";
+    const numeric=Number(value);
+    return Number.isFinite(numeric)?String(Math.round(numeric*10)/10)+suffix:String(value)+suffix;
+   };
+   h[label]=cell(stat.home??stat.home_value??stat.homeValue);
+   a[label]=cell(stat.away??stat.away_value??stat.awayValue);
+  }
+ }
+ if(!Object.keys(h).length&&!Object.keys(a).length){
   // Bazı yanıt şemalarında istatistikler takım nesnelerinin dışında, event listesinde gelir.
   const statNodes=nodes.filter(node=>node&&typeof node==="object"&&(node.home!==undefined||node.away!==undefined)&&/(possession|shot|corner|foul|card|pass|save|xg)/i.test(String(node.name||node.type||node.label||"")));
   for(const stat of statNodes){
@@ -4670,7 +4906,7 @@ async function mamSportScoreLiveStats(button){
  }
  const labels=[...new Set([...Object.keys(h),...Object.keys(a)])];
  if(!labels.length)throw new Error("SportScore maçı buldu ancak detay yanıtında karşılaştırılabilir canlı istatistik alanı yok.");
- return {homeName:match.home||button.dataset.liveHomeName,awayName:match.away||button.dataset.liveAwayName,rows:labels.map(label=>[label,h[label]??"—",a[label]??"—"]),source:"SportScore"};
+ return {homeName:match.home||button.dataset.liveHomeName,awayName:match.away||button.dataset.liveAwayName,rows:labels.map(label=>[label,h[label]??"—",a[label]??"—"]),clock:mamParseLiveClockText(root?.live_minute??root?.liveMinute??""),source:"SportScore"};
 }
 
 function mamMergeLiveStatsRows(rows,previousRows=[]){
@@ -4695,6 +4931,7 @@ async function loadLiveStats(button,forceRefresh=false){
   let homeTeam,awayTeam,statsRows=[],sourceLabel,payload=null,statsCrossCheckNote="";
   if(source==="sportscore"){
    const backup=await mamSportScoreLiveStats(button);
+   if(backup.clock)mamApplyMinuteToCard(button,backup.clock,button.dataset.liveClockStatus||"LIVE");
    homeTeam=backup.homeName||button.dataset.liveHomeName||"Ev sahibi";
    awayTeam=backup.awayName||button.dataset.liveAwayName||"Deplasman";
    statsRows=backup.rows;
@@ -6149,10 +6386,13 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
    ?providerElapsed:providerClock.elapsed;
   let liveMinute="";
   if(isLiveStatus){
-   if(statusCode==="HT")liveMinute="Devre arası";
-   else if(providerClock.displayClock.includes("+"))liveMinute=providerClock.displayClock;
-   else if(Number.isFinite(effectiveElapsed))liveMinute=String(Math.round(effectiveElapsed))+"'";
-   else liveMinute="Canlı";
+   if(["HT","ET","BT","P","SUSP","INT"].includes(statusCode))liveMinute=statusLabel;
+   else{
+    // Sağlayıcının ek süre etiketi > saniyesi > dakikası > doğrulanmış kayıt.
+    // Liste kartında yalnızca dakika gösterilir; saniye sayacı maç detayındadır.
+    const liveLabel=mamLiveMinuteLabel(m,{preciseSeconds:providerClock.precise?providerClock.elapsedSeconds:null,providerMinute:Number.isFinite(effectiveElapsed)?effectiveElapsed:null,providerLabel:providerClock.displayClock});
+    liveMinute=liveLabel.text||"Canlı";
+   }
   }
   const displayedTime=isLiveStatus?(liveMinute||"Canlı"):"";
   const homeScore=mamEspnGoal(g.home),awayScore=mamEspnGoal(g.away);
@@ -6160,8 +6400,9 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
   const cardCenter=isLiveStatus||isFinishedStatus?score||"—":time||"—";
   const cardLabel=isLiveStatus?"":statusCode==="NS"?(dayLabel||"Saat bekleniyor"):statusLabel;
   const kickoffLabel=[dayLabel,time].filter(Boolean).join(" ");
+  const repeatedLiveLabel=isLiveStatus&&displayedTime===statusLabel;
   return `<article class="match match-modern">
-   <div class="match-head"><span class="league-label">${esc(mamDisplayLeagueName(l.name,l.country))} · ${esc(mamDisplayCountryName(l.country))}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span>${kickoffLabel&&(isLiveStatus||isFinishedStatus)?'<small class="mam-kickoff-time">'+esc(kickoffLabel)+'</small>':""}</span></div>
+   <div class="match-head"><span class="league-label">${esc(mamDisplayLeagueName(l.name,l.country))} · ${esc(mamDisplayCountryName(l.country))}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}<b class="mam-clock-text">${esc(displayedTime)}</b> ${repeatedLiveLabel?"":"<i>"+esc(statusLabel)+"</i>"}</span>${kickoffLabel&&(isLiveStatus||isFinishedStatus)?'<small class="mam-kickoff-time">'+esc(kickoffLabel)+'</small>':""}</span></div>
    <div class="match-versus">
     <div class="team-block">${teamBadge(t.home)}<strong>${esc(mamDisplayTeamName(t.home?.name))}</strong>${isFinishedStatus?mamOutcomeBadge(g.home,g.away):""}</div>
     <div class="match-center"><span class="match-clock">${esc(cardCenter)}</span><small>${esc(cardLabel)}</small></div>
@@ -6175,8 +6416,8 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
    </div>
    ${isFinishedStatus&&score?'<div class="analysis-preview">✓ Gerçekleşen sonuç: <b>'+esc(score)+'</b>. Maç önü tahmini bu karşılaşma için artık üretilemez.</div>':""}
 
-   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isSportScore?rawId.slice("sportscore-".length):isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(matchDay)+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-minute="'+esc(effectiveElapsed??"")+'" data-live-home-score="'+esc(g.home??0)+'" data-live-away-score="'+esc(g.away??0)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
-   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(matchDay)+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
+   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isSportScore?rawId.slice("sportscore-".length):isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(matchDay)+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-minute="'+esc(effectiveElapsed??"")+'" data-live-detail-slug="'+esc(isSportScore?mamSportScoreDetailSlug(m):"")+'" data-live-home-score="'+esc(g.home??"")+'" data-live-away-score="'+esc(g.away??"")+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
+   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(matchDay)+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-detail-slug="'+esc(isSportScore?mamSportScoreDetailSlug(m):"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" data-live-clock-key="'+esc(f.id)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
    <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-status="${esc(statusCode)}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(matchDay)}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
    <div class="absences-summary" id="absences-summary-${esc(f.id)}">Eksikler otomatik kontrol ediliyor…</div>
@@ -6194,9 +6435,13 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
   b.addEventListener("click",()=>loadLineups(b));
  });
  document.querySelectorAll(".liveStatsBtn").forEach(b=>{
+  mamSeedVisibleMatchClock(b);
   b.addEventListener("click",()=>loadLiveStats(b));
  });
  document.querySelectorAll(".liveAnalyzeBtn").forEach(b=>b.addEventListener("click",()=>analyzeLiveMatch(b)));
+ // Liste kartlarında doğru dakikayı göstermek için görünen SportScore
+ // maçlarının sağlayıcı dakikası arka planda tamamlanır (60 sn önbellek).
+ if(mamScreenMode==="live")setTimeout(()=>{mamEnrichVisibleLiveMinutes();},400);
  document.querySelectorAll("#matches .match").forEach(makeMamDetailTab);
  mamRestorePendingDetail();
  autoScanMatchAbsences();
@@ -6358,17 +6603,17 @@ async function refreshActiveMatchScore(){
   const preciseClock=Number.isFinite(preciseSeconds)?String(Math.floor(preciseSeconds/60)).padStart(2,"0")+":"+String(Math.floor(preciseSeconds%60)).padStart(2,"0"):"";
   const minute=statusShort==="HT"?"Devre arası":preciseClock?preciseClock:source==="espn"?status.displayClock||"Canlı":Number.isFinite(shownMinute)?shownMinute+"'":status.displayClock||"Canlı";
   const stoppedLabel=statusShort==="HT"?"Devre arası":["FT","AET","PEN","POST"].includes(statusShort)?"Maç bitti":["SUSP","INT"].includes(statusShort)?"Oyun durdu":"Canlı";
-  const headClock=article.querySelector(".match-head .match-time");
-  if(headClock)headClock.textContent=(isStopped?"⚪ ":"🔴 ")+minute+" · "+stoppedLabel;
+  const headClock=article.querySelector(".match-head .match-time .mam-clock-text");
+  if(headClock)headClock.textContent=isStopped?stoppedLabel:(preciseClock||minute);
   const centerSub=article.querySelector(".match-center small");
   if(centerSub)centerSub.textContent=stoppedLabel==="Canlı"?"Canlı maç · sağlayıcı saati":stoppedLabel;
+  button.dataset.liveClockStatus=statusShort;
   if(Number.isFinite(clockBase)){
    button.dataset.liveClockBase=String(clockBase);
    button.dataset.liveClockAt=String(now);
-   button.dataset.liveClockStatus=statusShort;
-   if(Number.isFinite(preciseSeconds)){button.dataset.liveClockSecondsBase=String(preciseSeconds);button.dataset.liveClockSecondsAt=String(now);button.dataset.liveClockPrecise="true";}
-   else {delete button.dataset.liveClockSecondsBase;delete button.dataset.liveClockSecondsAt;delete button.dataset.liveClockPrecise;}
   }
+  if(Number.isFinite(preciseSeconds)){button.dataset.liveClockSecondsBase=String(preciseSeconds);button.dataset.liveClockSecondsAt=String(now);button.dataset.liveClockPrecise="true";}
+  else {delete button.dataset.liveClockSecondsBase;delete button.dataset.liveClockSecondsAt;delete button.dataset.liveClockPrecise;}
   button.dataset.liveMinute=Number.isFinite(elapsed)?String(elapsed):"";
   button.dataset.liveHomeScore=String(fresh.goals.home);
   button.dataset.liveAwayScore=String(fresh.goals.away);
@@ -6431,6 +6676,8 @@ function mamSeedVisibleMatchClock(button){
  const currentAt=Number(button.dataset.liveClockAt);
  if(Number.isFinite(currentBase)&&Number.isFinite(currentAt))return;
  const rawId=String(button.dataset.liveId||"");
+ // Kayıt defteri anahtarı her yerde fixture kimliğidir.
+ const clockKey=String(button.dataset.liveClockKey||rawId);
  const source=String(button.dataset.liveSource||"");
  const leagueId=String(button.dataset.liveLeagueId||"");
  const match=allMatches.find(item=>{
@@ -6447,32 +6694,64 @@ function mamSeedVisibleMatchClock(button){
  const rawButtonMinute=analyzeButton?.dataset.liveMinute;
  const fromMatch=rawMatchMinute==null||rawMatchMinute===""?NaN:Number(rawMatchMinute);
  const fromButton=rawButtonMinute==null||rawButtonMinute===""?NaN:Number(rawButtonMinute);
+ const fromSeconds=rawMatchSeconds==null||rawMatchSeconds===""?NaN:Number(rawMatchSeconds)/60;
  const fromClock=Number(String(button.closest(".match")?.querySelector(".match-head .match-time")?.textContent||"").match(/(\d{1,3})\s*['′]/)?.[1]);
+ const verifiedMinute=(Number.isFinite(fromMatch)&&fromMatch>=0)||(Number.isFinite(fromButton)&&fromButton>=0)||(Number.isFinite(fromSeconds)&&fromSeconds>=0);
  const base=Number.isFinite(fromMatch)&&fromMatch>=0?fromMatch:
   Number.isFinite(fromButton)&&fromButton>=0?fromButton:
-  Number.isFinite(fromClock)&&fromClock>=0?fromClock:NaN;
+   Number.isFinite(fromSeconds)&&fromSeconds>=0?fromSeconds:
+   Number.isFinite(fromClock)&&fromClock>=0?fromClock:NaN;
+ const stoppedStatus=["HT","SUSP","INT","FT","AET","PEN","POST"].includes(status);
  if(Number.isFinite(base)){
   button.dataset.liveClockBase=String(base);
   button.dataset.liveClockAt=String(Date.now());
   button.dataset.liveClockStatus=status;
+  // Saniye tabanı: sağlayıcı saniyesi varsa o, yoksa kayıt defterindeki son
+  // doğrulanmış dakika, o da yoksa eldeki dakika. Sayaç bu tabandan ilerler.
+  const registry=mamLiveClockCurrent(clockKey);
   const secondsValue=rawMatchSeconds??providerClock.elapsedSeconds;
-  if(secondsValue!==null&&secondsValue!==undefined&&String(secondsValue).trim()!==""&&Number.isFinite(Number(secondsValue))&&Number(secondsValue)>=0&&!(["HT","SUSP","INT","FT","AET","PEN","POST"].includes(status))){
-   button.dataset.liveClockSecondsBase=String(Number(secondsValue));
+  const preciseSeconds=secondsValue!==null&&secondsValue!==undefined&&String(secondsValue).trim()!==""&&Number.isFinite(Number(secondsValue))&&Number(secondsValue)>=0?Number(secondsValue):null;
+  const secondsBase=preciseSeconds!==null?preciseSeconds:Number.isFinite(registry?.seconds)?registry.seconds:base*60;
+  if(!stoppedStatus&&Number.isFinite(secondsBase)){
+   button.dataset.liveClockSecondsBase=String(secondsBase);
    button.dataset.liveClockSecondsAt=String(Date.now());
    button.dataset.liveClockPrecise="true";
+   button.dataset.liveClockLabel=registry?.label||"";
+   // Sayaç tabanının kaynağı: sağlayıcı saniyesi, sağlayıcı dakikası ya da
+   // başlama saatinden tahmin. Türetilmiş saniye sağlayıcı hassasiyeti sayılmaz.
+   const secondsSource=preciseSeconds!==null?"provider-seconds":(Number.isFinite(registry?.seconds)||verifiedMinute)?"provider-minute":"estimate";
+   button.dataset.liveClockSecondsSource=secondsSource;
+   if(secondsSource==="estimate")button.dataset.liveClockEstimated="true";
+   else delete button.dataset.liveClockEstimated;
+   // Doğrulanmış sağlayıcı dakikası varsa canlı analiz onu kullanır; tahmin asla.
+   if(analyzeButton&&secondsSource!=="estimate"&&!String(analyzeButton.dataset.liveMinute||"").trim()&&Number.isFinite(registry?.minute)){
+    analyzeButton.dataset.liveMinute=String(registry.minute);
+   }
   }
  }
 }
 function mamTickVisibleMatchClock(){
- const buttons=[...document.querySelectorAll(".match-detail-overlay:not([hidden]) .liveStatsBtn")];
+ const buttons=[...document.querySelectorAll(".liveStatsBtn")];
  for(const button of buttons){
   const preciseBase=Number(button.dataset.liveClockSecondsBase),preciseAt=Number(button.dataset.liveClockSecondsAt);
   if(!Number.isFinite(preciseBase)||!Number.isFinite(preciseAt)||button.dataset.liveClockPrecise!=="true")continue;
   const status=String(button.dataset.liveClockStatus||"LIVE").toUpperCase();
   if(["HT","SUSP","INT","FT","AET","PEN","POST"].includes(status))continue;
   const elapsed=Math.max(0,Math.floor(preciseBase+(Date.now()-preciseAt)/1000));
-  const clock=button.closest(".match.in-detail")?.querySelector(".match-head .match-time");
-  if(clock)clock.textContent="🔴 "+String(Math.floor(elapsed/60)).padStart(2,"0")+":"+String(elapsed%60).padStart(2,"0")+" · Canlı";
+  const article=button.closest(".match");
+  const clock=article?.querySelector(".match-head .match-time .mam-clock-text");
+  if(!clock)continue;
+  if(article.classList.contains("in-detail")){
+   // Maç detayı: saniye saniye ilerleyen sayaç.
+   clock.textContent=String(Math.floor(elapsed/60)).padStart(2,"0")+":"+String(elapsed%60).padStart(2,"0");
+   clock.dataset.clockMode="seconds";
+  }else{
+   // Liste kartı: yalnızca dakika (sağlayıcı "45+2"/"90+" verdiyse o etiket).
+   const label=String(button.dataset.liveClockLabel||"");
+   const estimated=button.dataset.liveClockEstimated==="true";
+   clock.textContent=label||((estimated?"~":"")+Math.floor(elapsed/60)+"'");
+   clock.dataset.clockMode="minute";
+  }
  }
 }
 let mamTodayScoreRequest=null;
@@ -7870,8 +8149,12 @@ async function analyzeLiveMatch(button){
    rows=[read(data[0]),read(data[1])];
   }
   const [h,a]=rows;if(!h||!a||(!Object.keys(h).length&&!Object.keys(a).length))throw new Error("Bu maç için henüz canlı istatistik verisi yayınlanmıyor. Veri gelmeden tahmin üretmedim.");
-  const minuteValue=Number(button.dataset.liveMinute),minute=Number.isFinite(minuteValue)&&minuteValue>0?Math.min(120,minuteValue):45;
-  const remaining=Math.max(0,90-minute),homeScore=Number(button.dataset.liveHomeScore||0),awayScore=Number(button.dataset.liveAwayScore||0);
+  const rawMinute=mamLiveClockNumber(button.dataset.liveMinute);
+  const rawHome=mamLiveClockNumber(button.dataset.liveHomeScore),rawAway=mamLiveClockNumber(button.dataset.liveAwayScore);
+  const minuteValue=rawMinute===null?NaN:rawMinute,homeScore=rawHome===null?NaN:rawHome,awayScore=rawAway===null?NaN:rawAway;
+  if(!Number.isFinite(minuteValue)||minuteValue<=0)throw new Error("Canlı sağlayıcı dakika bilgisini henüz yayınlamıyor; analiz üretilmedi.");
+  if(!Number.isFinite(homeScore)||!Number.isFinite(awayScore)||homeScore<0||awayScore<0)throw new Error("Canlı sağlayıcı skor bilgisini henüz yayınlamıyor; analiz üretilmedi.");
+  const minute=Math.min(120,minuteValue),remaining=Math.max(0,90-minute);
   const baseRate=x=>{const sot=Number(x.sot||0),shots=Number(x.shots||0),pos=Number(x.possession??50),corners=Number(x.corners||0),shotSignal=sot*.115+Math.max(0,shots-sot)*.018+Math.min(corners,12)*.006,posFactor=1+(Math.max(0,Math.min(100,pos))-50)/350,shotRate=.10+shotSignal/Math.max(12,minute)*45,xg=Number(x.xg);const xgRate=Number.isFinite(xg)&&xg>0?Math.max(.04,Math.min(1.35,xg/Math.max(12,minute)*45)):shotRate;return Math.max(.04,Math.min(1.35,(Number.isFinite(xg)&&xg>0?xgRate*.65+shotRate*.35:shotRate)*posFactor));};
   const redBoost=(attacking,opponent)=>Math.max(.68,Math.min(1.35,1+Math.min(2,Number(opponent.redCards||0))*.18-Math.min(2,Number(attacking.redCards||0))*.18));
   const lh=remaining/45*baseRate(h)*redBoost(h,a),la=remaining/45*baseRate(a)*redBoost(a,h),pois=(l,k)=>Math.exp(-l)*Math.pow(l,k)/factorialLive(k);

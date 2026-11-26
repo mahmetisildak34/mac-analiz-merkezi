@@ -108,6 +108,13 @@ test("SportScore parses the provider ID from the observed match URL and rejects 
  assert.equal(parsed[0].fixture.id,"sportscore-n54qllhnlk1lqvy");
  assert.equal(parsed[0].fixture.date,observed.time);
  assert.equal(parsed[0].fixture.timeUnknown,false);
+ assert.equal(parsed[0].fixture.status.elapsed,null,"2nd half is a status label, not a minute");
+ assert.equal(parsed[0].fixture.status.elapsedSeconds,null,"status labels cannot invent provider seconds");
+ rows[0]={...observed,elapsed:"63:24"};
+ const precise=await api.mamSportScoreLiveFixtures(true);
+ assert.equal(precise[0].fixture.status.elapsed,63);
+ assert.equal(precise[0].fixture.status.elapsedSeconds,3804);
+ assert.equal(precise[0].fixture.status.displayClock,"63:24");
  assert.equal(api.mamSportScoreMatchSlug(parsed[0]),"n54qllhnlk1lqvy");
 	const matched=api.mamSportScoreFindLiveMatch(rows,"alittihad","pakhtakor",value=>String(value||"").toLowerCase().replace(/[^a-z0-9]/g,""));
  assert.equal(api.mamSportScoreMatchSlug(matched),"n54qllhnlk1lqvy","detail lookup uses the same URL-derived provider identity");
@@ -233,4 +240,10 @@ test("Today, Live, Finished, Upcoming, Favorites and team-history views use thei
  const favorites=readFileSync(new URL("../mobile/main-favorites.mjs",import.meta.url),"utf8");
  assert.match(favorites,/snapshot\(\)/);
  assert.match(source,/mam_product_hub_fixtures_v1/);
+});
+test("SportScore detail identity prefers the observed route slug over an internal id",()=>{
+ const start=source.indexOf("function mamSportScoreMatchSlug("),end=source.indexOf("\nfunction mamSportScoreKickoff",start);
+ const slug=runInNewContext(source.slice(start,end)+"\nmamSportScoreMatchSlug",{URL});
+ assert.equal(slug({id:"123456",url:"/football/match/al-ittihad-club-vs-pakhtakor/n54qllhnlk1lqvy/"}),"n54qllhnlk1lqvy");
+ assert.equal(slug({id:"123456",url:"/football/match/al-ittihad-club-vs-pakhtakor/"}),"123456");
 });

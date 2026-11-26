@@ -237,6 +237,7 @@ async function verifyMainApp(context,browserName){
   await foundProfile.locator('#mamTeamHistoryBack').tap();
   assert.equal(await search.evaluate(el=>el===document.activeElement),true);
   await main.evaluate(()=>{
+   if(window.originalMobileNow){window.fixedMobileNow=Date.now;Date.now=window.originalMobileNow;}
    const now=Date.now();
    const live=(id,league,name,status,goals={home:1,away:0})=>({fixture:{id,date:new Date(now-70*60000).toISOString(),status},
     league,teams:{home:{id:2001,name},away:{id:2002,name:'Rakip'}},goals});
@@ -270,7 +271,7 @@ async function verifyMainApp(context,browserName){
    const clock=mamEspnClock({status:{displayClock:"2'",clock:2129}});
    const apiRow={mamSource:'API_FOOTBALL',fixture:{id:99101,date:kickoff,status:{short:'LIVE',elapsed:2}},
     league:{id:'39',name:'Premier League',country:'England'},teams,goals:{home:1,away:0}};
-   const espnRow={fixture:{id:'espn-eng.1-99101',date:kickoff,status:{short:'LIVE',elapsed:clock.elapsed,displayClock:clock.displayClock}},
+   const espnRow={fixture:{id:'espn-eng.1-99101',date:kickoff,status:{short:'LIVE',elapsed:clock.elapsed,elapsedSeconds:clock.elapsedSeconds,clockPrecise:clock.precise,displayClock:clock.displayClock}},
     league:{id:'39',name:'2026 Premier League',country:'England'},teams,goals:{home:1,away:0}};
    const merged=mamMergeFixtureRows([apiRow,espnRow]);
    if(merged.length!==1||merged[0].fixture.status.elapsed!==35)throw new Error('Cross-provider fixture identity or fresh ESPN minute was not preserved');
@@ -281,7 +282,20 @@ async function verifyMainApp(context,browserName){
   const mergedProviderCard=main.locator('#matches article.match').filter({hasText:'Bayern Münih'});
   await mergedProviderCard.waitFor();
   assert.equal(await mergedProviderCard.count(),1,'mobile live view shows one card for the provider variants');
-  assert.match(await mergedProviderCard.locator('.match-time').innerText(),/35'/,'the live card uses the fresh shared provider minute');
+  assert.match(await mergedProviderCard.locator('.match-time').innerText(),/35'/,'the list card displays the provider minute, not seconds');
+  await mergedProviderCard.locator('.mam-match-open').click();
+  const detailArticle=main.locator('.match.in-detail');
+  const detailClock=detailArticle.locator('.match-head .match-time .mam-clock-text');
+  await main.waitForFunction(()=>/^\d{2}:\d{2}$/.test(document.querySelector('.match.in-detail .match-head .match-time .mam-clock-text')?.textContent||''));
+  assert.equal(await detailArticle.locator('.liveStatsBtn').getAttribute('data-live-clock-seconds-source'),'provider-seconds');
+  assert.equal(await detailArticle.locator('.liveStatsBtn').getAttribute('data-live-clock-seconds-base'),'2129');
+  const firstDetailClock=await detailClock.innerText();
+  await main.waitForTimeout(1200);
+  const nextDetailClock=await detailClock.innerText();
+  const toSeconds=value=>{const [minutes,seconds]=value.split(':').map(Number);return minutes*60+seconds;};
+  assert.ok(toSeconds(nextDetailClock)>toSeconds(firstDetailClock),'the opened match detail advances its provider-based clock each second');
+  await main.locator('.match-detail-close').click();
+  await main.evaluate(()=>{if(window.fixedMobileNow){Date.now=window.fixedMobileNow;delete window.fixedMobileNow;}});
   // Regression for the original 8849f62 Chromium/WebKit hidden #matches article timeout.
   // Hidden cards must be excluded from visibility-based checks, never assumed visible
   // just because a text selector resolves to a DOM node.
