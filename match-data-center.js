@@ -1,8 +1,7 @@
 "use strict";
-const { createHash, randomUUID } = require("node:crypto");
 const TeamIdentity = require("./team-identity-registry.js");
 const MIN_HISTORY = 10;
-const DATA_CENTER_CRON_UTC = "2 21 * * *"; // 00:02 Turkey time (UTC+3).
+const DATA_CENTER_CRON_UTC = "1 21 * * *"; // 00:01 Turkey time (UTC+3).
 const validDate = value => Number.isFinite(Date.parse(value));
 const isScore = value => Number.isInteger(value) && value >= 0;
 const eventKey = row => `${String(row.provider || "").trim().toLowerCase()}:${String(row.providerFixtureId || row.fixtureId || "").trim()}`;
@@ -11,7 +10,10 @@ function stableJson(value) {
   if (value && typeof value === "object") return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(",")}}`;
   return JSON.stringify(value);
 }
-function contentHash(value) { return createHash("sha256").update(stableJson(value)).digest("hex"); }
+async function contentHash(value) {
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(stableJson(value)));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+}
 function safeStats(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.filter(item => item && item.verified === true && item.provider && item.name &&
@@ -52,6 +54,15 @@ function summarize(teamId, identity, cutoffDate, history) {
       opponentTeamId: isHome ? row.awayTeamId : row.homeTeamId, venue: isHome ? "home" : "away",
       goalsFor, goalsAgainst, halftime, statistics: safeStats(row.statistics) };
   });
+  const metricCounts = {};
+  let matchesWithVerifiedStatistics = 0;
+  for (const match of lastTen) {
+    if (match.statistics.length) matchesWithVerifiedStatistics++;
+    for (const stat of match.statistics) {
+      const key = stat.name.trim().toLowerCase();
+      metricCounts[key] = (metricCounts[key] || 0) + 1;
+    }
+  }
   const calc = rows => rows.reduce((s,row) => {
     s.played++;
     s.wins += Number(row.goalsFor > row.goalsAgainst);
@@ -64,6 +75,8 @@ function summarize(teamId, identity, cutoffDate, history) {
     verifiedNames: (identity.names || []).filter(n => n.verified === true || n.verified === 1).map(n => n.displayName),
     verifiedProviderIds: (identity.providerIds || []).filter(n => n.verified === true || n.verified === 1).map(n => ({ provider: n.provider, providerTeamId: n.providerTeamId })),
     cutoffDate, historyCount: lastTen.length, history: lastTen, form: calc(lastTen),
+    statisticsCoverage: { historyMatches: lastTen.length, matchesWithVerifiedStatistics,
+      matchesWithoutVerifiedStatistics: lastTen.length - matchesWithVerifiedStatistics, verifiedMetricCounts: metricCounts },
     home: calc(lastTen.filter(m => m.venue === "home")), away: calc(lastTen.filter(m => m.venue === "away")) };
 }
 
@@ -165,8 +178,8 @@ async function publishDataCenter(adapter, batch) {
   }
   if (![...candidateByKey.values()].some(row => row.kind === "fixture" && row.readiness === "analysis_ready"))
     throw new Error("No analysis-ready fixture exists; active generation is unchanged.");
-  const newItems = [...candidateByKey.values()].map(row => ({ key: row.key, kind: row.kind, readiness: row.readiness,
-    payload: row.payload, hash: contentHash(row.payload) }));
+  const newItems = await Promise.all([...candidateByKey.values()].map(async row => ({ key: row.key, kind: row.kind, readiness: row.readiness,
+    payload: row.payload, hash: await contentHash(row.payload) })));
   const newByKey = new Map(newItems.map(item => [item.key, item.hash]));
   const changes = { inserted: 0, updated: 0, unchanged: 0, removed: 0 };
   for (const item of newItems) {
@@ -182,8 +195,8 @@ async function publishDataCenter(adapter, batch) {
   const readyFixtures = newItems.filter(row => row.kind === "fixture").length;
   const manifest = { generatedAt: batch.generatedAt, recordCount: newItems.length, readyFixtures,
     minimumHistory: MIN_HISTORY, scopeComplete: true, expectedCompetitionIds: batch.expectedCompetitionIds,
-    digest: contentHash(newItems.map(({key,hash}) => ({key,hash}))) };
-  const generationId = `${Date.parse(batch.generatedAt)}:${manifest.digest.slice(0,12)}:${randomUUID()}`;
+    digest: await contentHash(newItems.map(({key,hash}) => ({key,hash}))) };
+  const generationId = `${Date.parse(batch.generatedAt)}:${manifest.digest.slice(0,12)}:${globalThis.crypto.randomUUID()}`;
   await adapter.atomicCommit({ generationId, manifest, items: newItems, changes });
   return { generationId, changes, readyFixtures, quarantined: batch.quarantined || [], preservedPrevious };
 }

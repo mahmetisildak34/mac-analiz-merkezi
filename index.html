@@ -2665,6 +2665,7 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
 </nav>
 
 <script src="./team-identity-registry.js"></script>
+<script src="./data-center-client.js"></script>
 <script src="./half-goal-algorithm.js"></script>
 <script>"use strict";
 const $=id=>document.getElementById(id);
@@ -2749,7 +2750,7 @@ async function api(path){
   const isEspnSummary=/^espn\/[^/]+\/summary\?/.test(cleanPath);
   const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||isEspnSummary;
   const isLineupRequest=cleanPath.startsWith("fixtures?id=")||cleanPath.startsWith("fixtures/lineups?")||cleanPath.startsWith("fixtures/players?");
-  const isArchive=cleanPath.startsWith("archive/");
+  const isArchive=cleanPath.startsWith("archive/")||cleanPath.startsWith("data-center/");
   const isDiagnostic=cleanPath==="football/status";
   const isTffFixtures=cleanPath==="superlig/fixtures";
   const isPrimaryApi=!isDiagnostic&&!isArchive&&!isTffFixtures&&!isSportScore&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/")&&!cleanPath.startsWith("fixturesdownload/");
@@ -6413,7 +6414,7 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
     <span class="small">${isLiveStatus?"🔴 Canlı maç":isFinishedStatus?"✓ Maç tamamlandı":"Maç ön analizi"}</span>
     ${isFinishedStatus
       ? '<span class="small" style="font-weight:700;color:#687384">Maç önü tahmini kapalı</span>'
-      : '<button class="predBtn" data-id="'+esc(f.id)+'" data-home="'+esc(t.home?.id)+'" data-away="'+esc(t.away?.id)+'" data-home-name="'+esc(t.home?.name)+'" data-away-name="'+esc(t.away?.name)+'" data-league="'+esc(l.id)+'" data-date="'+esc(matchDay)+'" data-kickoff="'+esc(f.timeUnknown?"":f.date)+'" data-status="'+esc(statusCode)+'">✦ Maçı analiz et</button>'}
+      : '<button class="predBtn" data-id="'+esc(f.id)+'" data-home="'+esc(t.home?.id)+'" data-away="'+esc(t.away?.id)+'" data-home-name="'+esc(t.home?.name)+'" data-away-name="'+esc(t.away?.name)+'" data-provider="'+esc(f.source||f.provider||f._source||"")+'" data-league="'+esc(l.id)+'" data-date="'+esc(matchDay)+'" data-kickoff="'+esc(f.timeUnknown?"":f.date)+'" data-status="'+esc(statusCode)+'">✦ Maçı analiz et</button>'}
    </div>
    ${isFinishedStatus&&score?'<div class="analysis-preview">✓ Gerçekleşen sonuç: <b>'+esc(score)+'</b>. Maç önü tahmini bu karşılaşma için artık üretilemez.</div>':""}
 
@@ -8181,6 +8182,19 @@ function mamCanAnalyzePrematch(status,kickoff,now=Date.now()){
  const scheduled=Date.parse(kickoff);
  return Number.isFinite(scheduled)&&scheduled>now;
 }
+async function mamLoadAnalysisHistories(button,homeId,awayId,date){
+ const provider=String(button?.dataset?.provider||"").toLowerCase();
+ if(provider&&window.MAMDataCenterClient){
+  const prepared=await window.MAMDataCenterClient.loadPreparedAnalysis(({provider,fixtureId})=>
+   api("data-center/fixture-bundle?"+qs({provider,fixtureId})),
+   {provider,fixtureId:button.dataset.id,kickoff:button.dataset.kickoff,homeTeamId:homeId,awayTeamId:awayId});
+  if(prepared)return [prepared.homeHistory,prepared.awayHistory];
+ }
+ return Promise.all([
+  getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id),
+  getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id)
+ ]);
+}
 async function analyze(button){
  if(!button||button.disabled)return;
  let target=$("pred-"+button.dataset.id)||button.closest(".match")?.querySelector(".pred");
@@ -8219,10 +8233,7 @@ async function analyze(button){
   // İki takımın geçmişini aynı anda yükle. Her kaynak kendi maç-istatistik
   // önbelleğini kullanır; aynı maç için eşzamanlı istekler tekilleştirilir.
   target.textContent="İki takımın geçmiş maçları paralel yükleniyor...";
-  const [homeHistory,awayHistory]=await Promise.all([
-   getTeamFixtures(homeId,date,button.dataset.homeName,button.dataset.league,button.dataset.id),
-   getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id)
-  ]);
+  const [homeHistory,awayHistory]=await mamLoadAnalysisHistories(button,homeId,awayId,date);
   const excludedConflictKeys=[...new Set([...(homeHistory.mamExcludedConflictKeys||[]),...(awayHistory.mamExcludedConflictKeys||[])].filter(Boolean))];
   if(excludedConflictKeys.length)conflictWarning='<p class="note">⚠️ '+excludedConflictKeys.length+' çelişkili maç analiz dışı bırakıldı; doğrulanamayan skorlar tahmine alınmadı.</p>';
   if(!mamCanAnalyzePrematch(button.dataset.status,button.dataset.kickoff)){

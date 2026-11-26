@@ -70,8 +70,21 @@ test("B preparation resolves identities, uses exactly ten verified pre-kickoff h
   const home=b.records.find(r=>r.key.startsWith("team-analysis:team:home"));
   assert.equal(home.payload.historyCount,10);assert.equal(home.payload.home.played+home.payload.away.played,10);
   assert.equal(home.payload.history[0].halftime.provider,"espn");assert.deepEqual(home.payload.history[0].statistics.map(s=>s.name),["corners"]);
+  assert.deepEqual(home.payload.statisticsCoverage,{historyMatches:10,matchesWithVerifiedStatistics:1,matchesWithoutVerifiedStatistics:9,verifiedMetricCounts:{corners:1}});
   const match=b.records.find(r=>r.kind==="fixture");assert.deepEqual(match.payload.statistics.map(s=>s.name),["yellow_cards"]);
-  assert.equal(DATA_CENTER_CRON_UTC,"2 21 * * *");
+  assert.equal(DATA_CENTER_CRON_UTC,"1 21 * * *");
+});
+test("canonical-team history includes verified matches from other competitions",()=>{
+  const homeHistory=history("team:home","team:away","home").map((row,index)=>({...row,competitionId:index%2===0?"39":"45"}));
+  const awayHistory=history("team:away","team:home","away").map((row,index)=>({...row,competitionId:index%2===0?"3":"39"}));
+  const result=prepareDataCenter({generatedAt:now,scopeComplete:true,expectedCompetitionIds:["3"],loadedCompetitionIds:["3"],identities,
+    fixtures:[fixture({competitionId:"3"})],historiesByTeam:{"team:home":homeHistory,"team:away":awayHistory}});
+  assert.equal(result.readyFixtures,1);
+  const home=result.records.find(row=>row.key.startsWith("team-analysis:team:home"));
+  const away=result.records.find(row=>row.key.startsWith("team-analysis:team:away"));
+  assert.deepEqual(new Set(home.payload.history.map(row=>row.competitionId)),new Set(["39","45"]));
+  assert.deepEqual(new Set(away.payload.history.map(row=>row.competitionId)),new Set(["3","39"]));
+  assert.equal(home.payload.historyCount,10);assert.equal(away.payload.historyCount,10);
 });
 test("under-ten or unresolved fixtures are quarantined and never become app-consumable B items",()=>{
   assert.throws(()=>prepareDataCenter({scopeComplete:true,expectedCompetitionIds:["39","2"],loadedCompetitionIds:["39"],identities,fixtures:[]}),/Every supported competition/);
