@@ -67,7 +67,7 @@ test("the verified AFC Champions League Elite ESPN scoreboard is configured",()=
 });
 
 test("SportScore supplements normalize AFC and Turkish First League to stable league IDs",async()=>{
- const methods=["mamExplicitUtc","mamFixtureInstant","mamSportScoreMatchSlug","mamSportScoreKickoff","mamSportScoreLiveFixtures"];
+ const methods=["mamExplicitUtc","mamFixtureInstant","mamSportScoreMatchSlug","mamSportScoreDetailSlug","mamParseLiveClockText","mamSportScoreKickoff","mamSportScoreLiveFixtures"];
  const js=methods.map(name=>html.match(new RegExp("(?:async )?function "+name+"\\([\\s\\S]*?\\n\\}"))[0]).join("\n");
  const payload={matches:[
   {id:"bodrum",status:"live",status_text:"1st half",time:"2026-11-23T17:00:00Z",home:"Bodrum FK",away:"Belediye Vanspor",home_score:"0",away_score:"0",competition:"Turkish First League"},
@@ -84,7 +84,7 @@ test("SportScore supplements normalize AFC and Turkish First League to stable le
 });
 
 test("SportScore preserves provider minute fields and nested competition identity",async()=>{
- const methods=["mamExplicitUtc","mamFixtureInstant","mamSportScoreMatchSlug","mamSportScoreKickoff","mamSportScoreLiveFixtures"];
+ const methods=["mamExplicitUtc","mamFixtureInstant","mamSportScoreMatchSlug","mamSportScoreDetailSlug","mamParseLiveClockText","mamSportScoreKickoff","mamSportScoreLiveFixtures"];
  const js=methods.map(name=>html.match(new RegExp("(?:async )?function "+name+"\\([\\s\\S]*?\\n\\}"))[0]).join("\n");
  const payload={matches:[{id:"nested",status:{short:"LIVE"},status_text:"2nd half",elapsed:"26:15",time:"2026-11-23T18:00:00Z",home:"Ev",away:"Rakip",home_score:1,away_score:0,tournament:{id:"provider-204",name:"Turkish First League",country:"Türkiye"}}]};
  const load=require("node:vm").runInNewContext(js+";mamSportScoreLiveFixtures",{
@@ -215,13 +215,14 @@ test("captured ESPN Spain second division match transitions from added time to f
 test("ESPN precise detail clock advances from provider seconds without per-second requests",()=>{
  const source=html.slice(html.indexOf("function mamTickVisibleMatchClock"),html.indexOf("let mamTodayScoreRequest"));
  let now=100000;
- const clock={textContent:""};
- const detail={querySelector:selector=>selector===".match-head .match-time"?clock:null};
- const button={dataset:{liveSource:"espn",liveClockSecondsBase:"3795",liveClockSecondsAt:String(now),liveClockPrecise:"true",liveClockStatus:"LIVE"},closest:selector=>selector===".match.in-detail"?detail:null};
+ const clock={textContent:"",dataset:{}};
+ const detail={classList:{contains:name=>name==="in-detail"},querySelector:selector=>selector===".match-head .match-time .mam-clock-text"?clock:null};
+ const button={dataset:{liveSource:"espn",liveClockSecondsBase:"3795",liveClockSecondsAt:String(now),liveClockPrecise:"true",liveClockStatus:"LIVE"},closest:selector=>selector===".match"?detail:null};
  const tick=require("node:vm").runInNewContext(source+"\n mamTickVisibleMatchClock",{Date:{now:()=>now},document:{querySelectorAll:()=>[button]}});
  now+=9000;
  tick();
- assert.equal(clock.textContent,"🔴 63:24 · Canlı");
+ assert.equal(clock.textContent,"63:24","the opened match shows a second-by-second counter");
+ assert.equal(clock.dataset.clockMode,"seconds");
  button.dataset.liveClockStatus="HT";
  clock.textContent="";
  now+=10000;
@@ -231,10 +232,36 @@ test("ESPN precise detail clock advances from provider seconds without per-secon
  assert.match(html,/window\.mamLiveScoreTimer=setInterval\(refreshOpenLiveScore,8000\)/);
 });
 
-test("live precise clock seeds and ticks every rendered live card",()=>{
+test("live clock seeds every rendered card and separates list minutes from detail seconds",()=>{
  assert.match(html,/document\.querySelectorAll\("\.liveStatsBtn"\)\.forEach\(b=>\{\n\s*mamSeedVisibleMatchClock\(b\);/);
  assert.match(html,/const buttons=\[\.\.\.document\.querySelectorAll\("\.liveStatsBtn"\)\]/);
- assert.match(html,/const match=button\.closest\("\.match\.in-detail"\)\|\|button\.closest\("\.match"\)/);
+ assert.match(html,/const article=button\.closest\("\.match"\)/);
+ assert.match(html,/const clock=article\?\.querySelector\("\.match-head \.match-time \.mam-clock-text"\)/);
+ assert.match(html,/<b class="mam-clock-text">/);
+ assert.match(html,/clock\.dataset\.clockMode="seconds"/);
+ assert.match(html,/clock\.dataset\.clockMode="minute"/);
+});
+
+test("list cards keep the minute while the opened match ticks every second",()=>{
+ const source=html.slice(html.indexOf("function mamTickVisibleMatchClock"),html.indexOf("let mamTodayScoreRequest"));
+ let now=100000;
+ const makeCard=(inDetail,label)=>{
+  const clock={textContent:"",dataset:{}};
+  const article={classList:{contains:name=>name==="in-detail"&&inDetail},querySelector:selector=>selector===".match-head .match-time .mam-clock-text"?clock:null};
+  const button={dataset:{liveClockSecondsBase:"4020",liveClockSecondsAt:String(now),liveClockPrecise:"true",liveClockStatus:"LIVE",liveClockLabel:label||""},closest:()=>article};
+  return {clock,button};
+ };
+ const plain=makeCard(false,"");
+ const stoppage=makeCard(false,"45+2'");
+ const opened=makeCard(true,"");
+ const tick=require("node:vm").runInNewContext(source+"\n mamTickVisibleMatchClock",{Date:{now:()=>now},document:{querySelectorAll:()=>[plain.button,stoppage.button,opened.button]}});
+ now+=3000;
+ tick();
+ assert.equal(plain.clock.textContent,"67'","list card shows the minute only");
+ assert.equal(plain.clock.dataset.clockMode,"minute");
+ assert.equal(stoppage.clock.textContent,"45+2'","verified stoppage label stays readable");
+ assert.equal(opened.clock.textContent,"67:03","opened match counts seconds");
+ assert.equal(opened.clock.dataset.clockMode,"seconds");
 });
 
 test("live analysis never fabricates a 45th-minute 0-0 input",()=>{
@@ -250,18 +277,20 @@ test("live status label is not repeated when the displayed clock is also Canlı"
  assert.match(html,/repeatedLiveLabel\?"":"<i>"/);
 });
 
-test("minute-only API-Football clock does not invent provider seconds",()=>{
+test("minute-only API-Football clock ticks locally without claiming provider seconds",()=>{
  const seed=html.match(/function mamSeedVisibleMatchClock\([\s\S]*?\n\}/)?.[0];
  const espnClock=html.match(/function mamEspnClock\([\s\S]*?\n\}/)?.[0];
  const button={dataset:{liveSource:"api",liveId:"42",liveLeagueId:"39"},closest:()=>null};
  const context={
   Date:{now:()=>100000},
   allMatches:[{fixture:{id:"42",status:{short:"LIVE",elapsed:63,displayClock:"63'"}}}],
-  mamEspnClock:require("node:vm").runInNewContext(espnClock+";mamEspnClock")
+  mamEspnClock:require("node:vm").runInNewContext(espnClock+";mamEspnClock"),
+  mamLiveClockCurrent:()=>null
  };
  require("node:vm").runInNewContext(seed+";mamSeedVisibleMatchClock",context)(button);
- assert.equal(button.dataset.liveClockSecondsBase,undefined);
- assert.equal(button.dataset.liveClockPrecise,undefined);
+ assert.equal(button.dataset.liveClockSecondsBase,"3780","the counter starts from the verified provider minute");
+ assert.equal(button.dataset.liveClockSecondsSource,"provider-minute","a verified minute is not an estimate");
+ assert.notEqual(button.dataset.liveClockSecondsSource,"provider-seconds","derived seconds never claim provider precision");
 });
 test("a stale not-started label cannot authorize a prematch prediction after ESPN kickoff",()=>{
  const source=html.match(/function mamCanAnalyzePrematch\([\s\S]*?\n\}/)?.[0];
@@ -445,7 +474,7 @@ test("duplicate source rows preserve fixture identity and protect a verified fin
 });
 
 test("fallback sources reject malformed live feeds and do not invent a kickoff or live status",async()=>{
- const methods=["mamExplicitUtc","mamFixtureInstant","mamSportScoreMatchSlug","mamSportScoreKickoff","footballDataLiveFixtures","mamSportScoreLiveFixtures"];
+ const methods=["mamExplicitUtc","mamFixtureInstant","mamSportScoreMatchSlug","mamSportScoreDetailSlug","mamParseLiveClockText","mamSportScoreKickoff","footballDataLiveFixtures","mamSportScoreLiveFixtures"];
  const js=methods.map(name=>html.match(new RegExp("(?:async )?function "+name+"\\([\\s\\S]*?\\n\\}"))[0]).join("\n");
  let footballData={},sportScore={};
  const {footballDataLiveFixtures,sportScoreLiveFixtures}=require("node:vm").runInNewContext(js+";({footballDataLiveFixtures,sportScoreLiveFixtures:mamSportScoreLiveFixtures})",{
