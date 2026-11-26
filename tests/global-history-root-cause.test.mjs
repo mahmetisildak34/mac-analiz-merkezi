@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import vm from "node:vm";
 import test from "node:test";
 
+const require = createRequire(import.meta.url);
+const MAMTeamIdentity = require("../team-identity-registry.js");
 const source = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const sw = readFileSync(new URL("../sw.js", import.meta.url), "utf8");
 const mobileSw = readFileSync(new URL("../mobile/sw.js", import.meta.url), "utf8");
@@ -15,6 +18,7 @@ function helperApi() {
   assert.ok(start >= 0 && end > start);
   assert.ok(competitionStart >= 0 && competitionEnd > competitionStart);
   return vm.runInNewContext(`${source.slice(competitionStart, competitionEnd)}\n${source.slice(start, end)};({mamUefaTeamMatch,mamCanonicalHistoryTeamKey,mamHistoryTeamSearchNames,mamHistoricalIdentity,mamDeduplicateHistoricalMatches,mamHistoryCompetitionAllowed,mamTeamHistoryCompetitionAllowed})`, {
+    MAMTeamIdentity,
     mamFixtureTeamKey(value) {
       return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i").replace(/[^a-z0-9]/g, "");
     },
@@ -45,7 +49,8 @@ function serviceWorkerReloadHarness(storage, controlled = true) {
 }
 
 test("Service Worker sürümü eski app-shell cache'ini geçersiz kılar", () => {
-  assert.match(sw, /cachePrefix:'mam-main-shell-',version:'v3'/);
+  assert.match(sw, /cachePrefix:'mam-main-shell-',version:'v4'/);
+  assert.match(sw, /'team-identity-registry\.js'/, "offline shell must include the shared identity helper");
   assert.match(mobileSw, /cachePrefix:'mam-mobile-shell-',version:'v3'/);
   assert.match(source, /updateViaCache:"none"/);
   assert.match(source, /mam_sw_reloaded_v3/);
