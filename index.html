@@ -4342,7 +4342,7 @@ function mamLiveClockCurrent(key){
 	return {...entry,elapsed,minuteNow:Math.floor(elapsed/60)};
 }
 /* Kartta gösterilen dakika: sağlayıcı saniyesi > sağlayıcı dakikası >
- kayıt defteri > başlama saatinden tahmin. */
+	 doğrulanmış kayıt defteri. Başlama saatinden canlı dakika türetilmez. */
 function mamLiveMinuteLabel(match,{preciseSeconds=null,providerMinute=null}={}){
 	const key=String(match?.fixture?.id||"");
 	const status=match?.fixture?.status?.short;
@@ -4359,17 +4359,6 @@ function mamLiveMinuteLabel(match,{preciseSeconds=null,providerMinute=null}={}){
 	}
 	const current=mamLiveClockCurrent(key);
 	if(current)return {text:current.label||(current.minuteNow+"'"),estimated:false,seconds:current.seconds};
-	const kickoff=Date.parse(match?.fixture?.date||"");
-	if(Number.isFinite(kickoff)){
-		// Saglayici dakika vermezse baslama saatinden ihtiyatli tahmin; devre
-		// bilgisi varsa 15 dakikalik devre arasi dusulur ve sinirlar uygulanir.
-		const phase=String(match?.fixture?.status?.displayClock||"")+" "+String(match?.fixture?.status?.short||"");
-		const raw=Math.floor((Date.now()-kickoff)/60000);
-		const estimate=/2nd|second|2h/i.test(phase)?Math.min(95,Math.max(46,raw-15))
-			:/1st|first|1h/i.test(phase)?Math.min(48,Math.max(1,raw))
-			:Math.max(0,Math.min(130,raw));
-		if(estimate>0)return {text:"~"+estimate+"'",estimated:true,seconds:estimate*60};
-	}
 	return {text:"",estimated:true,seconds:null};
 }
 /* Görünen canlı SportScore kartları için sağlayıcı dakikasını toplar.
