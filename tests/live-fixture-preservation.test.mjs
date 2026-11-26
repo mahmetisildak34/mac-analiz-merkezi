@@ -108,6 +108,13 @@ test("SportScore parses the provider ID from the observed match URL and rejects 
  assert.equal(parsed[0].fixture.id,"sportscore-n54qllhnlk1lqvy");
  assert.equal(parsed[0].fixture.date,observed.time);
  assert.equal(parsed[0].fixture.timeUnknown,false);
+ assert.equal(parsed[0].fixture.status.elapsed,null,"2nd half is a status label, not a minute");
+ assert.equal(parsed[0].fixture.status.elapsedSeconds,null,"status labels cannot invent provider seconds");
+ rows[0]={...observed,elapsed:"63:24"};
+ const precise=await api.mamSportScoreLiveFixtures(true);
+ assert.equal(precise[0].fixture.status.elapsed,63);
+ assert.equal(precise[0].fixture.status.elapsedSeconds,3804);
+ assert.equal(precise[0].fixture.status.displayClock,"63:24");
  assert.equal(api.mamSportScoreMatchSlug(parsed[0]),"n54qllhnlk1lqvy");
 	const matched=api.mamSportScoreFindLiveMatch(rows,"alittihad","pakhtakor",value=>String(value||"").toLowerCase().replace(/[^a-z0-9]/g,""));
  assert.equal(api.mamSportScoreMatchSlug(matched),"n54qllhnlk1lqvy","detail lookup uses the same URL-derived provider identity");

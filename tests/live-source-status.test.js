@@ -212,16 +212,38 @@ test("captured ESPN Spain second division match transitions from added time to f
  assert.equal(status({state:"in",name:"STATUS_PENALTY_SHOOTOUT"}),"P");
 });
 
-test("ESPN detail clock is not advanced by the local display timer",()=>{
+test("ESPN precise detail clock advances from provider seconds without per-second requests",()=>{
  const source=html.slice(html.indexOf("function mamTickVisibleMatchClock"),html.indexOf("let mamTodayScoreRequest"));
- const button={dataset:{liveSource:"espn"}};
- const tick=require("node:vm").runInNewContext(source+"\n mamTickVisibleMatchClock",{
-  document:{querySelectorAll:()=>[button]},
-  mamSeedVisibleMatchClock:()=>assert.fail("ESPN clocks must come from the provider")
- });
+ let now=100000;
+ const clock={textContent:""};
+ const detail={querySelector:selector=>selector===".match-head .match-time"?clock:null};
+ const button={dataset:{liveSource:"espn",liveClockSecondsBase:"3795",liveClockSecondsAt:String(now),liveClockPrecise:"true",liveClockStatus:"LIVE"},closest:selector=>selector===".match.in-detail"?detail:null};
+ const tick=require("node:vm").runInNewContext(source+"\n mamTickVisibleMatchClock",{Date:{now:()=>now},document:{querySelectorAll:()=>[button]}});
+ now+=9000;
  tick();
+ assert.equal(clock.textContent,"🔴 63:24 · Canlı");
+ button.dataset.liveClockStatus="HT";
+ clock.textContent="";
+ now+=10000;
+ tick();
+ assert.equal(clock.textContent,"","HT stops the local timer");
+ assert.match(html,/window\.mamLiveClockTimer=setInterval\(mamTickVisibleMatchClock,1000\)/);
+ assert.match(html,/window\.mamLiveScoreTimer=setInterval\(refreshOpenLiveScore,8000\)/);
 });
 
+test("minute-only API-Football clock does not invent provider seconds",()=>{
+ const seed=html.match(/function mamSeedVisibleMatchClock\([\s\S]*?\n\}/)?.[0];
+ const espnClock=html.match(/function mamEspnClock\([\s\S]*?\n\}/)?.[0];
+ const button={dataset:{liveSource:"api",liveId:"42",liveLeagueId:"39"},closest:()=>null};
+ const context={
+  Date:{now:()=>100000},
+  allMatches:[{fixture:{id:"42",status:{short:"LIVE",elapsed:63,displayClock:"63'"}}}],
+  mamEspnClock:require("node:vm").runInNewContext(espnClock+";mamEspnClock")
+ };
+ require("node:vm").runInNewContext(seed+";mamSeedVisibleMatchClock",context)(button);
+ assert.equal(button.dataset.liveClockSecondsBase,undefined);
+ assert.equal(button.dataset.liveClockPrecise,undefined);
+});
 test("a stale not-started label cannot authorize a prematch prediction after ESPN kickoff",()=>{
  const source=html.match(/function mamCanAnalyzePrematch\([\s\S]*?\n\}/)?.[0];
  const eligible=require("node:vm").runInNewContext(source+"\n mamCanAnalyzePrematch");
@@ -290,6 +312,8 @@ test("live clock keeps precise seconds while minute-only providers do not invent
  assert.match(tick,/Math\.floor\(elapsed\/60\)/);
  assert.match(refresh,/rawProviderSeconds!==null&&rawProviderSeconds!==undefined/);
  assert.match(refresh,/\["SUSP","INT"\]\.includes\(statusShort\)/);
+ assert.match(refresh,/button\.dataset\.liveClockStatus=statusShort/);
+ assert.match(refresh,/delete button\.dataset\.liveClockSecondsBase/);
 });
 
 test("live statistics merge preserves verified sides when a refresh omits fields",()=>{

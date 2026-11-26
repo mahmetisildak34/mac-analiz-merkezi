@@ -3680,7 +3680,7 @@ async function espnFixtures(date,includeAllLeagues=false,endDate=date,istanbulWi
      const toGoals=value=>["NS","TBD","UNK","PST","CANC"].includes(statusShort)?null:mamEspnGoal(value);
      const teamId=value=>{const n=Number(value);return Number.isFinite(n)&&n!==0?n:-1;};
      return {
-      fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||competition.date||null,status:{short:statusShort,elapsed:clock.elapsed,displayClock:clock.displayClock}},
+      fixture:{id:"espn-"+league.slug+"-"+event.id,date:event.date||competition.date||null,status:{short:statusShort,elapsed:clock.elapsed,elapsedSeconds:clock.elapsedSeconds,clockPrecise:clock.precise,displayClock:clock.displayClock}},
       league:{id:leagueId,name:league.name,country:league.country},
       teams:{
        home:{id:teamId(home.team?.id),name:home.team?.displayName||home.team?.name||"",logo:home.team?.logo||home.team?.logos?.[0]?.href||home.team?.logos?.[0]?.url||""},
@@ -4274,7 +4274,12 @@ async function mamSportScoreLiveFixtures(force=false,signal=null){
 		const clock=item.status_text||item.statusText||statusObject.displayClock||item.elapsed||statusObject.elapsed||item.minute||statusObject.minute||"";
   const explicitElapsed=item.elapsed??statusObject.elapsed??item.minute??statusObject.minute;
   const elapsed=number(explicitElapsed)??minute(explicitElapsed)??minute(clock);
-		return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff,timeUnknown:false,status:{short,elapsed,displayClock:String(clock)}},league:{id:String(leagueId),name:competitionName,country:String(item.country||competitionObject.country||item.league?.country||item.tournament?.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug};
+  const clockText=String(explicitElapsed??clock).trim();
+  const clockMatch=clockText.match(/^(?:live\s+)?(\d{1,3}):([0-5]\d)$/i);
+  const explicitSeconds=item.elapsedSeconds??statusObject.elapsedSeconds;
+  const elapsedSeconds=clockMatch?Number(clockMatch[1])*60+Number(clockMatch[2]):number(explicitSeconds);
+  const normalizedClock=clockMatch?String(Number(clockMatch[1])).padStart(2,"0")+":"+clockMatch[2]:String(clock);
+		return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff,timeUnknown:false,status:{short,elapsed,elapsedSeconds,clockPrecise:Number.isFinite(elapsedSeconds),displayClock:normalizedClock}},league:{id:String(leagueId),name:competitionName,country:String(item.country||competitionObject.country||item.league?.country||item.tournament?.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug};
  }).filter(Boolean);
  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
  return matches;
@@ -6150,6 +6155,7 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
   let liveMinute="";
   if(isLiveStatus){
    if(statusCode==="HT")liveMinute="Devre arası";
+   else if(providerClock.precise)liveMinute=providerClock.displayClock;
    else if(providerClock.displayClock.includes("+"))liveMinute=providerClock.displayClock;
    else if(Number.isFinite(effectiveElapsed))liveMinute=String(Math.round(effectiveElapsed))+"'";
    else liveMinute="Canlı";
@@ -6362,13 +6368,13 @@ async function refreshActiveMatchScore(){
   if(headClock)headClock.textContent=(isStopped?"⚪ ":"🔴 ")+minute+" · "+stoppedLabel;
   const centerSub=article.querySelector(".match-center small");
   if(centerSub)centerSub.textContent=stoppedLabel==="Canlı"?"Canlı maç · sağlayıcı saati":stoppedLabel;
+  button.dataset.liveClockStatus=statusShort;
   if(Number.isFinite(clockBase)){
    button.dataset.liveClockBase=String(clockBase);
    button.dataset.liveClockAt=String(now);
-   button.dataset.liveClockStatus=statusShort;
-   if(Number.isFinite(preciseSeconds)){button.dataset.liveClockSecondsBase=String(preciseSeconds);button.dataset.liveClockSecondsAt=String(now);button.dataset.liveClockPrecise="true";}
-   else {delete button.dataset.liveClockSecondsBase;delete button.dataset.liveClockSecondsAt;delete button.dataset.liveClockPrecise;}
   }
+  if(Number.isFinite(preciseSeconds)){button.dataset.liveClockSecondsBase=String(preciseSeconds);button.dataset.liveClockSecondsAt=String(now);button.dataset.liveClockPrecise="true";}
+  else {delete button.dataset.liveClockSecondsBase;delete button.dataset.liveClockSecondsAt;delete button.dataset.liveClockPrecise;}
   button.dataset.liveMinute=Number.isFinite(elapsed)?String(elapsed):"";
   button.dataset.liveHomeScore=String(fresh.goals.home);
   button.dataset.liveAwayScore=String(fresh.goals.away);
