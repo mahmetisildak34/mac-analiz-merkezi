@@ -48,6 +48,8 @@ test("verified ESPN score keeps only the matching D1 row", async () => {
   const filter = loadFilter([4, 0]);
   const result = await filter([row([4, 0]), row([0, 0])], "39");
   assert.equal(result.length, 1);
+  assert.equal(result.mamExcludedConflictCount, 1);
+  assert.equal(result.mamExcludedConflictKeys.length, 1);
   assert.deepEqual(result[0].goals, { home: 4, away: 0 });
 });
 
@@ -55,6 +57,8 @@ test("unresolved conflicting D1 scores are excluded, not guessed", async () => {
   const filter = loadFilter(null);
   const result = await filter([row([4, 0]), row([0, 0])], "39");
   assert.equal(result.length, 0);
+  assert.equal(result.mamExcludedConflictCount, 2);
+  assert.equal(result.mamExcludedConflictKeys.length, 1);
 });
 
 test("non-conflicting completed D1 rows remain available", async () => {
@@ -87,4 +91,11 @@ test("cache conflict filtering precedes historical deduplication", () => {
   const dedupe = source.indexOf("mamDeduplicateHistoricalMatches", cacheStart);
   const filter = source.indexOf("mamFilterConflictingHistoricalScores(archiveMatches,leagueId)", cacheStart);
   assert.ok(cacheStart >= 0 && filter > cacheStart && dedupe > filter);
+});
+
+test("history cache uses v79 and persists the filter count", () => {
+  assert.match(source, /const key="mam_history_v79_/);
+  assert.doesNotMatch(source, /const key="mam_history_v78_/);
+  assert.match(source, /excludedConflictCount/);
+  assert.match(source, /çelişkili maç analiz dışı bırakıldı/);
 });
