@@ -4,13 +4,15 @@ import vm from "node:vm";
 import test from "node:test";
 
 const source = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const start = source.indexOf("function mamCompletedHistoricalScore");
+const start = source.indexOf("function mamHistoricalScorePair");
 const end = source.indexOf("function mamEnrichHistoricalStats", start);
 assert.ok(start >= 0 && end > start);
 
 function loadFilter(verifiedScore) {
   const context = {
-    mamHistoricalIdentity(match) { return match.identity || ""; },
+    mamIstanbulDay(value) { return String(value || "").slice(0, 10); },
+    mamCanonicalHistoryTeamKey(value) { return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, ""); },
+    mamFixtureCompetitionKey(match) { return { canonical: true, id: match.league?.id || "39" }; },
     async mamFindEspnHistoricalEvent() { return verifiedScore ? "espn-event-1" : ""; },
     ESPN_LEAGUES: { "39": { slug: "eng.1" } },
     qs(value) { return new URLSearchParams(value).toString(); },
@@ -35,8 +37,9 @@ function loadFilter(verifiedScore) {
 
 function row(score, identity = "same-match") {
   return {
-    identity,
-    fixture: { id: identity + "-" + score.join("-"), status: { short: "FT" } },
+    fixture: { id: identity + "-" + score.join("-"), date: "2026-11-22T16:30:00Z", status: { short: "FT" } },
+    league: { id: "39" },
+    teams: { home: { name: "Liverpool" }, away: { name: "Manchester United" } },
     goals: { home: score[0], away: score[1] }
   };
 }
@@ -56,6 +59,32 @@ test("unresolved conflicting D1 scores are excluded, not guessed", async () => {
 
 test("non-conflicting completed D1 rows remain available", async () => {
   const filter = loadFilter(null);
-  const result = await filter([row([2, 1]), row([2, 1], "other-match")], "39");
+  const other = row([2, 1]);
+  other.fixture.date = "2026-11-21T16:30:00Z";
+  const result = await filter([row([2, 1]), other], "39");
   assert.equal(result.length, 2);
+});
+
+test("different kickoff minutes are still one conflict group", async () => {
+  const filter = loadFilter([4, 0]);
+  const late = row([0, 0]);
+  late.fixture.date = "2026-11-22T19:00:00Z";
+  const result = await filter([row([4, 0]), late], "39");
+  assert.equal(JSON.stringify(result.map(match => match.goals)), JSON.stringify([{ home: 4, away: 0 }]));
+});
+
+test("time-unknown rows cannot bypass conflict filtering", async () => {
+  const filter = loadFilter([4, 0]);
+  const unknown = row([0, 0]);
+  unknown.fixture.date = "2026-11-22";
+  unknown.fixture.timeUnknown = true;
+  const result = await filter([row([4, 0]), unknown], "39");
+  assert.equal(JSON.stringify(result.map(match => match.goals)), JSON.stringify([{ home: 4, away: 0 }]));
+});
+
+test("cache conflict filtering precedes historical deduplication", () => {
+  const cacheStart = source.indexOf("const archiveMatches=saved.matches.slice();");
+  const dedupe = source.indexOf("mamDeduplicateHistoricalMatches", cacheStart);
+  const filter = source.indexOf("mamFilterConflictingHistoricalScores(archiveMatches,leagueId)", cacheStart);
+  assert.ok(cacheStart >= 0 && filter > cacheStart && dedupe > filter);
 });
