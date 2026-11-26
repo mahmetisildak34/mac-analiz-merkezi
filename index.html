@@ -4232,7 +4232,7 @@ function mamSportScoreFindLiveMatch(matches,homeName,awayName,clean){
 	});
 }
 async function mamSportScoreLiveFixtures(force=false,signal=null){
-	const cacheKey="mam_sportscore_live_fixtures_v3";
+		const cacheKey="mam_sportscore_live_fixtures_v4";
  let cached=null;try{cached=JSON.parse(localStorage.getItem(cacheKey)||"null");}catch(_){}
  if(!force&&cached?.time&&Array.isArray(cached.matches)&&Date.now()-cached.time<20000)return cached.matches;
  const date=typeof mamIstanbulDateString==="function"?mamIstanbulDateString():new Date().toISOString().slice(0,10);
@@ -4242,12 +4242,13 @@ async function mamSportScoreLiveFixtures(force=false,signal=null){
  const payload=await response.json();
  const rows=[payload?.matches,payload?.fixtures,payload?.data,payload?.response].find(Array.isArray);
  if(!rows)throw new Error("SportScore canlı yayın yanıtı geçersiz.");
- const norm=value=>String(value||"").toLowerCase().replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
- const minute=value=>{const m=String(value||"").match(/(?:^|\D)(\d{1,3})(?:\s*\+\s*(\d{1,2}))?\s*['′]?/);return m?Number(m[1]):null;};
+ const norm=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
+ const minute=value=>{const text=String(value??"").trim();const m=text.match(/^(?:live\s+)?(\d{1,3})(?::\d{2})?(?:\s*\+\s*\d{1,2})?\s*(?:['′]|min(?:ute)?s?)?$/i);return m?Number(m[1]):null;};
  const number=value=>value===null||value===undefined||value===""?null:(Number.isFinite(Number(value))?Number(value):null);
- const canonicalLeagueIds={"afc champions league elite":"afc_champions","turkish first league":"204","trendyol 1 lig":"204","turkish super league":"203","super lig":"203"};
+ const canonicalLeagueIds={"afc champions league elite":"afc_champions","afc champions league":"afc_champions","turkish first league":"204","trendyol 1 lig":"204","turkish super league":"203","super lig":"203"};
  const matches=rows.map(item=>{
-  const raw=norm(item.status||item.state),detail=norm(item.status_text||item.statusText||item.elapsed||item.minute);
+  const statusObject=item.status&&typeof item.status==="object"?item.status:{};
+  const raw=norm(statusObject.short||item.state||item.status),detail=norm(item.status_text||item.statusText||statusObject.detail||statusObject.shortDetail||statusObject.displayClock||item.elapsed||statusObject.elapsed||item.minute||statusObject.minute);
   const combined=raw+" "+detail;
   let short="";
   if(/half time|halftime|interval/.test(combined)||raw==="ht")short="HT";
@@ -4262,14 +4263,18 @@ async function mamSportScoreLiveFixtures(force=false,signal=null){
 	const away=String(item.away||item.away_team?.name||item.awayTeam?.name||item.teams?.away?.name||"");
 	const kickoff=mamSportScoreKickoff(item);
 	if(!slug||!home||!away||!kickoff)return null;
-  const competition=item.competition||item.league||item.competition_name||"";
-  const competitionName=typeof competition==="string"?competition:String(competition.name||competition.title||competition.slug||"SportScore");
-  const competitionKey=competitionName.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-  const leagueId=item.competition_id||item.league_id||competition.id||canonicalLeagueIds[competitionKey]||"sportscore";
+  const competition=item.competition||item.league||item.tournament||item.competition_name||item.league_name||item.tournament_name||"";
+  const competitionObject=competition&&typeof competition==="object"?competition:{};
+  const competitionName=typeof competition==="string"?competition:String(competitionObject.name||competitionObject.title||competitionObject.shortName||competitionObject.slug||"SportScore");
+  const competitionKey=norm(competitionName);
+  const providerLeagueId=item.competition_id??item.league_id??item.tournament_id??competitionObject.id??"";
+  const leagueId=canonicalLeagueIds[competitionKey]||String(providerLeagueId||("sportscore:"+(competitionKey||"unknown")));
   const hs=number(item.home_score??item.homeScore??item.score?.home??item.goals?.home);
   const as=number(item.away_score??item.awayScore??item.score?.away??item.goals?.away);
-	const clock=item.status_text||item.statusText||item.elapsed||item.minute||"";
-	return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff,timeUnknown:false,status:{short,elapsed:minute(clock),displayClock:String(clock)}},league:{id:String(leagueId),name:competitionName,country:String(item.country||competition.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug};
+		const clock=item.status_text||item.statusText||statusObject.displayClock||item.elapsed||statusObject.elapsed||item.minute||statusObject.minute||"";
+  const explicitElapsed=item.elapsed??statusObject.elapsed??item.minute??statusObject.minute;
+  const elapsed=number(explicitElapsed)??minute(explicitElapsed)??minute(clock);
+		return {mamSource:"SPORTSCORE",fixture:{id:"sportscore-"+slug,date:kickoff,timeUnknown:false,status:{short,elapsed,displayClock:String(clock)}},league:{id:String(leagueId),name:competitionName,country:String(item.country||competitionObject.country||item.league?.country||item.tournament?.country||"")},teams:{home:{id:null,name:home,logo:item.home_logo||item.home_team?.logo||item.teams?.home?.logo||""},away:{id:null,name:away,logo:item.away_logo||item.away_team?.logo||item.teams?.away?.logo||""}},goals:{home:hs,away:as},score:{fulltime:{home:hs,away:as}},_sportScoreSlug:slug};
  }).filter(Boolean);
  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),matches}));}catch(_){}
  return matches;

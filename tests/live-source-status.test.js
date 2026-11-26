@@ -80,6 +80,21 @@ test("SportScore supplements normalize AFC and Turkish First League to stable le
  const rows=await load(true);
  assert.deepEqual(rows.map(row=>row.league.id),["204","afc_champions"]);
  assert.ok(rows.every(row=>row.fixture.status.short==="LIVE"));
+ assert.equal(rows[1].fixture.status.elapsed,null,"the provider's '2nd half' label is not a minute");
+});
+
+test("SportScore preserves provider minute fields and nested competition identity",async()=>{
+ const methods=["mamExplicitUtc","mamFixtureInstant","mamSportScoreMatchSlug","mamSportScoreKickoff","mamSportScoreLiveFixtures"];
+ const js=methods.map(name=>html.match(new RegExp("(?:async )?function "+name+"\\([\\s\\S]*?\\n\\}"))[0]).join("\n");
+ const payload={matches:[{id:"nested",status:{short:"LIVE"},status_text:"2nd half",elapsed:"26:15",time:"2026-11-23T18:00:00Z",home:"Ev",away:"Rakip",home_score:1,away_score:0,tournament:{id:"provider-204",name:"Turkish First League",country:"Türkiye"}}]};
+ const load=require("node:vm").runInNewContext(js+";mamSportScoreLiveFixtures",{
+  WORKER:"https://fixture.invalid",qs:x=>new URLSearchParams(x),mamIstanbulDateString:()=>"2026-11-23",
+  localStorage:{getItem:()=>null,setItem:()=>{}},fetch:async()=>({ok:true,json:async()=>payload})
+ });
+ const [row]=await load(true);
+ assert.equal(row.fixture.status.elapsed,26);
+ assert.equal(row.league.id,"204");
+ assert.equal(row.league.name,"Turkish First League");
 });
 
 test("published standings keep missing fields blank and prefer source goal difference",()=>{
