@@ -237,6 +237,7 @@ async function verifyMainApp(context,browserName){
   await foundProfile.locator('#mamTeamHistoryBack').tap();
   assert.equal(await search.evaluate(el=>el===document.activeElement),true);
   await main.evaluate(()=>{
+   if(window.originalMobileNow){Date.now=window.originalMobileNow;delete window.originalMobileNow;}
    const now=Date.now();
    const live=(id,league,name,status,goals={home:1,away:0})=>({fixture:{id,date:new Date(now-70*60000).toISOString(),status},
     league,teams:{home:{id:2001,name},away:{id:2002,name:'Rakip'}},goals});
