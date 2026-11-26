@@ -4341,13 +4341,19 @@ function mamLiveClockCurrent(key){
 	const elapsed=entry.seconds+Math.max(0,(Date.now()-entry.at)/1000);
 	return {...entry,elapsed,minuteNow:Math.floor(elapsed/60)};
 }
-/* Kartta gösterilen dakika: sağlayıcı saniyesi > sağlayıcı dakikası >
-	 doğrulanmış kayıt defteri. Başlama saatinden canlı dakika türetilmez. */
-function mamLiveMinuteLabel(match,{preciseSeconds=null,providerMinute=null}={}){
+/* Kartta gösterilen dakika: sağlayıcının ek süre etiketi > sağlayıcı saniyesi >
+	 sağlayıcı dakikası > doğrulanmış kayıt defteri. Başlama saatinden tahmin yapılmaz. */
+function mamLiveMinuteLabel(match,{preciseSeconds=null,providerMinute=null,providerLabel=""}={}){
 	const key=String(match?.fixture?.id||"");
 	const status=match?.fixture?.status?.short;
 	const secondsValue=mamLiveClockNumber(preciseSeconds);
 	const minuteValue=mamLiveClockNumber(providerMinute);
+	const stoppage=String(providerLabel||"").trim().match(/^(\d{1,3})\s*\+\s*(\d{1,2})'?$/);
+	if(stoppage){
+		const minute=Number(stoppage[1]),added=Number(stoppage[2]),label=minute+"+"+added+"'";
+		const entry=mamLiveClockRemember(key,secondsValue!==null?{minute:Math.floor(secondsValue/60),added:null,label}:{minute,added,label},status);
+		return {text:entry?.label||label,estimated:false,seconds:secondsValue??entry?.seconds??null};
+	}
 	if(secondsValue!==null&&secondsValue>=0){
 		const entry=mamLiveClockRemember(key,{minute:Math.floor(secondsValue/60),added:null,label:""},status);
 		return {text:String(Math.floor(entry.seconds/60))+"'",estimated:false,seconds:entry.seconds};
@@ -6382,9 +6388,9 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
   if(isLiveStatus){
    if(["HT","ET","BT","P","SUSP","INT"].includes(statusCode))liveMinute=statusLabel;
    else{
-    // Sağlayıcı saniyesi > sağlayıcı dakikası > kayıt defteri > başlama tahmini.
+    // Sağlayıcının ek süre etiketi > saniyesi > dakikası > doğrulanmış kayıt.
     // Liste kartında yalnızca dakika gösterilir; saniye sayacı maç detayındadır.
-    const liveLabel=mamLiveMinuteLabel(m,{preciseSeconds:providerClock.precise?providerClock.elapsedSeconds:null,providerMinute:Number.isFinite(effectiveElapsed)?effectiveElapsed:null});
+    const liveLabel=mamLiveMinuteLabel(m,{preciseSeconds:providerClock.precise?providerClock.elapsedSeconds:null,providerMinute:Number.isFinite(effectiveElapsed)?effectiveElapsed:null,providerLabel:providerClock.displayClock});
     liveMinute=liveLabel.text||"Canlı";
    }
   }
