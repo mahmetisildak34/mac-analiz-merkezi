@@ -88,14 +88,14 @@ test("10 D1 matches gate historical provider fallbacks and optional stats enrich
   assert.ok(start >= 0 && end > start);
   const history = source.slice(start, end);
   assert.match(history, /if\(folder&&output\.length<10\)/);
-  assert.match(history, /if\(!mamHistoryCompetitionAllowed\(m,leagueId\)\|\|!mamHasCompletedScore\(m\)\)return/);
+  assert.match(history, /if\(!mamTeamHistoryCompetitionAllowed\(m,leagueId\)\|\|!mamHasCompletedScore\(m\)\)return/);
   assert.match(history, /if\(\["2","3","848"\]\.includes\(String\(leagueId\)\)&&output\.length<10\)/);
   assert.match(history, /if\(\["2","3"\]\.includes\(String\(leagueId\)\)&&output\.length<10\)/);
   assert.match(history, /const d1ArchiveMatchCount=output\.filter\(match=>match\?\.mamArchiveOnly===true\)\.length/);
   assert.match(history, /if\(d1ArchiveMatchCount<10\)await mamEnrichHistoricalStats\(result,leagueId\)/);
   assert.match(source, /const isFixtureDownload=id\.startsWith\("fd-uefa-"\)\|\|String\(match\.mamSource\|\|match\.source\|\|""\)\.toLowerCase\(\)==="fixture-download-uefa"/);
-  assert.match(history, /mam_history_v78_/);
-  assert.match(source, /mam_history_v78_/);
+  assert.match(history, /mam_history_v79_/);
+  assert.match(source, /mam_history_v79_/);
   assert.match(source, /mam_d1_archive_v4_/);
   assert.match(source, /poisson\(lh,h\)\*poisson\(la,a\)/i);
 });
