@@ -6906,6 +6906,7 @@ function mamUefaTeamMatch(a,b){
  const x=norm(a),y=norm(b);
  if(!x||!y)return false;
  if(x===y)return true;
+ if((x==="plzen"&&y==="viktoriaplzen")||(y==="plzen"&&x==="viktoriaplzen"))return true;
  const groupsByName=mamUefaTeamMatch.groupIndex||(mamUefaTeamMatch.groupIndex=new Map());
  if(!groupsByName.size)for(let index=0;index<MAM_UEFA_TEAM_GROUPS.length;index++)for(const name of MAM_UEFA_TEAM_GROUPS[index]){
   const key=norm(name);let memberships=groupsByName.get(key);if(!memberships)groupsByName.set(key,memberships=new Set());memberships.add(index);
@@ -7051,6 +7052,18 @@ async function mamLoadD1LeagueArchive(leagueId, matchDate, teamName, teamId, tea
   }
   try{return filterForTeam(await pending);}
   finally{if(mamD1ArchiveInFlight.get(teamCacheKey)===pending)mamD1ArchiveInFlight.delete(teamCacheKey);}
+}
+async function mamLoadBournemouthRelatedLeagueArchives(leagueId,matchDate,teamName,teamId,teamSource,acceptedNames){
+ if(String(leagueId)!=="3"||mamCanonicalHistoryTeamKey(teamName)!=="bournemouth")return [];
+ const relatedLeagueIds=["39","40","45","48"];
+ const results=await Promise.allSettled(relatedLeagueIds.map(relatedLeagueId=>
+  mamLoadD1LeagueArchive(relatedLeagueId,matchDate,teamName,teamId,teamSource,acceptedNames)
+  ));
+ return results.flatMap((result,index)=>{
+  if(result.status==="fulfilled")return result.value;
+  console.warn("Bournemouth için D1 ek lig arşivi okunamadı:",relatedLeagueIds[index],String(result.reason?.message||result.reason));
+  return [];
+ });
 }
 const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
 async function mamFindEspnHistoricalEvent(match,leagueId){
@@ -7515,8 +7528,16 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
   // Cloudflare KV ücretsiz yazma kotası doluysa bu analiz akışında KV'ye hiç dokunma.
   // Önce kalıcı D1 arşivini oku; yerel CSV ve canlı sağlayıcılar eksik kalan maçları tamamlar.
   try{
-    const d1Matches=await mamLoadD1LeagueArchive(leagueId,matchDate,teamName,teamId,teamSource,accepted);
-    const verifiedD1Matches=await mamFilterConflictingHistoricalScores(d1Matches,leagueId);
+    let d1Matches=await mamLoadD1LeagueArchive(leagueId,matchDate,teamName,teamId,teamSource,accepted);
+    let verifiedD1Matches=await mamFilterConflictingHistoricalScores(d1Matches,leagueId);
+    const baseD1UniqueCount=mamDeduplicateHistoricalMatches(verifiedD1Matches).filter(match=>mamHasCompletedScore(match)).length;
+    if(String(leagueId)==="3"&&mamCanonicalHistoryTeamKey(teamName)==="bournemouth"&&baseD1UniqueCount<10){
+      const relatedD1Matches=await mamLoadBournemouthRelatedLeagueArchives(leagueId,matchDate,teamName,teamId,teamSource,accepted);
+      if(relatedD1Matches.length){
+        d1Matches=[...d1Matches,...relatedD1Matches];
+        verifiedD1Matches=await mamFilterConflictingHistoricalScores(d1Matches,leagueId);
+      }
+    }
     excludedConflictKeys=verifiedD1Matches.mamExcludedConflictKeys||[];
     excludedConflictCount=Number(verifiedD1Matches.mamExcludedConflictCount||0);
     if(excludedConflictKeys.length)sourceError+=excludedConflictKeys.length+" çelişkili maç analiz dışı bırakıldı.";
