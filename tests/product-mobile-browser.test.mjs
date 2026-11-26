@@ -281,7 +281,7 @@ async function verifyMainApp(context,browserName){
   const mergedProviderCard=main.locator('#matches article.match').filter({hasText:'Bayern Münih'});
   await mergedProviderCard.waitFor();
   assert.equal(await mergedProviderCard.count(),1,'mobile live view shows one card for the provider variants');
-  assert.match(await mergedProviderCard.locator('.match-time').innerText(),/35'/,'the live card uses the fresh shared provider minute');
+  assert.match(await mergedProviderCard.locator('.match-time').innerText(),/35:29/,'the live card uses the fresh shared provider seconds');
   // Regression for the original 8849f62 Chromium/WebKit hidden #matches article timeout.
   // Hidden cards must be excluded from visibility-based checks, never assumed visible
   // just because a text selector resolves to a DOM node.
