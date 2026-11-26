@@ -176,7 +176,7 @@ test("UEFA fixture-download kayıtları gerçek ESPN event eşlemesine ve şut a
 });
 
 test("Geçmiş cache anahtarı yenilenmiş sürümü kullanır ve kickoff sonrası maçları dışarıda bırakır", () => {
-  assert.match(source, /mam_history_v78_/);
+  assert.match(source, /mam_history_v79_/);
   assert.match(source, /day&&day<matchDate/);
   assert.match(source, /const uniqueOutput=mamDeduplicateHistoricalMatches\(output\)/);
 });
