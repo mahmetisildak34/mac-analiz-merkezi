@@ -11,6 +11,7 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - "AGENTS.md"
       - "index.html"
       - ".github/workflows/validate-app.yml"
       - "half-goal-algorithm.js"
