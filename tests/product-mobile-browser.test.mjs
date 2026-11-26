@@ -237,7 +237,7 @@ async function verifyMainApp(context,browserName){
   await foundProfile.locator('#mamTeamHistoryBack').tap();
   assert.equal(await search.evaluate(el=>el===document.activeElement),true);
   await main.evaluate(()=>{
-   if(window.originalMobileNow){Date.now=window.originalMobileNow;delete window.originalMobileNow;}
+   if(window.originalMobileNow){window.fixedMobileNow=Date.now;Date.now=window.originalMobileNow;}
    const now=Date.now();
    const live=(id,league,name,status,goals={home:1,away:0})=>({fixture:{id,date:new Date(now-70*60000).toISOString(),status},
     league,teams:{home:{id:2001,name},away:{id:2002,name:'Rakip'}},goals});
@@ -295,6 +295,7 @@ async function verifyMainApp(context,browserName){
   const toSeconds=value=>{const [minutes,seconds]=value.split(':').map(Number);return minutes*60+seconds;};
   assert.ok(toSeconds(nextDetailClock)>toSeconds(firstDetailClock),'the opened match detail advances its provider-based clock each second');
   await main.locator('.match-detail-close').click();
+  await main.evaluate(()=>{if(window.fixedMobileNow){Date.now=window.fixedMobileNow;delete window.fixedMobileNow;}});
   // Regression for the original 8849f62 Chromium/WebKit hidden #matches article timeout.
   // Hidden cards must be excluded from visibility-based checks, never assumed visible
   // just because a text selector resolves to a DOM node.
