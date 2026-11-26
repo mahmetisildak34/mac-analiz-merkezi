@@ -241,3 +241,9 @@ test("Today, Live, Finished, Upcoming, Favorites and team-history views use thei
  assert.match(favorites,/snapshot\(\)/);
  assert.match(source,/mam_product_hub_fixtures_v1/);
 });
+test("SportScore detail identity prefers the observed route slug over an internal id",()=>{
+ const start=source.indexOf("function mamSportScoreMatchSlug("),end=source.indexOf("\nfunction mamSportScoreKickoff",start);
+ const slug=runInNewContext(source.slice(start,end)+"\nmamSportScoreMatchSlug",{URL});
+ assert.equal(slug({id:"123456",url:"/football/match/al-ittihad-club-vs-pakhtakor/n54qllhnlk1lqvy/"}),"n54qllhnlk1lqvy");
+ assert.equal(slug({id:"123456",url:"/football/match/al-ittihad-club-vs-pakhtakor/"}),"123456");
+});

@@ -231,6 +231,25 @@ test("ESPN precise detail clock advances from provider seconds without per-secon
  assert.match(html,/window\.mamLiveScoreTimer=setInterval\(refreshOpenLiveScore,8000\)/);
 });
 
+test("live precise clock seeds and ticks every rendered live card",()=>{
+ assert.match(html,/document\.querySelectorAll\("\.liveStatsBtn"\)\.forEach\(b=>\{\n\s*mamSeedVisibleMatchClock\(b\);/);
+ assert.match(html,/const buttons=\[\.\.\.document\.querySelectorAll\("\.liveStatsBtn"\)\]/);
+ assert.match(html,/const match=button\.closest\("\.match\.in-detail"\)\|\|button\.closest\("\.match"\)/);
+});
+
+test("live analysis never fabricates a 45th-minute 0-0 input",()=>{
+ const analysis=html.slice(html.indexOf("async function analyzeLiveMatch"),html.indexOf("\nfunction factorialLive",html.indexOf("async function analyzeLiveMatch")));
+ assert.match(analysis,/Canlı sağlayıcı dakika bilgisini henüz yayınlamıyor/);
+ assert.match(analysis,/Canlı sağlayıcı skor bilgisini henüz yayınlamıyor/);
+ assert.doesNotMatch(analysis,/minuteValue>0\?Math\.min\(120,minuteValue\):45/);
+ assert.doesNotMatch(analysis,/Number\(button\.dataset\.liveHomeScore\|\|0\)/);
+});
+
+test("live status label is not repeated when the displayed clock is also Canlı",()=>{
+ assert.match(html,/const repeatedLiveLabel=isLiveStatus&&displayedTime===statusLabel/);
+ assert.match(html,/repeatedLiveLabel\?"":"<i>"/);
+});
+
 test("minute-only API-Football clock does not invent provider seconds",()=>{
  const seed=html.match(/function mamSeedVisibleMatchClock\([\s\S]*?\n\}/)?.[0];
  const espnClock=html.match(/function mamEspnClock\([\s\S]*?\n\}/)?.[0];

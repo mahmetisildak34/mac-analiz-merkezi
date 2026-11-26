@@ -4207,15 +4207,19 @@ async function footballDataLiveFixtures(){
 }
 
 function mamSportScoreMatchSlug(item){
-	const direct=[item?._sportScoreSlug,item?.slug,item?.id,item?.fixture_id,item?.fixture?.id].find(value=>value!==null&&value!==undefined&&String(value).trim()!=="");
-	if(direct!==undefined){const value=String(direct).trim();return /^[a-z0-9_-]+$/i.test(value)?value:"";}
-	const raw=String(item?.url||"").trim();
-	if(!raw)return "";
-	let pathname="";
-	try{pathname=new URL(raw,"https://www.thesports.com").pathname;}catch(_){return "";}
-	const parts=pathname.split("/").filter(Boolean);
-	if(parts.length!==4||parts[0]!=="football"||parts[1]!=="match"||!parts[2])return "";
-	return /^[a-z0-9]+$/i.test(parts[3])?parts[3]:"";
+		const raw=String(item?.url||"").trim();
+		if(raw){
+			let pathname="";
+			try{pathname=new URL(raw,"https://www.thesports.com").pathname;}catch(_){pathname="";}
+			const parts=pathname.split("/").filter(Boolean);
+			// TheSports exposes an internal id beside the route slug. The route
+			// slug is the identifier accepted by the match detail endpoint.
+			if(parts.length===4&&parts[0]==="football"&&parts[1]==="match"&&parts[2]&&/^[a-z0-9]+$/i.test(parts[3]))return parts[3];
+		}
+		const direct=[item?._sportScoreSlug,item?.slug,item?.id,item?.fixture_id,item?.fixture?.id].find(value=>value!==null&&value!==undefined&&String(value).trim()!=="");
+		if(direct===undefined)return "";
+		const value=String(direct).trim();
+		return /^[a-z0-9_-]+$/i.test(value)?value:"";
 }
 function mamSportScoreKickoff(item){
 	const utcDate=typeof item?.utc_date==="string"?mamExplicitUtc(item.utc_date):"";
@@ -6166,8 +6170,9 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
   const cardCenter=isLiveStatus||isFinishedStatus?score||"—":time||"—";
   const cardLabel=isLiveStatus?"":statusCode==="NS"?(dayLabel||"Saat bekleniyor"):statusLabel;
   const kickoffLabel=[dayLabel,time].filter(Boolean).join(" ");
+  const repeatedLiveLabel=isLiveStatus&&displayedTime===statusLabel;
   return `<article class="match match-modern">
-   <div class="match-head"><span class="league-label">${esc(mamDisplayLeagueName(l.name,l.country))} · ${esc(mamDisplayCountryName(l.country))}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} <i>${esc(statusLabel)}</i></span>${kickoffLabel&&(isLiveStatus||isFinishedStatus)?'<small class="mam-kickoff-time">'+esc(kickoffLabel)+'</small>':""}</span></div>
+   <div class="match-head"><span class="league-label">${esc(mamDisplayLeagueName(l.name,l.country))} · ${esc(mamDisplayCountryName(l.country))}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}${esc(displayedTime)} ${repeatedLiveLabel?"":"<i>"+esc(statusLabel)+"</i>"}</span>${kickoffLabel&&(isLiveStatus||isFinishedStatus)?'<small class="mam-kickoff-time">'+esc(kickoffLabel)+'</small>':""}</span></div>
    <div class="match-versus">
     <div class="team-block">${teamBadge(t.home)}<strong>${esc(mamDisplayTeamName(t.home?.name))}</strong>${isFinishedStatus?mamOutcomeBadge(g.home,g.away):""}</div>
     <div class="match-center"><span class="match-clock">${esc(cardCenter)}</span><small>${esc(cardLabel)}</small></div>
@@ -6181,7 +6186,7 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
    </div>
    ${isFinishedStatus&&score?'<div class="analysis-preview">✓ Gerçekleşen sonuç: <b>'+esc(score)+'</b>. Maç önü tahmini bu karşılaşma için artık üretilemez.</div>':""}
 
-   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isSportScore?rawId.slice("sportscore-".length):isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(matchDay)+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-minute="'+esc(effectiveElapsed??"")+'" data-live-home-score="'+esc(g.home??0)+'" data-live-away-score="'+esc(g.away??0)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
+   ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isSportScore?rawId.slice("sportscore-".length):isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveAnalyzeBtn predBtn" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-date="'+esc(matchDay)+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-minute="'+esc(effectiveElapsed??"")+'" data-live-home-score="'+esc(g.home??"")+'" data-live-away-score="'+esc(g.away??"")+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">⚡ Canlı analiz et</button><div class="liveAnalysis pred" id="live-analysis-'+esc(rawId)+'">Canlı analiz henüz yapılmadı.</div>':""})():""}
    ${isLiveStatus&&(/^\d+$/.test(String(f.id||""))||/^espn-[a-z0-9._-]+-\d+$/.test(String(f.id||""))||String(f.id||"").startsWith("sportscore-"))?(()=>{const rawId=String(f.id);const isSportScore=rawId.startsWith("sportscore-");const isEspn=rawId.startsWith("espn-");const eventId=isEspn?rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/)?.[1]:rawId;const leagueSlug=isEspn?ESPN_LEAGUES[String(l.id)]?.slug||"":"";return eventId?'<button type="button" class="liveStatsBtn secondary" data-live-source="'+(isSportScore?"sportscore":isEspn?"espn":"api")+'" data-live-league="'+esc(leagueSlug)+'" data-live-league-id="'+esc(l.id)+'" data-live-league-name="'+esc(l.name||"")+'" data-live-date="'+esc(matchDay)+'" data-live-home-name="'+esc(t.home?.name||"")+'" data-live-away-name="'+esc(t.away?.name||"")+'" data-live-panel="live-stats-'+esc(rawId)+'" data-live-id="'+esc(eventId)+'" style="width:100%;margin-top:8px">📊 Canlı istatistikler</button><div class="liveStats pred" id="live-stats-'+esc(rawId)+'" hidden></div>':""})():""}
    <button type="button" class="lineupBtn secondary" data-id="${esc(f.id)}" data-home="${esc(t.home?.id)}" data-away="${esc(t.away?.id)}" data-home-name="${esc(t.home?.name)}" data-away-name="${esc(t.away?.name)}" data-home-logo="${esc(t.home?.logo||"")}" data-away-logo="${esc(t.away?.logo||"")}" data-status="${esc(statusCode)}" data-espn-league="${esc(ESPN_LEAGUES[String(l.id)]?.slug||"")}" data-league="${esc(l.id)}" data-league-name="${esc(l.name||"")}" data-country="${esc(l.country||"")}" data-date="${esc(matchDay)}" data-kickoff="${esc(f.date||"")}" style="width:100%;margin-top:8px">⚽ Kadro ve dizilişi göster</button>
    <div class="lineup-panel" id="lineup-${esc(f.id)}" hidden></div>
@@ -6200,6 +6205,7 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
   b.addEventListener("click",()=>loadLineups(b));
  });
  document.querySelectorAll(".liveStatsBtn").forEach(b=>{
+  mamSeedVisibleMatchClock(b);
   b.addEventListener("click",()=>loadLiveStats(b));
  });
  document.querySelectorAll(".liveAnalyzeBtn").forEach(b=>b.addEventListener("click",()=>analyzeLiveMatch(b)));
@@ -6453,10 +6459,12 @@ function mamSeedVisibleMatchClock(button){
  const rawButtonMinute=analyzeButton?.dataset.liveMinute;
  const fromMatch=rawMatchMinute==null||rawMatchMinute===""?NaN:Number(rawMatchMinute);
  const fromButton=rawButtonMinute==null||rawButtonMinute===""?NaN:Number(rawButtonMinute);
+ const fromSeconds=rawMatchSeconds==null||rawMatchSeconds===""?NaN:Number(rawMatchSeconds)/60;
  const fromClock=Number(String(button.closest(".match")?.querySelector(".match-head .match-time")?.textContent||"").match(/(\d{1,3})\s*['′]/)?.[1]);
  const base=Number.isFinite(fromMatch)&&fromMatch>=0?fromMatch:
   Number.isFinite(fromButton)&&fromButton>=0?fromButton:
-  Number.isFinite(fromClock)&&fromClock>=0?fromClock:NaN;
+   Number.isFinite(fromSeconds)&&fromSeconds>=0?fromSeconds:
+   Number.isFinite(fromClock)&&fromClock>=0?fromClock:NaN;
  if(Number.isFinite(base)){
   button.dataset.liveClockBase=String(base);
   button.dataset.liveClockAt=String(Date.now());
@@ -6470,14 +6478,15 @@ function mamSeedVisibleMatchClock(button){
  }
 }
 function mamTickVisibleMatchClock(){
- const buttons=[...document.querySelectorAll(".match-detail-overlay:not([hidden]) .liveStatsBtn")];
+ const buttons=[...document.querySelectorAll(".liveStatsBtn")];
  for(const button of buttons){
   const preciseBase=Number(button.dataset.liveClockSecondsBase),preciseAt=Number(button.dataset.liveClockSecondsAt);
   if(!Number.isFinite(preciseBase)||!Number.isFinite(preciseAt)||button.dataset.liveClockPrecise!=="true")continue;
   const status=String(button.dataset.liveClockStatus||"LIVE").toUpperCase();
   if(["HT","SUSP","INT","FT","AET","PEN","POST"].includes(status))continue;
   const elapsed=Math.max(0,Math.floor(preciseBase+(Date.now()-preciseAt)/1000));
-  const clock=button.closest(".match.in-detail")?.querySelector(".match-head .match-time");
+  const match=button.closest(".match.in-detail")||button.closest(".match");
+  const clock=match?.querySelector(".match-head .match-time");
   if(clock)clock.textContent="🔴 "+String(Math.floor(elapsed/60)).padStart(2,"0")+":"+String(elapsed%60).padStart(2,"0")+" · Canlı";
  }
 }
@@ -7876,8 +7885,10 @@ async function analyzeLiveMatch(button){
    rows=[read(data[0]),read(data[1])];
   }
   const [h,a]=rows;if(!h||!a||(!Object.keys(h).length&&!Object.keys(a).length))throw new Error("Bu maç için henüz canlı istatistik verisi yayınlanmıyor. Veri gelmeden tahmin üretmedim.");
-  const minuteValue=Number(button.dataset.liveMinute),minute=Number.isFinite(minuteValue)&&minuteValue>0?Math.min(120,minuteValue):45;
-  const remaining=Math.max(0,90-minute),homeScore=Number(button.dataset.liveHomeScore||0),awayScore=Number(button.dataset.liveAwayScore||0);
+  const minuteValue=Number(button.dataset.liveMinute),homeScore=Number(button.dataset.liveHomeScore),awayScore=Number(button.dataset.liveAwayScore);
+  if(!Number.isFinite(minuteValue)||minuteValue<0)throw new Error("Canlı sağlayıcı dakika bilgisini henüz yayınlamıyor; analiz üretilmedi.");
+  if(!Number.isFinite(homeScore)||!Number.isFinite(awayScore)||homeScore<0||awayScore<0)throw new Error("Canlı sağlayıcı skor bilgisini henüz yayınlamıyor; analiz üretilmedi.");
+  const minute=Math.min(120,minuteValue),remaining=Math.max(0,90-minute);
   const baseRate=x=>{const sot=Number(x.sot||0),shots=Number(x.shots||0),pos=Number(x.possession??50),corners=Number(x.corners||0),shotSignal=sot*.115+Math.max(0,shots-sot)*.018+Math.min(corners,12)*.006,posFactor=1+(Math.max(0,Math.min(100,pos))-50)/350,shotRate=.10+shotSignal/Math.max(12,minute)*45,xg=Number(x.xg);const xgRate=Number.isFinite(xg)&&xg>0?Math.max(.04,Math.min(1.35,xg/Math.max(12,minute)*45)):shotRate;return Math.max(.04,Math.min(1.35,(Number.isFinite(xg)&&xg>0?xgRate*.65+shotRate*.35:shotRate)*posFactor));};
   const redBoost=(attacking,opponent)=>Math.max(.68,Math.min(1.35,1+Math.min(2,Number(opponent.redCards||0))*.18-Math.min(2,Number(attacking.redCards||0))*.18));
   const lh=remaining/45*baseRate(h)*redBoost(h,a),la=remaining/45*baseRate(a)*redBoost(a,h),pois=(l,k)=>Math.exp(-l)*Math.pow(l,k)/factorialLive(k);
