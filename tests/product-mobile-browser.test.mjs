@@ -283,10 +283,11 @@ async function verifyMainApp(context,browserName){
   assert.equal(await mergedProviderCard.count(),1,'mobile live view shows one card for the provider variants');
   assert.match(await mergedProviderCard.locator('.match-time').innerText(),/35'/,'the list card displays the provider minute, not seconds');
   await mergedProviderCard.locator('.mam-match-open').click();
-  const detailClock=main.locator('.match.in-detail .match-head .match-time .mam-clock-text');
+  const detailArticle=main.locator('.match.in-detail');
+  const detailClock=detailArticle.locator('.match-head .match-time .mam-clock-text');
   await main.waitForFunction(()=>/^\d{2}:\d{2}$/.test(document.querySelector('.match.in-detail .match-head .match-time .mam-clock-text')?.textContent||''));
-  assert.equal(await mergedProviderCard.locator('.liveStatsBtn').getAttribute('data-live-clock-seconds-source'),'provider-seconds');
-  assert.equal(await mergedProviderCard.locator('.liveStatsBtn').getAttribute('data-live-clock-seconds-base'),'2129');
+  assert.equal(await detailArticle.locator('.liveStatsBtn').getAttribute('data-live-clock-seconds-source'),'provider-seconds');
+  assert.equal(await detailArticle.locator('.liveStatsBtn').getAttribute('data-live-clock-seconds-base'),'2129');
   const firstDetailClock=await detailClock.innerText();
   await main.waitForTimeout(1200);
   const nextDetailClock=await detailClock.innerText();
