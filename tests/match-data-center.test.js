@@ -36,8 +36,9 @@ function makeDb() {
     VALUES('archive-A','immutable-1','team:home','team:away','2026-11-20T15:00:00Z','39','team:home','team:away',1,0,'completed',1,'archive-A','2026-11-20T18:00:00Z')`).run();
   let failNext=false;
   const adapter={
-    loadActiveItems(){const active=db.prepare("SELECT generation_id FROM mam_b_active_generation WHERE singleton=1").get();if(!active)return {generationId:null,items:[]};
-      return {generationId:active.generation_id,items:db.prepare(`SELECT i.item_key AS key,i.item_kind AS kind,i.readiness,p.payload_hash AS hash,p.payload_json FROM mam_b_generation_items i JOIN mam_b_payloads p USING(payload_hash) WHERE i.generation_id=?`).all(active.generation_id).map(row=>({...row,payload:JSON.parse(row.payload_json)}))};},
+    loadActiveItems(){const active=db.prepare("SELECT generation_id FROM mam_b_active_generation WHERE singleton=1").get();if(!active)return {generationId:null,manifest:null,items:[]};
+      const manifest=JSON.parse(db.prepare("SELECT manifest_json FROM mam_b_generations WHERE generation_id=?").get(active.generation_id).manifest_json);
+      return {generationId:active.generation_id,manifest,items:db.prepare(`SELECT i.item_key AS key,i.item_kind AS kind,i.readiness,p.payload_hash AS hash,p.payload_json FROM mam_b_generation_items i JOIN mam_b_payloads p USING(payload_hash) WHERE i.generation_id=?`).all(active.generation_id).map(row=>({...row,payload:JSON.parse(row.payload_json)}))};},
     atomicCommit({generationId,manifest,items}){db.exec("BEGIN IMMEDIATE");try{
       db.prepare("INSERT INTO mam_b_generations(generation_id,created_at,status,manifest_json) VALUES(?,?,'staging',?)").run(generationId,now,JSON.stringify(manifest));
       const payload=db.prepare("INSERT OR IGNORE INTO mam_b_payloads(payload_hash,payload_json,created_at) VALUES(?,?,?)");
@@ -113,6 +114,19 @@ test("B generation publish is atomic, content-addressed, diff-aware and leaves A
     assert.equal(changed.changes.updated,1);assert.equal(changed.changes.unchanged,2);
     const after=a.db.prepare("SELECT * FROM mam_verified_history_matches WHERE provider_fixture_id='immutable-1'").get();assert.deepEqual(after,original);
     assert.equal(a.db.prepare("SELECT COUNT(*) AS n FROM mam_b_payloads").get().n,4,"unchanged content is stored once by hash");
+  }finally{a.db.close();}
+});
+test("source watermark changes are processed even when B payload hashes match, then unchanged sources no-op",async()=>{
+  const a=makeDb();try{
+    const first=await publishDataCenter(a,batch({sourceWatermark:"matches:one"}));
+    const changedSource=await publishDataCenter(a,batch({generatedAt:"2026-11-26T21:03:00.000Z",sourceWatermark:"matches:two"}));
+    assert.notEqual(changedSource.generationId,first.generationId);
+    assert.equal(changedSource.changes.unchanged,3);
+    assert.equal(changedSource.changes.inserted+changedSource.changes.updated+changedSource.changes.removed,0);
+    assert.equal(a.db.prepare("SELECT manifest_json FROM mam_b_generations WHERE generation_id=?").get(changedSource.generationId).manifest_json.includes("matches:two"),true);
+    const repeat=await publishDataCenter(a,batch({generatedAt:"2026-11-26T21:04:00.000Z",sourceWatermark:"matches:two"}));
+    assert.equal(repeat.noOp,true);
+    assert.equal(repeat.generationId,changedSource.generationId);
   }finally{a.db.close();}
 });
 test("failed candidate commit rolls back staging and preserves the last active generation",async()=>{
