@@ -253,6 +253,8 @@ test("ESPN precise provider seconds are retained for a local one-second display 
  assert.equal(minute.displayClock,"26'");assert.equal(minute.elapsed,26);assert.equal(minute.elapsedSeconds,null);assert.equal(minute.precise,false);
  const numeric=parse({status:{clock:1575}});
  assert.equal(numeric.displayClock,"26:15");assert.equal(numeric.elapsed,26);assert.equal(numeric.elapsedSeconds,1575);assert.equal(numeric.precise,true);
+ const direct=parse({status:{elapsedSeconds:1575}});
+ assert.equal(direct.displayClock,"26:15");assert.equal(direct.elapsedSeconds,1575);assert.equal(direct.precise,true);
 });
 
 test("active detail refresh clears an old elapsed minute when neither fresh provider supplies a clock",()=>{
@@ -272,6 +274,7 @@ test("live clock keeps precise seconds while minute-only providers do not invent
  assert.match(tick,/SUSP.*INT.*FT/);
  assert.match(tick,/Math\.floor\(elapsed\/60\)/);
  assert.match(refresh,/rawProviderSeconds!==null&&rawProviderSeconds!==undefined/);
+ assert.match(refresh,/\["SUSP","INT"\]\.includes\(statusShort\)/);
 });
 
 test("live statistics merge preserves verified sides when a refresh omits fields",()=>{
@@ -297,6 +300,30 @@ test("live screen keeps previous-Istanbul-day matches after midnight while date 
  assert.match(render,/if\(mamScreenMode==="today"\)[\s\S]*?mamIstanbulDay\(m\.fixture\?\.date\)===selectedDay/);
  assert.match(render,/if\(mamScreenMode==="upcoming"\)[\s\S]*?day===selectedDay/);
  assert.match(render,/if\(mamScreenMode==="finished"\)list=list\.filter\(m=>mamIstanbulDay\(m\.fixture\?\.date\)===selectedDay/);
+});
+
+test("SportScore live statistics use the worker widget detail route",()=>{
+ const stats=html.match(/async function mamSportScoreLiveStats\([\s\S]*?\n\}/)?.[0];
+ assert.match(stats,/base\+"match\/\?sport=football&slug=/);
+ assert.doesNotMatch(stats,/base\+"match\?sport=football&slug=/);
+});
+
+test("SportScore live matches expose the existing analysis engine and reuse its provider stats",()=>{
+ const render=html.slice(html.indexOf("function renderMatches()"),html.indexOf("\nfunction mamRenderMatchCard",html.indexOf("function renderMatches()")));
+ const analysis=html.slice(html.indexOf("async function analyzeLiveMatch"),html.indexOf("\nfunction factorialLive",html.indexOf("async function analyzeLiveMatch")));
+ assert.match(render,/startsWith\("sportscore-"\).*liveAnalyzeBtn/);
+ assert.match(render,/data-live-source="\'\+\(isSportScore\?"sportscore"/);
+ assert.match(analysis,/source==="sportscore"/);
+ assert.match(analysis,/mamSportScoreLiveStats\(button\)/);
+ assert.match(analysis,/factorialLive/);
+});
+
+test("opening a live match seeds provider precise seconds without per-second requests",()=>{
+ const seed=html.match(/function mamSeedVisibleMatchClock\([\s\S]*?\n\}/)?.[0];
+ assert.match(seed,/providerClock\.elapsedSeconds/);
+ assert.match(seed,/liveClockSecondsBase/);
+ assert.match(html,/window\.mamLiveClockTimer=setInterval\(mamTickVisibleMatchClock,1000\)/);
+ assert.match(html,/window\.mamLiveScoreTimer=setInterval\(refreshOpenLiveScore,8000\)/);
 });
 
 test("real ESPN historical and monthly fixtures use exact team IDs across Istanbul month boundaries",async()=>{
