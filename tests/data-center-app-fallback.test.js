@@ -6,10 +6,10 @@ const test = require("node:test");
 const html = fs.readFileSync(require.resolve("../index.html"), "utf8");
 const source = html.match(/async function mamLoadAnalysisHistories\([\s\S]*?\n\}/)?.[0];
 assert.ok(source, "the app's history selector should remain testable");
-function run(clientResult, provider = "espn") {
+function run(clientResult, provider = "espn", providerFixtureId = "fixture-1") {
   const legacyCalls = [];
   const apiCalls = [];
-  const button = { dataset: { provider, id: "fixture-1", kickoff: "2026-11-27T15:00:00Z", homeName: "Home", awayName: "Away", league: "39" } };
+  const button = { dataset: { provider, id: "fixture-1", providerFixtureId, kickoff: "2026-11-27T15:00:00Z", homeName: "Home", awayName: "Away", league: "39" } };
   const window = { MAMDataCenterClient: { loadPreparedAnalysis: async (fetchBundle, request) => {
     const response = await fetchBundle({ provider: request.provider, fixtureId: request.fixtureId });
     apiCalls.push(response);
@@ -30,6 +30,20 @@ test("validated B histories are selected before legacy history requests", async 
   assert.deepEqual(JSON.parse(JSON.stringify(await result.call())), [prepared.homeHistory, prepared.awayHistory]);
   assert.equal(result.legacyCalls.length, 0);
   assert.match(result.apiCalls[0], /^data-center\/fixture-bundle\?/);
+});
+
+test("match-level ESPN provider and decorated event IDs map to the prepared-bundle request", async () => {
+  const helper = html.match(/function mamPreparedAnalysisIdentity\(match\)\{[\s\S]*?\n\}/)?.[0];
+  assert.ok(helper, "the shared fixture identity mapper should be present");
+  const mamPreparedAnalysisIdentity = vm.runInNewContext(`${helper}; mamPreparedAnalysisIdentity`);
+  const identity = mamPreparedAnalysisIdentity({ mamSource: "espn", fixture: { id: "espn-uefa.champions-401915290" } });
+  assert.deepEqual(JSON.parse(JSON.stringify(identity)), { provider: "espn", fixtureId: "401915290" });
+  const prepared = { homeHistory: [{ prepared: "home" }], awayHistory: [{ prepared: "away" }] };
+  const result = run(prepared, identity.provider, identity.fixtureId);
+  await result.call();
+  assert.match(result.apiCalls[0], /provider=espn&fixtureId=401915290/);
+  assert.ok(html.includes('mamPreparedAnalysisIdentity(m)?.provider||""'));
+  assert.ok(html.includes('mamPreparedAnalysisIdentity(m)?.fixtureId||""'));
 });
 
 test("missing, malformed, or unready B data silently uses the existing history path", async () => {

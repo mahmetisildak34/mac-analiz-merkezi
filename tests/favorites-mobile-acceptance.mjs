@@ -10,8 +10,7 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
     await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
     // Local UI-only acceptance: no credentials or production authentication are exercised.
-    // The app's authentication overlay blocks clicks on the static preview.
-    await page.locator('#mamAuthGate').evaluate(gate => { gate.style.display='none'; });
+    assert.equal(await page.locator('#mamAuthGate').count(),0,'the blocking password overlay must remain absent');
     const expectedIds=['1','2','3','4','5','39','40','61','78','88','94','135','140','203','204','848'].sort();
     const mainScope=await page.evaluate(()=>({ids:window.MAMActiveLeagueScope.activeIds,options:Array.from(document.querySelectorAll('#league option')).filter(option=>!option.hidden).map(option=>option.value).sort(),menu:Array.from(document.querySelectorAll('#leagueMenu [data-league-value]')).map(option=>option.dataset.leagueValue).sort()}));
     assert.deepEqual([...mainScope.ids].sort(),expectedIds,name+' centralized active competition IDs');

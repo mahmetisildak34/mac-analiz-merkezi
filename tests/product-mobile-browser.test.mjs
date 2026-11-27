@@ -678,10 +678,10 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
       ?fetchNetwork(input,options):Promise.reject(new TypeError('Test connection unavailable'));
     });
     await offlineMain.goto(origin+'/');
-    await offlineMain.locator('#mamAuthGate').waitFor({state:'visible'});
-    await offlineMain.getByText(/Cihazdaki favoriler korunuyor/).waitFor();
+    assert.equal(await offlineMain.locator('#mamAuthGate').count(),0,'the blocking password overlay stays removed while offline');
     assert.equal(await offlineMain.evaluate(()=>localStorage.getItem('mam_session_token')),'local-browser-acceptance');
-    await offlineMain.getByRole('link',{name:'Cihazdaki kayıtları aç'}).click();
+    await offlineMain.evaluate(()=>sessionStorage.setItem('mam_open_saved_records','1'));
+    await offlineMain.goto(origin+'/mobile/product-hub.html');
     await offlineMain.waitForURL('**/mobile/product-hub.html');
     await offlineMain.locator('[data-tab="favorites"]').click();
     await offlineMain.locator('#favTeams').getByText(/Fenerbahçe/).waitFor();

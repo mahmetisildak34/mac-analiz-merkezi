@@ -26,6 +26,18 @@ function helperApi() {
   });
 }
 
+function damagedIdentityApi() {
+  const fixtureStart = source.indexOf("const mamFixtureTeamKeyBase=");
+  const fixtureEnd = source.indexOf("function mamFixturePair(", fixtureStart);
+  const groups = source.match(/const MAM_UEFA_TEAM_GROUPS=.*\n/);
+  const historyStart = source.indexOf("function mamCanonicalHistoryTeamKey(");
+  const historyEnd = source.indexOf("function mamHistoricalIdentity(", historyStart);
+  assert.ok(fixtureStart >= 0 && fixtureEnd > fixtureStart && groups && historyStart >= 0 && historyEnd > historyStart);
+  return vm.runInNewContext(`${source.slice(fixtureStart, fixtureEnd)}\n${groups[0]}\n${source.slice(historyStart, historyEnd)};({mamFixtureTeamKey,mamHistoryTeamSearchNames})`, {
+    MAMTeamIdentity, TextDecoder, Uint8Array
+  });
+}
+
 function serviceWorkerReloadHarness(storage, controlled = true) {
   const listeners = new Map();
   let reloads = 0;
@@ -194,4 +206,17 @@ test("D1 takım sorgusu doğrulanmış sağlayıcı alias grubunun tüm adların
   assert.ok(names.includes("Hoffenheim"));
   assert.ok(names.includes("TSG Hoffenheim"));
   assert.equal(api.mamCanonicalHistoryTeamKey("Hoffenheim"), api.mamCanonicalHistoryTeamKey("TSG 1899 Hoffenheim"));
+  const searchHelper = source.slice(source.indexOf("function mamHistoryTeamSearchNames("), source.indexOf("function mamHistoricalIdentity(", source.indexOf("function mamHistoryTeamSearchNames(")));
+  assert.match(searchHelper, /mamCanonicalHistoryTeamKey\(teamName\)/);
+  assert.match(searchHelper, /MAM_FIXTURE_TEAM_ALIASES/);
+});
+
+test("bozuk TFF Beşiktaş ve Galatasaray adları D1 aramasında doğrulanmış alias'lara genişletilir", () => {
+  const api = damagedIdentityApi();
+  const besiktas = api.mamHistoryTeamSearchNames("BE��KTA� A.�.", []);
+  const galatasaray = api.mamHistoryTeamSearchNames("GALATASARAY A.�.", []);
+  assert.ok(besiktas.includes("besiktas"));
+  assert.ok(besiktas.includes("besiktasjk"));
+  assert.ok(galatasaray.includes("galatasaray"));
+  assert.notEqual(api.mamFixtureTeamKey("�XZZY QQQ"), api.mamFixtureTeamKey("Besiktas"));
 });
