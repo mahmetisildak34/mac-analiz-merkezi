@@ -12,6 +12,11 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     // Local UI-only acceptance: no credentials or production authentication are exercised.
     // The app's authentication overlay blocks clicks on the static preview.
     await page.locator('#mamAuthGate').evaluate(gate => { gate.style.display='none'; });
+    const expectedIds=['1','2','3','4','5','39','40','61','78','88','94','135','140','203','204','848'].sort();
+    const mainScope=await page.evaluate(()=>({ids:window.MAMActiveLeagueScope.activeIds,options:Array.from(document.querySelectorAll('#league option')).filter(option=>!option.hidden).map(option=>option.value).sort(),menu:Array.from(document.querySelectorAll('#leagueMenu [data-league-value]')).map(option=>option.dataset.leagueValue).sort()}));
+    assert.deepEqual([...mainScope.ids].sort(),expectedIds,name+' centralized active competition IDs');
+    assert.deepEqual(mainScope.options,['all',...expectedIds].sort(),name+' only active league options are visible');
+    assert.deepEqual(mainScope.menu,['all',...expectedIds].sort(),name+' only active custom picker options are visible');
     await page.locator('#mamSearchToggle').click();
     const search = page.locator('#mamTeamSearch');
     await search.waitFor({state:'visible'});
@@ -50,6 +55,12 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     if(await page.locator('#mamFavoritePanel [data-mam-remove-team]').count()){
       await page.locator('#mamFavoritePanel [data-mam-remove-team]').first().click();
     }
+    const hub=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,locale:'tr-TR'});
+    await hub.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
+    await hub.goto(new URL('./mobile/product-hub.html',url).href,{waitUntil:'domcontentloaded',timeout:30000});
+    const hubLeagues=await hub.locator('#espnLeague option').evaluateAll(options=>options.map(option=>option.value).sort());
+    assert.deepEqual(hubLeagues,['eng.1','eng.2','esp.1','fra.1','fifa.world','ger.1','ita.1','ned.1','por.1','tur.1','tur.2','uefa.champions','uefa.europa','uefa.europa.conf','uefa.euro','uefa.nations'].sort(),name+' product hub standings selector active scope');
+    await hub.close();
     console.log(name+': search dialog and bottom Favorites navigation passed');
     await page.close();
   } finally { await browser.close(); }
