@@ -387,10 +387,34 @@ async function verifyMainApp(context,browserName){
   await table.getByText(/Kaydedilmiş ESPN tablosu/).waitFor();
   assert.equal(await main.evaluate(()=>window.historicalStandingsRequests),2);
   await main.locator('#mamStandingsBack').click();
-  const excludedCup=main.locator('#mamStandingsScreen [data-standing-league="206"]').first();
-  await excludedCup.waitFor({state:'attached'});
-  assert.equal(await excludedCup.isVisible(),false,'excluded Turkish Cup must stay hidden from active-league controls');
+  const countryGroups=main.locator('#mamStandingsCountries');
+  assert.equal(await countryGroups.locator('[data-standing-league]').count(),16,'the compact list must contain only the existing 16 active organizations');
+  const countryHeadings=await countryGroups.locator('.mam-standings-group h3').allTextContents();
+  assert.ok(countryHeadings.includes('🇹🇷 Türkiye'));
+  assert.ok(countryHeadings.includes('🏆 UEFA Kulüp Turnuvaları'));
+  assert.equal(countryHeadings.some(text=>text.includes('Diğer Ülkeler ve Kulüp Turnuvaları')),false,'the empty legacy category heading must not render');
+  assert.equal(await main.locator('#mamStandingsScreen [data-standing-league="206"]').count(),0,'inactive Turkish Cup must not appear in the compact list');
   assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/https:\/\/www\.tff\.org\/default\.aspx\?pageID=598/,'the existing official Turkish Cup source link must remain intact');
+  await main.evaluate(()=>{allMatches=[
+   {fixture:{id:'nl-match-1',date:'2026-10-12T17:00:00Z',status:{short:'FT',long:'Bitti'}},league:{id:'5',name:'UEFA Uluslar Ligi',country:'Europe'},teams:{home:{name:'Türkiye'},away:{name:'İspanya'}},goals:{home:2,away:1}},
+   {fixture:{id:'other-match-1',date:'2026-10-12T17:00:00Z',status:{short:'FT',long:'Bitti'}},league:{id:'39',name:'Premier League',country:'England'},teams:{home:{name:'Arsenal'},away:{name:'Chelsea'}},goals:{home:1,away:0}}
+  ];});
+  await main.locator('#mamStandingsScreen [data-standing-league="5"]').click();
+  await main.locator('#mamNationsLeagueDetail').waitFor({state:'visible'});
+  assert.equal(await main.locator('#mamNationsLeagueTabs [role="tab"]').count(),4);
+  await main.locator('#mamNationsLeagueTabs [data-nations-tab="matches"]').click();
+  await main.locator('#mamNationsMatchesPanel').getByText('Türkiye — İspanya',{exact:true}).waitFor();
+  assert.equal(await main.locator('#mamNationsMatchesPanel').getByText(/Arsenal|Chelsea/).count(),0,'the Nations League matches tab must exclude unrelated competitions');
+  await main.locator('#mamNationsLeagueTabs [data-nations-tab="groups"]').click();
+  await main.locator('#mamUnlGroups').getByText('Fransa · İtalya · Belçika · Türkiye',{exact:true}).waitFor();
+  assert.equal(await main.locator('#mamUnlPots').isVisible(),false);
+  await main.locator('#mamNationsLeagueTabs [data-nations-tab="pots"]').click();
+  await main.locator('#mamUnlPots').getByText('Portekiz · İspanya · Fransa · Almanya',{exact:true}).waitFor();
+  assert.equal(await main.locator('#mamUnlPots').isVisible(),true);
+  await main.locator('#mamNationsLeagueBack').tap();
+  assert.equal(await main.locator('#mamNationsLeagueDetail').isVisible(),false,'one tap returns from the detail view to the league list');
+  assert.equal(await main.locator('#mamStandingsPicker').isVisible(),true);
+  assert.equal(await countryGroups.locator('[data-standing-league]').count(),16);
   await main.waitForFunction(()=>navigator.serviceWorker.controller?.scriptURL.endsWith('/sw.js'));
   console.log('Main mobile timing '+JSON.stringify(measurements));
   const transition=JSON.parse(readFileSync(new URL('./fixtures/espn-esp2-401883109-transition.json',import.meta.url),'utf8'));
