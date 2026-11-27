@@ -2859,25 +2859,25 @@ async function api(path,options={}){
     if(callerSignal?.aborted)controller.abort();
     else if(callerSignal)callerSignal.addEventListener("abort",abortFromCaller,{once:true});
     const timeoutId=setTimeout(()=>controller.abort(),cleanPath.startsWith("archive/backfill-all?")?60000:isLiveStats?9000:15000);
-    let response;
+    let response,data;
     try{
       response=await fetch(url,{signal:controller.signal,cache:isEspnLiveScoreboard||isDataCenterB?"no-store":"default",headers:{Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||"")}});
+      // The timeout must cover streamed response bodies too, not only response headers.
+      data=await response.json();
     }catch(networkError){
       // Ağ veya sağlayıcı hatasında en fazla 10 dakikalık son başarılı canlı istatistiği kullan.
-      if(isLiveStats&&cachedEntry?.time&&cachedEntry.data&&Date.now()-cachedEntry.time<10*60*1000){
+      if(!response&&isLiveStats&&cachedEntry?.time&&cachedEntry.data&&Date.now()-cachedEntry.time<10*60*1000){
         return Object.assign({},cachedEntry.data,{_mamStale:true,_mamCachedAt:cachedEntry.time});
       }
       if(controller.signal.aborted){
         throw new Error((isPrimaryApi?"API-Football":"Yedek kaynak")+" isteği 15 saniyede yanıt vermedi (zaman aşımı).");
       }
+      if(response)throw new Error("Sunucudan okunabilir yanıt alınamadı.");
       throw new Error((isPrimaryApi?"API-Football":"Yedek kaynak")+" bağlantı hatası: "+String(networkError.message||networkError));
     }finally{
       clearTimeout(timeoutId);
       if(callerSignal)callerSignal.removeEventListener("abort",abortFromCaller);
     }
-    let data;
-    try{data=await response.json();}
-    catch(e){throw new Error("Sunucudan okunabilir yanıt alınamadı.");}
 
     const errorText=JSON.stringify((isArchive&&data.detail)?{error:data.error||"Archive request failed",detail:data.detail}:data.errors||data.error||data);
     // Preserve provider HTTP status and sanitized error details for the dedicated
@@ -5881,6 +5881,8 @@ function closeMamMatchDetail({preserveHistory=false}={}){
  mamDetailReturn=null;
  document.body.style.overflow=previous?.overflow??"";
  for(const [element,wasInert] of previous?.background??[])element.inert=wasInert;
+ if(previous?.teamHistoryScreen?.isConnected)previous.teamHistoryScreen.inert=previous.teamHistoryWasInert;
+ if(mamDetailOverlay)mamDetailOverlay.inert=previous?.overlayWasInert??false;
  if(previous){
   window.scrollTo({top:previous.scrollY,behavior:"instant"});
   if(previous.opener?.isConnected)previous.opener.focus({preventScroll:true});
@@ -5985,8 +5987,14 @@ function openMamMatchDetail(article,preferredPane=null){
   document.body.style.overflow="hidden";
   return;
  }
+ const teamHistoryScreen=document.getElementById("mamTeamHistoryScreen");
+ const teamHistoryWasInert=teamHistoryScreen?.inert??false;
+ const overlayWasInert=overlay.inert;
+ if(teamHistoryScreen)teamHistoryScreen.inert=true;
+ overlay.inert=false;
+ document.body.appendChild(overlay);
  const background=[...document.querySelectorAll("main,.mam-bottom-nav")].map(element=>[element,element.inert]);
- mamDetailReturn={opener:article.querySelector(".mam-match-open"),scrollY:window.scrollY,overflow:document.body.style.overflow,background};
+ mamDetailReturn={opener:article.querySelector(".mam-match-open"),scrollY:window.scrollY,overflow:document.body.style.overflow,background,teamHistoryScreen,teamHistoryWasInert,overlayWasInert};
  for(const [element] of background)element.inert=true;
  mamActivePlaceholder=document.createComment("match-card-position");
  if(article.parentNode)article.parentNode.insertBefore(mamActivePlaceholder,article);
@@ -6523,9 +6531,7 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
  }).join("")+'</section>';
  }).join("");
 
- document.querySelectorAll(".predBtn:not(.liveAnalyzeBtn)").forEach(b=>{
-  b.addEventListener("click",()=>analyze(b));
- });
+ document.querySelectorAll(".predBtn:not(.liveAnalyzeBtn)").forEach(mamBindAnalysisButton);
  document.querySelectorAll(".lineupBtn").forEach(b=>{
   b.addEventListener("click",()=>loadLineups(b));
  });
@@ -8317,6 +8323,11 @@ async function mamLoadAnalysisHistories(button,homeId,awayId,date){
   getTeamFixtures(awayId,date,button.dataset.awayName,button.dataset.league,button.dataset.id)
  ]);
 }
+function mamBindAnalysisButton(button){
+ if(!button||button.dataset.mamAnalysisBound==="1")return;
+ button.dataset.mamAnalysisBound="1";
+ button.addEventListener("click",()=>analyze(button));
+}
 async function analyze(button){
  if(!button||button.disabled)return;
  let target=$("pred-"+button.dataset.id)||button.closest(".match")?.querySelector(".pred");
@@ -9109,10 +9120,20 @@ window.mamSportScoreTeamSchedule = async function mamSportScoreTeamSchedule(team
   if(saved?.time&&Array.isArray(saved.matches)&&Date.now()-saved.time<30*60*1000)return saved.matches;
  }catch(_){}
  const base=WORKER+"/api/sportscore";
+ const deadline=Date.now()+15000;
  const request=async url=>{
-  const response=await fetch(url,{headers:{Accept:"application/json"}});
-  if(!response.ok)throw new Error("SportScore HTTP "+response.status);
-  return response.json();
+  const remaining=deadline-Date.now();
+  if(remaining<=0)throw new Error("SportScore takım fikstürü 15 saniyelik zaman sınırını aştı.");
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),remaining);
+  try{
+   const response=await fetch(url,{signal:controller.signal,headers:{Accept:"application/json"}});
+   if(!response.ok)throw new Error("SportScore HTTP "+response.status);
+   return await response.json();
+  }catch(error){
+   if(controller.signal.aborted)throw new Error("SportScore takım fikstürü 15 saniyede yanıt vermedi (zaman aşımı).");
+   throw error;
+  }finally{clearTimeout(timer);}
  };
  const norm=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football|club|de|the|fc|cf|afc)\b/g," ").replace(/[^a-z0-9]/g,"");
  const wanted=norm(teamName),candidates=[];
@@ -9601,19 +9622,15 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
      const active=x===tab;x.setAttribute("aria-selected",active?"true":"false");
     });
    }));
-   // Bind controls directly before moving each card into the detail overlay.
-   // Direct listeners remain attached when the card is re-parented out of this screen.
+   // Keep each analysis action visible in the team fixture list; detail tabs are built
+   // only when the fixture is opened, then reuse the same idempotent analysis binding.
    upcomingView.querySelectorAll(".mam-upcoming-match").forEach(article=>{
-    makeMamDetailTab(article);
     const openAnalysis=event=>{
      if(event){event.preventDefault();event.stopPropagation();}
      activateMamFixture(article);
     };
     const analysisButton=article.querySelector(".predBtn");
-    if(analysisButton){
-     analysisButton.onclick=openAnalysis;
-     analysisButton.addEventListener("click",openAnalysis,true);
-    }
+    mamBindAnalysisButton(analysisButton);
     const versus=article.querySelector(".match-versus");
     if(versus){
      versus.onclick=openAnalysis;
@@ -9621,8 +9638,6 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
       if(event.key==="Enter"||event.key===" "){event.preventDefault();openAnalysis(event);}
      });
     }
-    const openButton=article.querySelector(".mam-match-open");
-    if(openButton)openButton.onclick=openAnalysis;
    });
   }catch(error){
    screen.querySelector("#mamTeamHistoryContent").innerHTML='<div style="padding:16px;border-radius:14px;background:#132b38;color:#ffc2c2;">'+esc(error.message||error)+'</div>';
