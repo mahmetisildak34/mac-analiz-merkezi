@@ -61,12 +61,24 @@ const searchKey=value=>String(value??'').trim().toLocaleLowerCase('tr-TR').norma
 const activeRows=()=>state.matches.filter(m=>activeLeagueScope.isActiveMatch({fixture:{id:m.id},league:{id:m.leagueId,name:m.leagueName}}));
 const teams=()=>{const map=new Map();for(const m of activeRows()){for(const side of ['home','away']){const id=m[side+'TeamId'],name=m[side+'TeamName'];if(id&&name)map.set(id,{id,name});}}return [...map.values()];};
 const leagues=()=>[...new Map(activeRows().map(m=>[m.leagueId,{id:m.leagueId,name:m.leagueName}]).filter(([id])=>id)).values()];
+const FAVORITE_LABELS='mam_favorite_labels_v1';
+function readFavoriteLabels(){try{return JSON.parse(localStorage.getItem(FAVORITE_LABELS)||'{}')??{};}catch{return {};}}
+function persistActiveFavoriteMetadata(){
+ const saved=readFavoriteLabels(),matches={...(saved.matches??{})},teams={...(saved.teams??{})},matchLeagues={...(saved.matchLeagues??{})},teamLeagues={...(saved.teamLeagues??{})};
+ for(const m of state.matches){const match={fixture:{id:m.id},league:{id:m.leagueId,name:m.leagueName}};if(!activeLeagueScope.isActiveMatch(match))continue;const leagueId=activeLeagueScope.leagueIdFor(match),id=String(m.id??'');if(!leagueId||!id)continue;
+  if(state.favoriteMatches.includes(id)&&m.homeTeamName&&m.awayTeamName){matches[id]=m.homeTeamName+' – '+m.awayTeamName;matchLeagues[id]=leagueId;}
+  for(const [teamId,name] of [[m.homeTeamId,m.homeTeamName],[m.awayTeamId,m.awayTeamName]])if(name&&state.favoriteTeams.includes(String(teamId))){teams[String(teamId)]=name;teamLeagues[String(teamId)]=leagueId;}
+ }
+ const value=JSON.stringify({...saved,matches,teams,matchLeagues,teamLeagues});try{if(localStorage.getItem(FAVORITE_LABELS)!==value)localStorage.setItem(FAVORITE_LABELS,value);}catch{}
+}
 function normalize(m){const fixture=m.fixture||{},home=m.teams?.home||{},away=m.teams?.away||{},league=m.league||{},goals=m.goals||{};return {id:String(m.id??fixture.id??''),homeTeamId:String(m.homeTeamId??home.id??''),awayTeamId:String(m.awayTeamId??away.id??''),homeTeamName:String(m.homeTeamName??home.name??''),awayTeamName:String(m.awayTeamName??away.name??''),homeGoals:m.homeGoals??goals.home??null,awayGoals:m.awayGoals??goals.away??null,status:String((typeof m.status==='string'?m.status:m.status?.type?.name??m.status?.type?.state??m.status?.short)??fixture.status?.short??''),kickoff:m.kickoff??m.date??fixture.date,leagueId:String(m.leagueId??league.id??''),leagueName:String(m.leagueName??league.name??''),events:m.events,keyEvents:m.keyEvents,scoringPlays:m.scoringPlays,plays:m.plays,lineups:m.lineups,rosters:m.rosters,boxscore:m.boxscore,statistics:m.statistics};}
 function loadSharedFixtures(){fixtureSnapshotAt=null;try{const saved=JSON.parse(localStorage.getItem(FIXTURE_CACHE)||'null');if(!Array.isArray(saved?.matches)||!Number.isFinite(saved.savedAt)||saved.savedAt>Date.now()+60000||Date.now()-saved.savedAt>24*60*60*1000)return false;const rows=saved.matches.map(normalize).filter(m=>m.id&&m.homeTeamName&&m.awayTeamName);if(!rows.length)return false;state.matches=rows;fixtureSnapshotAt=saved.savedAt;$("dataStatus").textContent=rows.length+" maç ana uygulamanın mevcut kayıtlarından yüklendi ("+new Date(saved.savedAt).toLocaleString("tr-TR")+").";return true;}catch{return false;}}
 function show(tab){if(!document.getElementById(tab)?.hasAttribute('data-view'))return;active=tab;document.querySelectorAll('[data-view]').forEach(e=>e.classList.toggle('hidden',e.id!==tab));document.querySelectorAll('[data-tab]').forEach(b=>{const selected=b.dataset.tab===tab;b.setAttribute('aria-pressed',String(selected));if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});render();if(tab==='leagues')loadOfficialStandings();}
 function matchCard(m){const favorite=state.favoriteMatches.includes(m.id);return '<article class="card"><b>'+esc(displayTeamName(m.homeTeamName))+' – '+esc(displayTeamName(m.awayTeamName))+'</b><p>'+esc(displayLeagueName(m.leagueName))+' · '+esc(displayStatusName(m.status))+' · '+esc(m.kickoff&&Number.isFinite(Date.parse(m.kickoff))?new Date(m.kickoff).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'Saat bilinmiyor')+'</p><p>'+esc(m.homeGoals??'?')+' : '+esc(m.awayGoals??'?')+'</p><div class="actions"><button data-match="'+esc(m.id)+'">Detay</button><button aria-pressed="'+favorite+'" data-favmatch="'+esc(m.id)+'">'+(favorite?'★ Favoriden çıkar':'☆ Favoriye ekle')+'</button></div></article>';}
+function savedFavoriteMatchCard(id,label){const split=String(label).split(' – '),home=split[0]??'',away=split[1]??'';return '<article class="card"><b>'+esc(displayTeamName(home))+(away?' – '+esc(displayTeamName(away)):'')+'</b><p class="muted">Bu favorinin fikstür kaydı şu anda bulunmuyor; favori kaydı korundu.</p><div class="actions"><button data-favmatch="'+esc(id)+'">★ Favoriden çıkar</button></div></article>';}
 $('savedOnlyNotice').hidden=!savedOnly;
 function render(){
+ persistActiveFavoriteMetadata();
  const list=activeRows();
  if(active==='home'){
   const filter=$('matchFilter').value;
@@ -79,9 +91,11 @@ function render(){
  if(active==='live'){const live=!savedOnly&&navigator.onLine!==false&&isRecentFixtureSnapshot(fixtureSnapshotAt)?list.filter(isLiveMatch):[];$('liveList').innerHTML=live.length?live.map(matchCard).join(''):'<p class="empty">Şu anda doğrulanmış canlı maç bulunamadı.</p>';}
  if(active==='today'){const date=$('matchDate').value;const day=date?Date.parse(date+'T12:00:00+03:00'):Date.now();const today=list.filter(m=>isIstanbulToday(m,day)&&!isLiveMatch(m));$('todayList').innerHTML=today.length?today.map(matchCard).join(''):'<p class="empty">Seçilen gün için canlı olmayan maç bulunamadı.</p>';}
  if(active==='favorites'){
-  const allTeams=teams();
-  $('favMatches').innerHTML=list.filter(m=>state.favoriteMatches.includes(m.id)).map(matchCard).join('')||'<p class="empty">Favori maç bulunamadı.</p>';
-  $('favTeams').innerHTML=allTeams.filter(t=>state.favoriteTeams.includes(t.id)).map(t=>teamCard(t)).join('')||'<p class="empty">Favori takım bulunamadı.</p>';
+  const saved=readFavoriteLabels(),allTeams=new Map(teams().map(t=>[String(t.id),t])),allMatches=new Map(list.map(m=>[String(m.id),m]));
+  for(const id of state.favoriteTeams){const key=String(id);if(!allTeams.has(key)&&activeLeagueScope.isActiveLeagueId(saved.teamLeagues?.[key])&&typeof saved.teams?.[key]==='string')allTeams.set(key,{id:key,name:saved.teams[key]});}
+  const matchCards=state.favoriteMatches.map(rawId=>{const id=String(rawId),match=allMatches.get(id);if(match)return matchCard(match);const label=saved.matches?.[id];return typeof label==='string'&&activeLeagueScope.isActiveLeagueId(saved.matchLeagues?.[id])?savedFavoriteMatchCard(id,label):'';});
+  $('favMatches').innerHTML=matchCards.filter(Boolean).join('')||'<p class="empty">Favori maç bulunamadı.</p>';
+  $('favTeams').innerHTML=state.favoriteTeams.map(id=>allTeams.get(String(id))).filter(Boolean).map(t=>teamCard(t)).join('')||'<p class="empty">Favori takım bulunamadı.</p>';
  }
  if(active==='teams'){const allTeams=teams();$('teamsList').innerHTML=allTeams.map(teamCard).join('')||'<p class="empty">Takım verisi bulunamadı.</p>';}
  if(active==='leagues'){

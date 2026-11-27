@@ -23,7 +23,7 @@ for (const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]) {
     await page.locator('#mamTeamSearchInput').fill('Beşiktaş');
     const results = page.locator('#mamTeamSearchResults [data-search-team]');
     await results.first().waitFor({state:'visible',timeout:10000});
-    assert.match(await results.first().innerText(),/Beşiktaş/i,name+' team search');
+    assert.match((await results.first().innerText()).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),/besiktas/,name+' team search');
     assert.equal(await page.locator('#mamTeamSearchResults [aria-pressed]').count(),0,name+' search must not favorite teams');
     await page.locator('#mamTeamSearchInput').fill('Süper Lig');
     await results.first().waitFor({state:'visible'});
