@@ -1,13 +1,17 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import vm from "node:vm";
 import test from "node:test";
 
+const require = createRequire(import.meta.url);
+const MAMTeamIdentity = require("../team-identity-registry.js");
 const source = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const helperStart = source.indexOf("const MAM_UEFA_TEAM_GROUPS=");
 const helperEnd = source.indexOf("// D1 kalıcı maç arşivi", helperStart);
 assert.ok(helperStart >= 0 && helperEnd > helperStart);
 const helpers = vm.runInNewContext(`${source.slice(helperStart, helperEnd)};({mamUefaTeamMatch,mamCanonicalHistoryTeamKey,mamHistoryTeamSearchNames})`, {
+  MAMTeamIdentity,
   mamFixtureTeamKey(value) {
     return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i").replace(/[^a-z0-9]/g, "");
   },

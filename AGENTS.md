@@ -32,3 +32,13 @@ Keep and maintain the relevant existing regression coverage, especially in `test
 ## Scope and safety
 
 Do not modify the Worker, D1, Poisson v1.2, or production security controls as part of live-match work. Do not reduce security protections. Such work requires a separate explicit request and narrowly scoped review.
+
+## Persistent data-center rollout protections
+
+- Treat the B data layer as shadow/opt-in and analysis-only. It must never decide whether a fixture appears in Today, Live, Finished, or Upcoming lists. Missing, ambiguous, stale, or incomplete B data must leave the fixture visible and use the existing history path.
+- Keep the current design, live score/minute/precise-second/statistics behavior, and Poisson v1.2 unchanged. B histories are usable only when both teams resolve unambiguously and each side has exactly ten distinct, verified, completed matches before kickoff. Never weaken the minimum-ten rule.
+- B requests must bypass browser caches and have a bounded timeout of at most 2.5 seconds. An error, timeout, disabled gate, or invalid bundle must silently return to the existing application path; do not expose infrastructure status in the UI.
+- Before any release, compare the legacy and B paths with real data in shadow mode. Synthetic tests and green GitHub checks are necessary but not sufficient. Report fixture coverage, duplicate/time/team-identity differences, history/statistics validity, latency, and API/D1/KV cost separately from synthetic results.
+- Read-only production acceptance must not copy production rows into B, mutate D1/KV, or seed production identities. Any bounded real-data staging or transfer requires separate explicit authorization and an isolated target.
+- The daily B preparation is separate from the existing five-minute Worker schedule. Its intended UTC expression is `1 21 * * *` (00:01 Europe/Istanbul); it must remain disabled until the approved release gate is opened. Never interrupt or repurpose the five-minute live/archive path.
+- Production migration, data transfer, Cron activation, merge, and deploy require explicit user approval. B must fail closed when a release gate or runtime switch is absent, off, or unreadable.
