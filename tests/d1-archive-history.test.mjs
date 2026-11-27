@@ -182,8 +182,8 @@ test("10 D1 matches gate historical provider fallbacks and optional stats enrich
   assert.match(history, /if\(!mamTeamHistoryCompetitionAllowed\(m,leagueId\)\|\|!mamHasCompletedScore\(m\)\)return/);
   assert.match(history, /if\(d1ArchiveMatchCount<10\)await mamEnrichHistoricalStats\(result,leagueId\)/);
   assert.match(source, /const isFixtureDownload=id\.startsWith\("fd-uefa-"\)\|\|String\(match\.mamSource\|\|match\.source\|\|""\)\.toLowerCase\(\)==="fixture-download-uefa"/);
-  assert.match(history, /mam_history_v79_/);
-  assert.match(source, /mam_history_v79_/);
+  assert.match(history, /mam_history_v80_/);
+  assert.match(source, /mam_history_v80_/);
   assert.match(source, /mam_d1_archive_v4_/);
   assert.match(source, /poisson\(lh,h\)\*poisson\(la,a\)/i);
 });

@@ -6,6 +6,7 @@ import test from "node:test";
 
 const require = createRequire(import.meta.url);
 const MAMTeamIdentity = require("../team-identity-registry.js");
+const MAMActiveLeagueScope = require("../active-league-scope.js");
 const source = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const sw = readFileSync(new URL("../sw.js", import.meta.url), "utf8");
 const mobileSw = readFileSync(new URL("../mobile/sw.js", import.meta.url), "utf8");
@@ -19,6 +20,7 @@ function helperApi() {
   assert.ok(competitionStart >= 0 && competitionEnd > competitionStart);
   return vm.runInNewContext(`${source.slice(competitionStart, competitionEnd)}\n${source.slice(start, end)};({mamUefaTeamMatch,mamCanonicalHistoryTeamKey,mamHistoryTeamSearchNames,mamHistoricalIdentity,mamDeduplicateHistoricalMatches,mamHistoryCompetitionAllowed,mamTeamHistoryCompetitionAllowed})`, {
     MAMTeamIdentity,
+    MAMActiveLeagueScope,
     mamFixtureTeamKey(value) {
       return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i").replace(/[^a-z0-9]/g, "");
     },
@@ -130,6 +132,42 @@ test("UEFA takım analizi doğrulanmış farklı yerel lig geçmişini alır, li
   assert.equal(api.mamTeamHistoryCompetitionAllowed(domestic, "39"), false, "yerel lig örneklemi kendi lig filtresini korur");
 });
 
+test("aktif lig geçmişi için yarışma kimliği veya tanımlı yarışma adı gerekir", () => {
+  const api = helperApi();
+  const turkishFirstLeague = { fixture: { id: "sportscore-tff1-1" }, league: { name: "Turkish First League" } };
+  assert.equal(api.mamHistoryCompetitionAllowed(turkishFirstLeague, "204"), true, "açık sağlayıcı turnuva adı Türkiye 1. Lig olarak eşlenir");
+  assert.equal(api.mamHistoryCompetitionAllowed({ ...turkishFirstLeague, league: { id: "9901", name: "Turkish First League", country: "Turkey" } }, "204"), true, "provider-specific numeric competition IDs do not defeat an explicit matching name");
+  assert.equal(api.mamHistoryCompetitionAllowed({ fixture: { id: "sportscore-unknown-1" }, league: { name: "SportScore" } }, "204"), false, "genel/etiketsiz SportScore kaydı seçili lige mal edilmez");
+  assert.equal(api.mamHistoryCompetitionAllowed({ fixture: { id: "sportscore-unknown-2" }, league: {} }, "204"), false, "yarışma adı ve kimliği bulunmayan kayıt reddedilir");
+  assert.equal(api.mamHistoryCompetitionAllowed({ league: { id: "203", name: "Süper Lig" } }, "204"), false, "başka aktif ligin maçları kabul edilmez");
+});
+
+test("Türkçe noktasız ı içeren takım araması sağlayıcıya ASCII sorgu alternatifi gönderir", async () => {
+  const start = source.indexOf("window.mamSportScoreTeamSchedule = async function mamSportScoreTeamSchedule(");
+  const end = source.indexOf("\n}", start);
+  assert.ok(start >= 0 && end > start);
+  const queries = [];
+  const context = {
+    window: {}, WORKER: "https://worker.test", Date, AbortController, setTimeout, clearTimeout,
+    qs(values) { return new URLSearchParams(values).toString(); },
+    localStorage: { getItem() { return null; }, setItem() {} },
+    async fetch(url) {
+      const parsed = new URL(url);
+      if (parsed.pathname.includes("/v1/search/")) {
+        const query = parsed.searchParams.get("q");
+        queries.push(query);
+        return { ok: true, async json() { return query === "bandirmaspor" ? { team: { slug: "bandirmaspor", name: "Bandirmaspor", type: "team" } } : {}; } };
+      }
+      return { ok: true, async json() { return { matches: [{ id: "tur-1", time: "2026-10-01T15:00:00Z", status: "finished", home: { name: "Bandirmaspor" }, away: { name: "Batman Petrolspor" }, home_score: 1, away_score: 0, competition: { name: "Turkish First League" } }] }; } };
+    }
+  };
+  vm.runInNewContext(source.slice(start, end + 2), context);
+  const matches = await context.window.mamSportScoreTeamSchedule("Bandırmaspor");
+  assert.deepEqual(queries, ["Bandırmaspor", "bandirmaspor"], "provider search receives original and ASCII-transliterated name");
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].teams.home.name, "Bandirmaspor");
+});
+
 test("aynı gerçek maçta skor güncellemesi duplicate oluşturmaz, ayrı maçlar korunur", () => {
   const api = helperApi();
   const row = (id, home, away, date, score = [2, 1], league = "UEFA Europa League") => ({ fixture: { id, date }, league: { name: league }, teams: { home: { name: home }, away: { name: away } }, goals: { home: score[0], away: score[1] }, mamSource: id });
@@ -194,7 +232,7 @@ test("UEFA fixture-download kayıtları gerçek ESPN event eşlemesine ve şut a
 });
 
 test("Geçmiş cache anahtarı yenilenmiş sürümü kullanır ve kickoff sonrası maçları dışarıda bırakır", () => {
-  assert.match(source, /mam_history_v79_/);
+  assert.match(source, /mam_history_v80_/);
   assert.match(source, /day&&day<matchDate/);
   assert.match(source, /const uniqueOutput=mamDeduplicateHistoricalMatches\(output\)/);
 });

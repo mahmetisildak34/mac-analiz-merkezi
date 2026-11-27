@@ -93,9 +93,9 @@ test("cache conflict filtering precedes historical deduplication", () => {
   assert.ok(cacheStart >= 0 && filter > cacheStart && dedupe > filter);
 });
 
-test("history cache uses v79 and persists the filter count", () => {
-  assert.match(source, /const key="mam_history_v79_/);
-  assert.doesNotMatch(source, /const key="mam_history_v78_/);
+test("history cache uses v80 and persists the filter count", () => {
+  assert.match(source, /const key="mam_history_v80_/);
+  assert.doesNotMatch(source, /const key="mam_history_v79_/);
   assert.match(source, /excludedConflictCount/);
   assert.match(source, /çelişkili maç analiz dışı bırakıldı/);
 });
