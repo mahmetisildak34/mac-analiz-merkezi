@@ -9512,32 +9512,21 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
  const sync=()=>{strip.querySelectorAll(".mam-date-chip").forEach(chip=>{const selected=dateInput.value===localDate(Number(chip.dataset.dayOffset));chip.classList.toggle("active",selected);chip.setAttribute("aria-pressed",String(selected));});};
  dateInput.addEventListener("change",sync);sync();
  document.addEventListener("mam:session-ready",()=>{
-  // Ekranı önce URL rotasından, yoksa kayıtlı durumdan geri yükle.
+  // Uygulama her açılışta mevcut ana sayfada başlar; önceki ekran (URL rotası veya kayıtlı görünüm) geri yüklenmez.
   let mamRestoreTask=null;
   try{
    const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"null")||{};
-   const routeMode=String(location.hash||"").match(/^#mam-(home|live|today|upcoming|finished|standings)$/)?.[1];
-   const mode=routeMode||saved.mode;
-   if(!mode){void loadMatches();return;}
-   if(["home","live","today","upcoming","finished","standings"].includes(mode)){
-    setMamScreen(mode);
-    if(mode!=="today"&&saved.date&&$("date")){const todayLocal=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());$("date").value=saved.date<todayLocal?todayLocal:saved.date;}
-    if(mode!=="today"&&saved.league&&$("league")){
-     window.mamRestoringViewState=true;
-     try{$("league").value=saved.league;$("league").dispatchEvent(new Event("change"));}
-     finally{window.mamRestoringViewState=false;}
-    }
-    if(mode==="live")mamRestoreTask=loadLiveMatches();
-    else if(["home","today","upcoming","finished"].includes(mode))mamRestoreTask=loadMatches();
-    else if(mode==="standings"&&saved.standingsLeague){
-     selectedStandingsLeague=saved.standingsLeague;
-     $("mamStandingsPicker").hidden=true;$("mamStandingsCard").hidden=false;
-     mamRestoreTask=loadStandings();
-    }
-    Promise.resolve(mamRestoreTask).finally(()=>{
-     if(Number.isFinite(Number(saved.scrollY)))setTimeout(()=>window.scrollTo(0,Number(saved.scrollY)),120);
-    });
+   const mode="home";
+   document.querySelectorAll("[data-mam-bottom]").forEach(button=>button.classList.toggle("active",button.dataset.mamBottom===mode));
+   if(/^#mam-(home|live|today|upcoming|finished|standings)$/.test(location.hash))history.replaceState({...history.state,mamScreen:mode},"",location.pathname+location.search);
+   if(mode!=="today"&&saved.league&&$("league")){
+    window.mamRestoringViewState=true;
+    try{$("league").value=saved.league;$("league").dispatchEvent(new Event("change"));}
+    finally{window.mamRestoringViewState=false;}
    }
+   if(mode==="live")mamRestoreTask=loadLiveMatches();
+   else mamRestoreTask=loadMatches();
+   Promise.resolve(mamRestoreTask).catch(()=>{});
   }catch(_){}
  },{once:true});
  // Kullanıcı ekranı aşağı/yukarı kaydırdıkça konumu da sakla.
