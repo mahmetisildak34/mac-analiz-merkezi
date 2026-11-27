@@ -51,7 +51,8 @@ function serviceWorkerReloadHarness(storage, controlled = true) {
 test("Service Worker sürümü eski app-shell cache'ini geçersiz kılar", () => {
   assert.match(sw, /cachePrefix:'mam-main-shell-',version:'v4'/);
   assert.match(sw, /'team-identity-registry\.js'/, "offline shell must include the shared identity helper");
-  assert.match(mobileSw, /cachePrefix:'mam-mobile-shell-',version:'v3'/);
+  assert.match(mobileSw, /cachePrefix:'mam-mobile-shell-',version:'v4'/);
+  assert.match(mobileSw, /'\.\.\/active-league-scope\.js'/, "offline mobile shell must include the shared active league scope");
   assert.match(source, /updateViaCache:"none"/);
   assert.match(source, /mam_sw_reloaded_v3/);
   assert.match(readFileSync(new URL("../mobile/shell-worker.js", import.meta.url), "utf8"), /key\.startsWith\(cachePrefix\)/);
