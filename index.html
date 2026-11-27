@@ -2684,7 +2684,22 @@ function esc(value){
  })[c]);
 }
 
-const mamDisplayKey=value=>String(value??"").trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
+function mamRepairUtf8Mojibake(value){
+ let text=String(value??"");
+ for(let pass=0;pass<2&&/[ÃÂâð�]/.test(text);pass++){
+  try{
+   const bytes=[];
+   const cp1252={0x20ac:0x80,0x201a:0x82,0x192:0x83,0x201e:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x2c6:0x88,0x2030:0x89,0x160:0x8a,0x2039:0x8b,0x152:0x8c,0x17d:0x8e,0x2018:0x91,0x2019:0x92,0x201c:0x93,0x201d:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x2dc:0x98,0x2122:0x99,0x161:0x9a,0x203a:0x9b,0x153:0x9c,0x17e:0x9e,0x178:0x9f};
+   for(const char of text){const code=char.codePointAt(0),byte=code<=255?code:cp1252[code];if(byte===undefined){bytes.length=0;break;}bytes.push(byte);}
+   if(!bytes.length)break;
+   const decoded=new TextDecoder("utf-8",{fatal:true}).decode(new Uint8Array(bytes));
+   if(decoded===text||/[�]/.test(decoded))break;
+   text=decoded;
+  }catch(_){break;}
+ }
+ return text;
+}
+const mamDisplayKey=value=>mamRepairUtf8Mojibake(value).trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const MAM_DISPLAY_COUNTRIES=new Map(Object.entries({
  "England":"İngiltere","Scotland":"İskoçya","Wales":"Galler","Northern Ireland":"Kuzey İrlanda","United Kingdom":"Birleşik Krallık","UK":"Birleşik Krallık",
  "Turkey":"Türkiye","Türkiye":"Türkiye","United States":"ABD","United States of America":"ABD","USA":"ABD","US":"ABD","Brazil":"Brezilya","Argentina":"Arjantin","Spain":"İspanya","Germany":"Almanya","Italy":"İtalya","France":"Fransa","Netherlands":"Hollanda","Portugal":"Portekiz","Belgium":"Belçika","Czech Republic":"Çekya","Czechia":"Çekya","Poland":"Polonya","Denmark":"Danimarka","Sweden":"İsveç","Norway":"Norveç","Finland":"Finlandiya","Switzerland":"İsviçre","Austria":"Avusturya","Greece":"Yunanistan","Croatia":"Hırvatistan","Serbia":"Sırbistan","Romania":"Romanya","Hungary":"Macaristan","Bulgaria":"Bulgaristan","Ukraine":"Ukrayna","Russia":"Rusya","Ireland":"İrlanda","Republic of Ireland":"İrlanda Cumhuriyeti","Iceland":"İzlanda","Slovakia":"Slovakya","Slovenia":"Slovenya","Bosnia and Herzegovina":"Bosna-Hersek","North Macedonia":"Kuzey Makedonya","Montenegro":"Karadağ","Albania":"Arnavutluk","Kosovo":"Kosova","Cyprus":"Kıbrıs","Georgia":"Gürcistan","Armenia":"Ermenistan","Azerbaijan":"Azerbaycan","Israel":"İsrail","Palestine":"Filistin","Jordan":"Ürdün","Saudi Arabia":"Suudi Arabistan","United Arab Emirates":"Birleşik Arap Emirlikleri","UAE":"BAE","Qatar":"Katar","Iran":"İran","Iraq":"Irak","Kuwait":"Kuveyt","Oman":"Umman","Bahrain":"Bahreyn","Lebanon":"Lübnan","Syria":"Suriye","Egypt":"Mısır","Morocco":"Fas","Algeria":"Cezayir","Tunisia":"Tunus","Libya":"Libya","South Africa":"Güney Afrika","Nigeria":"Nijerya","Ghana":"Gana","Senegal":"Senegal","Cameroon":"Kamerun","Ivory Coast":"Fildişi Sahili","Cote d'Ivoire":"Fildişi Sahili","Mali":"Mali","Kenya":"Kenya","Uganda":"Uganda","Tanzania":"Tanzanya","Zambia":"Zambiya","Zimbabwe":"Zimbabve","Angola":"Angola","Ethiopia":"Etiyopya","Guinea":"Gine","Gabon":"Gabon","Gambia":"Gambiya","Benin":"Benin","Botswana":"Botsvana","Burkina Faso":"Burkina Faso","Congo DR":"Kongo DC","Democratic Republic of the Congo":"Kongo Demokratik Cumhuriyeti","China":"Çin","Japan":"Japonya","South Korea":"Güney Kore","Korea Republic":"Güney Kore","Australia":"Avustralya","New Zealand":"Yeni Zelanda","India":"Hindistan","Indonesia":"Endonezya","Thailand":"Tayland","Malaysia":"Malezya","Singapore":"Singapur","Vietnam":"Vietnam","Philippines":"Filipinler","Uzbekistan":"Özbekistan","Kazakhstan":"Kazakistan","Mexico":"Meksika","Canada":"Kanada","Chile":"Şili","Colombia":"Kolombiya","Peru":"Peru","Ecuador":"Ekvador","Paraguay":"Paraguay","Uruguay":"Uruguay","Bolivia":"Bolivya","Venezuela":"Venezuela","Costa Rica":"Kosta Rika","Honduras":"Honduras","Guatemala":"Guatemala","Panama":"Panama","Jamaica":"Jamaika","Trinidad and Tobago":"Trinidad ve Tobago","World":"Dünya","Europe":"Avrupa","Asia":"Asya","Africa":"Afrika","North America":"Kuzey Amerika","South America":"Güney Amerika","Oceania":"Okyanusya","CONCACAF":"Kuzey ve Orta Amerika","CONMEBOL":"Güney Amerika"
@@ -2693,7 +2708,7 @@ const MAM_DISPLAY_LEAGUES=new Map(Object.entries({
  "Premier League":"Premier Lig","English Premier League":"İngiltere Premier Ligi","Turkish Super League":"Türkiye Süper Ligi","Turkish Super Lig":"Türkiye Süper Ligi","Süper Lig":"Süper Lig","Turkish First League":"Türkiye 1. Ligi","1. Lig":"1. Lig","UEFA Champions League":"UEFA Şampiyonlar Ligi","Champions League":"Şampiyonlar Ligi","UEFA Europa League":"UEFA Avrupa Ligi","Europa League":"Avrupa Ligi","UEFA Conference League":"UEFA Konferans Ligi","UEFA Europa Conference League":"UEFA Konferans Ligi","Conference League":"Konferans Ligi","UEFA Nations League":"UEFA Uluslar Ligi","Nations League":"Uluslar Ligi","UEFA Euro":"UEFA Avrupa Şampiyonası","European Championship":"Avrupa Şampiyonası","World Cup":"Dünya Kupası","FIFA World Cup":"FIFA Dünya Kupası","World Cup Qualifying":"Dünya Kupası Elemeleri","International Friendlies":"Uluslararası hazırlık maçları","International Friendly":"Uluslararası hazırlık maçı","La Liga":"İspanya LaLiga","LaLiga":"İspanya LaLiga","La Liga 2":"İspanya 2. Ligi","Segunda Division":"İspanya 2. Ligi","Bundesliga":"Almanya Bundesliga","2. Bundesliga":"Almanya 2. Bundesliga","Ligue 1":"Fransa Ligue 1","Ligue 2":"Fransa Ligue 2","Eredivisie":"Hollanda Eredivisie","Primeira Liga":"Portekiz Primeira Liga","Liga Portugal":"Portekiz Primeira Liga","Jupiler Pro League":"Belçika Pro League","Pro League":"Pro League","Scottish Premiership":"İskoçya Premiership","MLS":"ABD MLS","Major League Soccer":"ABD MLS","Brasileirão":"Brezilya Série A","Brazilian Serie A":"Brezilya Série A","Brezilya Serie A":"Brezilya Série A","Liga Profesional":"Arjantin Profesyonel Ligi","Argentine Primera Division":"Arjantin Primera División","Liga MX":"Meksika Liga MX","J1 League":"Japonya J1 Ligi","A-League":"Avustralya A Ligi","Chinese Super League":"Çin Süper Ligi","Saudi Pro League":"Suudi Arabistan Pro Ligi","FA Cup":"İngiltere Federasyon Kupası","EFL Cup":"İngiltere Lig Kupası","Carabao Cup":"Carabao Kupası","Copa del Rey":"İspanya Kral Kupası","Copa de la Reina":"İspanya Kraliçe Kupası","Coppa Italia":"İtalya Kupası","DFB Pokal":"Almanya Kupası","Copa do Brasil":"Brezilya Kupası","Copa Libertadores":"Libertadores Kupası","Copa Sudamericana":"Sudamericana Kupası","Africa Cup of Nations":"Afrika Uluslar Kupası","African Cup of Nations":"Afrika Uluslar Kupası","AFCON":"Afrika Uluslar Kupası","Asian Cup":"Asya Kupası","AFC Champions League Elite":"AFC Şampiyonlar Ligi Elit","CAF Champions League":"CAF Şampiyonlar Ligi","CONCACAF Champions Cup":"CONCACAF Şampiyonlar Kupası","CONCACAF Nations League":"CONCACAF Uluslar Ligi","Turkish Cup":"Türkiye Kupası","Turkish Cup Women":"Türkiye Kadınlar Kupası","Championship":"İngiltere Championship","League One":"1. Lig","League Two":"2. Lig"
 }).map(([name,label])=>[mamDisplayKey(name),label]));
 const MAM_DISPLAY_TEAMS=new Map(Object.entries({
- "Bayern Munich":"Bayern Münih","Bayern München":"Bayern Münih","FC Bayern München":"Bayern Münih","Bayern Munich FC":"Bayern Münih","Cologne":"Köln","FC Cologne":"Köln","1. FC Cologne":"1. FC Köln","Atletico Madrid":"Atlético Madrid","Atlético de Madrid":"Atlético Madrid","Atletico de Madrid":"Atlético Madrid","Inter Milan":"Inter","Internazionale":"Inter","Internazionale Milano":"Inter","FC Internazionale Milano":"Inter","Sporting Lisbon":"Sporting CP","Sporting Clube de Portugal":"Sporting CP","Red Star Belgrade":"Kızılyıldız","FC Copenhagen":"Kopenhag","Copenhagen":"Kopenhag","Kobenhavn":"Kopenhag","Lech Poznan":"Lech Poznań","Viktoria Plzen":"Viktoria Plzeň","Bodo Glimt":"Bodø/Glimt","Nordsjaelland":"Nordsjælland","Mjallby":"Mjällby","Lillestrom":"Lillestrøm","Ferencvaros":"Ferencváros","Besiktas":"Beşiktaş","Fenerbahce":"Fenerbahçe","Galatasaray A.S.":"Galatasaray"
+ "Bayern Munich":"Bayern Münih","Bayern München":"Bayern Münih","FC Bayern München":"Bayern Münih","Bayern Munich FC":"Bayern Münih","Samsunspor":"Samsunspor","Samsunspor A.Ş.":"Samsunspor","Gençlerbirliği":"Gençlerbirliği","Gençlerbirliği SK":"Gençlerbirliği","Gaziantep":"Gaziantep FK","Gaziantep FK":"Gaziantep FK","Gaziantep Futbol Kulübü":"Gaziantep FK","Amedspor":"Amedspor","Amed SK":"Amedspor","Amed Sportif Faaliyetler":"Amedspor","Cologne":"Köln","FC Cologne":"Köln","1. FC Cologne":"1. FC Köln","Atletico Madrid":"Atlético Madrid","Atlético de Madrid":"Atlético Madrid","Atletico de Madrid":"Atlético Madrid","Inter Milan":"Inter","Internazionale":"Inter","Internazionale Milano":"Inter","FC Internazionale Milano":"Inter","Sporting Lisbon":"Sporting CP","Sporting Clube de Portugal":"Sporting CP","Red Star Belgrade":"Kızılyıldız","FC Copenhagen":"Kopenhag","Copenhagen":"Kopenhag","Kobenhavn":"Kopenhag","Lech Poznan":"Lech Poznań","Viktoria Plzen":"Viktoria Plzeň","Bodo Glimt":"Bodø/Glimt","Nordsjaelland":"Nordsjælland","Mjallby":"Mjällby","Lillestrom":"Lillestrøm","Ferencvaros":"Ferencváros","Besiktas":"Beşiktaş","Fenerbahce":"Fenerbahçe","Galatasaray A.S.":"Galatasaray"
 }).map(([name,label])=>[mamDisplayKey(name),label]));
 function mamDisplayCountryName(value){const raw=String(value??"").trim();return MAM_DISPLAY_COUNTRIES.get(mamDisplayKey(raw))||raw;}
 function mamDisplayLeagueName(value,country=""){
@@ -3720,9 +3735,35 @@ async function espnFixtures(date,includeAllLeagues=false,endDate=date,istanbulWi
  return sorted;
 }
 
-const mamFixtureTeamKeyBase=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
+const mamFixtureTeamKeyBase=value=>{
+ let text=String(value||"");
+ for(let pass=0;pass<2&&/[ÃÂâð�]/.test(text);pass++){
+  try{
+   const bytes=[],cp1252={0x20ac:0x80,0x201a:0x82,0x192:0x83,0x201e:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x2c6:0x88,0x2030:0x89,0x160:0x8a,0x2039:0x8b,0x152:0x8c,0x17d:0x8e,0x2018:0x91,0x2019:0x92,0x201c:0x93,0x201d:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x2dc:0x98,0x2122:0x99,0x161:0x9a,0x203a:0x9b,0x153:0x9c,0x17e:0x9e,0x178:0x9f};
+   for(const char of text){const code=char.codePointAt(0),byte=code<=255?code:cp1252[code];if(byte===undefined){bytes.length=0;break;}bytes.push(byte);}
+   if(!bytes.length)break;
+   const decoded=new TextDecoder("utf-8",{fatal:true}).decode(new Uint8Array(bytes));
+   if(decoded===text||/[�]/.test(decoded))break;
+   text=decoded;
+  }catch(_){break;}
+ }
+ return text.toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football club|fc|afc|sk|fk|as|cf|sc|club|calcio)\b/g,"").replace(/[^a-z0-9]/g,"");
+};
+// Sağlayıcıların doğrulanmış kulüp ad varyantları aynı fixture dedupe anahtarına bağlanır.
+const MAM_FIXTURE_TEAM_ALIASES=new Map([
+ ["samsunspor",["samsunspor","samsunspor a s"]],
+ ["genclerbirligi",["genclerbirligi","genclerbirligi sk"]],
+ ["gaziantep",["gaziantep","gaziantep fk","gaziantep futbol kulubu"]],
+ ["amedspor",["amedspor","amed","amed sk","amed sportif faaliyetler","amed sportif faaliyetler futbol kulubu"]],
+ ["corum",["corum","corum fk","arca corum fk","corum belediyespor","corum futbol kulubu"]],
+ ["rizespor",["rizespor","caykur rizespor","caykur rize"]],
+ ["erzurumspor",["erzurumspor","erzurumspor fk","bb erzurumspor","erzurum bb","erzurum buyuksehir belediyespor","erzurumspor futbol kulubu"]],
+ ["konyaspor",["konyaspor","tumos an konyaspor","tumosankonyaspor","tümosan konyaspor","atiker konyaspor","torku konyaspor"]]
+].flatMap(([canonical,names])=>names.map(name=>[mamFixtureTeamKeyBase(name),canonical])));
 const mamFixtureTeamKey=value=>{
  const key=mamFixtureTeamKeyBase(value);
+ const verifiedAlias=MAM_FIXTURE_TEAM_ALIASES.get(key);
+ if(verifiedAlias)return verifiedAlias;
  // Explicit provider aliases only; never use broad fuzzy matching between unrelated clubs.
  const aliases={
   istanbulbasaksehir:"basaksehir",istanbulbasaksehirspor:"basaksehir",
@@ -8121,6 +8162,7 @@ function mamMaybeRefreshLiveAnalysis(button){
 async function analyzeLiveMatch(button){
  if(!button||button.disabled)return;
  const card=button.closest(".match"),panel=card?.querySelector(".liveAnalysis");
+ let providerClock=null;
  const id=String(button.dataset.liveId||""),source=String(button.dataset.liveSource||""),espn=source==="espn";
  if(!panel||!id)return;
  button.dataset.liveAnalysisOpen="true";
@@ -8130,6 +8172,8 @@ async function analyzeLiveMatch(button){
   let rows=[];
   if(source==="sportscore"){
    const backup=await mamSportScoreLiveStats(button);
+   providerClock=backup.clock||null;
+   if(providerClock)mamApplyMinuteToCard(button,providerClock,button.dataset.liveClockStatus||"LIVE");
    const map={"Topla oynama":"possession","İsabetli şut":"sot","Toplam şut":"shots","Korner":"corners","Kırmızı kart":"redCards","Gerçek xG":"xg"};
    const toObject=index=>Object.fromEntries(backup.rows.map(row=>[map[row[0]],Number(String(row[index+1]??"").replace("%","").replace(",","."))]).filter(([key,value])=>key&&Number.isFinite(value)));
    rows=[toObject(0),toObject(1)];
@@ -8160,7 +8204,7 @@ async function analyzeLiveMatch(button){
    rows=[read(data[0]),read(data[1])];
   }
   const [h,a]=rows;if(!h||!a||(!Object.keys(h).length&&!Object.keys(a).length))throw new Error("Bu maç için henüz canlı istatistik verisi yayınlanmıyor. Veri gelmeden tahmin üretmedim.");
-  const rawMinute=mamLiveClockNumber(button.dataset.liveMinute);
+  const rawMinute=providerClock?.minute??mamLiveClockNumber(button.dataset.liveMinute);
   const rawHome=mamLiveClockNumber(button.dataset.liveHomeScore),rawAway=mamLiveClockNumber(button.dataset.liveAwayScore);
   const minuteValue=rawMinute===null?NaN:rawMinute,homeScore=rawHome===null?NaN:rawHome,awayScore=rawAway===null?NaN:rawAway;
   if(!Number.isFinite(minuteValue)||minuteValue<=0)throw new Error("Canlı sağlayıcı dakika bilgisini henüz yayınlamıyor; analiz üretilmedi.");
