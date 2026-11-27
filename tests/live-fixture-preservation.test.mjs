@@ -68,10 +68,39 @@ test("SportScore supplemental lookup has a 3.5-second cold-request budget",()=>{
 });
 
 test("historical cross-provider identity does not split a fixture when scores differ",()=>{
- const start=source.indexOf("const addMatch=m=>"),end=source.indexOf("\n\n  // Süper Lig geçmişi",start);
- const merge=source.slice(start,end);
- assert.match(merge,/output\.findIndex\(previous=>mamSameFixture\(previous,normalizedMatch\)\)/);
- assert.doesNotMatch(merge,/const identity=\[d,mamCanonicalHistoryTeamKey\(h\),mamCanonicalHistoryTeamKey\(a\)\]/);
+	const start=source.indexOf("const addMatch=m=>"),end=source.indexOf("\n\n  // Süper Lig geçmişi",start);
+	const merge=source.slice(start,end);
+	assert.match(merge,/output\.findIndex\(previous=>mamSameFixture\(previous,normalizedMatch\)\)/);
+	assert.doesNotMatch(merge,/const identity=\[d,mamCanonicalHistoryTeamKey\(h\),mamCanonicalHistoryTeamKey\(a\)\]/);
+});
+
+test("real 2026-11-27 Turkish archive rows merge damaged TFF names and preserve verified FT results",()=>{
+	const api=runInNewContext(fixtureHelpers("({mamFixtureTeamKey,mamSameFixture,mamMergeFixtureRows})"),{
+		mamFixtureInstant:value=>Date.parse(value),
+		ESPN_LEAGUES:{"203":{slug:"tur.1"}},
+		mamCanonicalMatchStatus:row=>String(row.fixture?.status?.short||"UNK").toUpperCase(),
+		mamHasCompletedScore:row=>[row.goals?.home,row.goals?.away].every(value=>Number.isSafeInteger(Number(value))&&value!==null&&value!==undefined)
+	});
+	const league={id:"203",name:"Süper Lig"};
+	const observed=[
+		{fixture:{id:"1584475",date:"2026-11-27T20:00:00+03:00",status:{short:"FT"}},league,teams:{home:{name:"Alanyaspor"},away:{name:"Konyaspor"}},goals:{home:1,away:2}},
+		{fixture:{id:"espn-tur.1-401888241",date:"2026-11-27T17:00Z",status:{short:"NS"}},league,teams:{home:{name:"Alanyaspor"},away:{name:"Konyaspor"}},goals:{home:0,away:0}},
+		{fixture:{id:"tff-20261127-alanyaspor-t-mosan-konyaspor",date:"2026-11-27T20:00:00+03:00",status:{short:"NS"}},league:{id:"203",name:"Trendyol Süper Lig"},teams:{home:{name:"Alanyaspor"},away:{name:"T�MOSAN KONYASPOR"}},goals:{home:null,away:null}},
+		{fixture:{id:"1584482",date:"2026-11-27T20:00:00+03:00",status:{short:"FT"}},league,teams:{home:{name:"Rizespor"},away:{name:"Kasımpaşa"}},goals:{home:3,away:2}},
+		{fixture:{id:"espn-tur.1-401888240",date:"2026-11-27T17:00Z",status:{short:"LIVE"}},league,teams:{home:{name:"Caykur Rizespor"},away:{name:"Kasimpasa"}},goals:{home:0,away:0}},
+		{fixture:{id:"tff-20261127-aykur-r-zespor-a-kasimpa-a-a",date:"2026-11-27T20:00:00+03:00",status:{short:"NS"}},league:{id:"203",name:"Trendyol Süper Lig"},teams:{home:{name:"�AYKUR R�ZESPOR A.�."},away:{name:"KASIMPA�A A.�."}},goals:{home:null,away:null}}
+	];
+	assert.equal(api.mamFixtureTeamKey("T�MOSAN KONYASPOR"),api.mamFixtureTeamKey("Konyaspor"));
+	assert.equal(api.mamFixtureTeamKey("�AYKUR R�ZESPOR A.�."),api.mamFixtureTeamKey("Caykur Rizespor"));
+	assert.equal(api.mamFixtureTeamKey("KASIMPA�A A.�."),api.mamFixtureTeamKey("Kasimpasa"));
+	assert.equal(api.mamFixtureTeamKey("BE��KTA� A.�."),api.mamFixtureTeamKey("Besiktas"));
+	assert.equal(api.mamFixtureTeamKey("GALATASARAY A.�."),api.mamFixtureTeamKey("Galatasaray"));
+	assert.match(source,/MAMTeamIdentity\.canonicalHistoryKey\(value,MAM_UEFA_TEAM_GROUPS,mamFixtureTeamKey/,
+		"historical queries must use the same verified cross-provider identity key as fixture deduplication");
+	const merged=api.mamMergeFixtureRows(observed);
+	assert.equal(merged.length,2,"the exact official kickoff and unambiguous teams resolve each cross-provider row to one fixture");
+	assert.equal(JSON.stringify(merged.map(row=>[row.fixture.status.short,row.goals.home,row.goals.away])),JSON.stringify([["FT",1,2],["FT",3,2]]));
+	assert.notEqual(api.mamFixtureTeamKey("�XZZY QQQ"),api.mamFixtureTeamKey("Konyaspor"),"unresolved damaged names must not fuzzy-match a real club");
 });
 
 test("ESPN profile history enriches optional statistics without API-Football fallback",()=>{

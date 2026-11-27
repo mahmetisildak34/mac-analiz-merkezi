@@ -3797,12 +3797,32 @@ const MAM_FIXTURE_TEAM_ALIASES=new Map([
  ["corum",["corum","corum fk","arca corum fk","corum belediyespor","corum futbol kulubu"]],
  ["rizespor",["rizespor","caykur rizespor","caykur rize"]],
  ["erzurumspor",["erzurumspor","erzurumspor fk","bb erzurumspor","erzurum bb","erzurum buyuksehir belediyespor","erzurumspor futbol kulubu"]],
- ["konyaspor",["konyaspor","tumos an konyaspor","tumosankonyaspor","tümosan konyaspor","atiker konyaspor","torku konyaspor"]]
+	["konyaspor",["konyaspor","tumos an konyaspor","tumosankonyaspor","tümosan konyaspor","atiker konyaspor","torku konyaspor"]],
+	["besiktas",["besiktas","besiktas jk","besiktas a s","besiktas istanbul jk","besiktas istanbul"]],
+	["galatasaray",["galatasaray","galatasaray a s","galatasaray sk"]],
+	["kasimpasa",["kasimpasa","kasimpasa sk"]]
 ].flatMap(([canonical,names])=>names.map(name=>[mamFixtureTeamKeyBase(name),canonical])));
+	// U+FFFD means the source lost the original character; byte decoding cannot
+	// restore it. Resolve only if each lost character maps to one letter and the
+	// result identifies exactly one verified provider alias.
+	const mamResolveLossyFixtureTeamKey=value=>{
+	 let raw=String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD")
+	  .replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i");
+	 if(!raw.includes("\uFFFD"))return "";
+	 raw=raw.replace(/\s+a\.[^\s]*\.?\s*$/u,"");
+	 const pattern=Array.from(raw).map(char=>char==="\uFFFD"?"[a-z]":/[a-z0-9]/.test(char)?char:"").join("");
+	 if(!pattern)return "";
+	 const matcher=new RegExp("^"+pattern+"$");
+	 const matches=new Set();
+	 for(const [alias,canonical] of MAM_FIXTURE_TEAM_ALIASES)if(matcher.test(alias))matches.add(canonical);
+	 return matches.size===1?[...matches][0]:"";
+	};
 const mamFixtureTeamKey=value=>{
- const key=mamFixtureTeamKeyBase(value);
- const verifiedAlias=MAM_FIXTURE_TEAM_ALIASES.get(key);
- if(verifiedAlias)return verifiedAlias;
+	const key=mamFixtureTeamKeyBase(value);
+	const verifiedAlias=MAM_FIXTURE_TEAM_ALIASES.get(key);
+	if(verifiedAlias)return verifiedAlias;
+	const repairedLossyAlias=mamResolveLossyFixtureTeamKey(value);
+	if(repairedLossyAlias)return repairedLossyAlias;
  // Explicit provider aliases only; never use broad fuzzy matching between unrelated clubs.
  const aliases={
   istanbulbasaksehir:"basaksehir",istanbulbasaksehirspor:"basaksehir",
@@ -7005,7 +7025,12 @@ function mamCanonicalHistoryTeamKey(value){
  return MAMTeamIdentity.canonicalHistoryKey(value,MAM_UEFA_TEAM_GROUPS,mamFixtureTeamKey,[["Plzen","Viktoria Plzen"]]);
 }
 function mamHistoryTeamSearchNames(teamName,acceptedNames){
- return MAMTeamIdentity.historySearchNames(teamName,acceptedNames,MAM_UEFA_TEAM_GROUPS,[["Plzen","Viktoria Plzen"]]);
+	const names=MAMTeamIdentity.historySearchNames(teamName,acceptedNames,MAM_UEFA_TEAM_GROUPS,[["Plzen","Viktoria Plzen"]]);
+	const canonical=mamCanonicalHistoryTeamKey(teamName);
+	const verifiedAliases=typeof MAM_FIXTURE_TEAM_ALIASES==="undefined"?[]:MAM_FIXTURE_TEAM_ALIASES;
+	for(const [alias,key] of verifiedAliases)if(key===canonical)names.push(alias);
+	if(canonical)names.push(canonical);
+	return [...new Set(names.filter(Boolean))];
 }
 function mamHistoricalIdentity(match){
  const day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);
