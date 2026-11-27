@@ -1304,6 +1304,18 @@ input,select,.league-trigger{background:#08142b!important;border:1px solid rgba(
 :root{--mam-gold:#f4bd36;--mam-gold2:#ffe08a;--mam-navy:#07152d;--mam-panel:#0d1d3b;--mam-panel2:#13264a;--mam-line:rgba(244,189,54,.62)}
 html,body{background:#050d20!important}
 button{transition:filter .15s ease,transform .15s ease}
+#mamStandingsCountries{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:9px}
+#mamStandingsCountries .mam-standings-group{margin:0!important;min-width:0}
+#mamStandingsCountries .mam-standings-group h3{margin:0 0 8px!important;font-size:13px}
+#mamNationsLeagueDetail{margin:12px 0;padding:16px;border:1px solid rgba(244,189,54,.4);border-radius:17px;background:linear-gradient(145deg,#101d3b,#0a142b);color:#eef3ff}
+.mam-nations-detail-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.mam-nations-detail-head>div{min-width:0}.mam-nations-detail-head span{font-size:11px;color:#b4c1df}.mam-nations-detail-head h2{margin:3px 0 0;font-size:21px}
+.mam-nations-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:12px 0 14px}
+.mam-nations-tabs button{min-width:0;min-height:44px;padding:7px 5px;white-space:normal}
+.mam-nations-tabs button[aria-selected="true"]{background:linear-gradient(135deg,#5122a8,#24185c)!important;color:#fff!important;border-color:#c18aff!important}
+#mamNationsLeagueDetail #mamStandingsBack,#mamNationsLeagueDetail [data-unl-tab]{display:none!important}
+.mam-nations-match{padding:11px 4px;border-bottom:1px solid rgba(244,189,54,.16);color:#eef3ff}
+.mam-nations-match strong{font-size:14px}.mam-nations-match small{display:block;margin-top:4px;color:#b4c1df;font-size:12px}
 #mamStandingsScreen .mam-standings-card,
 #mamStandingsScreen .mam-standings-group{background:linear-gradient(155deg,#102348,#07152d)!important;border:1px solid var(--mam-line)!important;border-radius:17px!important;box-shadow:0 8px 24px rgba(0,0,0,.3),inset 0 0 20px rgba(255,255,255,.018)!important}
 #mamStandingsScreen .mam-standings-banner{background:linear-gradient(110deg,#142d59,#09172f)!important;border:1.5px solid var(--mam-gold)!important;border-radius:15px!important;box-shadow:0 0 16px rgba(244,189,54,.12)!important}
@@ -2258,6 +2270,18 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
  .mam-independent-favorites [aria-pressed="true"] .mam-star-glyph {color:#f4bd36}
  #matches .mam-fixture-row {padding:6px!important;gap:4px!important;border-width:1px!important;box-shadow:none!important}
  #mamStandingsScreen .mam-standings-group,#mamStandingsScreen .mam-standings-card,#mamFavoritePanel {margin:8px 0!important;padding:8px!important;border-width:1px!important;border-radius:11px!important;box-shadow:none!important}
+ #mamStandingsCountries{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:8px}
+ #mamStandingsCountries .mam-standings-group{margin:0!important;min-width:0}
+ #mamStandingsCountries .mam-standings-group h3{margin:0 0 7px!important;font-size:12px!important}
+ #mamNationsLeagueDetail{margin:10px 0;padding:12px;border:1px solid rgba(139,154,221,.3);border-radius:14px;background:linear-gradient(145deg,#101d3b,#0a142b);color:#eef3ff}
+ .mam-nations-detail-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+ .mam-nations-detail-head>div{min-width:0}.mam-nations-detail-head span{font-size:10px;color:#9baed4}.mam-nations-detail-head h2{margin:3px 0 0;font-size:18px}
+ .mam-nations-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:10px 0 12px}
+ .mam-nations-tabs button{min-width:0;min-height:44px;padding:5px 3px;font-size:11px;line-height:1.2;white-space:normal}
+ .mam-nations-tabs button[aria-selected="true"]{background:linear-gradient(135deg,#5122a8,#24185c)!important;color:#fff!important;border-color:#c18aff!important}
+ #mamNationsLeagueDetail #mamStandingsBack,#mamNationsLeagueDetail [data-unl-tab]{display:none!important}
+ .mam-nations-match{padding:10px 4px;border-bottom:1px solid rgba(139,154,221,.2);color:#eef3ff}
+ .mam-nations-match strong{font-size:13px}.mam-nations-match small{display:block;margin-top:4px;color:#aebcda;font-size:11px}
  #mamStandingsScreen .mam-standings-search {margin:8px 0!important}
  #mamStandingsScreen .mam-standings-leagues {gap:5px!important}
  #mamStandingsScreen .mam-standings-leagues button {min-height:44px!important;padding:5px 7px!important;font-size:12px!important;line-height:1.25!important;white-space:normal!important;box-shadow:none!important}
@@ -2486,14 +2510,9 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
  <div class="mam-standings-intro"><span>🏆 LİG MERKEZİ</span><h2>Puan Durumu</h2><p>Türkiye ligleri, Avrupa kupaları ve dünyanın önde gelen organizasyonları tek yerde.</p></div>
  <div id="mamStandingsPicker">
  <label class="mam-standings-search"><span>⌕</span><input id="mamStandingsSearch" type="search" placeholder="Lig veya turnuva ara..." autocomplete="off"></label>
- <div class="mam-standings-group"><h3>⭐ Popüler Ligler</h3><div class="mam-standings-leagues" id="mamStandingsPopular"></div></div>
- <div class="mam-standings-group"><h3>🇹🇷 Türkiye</h3><div class="mam-standings-leagues" id="mamStandingsTurkey"></div></div>
- <div class="mam-standings-group"><h3>🌍 Avrupa'nın Büyük Ligleri</h3><div class="mam-standings-leagues" id="mamStandingsEurope"></div></div>
- <div class="mam-standings-group"><h3>🏆 Avrupa Kupaları</h3><div class="mam-standings-leagues" id="mamStandingsCups"></div></div>
- <div class="mam-standings-group"><h3>🌍 Milli Takım Turnuvaları</h3><div class="mam-standings-leagues" id="mamStandingsNational"></div></div>
- <div class="mam-standings-group"><h3>🌐 Diğer Ülkeler ve Kulüp Turnuvaları</h3><div class="mam-standings-leagues" id="mamStandingsWorld"></div></div>
+ <div id="mamStandingsCountries" class="mam-standings-countries"></div>
 
- <section id="mamNationsLeague2026" style="margin:18px 0;padding:18px;border:1px solid rgba(212,175,55,.65);border-radius:18px;background:linear-gradient(145deg,#101d3b,#0a142b);color:#eef3ff">
+ <section id="mamNationsLeague2026" hidden style="margin:18px 0;padding:18px;border:1px solid rgba(212,175,55,.65);border-radius:18px;background:linear-gradient(145deg,#101d3b,#0a142b);color:#eef3ff">
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:26px">🇪🇺</span><div><h2 style="margin:0;font-size:21px">UEFA Uluslar Ligi 2026/27</h2><p style="margin:4px 0 0;color:#aebcda;font-size:13px">Tüm ligler · Kura torbaları · Kesinleşen gruplar</p></div></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:15px 0 10px">
    <button type="button" class="secondary" data-unl-tab="pots" aria-pressed="true">🎱 Kura torbaları</button>
@@ -2519,10 +2538,24 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
   </div>
   <p style="font-size:11px;color:#91a2c7;margin:14px 0 0">Lig A/B/C: 4 grup × 4 takım. Lig D: 2 grup × 3 takım. Maçlar çift devreli oynanır.</p>
  </section>
- <div class="mam-standings-group"><h3>🌍 Tüm desteklenen ligler ve kupalar</h3><p class="mam-standings-footnote">Veri sağlayıcısının güncel sezon için sunduğu tüm organizasyonları getir.</p><button type="button" class="secondary" id="mamLoadAllLeagues">Tüm ligleri yükle</button><div class="mam-standings-leagues" id="mamStandingsAll" style="margin-top:10px"></div></div>
- <p class="mam-standings-footnote">Liste, veri sağlayıcılarımızın desteklediği organizasyonlara göre genişletilir. Eleme usulü kupalarda puan tablosu bulunmayabilir; grup aşaması varsa grup tablosu gösterilir.</p>
+ <div class="mam-standings-group" hidden><h3>🌍 Tüm desteklenen ligler ve kupalar</h3><p class="mam-standings-footnote">Veri sağlayıcısının güncel sezon için sunduğu tüm organizasyonları getir.</p><button type="button" class="secondary" id="mamLoadAllLeagues">Tüm ligleri yükle</button><div class="mam-standings-leagues" id="mamStandingsAll" style="margin-top:10px"></div></div>
+ <p class="mam-standings-footnote" hidden>Liste, veri sağlayıcılarımızın desteklediği organizasyonlara göre genişletilir. Eleme usulü kupalarda puan tablosu bulunmayabilir; grup aşaması varsa grup tablosu gösterilir.</p>
  </div>
+ <div id="mamNationsLeagueDetail" class="mam-nations-detail" hidden>
+  <div class="mam-nations-detail-head"><button type="button" id="mamNationsLeagueBack" class="secondary">← Liglere dön</button><div><span>🇪🇺 UEFA · 2026/27</span><h2>UEFA Uluslar Ligi</h2></div></div>
+  <div id="mamNationsLeagueTabs" class="mam-nations-tabs" role="tablist" aria-label="UEFA Uluslar Ligi bölümleri">
+   <button type="button" class="secondary" role="tab" aria-selected="true" data-nations-tab="standings">Puan Durumu</button>
+   <button type="button" class="secondary" role="tab" aria-selected="false" data-nations-tab="matches">Maçlar</button>
+   <button type="button" class="secondary" role="tab" aria-selected="false" data-nations-tab="groups">Gruplar</button>
+   <button type="button" class="secondary" role="tab" aria-selected="false" data-nations-tab="pots">Kura Torbaları</button>
+  </div>
+  <div id="mamNationsStandingsPanel" role="tabpanel"></div>
+  <div id="mamNationsMatchesPanel" role="tabpanel" hidden aria-live="polite"></div>
+  <div id="mamNationsGroupsPotsPanel" role="tabpanel" hidden></div>
+ </div>
+ <div id="mamStandingsCardHost">
  <div class="mam-standings-card" id="mamStandingsCard" hidden><div class="mam-standings-banner" id="mamStandingsBanner"><div class="mam-standings-flag" id="mamStandingsFlag">🏆</div><div class="mam-standings-banner-copy"><strong id="mamStandingsBannerName">Lig</strong><span id="mamStandingsBannerMeta">Sezon</span></div><div class="mam-standings-banner-mark">⚽</div></div><div class="mam-standings-card-head"><button type="button" id="mamStandingsBack" class="secondary">← Liglere dön</button><div><small id="mamStandingsSeason">SEZON</small><h3 id="mamStandingsLeagueTitle">Lig puan durumu</h3></div><button type="button" id="mamStandingsRefresh" class="secondary">↻ Yenile</button></div><label for="mamStandingsSeasonSelect">ESPN sezonu</label><select id="mamStandingsSeasonSelect"><option value="">ESPN güncel sezonu</option></select><div id="mamStandingsTable" aria-live="polite"><div class="empty">Puan tablosu yükleniyor...</div></div></div>
+ </div>
  </section>
 <section class="panel mam-fixture-controls">
 <nav id="mamReferenceDateNav" class="mam-reference-date-nav" aria-label="Maç tarihi">
@@ -8630,17 +8663,20 @@ async function analyze(button){
   {id:"6",name:"Afrika Uluslar Kupası",flag:"🌍",group:"national"},
  ];
  standingCompetitionNames=Object.fromEntries(standingCompetitions.map(item=>[item.id,item.name]));
- const groupTargets={popular:$("mamStandingsPopular"),turkey:$("mamStandingsTurkey"),europe:$("mamStandingsEurope"),cups:$("mamStandingsCups"),national:$("mamStandingsNational"),world:$("mamStandingsWorld"),all:$("mamStandingsAll")};
+ const standingCountryGroups={"203":["🇹🇷 Türkiye",0],"204":["🇹🇷 Türkiye",0],"39":["🏴 İngiltere",1],"40":["🏴 İngiltere",1],"140":["🇪🇸 İspanya",2],"78":["🇩🇪 Almanya",3],"135":["🇮🇹 İtalya",4],"61":["🇫🇷 Fransa",5],"88":["🇳🇱 Hollanda",6],"94":["🇵🇹 Portekiz",7],"2":["🏆 UEFA Kulüp Turnuvaları",8],"3":["🏆 UEFA Kulüp Turnuvaları",8],"848":["🏆 UEFA Kulüp Turnuvaları",8],"4":["🇪🇺 Milli Takım Turnuvaları",9],"5":["🇪🇺 Milli Takım Turnuvaları",9],"1":["🌍 Dünya Turnuvaları",10]};
+ const countryGroups=$("mamStandingsCountries");
  let allProviderLeagues=[];
  const renderStandingButtons=(filter="")=>{
-  Object.entries(groupTargets).forEach(([key,target])=>{if(key!=="all"&&target)target.innerHTML=""});
+  if(!countryGroups)return;
+  countryGroups.replaceChildren();
   const q=filter.trim().toLocaleLowerCase("tr-TR");
-  standingCompetitions.filter(item=>!q||(item.name+" "+item.flag).toLocaleLowerCase("tr-TR").includes(q)).forEach(item=>{
-   const makeButton=()=>{const button=document.createElement("button");button.type="button";button.dataset.standingLeague=item.id;button.textContent=item.flag+" "+item.name;button.classList.toggle("active",selectedStandingsLeague===item.id);return button;};
-   if(item.popular&&groupTargets.popular)groupTargets.popular.appendChild(makeButton());
-   if(groupTargets[item.group])groupTargets[item.group].appendChild(makeButton());
+  const groups=new Map();
+  standingCompetitions.filter(item=>window.MAMActiveLeagueScope.isActiveLeagueId(item.id)&&(!q||(item.name+" "+item.flag).toLocaleLowerCase("tr-TR").includes(q))).forEach(item=>{
+   const [title,order]=standingCountryGroups[item.id]||["🌍 Diğer Turnuvalar",99];
+   if(!groups.has(title)){const section=document.createElement("section");section.className="mam-standings-group";section.dataset.standingCountry=title;const heading=document.createElement("h3");heading.textContent=title;const leagues=document.createElement("div");leagues.className="mam-standings-leagues";section.append(heading,leagues);groups.set(title,{section,leagues,order});}
+   const button=document.createElement("button");button.type="button";button.dataset.standingLeague=item.id;button.textContent=item.flag+" "+item.name;button.classList.toggle("active",selectedStandingsLeague===item.id);groups.get(title).leagues.appendChild(button);
   });
-  Object.values(groupTargets).forEach(target=>{const section=target?.closest(".mam-standings-group");if(section)section.hidden=!target.children.length;});
+  [...groups.values()].sort((a,b)=>a.order-b.order).forEach(group=>countryGroups.appendChild(group.section));
  };
  renderStandingButtons();
  // D1 arşivinde bulunan ligleri, API-Football listesinden bağımsız olarak Lig Merkezi'nde göster.
@@ -8718,13 +8754,70 @@ async function analyze(button){
   }catch(error){target.innerHTML='<div class="error">Tüm ligler yüklenemedi: '+esc(error.message||error)+'</div>';button.textContent="Tekrar dene";}
   finally{button.disabled=false;}
  });
+ const nationsDetail=$("mamNationsLeagueDetail"),nationsCardHost=$("mamStandingsCardHost"),nationsCard=$("mamStandingsCard"),nationsSection=$("mamNationsLeague2026");
+ const nationsStandingsPanel=$("mamNationsStandingsPanel"),nationsMatchesPanel=$("mamNationsMatchesPanel"),nationsGroupsPotsPanel=$("mamNationsGroupsPotsPanel");
+ const nationsDetailTabs=[...document.querySelectorAll("[data-nations-tab]")];
+ if(nationsSection&&nationsGroupsPotsPanel){nationsGroupsPotsPanel.appendChild(nationsSection);nationsSection.hidden=false;}
+ function renderNationsLeagueMatches(){
+  const matches=(Array.isArray(allMatches)?allMatches:[]).filter(match=>window.MAMActiveLeagueScope.leagueIdFor(match)==="5").slice().sort((a,b)=>(Date.parse(a.fixture?.date||"")||0)-(Date.parse(b.fixture?.date||"")||0));
+  if(!nationsMatchesPanel)return;
+  if(!matches.length){nationsMatchesPanel.innerHTML='<div class="empty">Şu anda yüklenmiş UEFA Uluslar Ligi maç verisi bulunmuyor. Fikstür veya sonuç uydurulmamıştır.</div>';return;}
+  nationsMatchesPanel.innerHTML=matches.map(match=>{
+   const fixture=match.fixture||{},teams=match.teams||{},goals=match.goals||{};
+   const hasScore=goals.home!==null&&goals.home!==undefined&&goals.away!==null&&goals.away!==undefined;
+   const score=hasScore?String(goals.home)+" – "+String(goals.away):"Skor verisi yok";
+   const stamp=Date.parse(fixture.date||"");
+   const date=Number.isFinite(stamp)?new Intl.DateTimeFormat("tr-TR",{dateStyle:"medium",timeStyle:"short",timeZone:"Europe/Istanbul"}).format(new Date(stamp)):"Tarih bilgisi yok";
+   const status=fixture.status?.long||fixture.status?.short||"Durum bilgisi yok";
+   return '<article class="mam-nations-match"><strong>'+esc(mamDisplayTeamName(teams.home?.name||"Ev sahibi bilgisi yok"))+" — "+esc(mamDisplayTeamName(teams.away?.name||"Deplasman bilgisi yok"))+'</strong><small>'+esc(date)+" · "+esc(String(status))+" · "+esc(score)+"</small></article>";
+  }).join("");
+ }
+ function setNationsLeagueTab(name){
+  const panels={standings:nationsStandingsPanel,matches:nationsMatchesPanel,groups:nationsGroupsPotsPanel,pots:nationsGroupsPotsPanel};
+  nationsDetailTabs.forEach(tab=>tab.setAttribute("aria-selected",String(tab.dataset.nationsTab===name)));
+  Object.entries(panels).forEach(([key,panel])=>{if(panel)panel.hidden=key!==name&&!(key==="groups"&&name==="pots")&&!(key==="pots"&&name==="groups");});
+  if(name==="standings"){
+   if(nationsCard&&nationsStandingsPanel&&!nationsStandingsPanel.contains(nationsCard))nationsStandingsPanel.appendChild(nationsCard);
+   if(nationsCard)nationsCard.hidden=false;
+   if(nationsSection)nationsSection.hidden=true;
+   void loadStandings();
+  }else{
+   if(nationsCard&&nationsCardHost&&!nationsCardHost.contains(nationsCard))nationsCardHost.appendChild(nationsCard);
+   if(nationsCard)nationsCard.hidden=true;
+   if(name==="matches"){
+    if(nationsSection)nationsSection.hidden=true;
+    renderNationsLeagueMatches();
+   }else{
+    if(nationsSection)nationsSection.hidden=false;
+    document.querySelector('#mamNationsLeague2026 [data-unl-tab="'+name+'"]')?.click();
+   }
+  }
+ }
+ function openNationsLeagueDetail(tab="standings"){
+  try{const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"{}");localStorage.setItem("mam_app_view_state",JSON.stringify({...saved,mode:"standings",standingsLeague:"5"}));}catch(_){}
+  document.querySelectorAll("#mamStandingsScreen [data-standing-league]").forEach(item=>item.classList.toggle("active",item.dataset.standingLeague==="5"));
+  $("mamStandingsPicker").hidden=true;if(nationsCardHost)nationsCardHost.hidden=true;
+  if(nationsDetail)nationsDetail.hidden=false;
+  setNationsLeagueTab(tab);
+  nationsDetail?.scrollIntoView({behavior:"smooth",block:"start"});
+ }
+ function closeNationsLeagueDetail(){
+  if(nationsDetail)nationsDetail.hidden=true;
+  if(nationsCard&&nationsCardHost){nationsCardHost.appendChild(nationsCard);nationsCard.hidden=true;nationsCardHost.hidden=false;}
+  $("mamStandingsPicker").hidden=false;
+  $("mamStandingsPicker")?.scrollIntoView({behavior:"smooth",block:"start"});
+ }
+ nationsDetailTabs.forEach(tab=>tab.addEventListener("click",()=>setNationsLeagueTab(tab.dataset.nationsTab)));
+ $("mamNationsLeagueBack")?.addEventListener("click",closeNationsLeagueDetail);
  $("mamStandingsScreen")?.addEventListener("click",async event=>{
   const button=event.target.closest("[data-standing-league]");if(!button)return;
   selectedStandingsLeague=button.dataset.standingLeague;
   $("mamStandingsSeasonSelect").value="";
   try{const saved=JSON.parse(localStorage.getItem("mam_app_view_state")||"{}");localStorage.setItem("mam_app_view_state",JSON.stringify({...saved,mode:"standings",standingsLeague:selectedStandingsLeague}));}catch(_){}
   document.querySelectorAll("#mamStandingsScreen [data-standing-league]").forEach(item=>item.classList.toggle("active",item.dataset.standingLeague===selectedStandingsLeague));
-  $("mamStandingsPicker").hidden=true;$("mamStandingsCard").hidden=false;
+  if(selectedStandingsLeague==="5"){openNationsLeagueDetail("standings");return;}
+  if(nationsDetail&&!nationsDetail.hidden)closeNationsLeagueDetail();
+  $("mamStandingsPicker").hidden=true;if(nationsCardHost)nationsCardHost.hidden=false;$("mamStandingsCard").hidden=false;
   await loadStandings();
   $("mamStandingsCard")?.scrollIntoView({behavior:"smooth",block:"start"});
  });
