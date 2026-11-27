@@ -5,6 +5,7 @@
   if (root) root.MAMDataCenterClient = api;
 })(typeof globalThis === "object" ? globalThis : this, function () {
   "use strict";
+  const DEFAULT_BUNDLE_TIMEOUT_MS = 2500;
   const validScore = value => Number.isInteger(value) && value >= 0;
   const validDate = value => Number.isFinite(Date.parse(value));
 
@@ -38,11 +39,29 @@
     return mapped;
   }
 
-  async function loadPreparedAnalysis(fetchBundle, request) {
+  async function loadPreparedAnalysis(fetchBundle, request, options = {}) {
     if (typeof fetchBundle !== "function" || !request?.provider || !request?.fixtureId ||
         !request?.kickoff || !Number.isFinite(Date.parse(request.kickoff))) return null;
+    const configuredTimeout = Number(options?.timeoutMs);
+    const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout > 0
+      ? Math.min(DEFAULT_BUNDLE_TIMEOUT_MS, configuredTimeout) : DEFAULT_BUNDLE_TIMEOUT_MS;
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    let timeoutId = null;
     try {
-      const bundle = await fetchBundle({ provider: String(request.provider).toLowerCase(), fixtureId: String(request.fixtureId) });
+      const result = await Promise.race([
+        Promise.resolve().then(() => fetchBundle({ provider: String(request.provider).toLowerCase(),
+          fixtureId: String(request.fixtureId), signal: controller?.signal }))
+          .then(bundle => ({ bundle }), () => ({ failed: true })),
+        new Promise(resolve => {
+          timeoutId = setTimeout(() => {
+            controller?.abort();
+            resolve({ timedOut: true });
+          // Leave event-loop scheduling headroom under the 2.5 s observed deadline.
+          }, Math.max(1, timeoutMs - 100));
+        })
+      ]);
+      if (result.timedOut || result.failed) return null;
+      const bundle = result.bundle;
       const fixture = bundle?.fixture;
       if (!fixture || String(fixture.provider || "").toLowerCase() !== String(request.provider).toLowerCase() ||
           String(fixture.providerFixtureId || "") !== String(request.fixtureId) ||
@@ -54,6 +73,8 @@
       return { homeHistory, awayHistory, source: "prepared" };
     } catch (_) {
       return null;
+    } finally {
+      if (timeoutId !== null) clearTimeout(timeoutId);
     }
   }
 

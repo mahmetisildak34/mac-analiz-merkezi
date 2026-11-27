@@ -2737,7 +2737,7 @@ const mamEspnPending=new Map();
 let apiQueue=Promise.resolve();
 let lastApiCall=0;
 
-async function api(path){
+async function api(path,options={}){
   const cleanPath=String(path).replace(/^\/+/, "");
   const url=WORKER.replace(/\/$/,"")+"/api/"+cleanPath;
   const isStandings=cleanPath.startsWith("standings?")||cleanPath.startsWith("football-data/competitions/")&&cleanPath.includes("/standings")||/^espn\/[a-zA-Z0-9._-]+\/standings\?/.test(cleanPath);
@@ -2751,6 +2751,7 @@ async function api(path){
   const isLiveStats=cleanPath.startsWith("fixtures/statistics?")||isEspnSummary;
   const isLineupRequest=cleanPath.startsWith("fixtures?id=")||cleanPath.startsWith("fixtures/lineups?")||cleanPath.startsWith("fixtures/players?");
   const isArchive=cleanPath.startsWith("archive/")||cleanPath.startsWith("data-center/");
+  const isDataCenterB=cleanPath.startsWith("data-center/fixture-bundle");
   const isDiagnostic=cleanPath==="football/status";
   const isTffFixtures=cleanPath==="superlig/fixtures";
   const isPrimaryApi=!isDiagnostic&&!isArchive&&!isTffFixtures&&!isSportScore&&!cleanPath.startsWith("espn/")&&!cleanPath.startsWith("football-data/")&&!cleanPath.startsWith("fixturesdownload/");
@@ -2766,7 +2767,7 @@ async function api(path){
   // Canlı istatistikleri de kısa süreli önbellekten sun: aynı maç tekrar açıldığında
   // gereksiz API-Football isteği gönderilmesin. Hata halinde son başarılı veri korunur.
   const isArchiveBackfill=cleanPath.startsWith("archive/backfill-all?");
-  if(!isDiagnostic&&cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLineupRequest&&!isArchiveBackfill){
+  if(!isDiagnostic&&!isDataCenterB&&cachedEntry?.time&&cachedEntry.data&&!isStandings&&!isLineupRequest&&!isArchiveBackfill){
     const cacheAge=isEspnLiveScoreboard||isLive?5*1000:isTffFixtures?2*60*1000:isArchive?10*60*1000:isLiveStats?15*1000:30*60*1000;
     if(Date.now()-cachedEntry.time<cacheAge)return cachedEntry.data;
   }
@@ -2814,10 +2815,14 @@ async function api(path){
     }
 
     const controller=new AbortController();
+    const callerSignal=options?.signal;
+    const abortFromCaller=()=>controller.abort();
+    if(callerSignal?.aborted)controller.abort();
+    else if(callerSignal)callerSignal.addEventListener("abort",abortFromCaller,{once:true});
     const timeoutId=setTimeout(()=>controller.abort(),cleanPath.startsWith("archive/backfill-all?")?60000:isLiveStats?9000:15000);
     let response;
     try{
-      response=await fetch(url,{signal:controller.signal,cache:isEspnLiveScoreboard?"no-store":"default",headers:{Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||"")}});
+      response=await fetch(url,{signal:controller.signal,cache:isEspnLiveScoreboard||isDataCenterB?"no-store":"default",headers:{Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||"")}});
     }catch(networkError){
       // Ağ veya sağlayıcı hatasında en fazla 10 dakikalık son başarılı canlı istatistiği kullan.
       if(isLiveStats&&cachedEntry?.time&&cachedEntry.data&&Date.now()-cachedEntry.time<10*60*1000){
@@ -2829,6 +2834,7 @@ async function api(path){
       throw new Error((isPrimaryApi?"API-Football":"Yedek kaynak")+" bağlantı hatası: "+String(networkError.message||networkError));
     }finally{
       clearTimeout(timeoutId);
+      if(callerSignal)callerSignal.removeEventListener("abort",abortFromCaller);
     }
     let data;
     try{data=await response.json();}
@@ -2881,7 +2887,7 @@ async function api(path){
         try{localStorage.setItem(dailyCooldownKey,String(nextUtcMidnight));}catch(_){}
       }
     }
-    if(!isLineupRequest&&!isArchiveBackfill){try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));}catch(e){}}
+    if(!isLineupRequest&&!isArchiveBackfill&&!isDataCenterB){try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));}catch(e){}}
     return data;
   };
 
@@ -8185,8 +8191,8 @@ function mamCanAnalyzePrematch(status,kickoff,now=Date.now()){
 async function mamLoadAnalysisHistories(button,homeId,awayId,date){
  const provider=String(button?.dataset?.provider||"").toLowerCase();
  if(provider&&window.MAMDataCenterClient){
-  const prepared=await window.MAMDataCenterClient.loadPreparedAnalysis(({provider,fixtureId})=>
-   api("data-center/fixture-bundle?"+qs({provider,fixtureId})),
+  const prepared=await window.MAMDataCenterClient.loadPreparedAnalysis(({provider,fixtureId,signal})=>
+   api("data-center/fixture-bundle?"+qs({provider,fixtureId}),{signal}),
    {provider,fixtureId:button.dataset.id,kickoff:button.dataset.kickoff,homeTeamId:homeId,awayTeamId:awayId});
   if(prepared)return [prepared.homeHistory,prepared.awayHistory];
  }

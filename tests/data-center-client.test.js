@@ -48,3 +48,14 @@ test("incomplete, ambiguous, stale, or mismatched B bundle returns null for lega
   for (const value of cases) assert.equal(await loadPreparedAnalysis(async () => value, request), null);
   assert.equal(await loadPreparedAnalysis(async () => { throw Error("B unavailable"); }, request), null);
 });
+
+test("a stalled B request is aborted within its deadline and returns null for legacy fallback", async () => {
+  const request = { provider: "espn", fixtureId: "future-1", kickoff: "2026-11-27T15:00:00Z", homeTeamId: "101", awayTeamId: "202" };
+  let signal;
+  const result = await loadPreparedAnalysis(({ signal: requestSignal }) => {
+    signal = requestSignal;
+    return new Promise(() => {});
+  }, request, { timeoutMs: 20 });
+  assert.equal(result, null);
+  assert.equal(signal.aborted, true);
+});
