@@ -116,6 +116,7 @@ async function verifyMainApp(context,browserName){
   await dialog.waitFor();
   measurements.detailMs=Math.round(performance.now()-detailStart);
   await dialog.locator('[data-mam-star="1"]').click();
+  assert.equal(await main.evaluate(()=>JSON.parse(localStorage.getItem('mam_favorite_labels_v1')||'{}').teamLeagues?.['19267']),'203','favoriting an active legacy team persists its validated league metadata');
   await dialog.getByRole('button',{name:'⚽ Detay'}).click();
   const profileLink=dialog.getByRole('button',{name:'Erzurum BB takım profili'});
   await main.waitForFunction(()=>typeof window.mamOpenStandingTeamHistory==='function',null,{timeout:10000});
@@ -152,7 +153,7 @@ async function verifyMainApp(context,browserName){
   assert.equal(await opener.evaluate(button=>document.activeElement===button),true);
   assert.equal(await main.locator('#date').inputValue(),'2026-11-22');
   await main.evaluate(()=>{allMatches=[];renderMatches();localStorage.removeItem('mam_product_hub_fixtures_v1');});
-  await main.evaluate(()=>{const key='mam-product-hub-v1',prefs=JSON.parse(localStorage.getItem(key)||'{}');prefs.favoriteTeams=[...new Set([...(prefs.favoriteTeams||[]),'display-fixture'])];localStorage.setItem(key,JSON.stringify(prefs));const labels=JSON.parse(localStorage.getItem('mam_favorite_labels_v1')||'{}');labels.teams={...(labels.teams||{}),'display-fixture':'Bayern Munich'};localStorage.setItem('mam_favorite_labels_v1',JSON.stringify(labels));window.dispatchEvent(new Event('mam-favorites-updated'));});
+  await main.evaluate(()=>{const key='mam-product-hub-v1',prefs=JSON.parse(localStorage.getItem(key)||'{}');prefs.favoriteTeams=[...new Set([...(prefs.favoriteTeams||[]),'display-fixture'])];localStorage.setItem(key,JSON.stringify(prefs));const labels=JSON.parse(localStorage.getItem('mam_favorite_labels_v1')||'{}');labels.teams={...(labels.teams||{}),'display-fixture':'Bayern Munich'};labels.teamLeagues={...(labels.teamLeagues||{}),'display-fixture':'78'};localStorage.setItem('mam_favorite_labels_v1',JSON.stringify(labels));window.dispatchEvent(new Event('mam-favorites-updated'));});
   const favorites=main.locator('#mamFavoriteBottom');
   await favorites.click();
   await main.locator('[data-fav-matches]').getByText(/Erzurum BB.*Goztepe/).waitFor();
@@ -164,6 +165,21 @@ async function verifyMainApp(context,browserName){
   await main.locator('[data-fav-matches]').getByText(/Erzurum BB.*Goztepe/).waitFor();
   await main.locator('[data-mam-remove-match="espn-tur.1-401888243"]').click();
   await main.locator('[data-fav-matches]').getByText('Favori maç yok.').waitFor();
+  await main.evaluate(()=>{
+   const active={fixture:{id:'legacy-active-match'},league:{id:'78',name:'Bundesliga',country:'Germany'},teams:{home:{id:'legacy-active-team',name:'Bayern Munich'},away:{id:'legacy-peer-team',name:'Borussia Dortmund'}}};
+   const passive={fixture:{id:'legacy-passive-match'},league:{id:'206',name:'Ziraat Türkiye Kupası',country:'Türkiye'},teams:{home:{id:'legacy-passive-team',name:'Erzurum BB'},away:{id:'legacy-passive-peer',name:'Goztepe'}}};
+   localStorage.setItem('mam_product_hub_fixtures_v1',JSON.stringify({savedAt:Date.now(),matches:[active,passive]}));
+   localStorage.setItem('mam-product-hub-v1',JSON.stringify({favoriteMatches:['legacy-active-match','legacy-passive-match'],favoriteTeams:['legacy-active-team','legacy-passive-team'],alerts:false}));
+   localStorage.setItem('mam_favorite_labels_v1',JSON.stringify({matches:{'legacy-active-match':'Bayern Munich – Borussia Dortmund','legacy-passive-match':'Erzurum BB – Goztepe'},teams:{'legacy-active-team':'Bayern Munich','legacy-passive-team':'Erzurum BB'}}));
+   window.dispatchEvent(new Event('mam-favorites-updated'));
+  });
+  await main.locator('[data-fav-matches]').getByText(/Bayern Münih.*Borussia Dortmund/).waitFor();
+  await main.locator('[data-fav-teams]').getByText('Bayern Münih').waitFor();
+  assert.equal(await main.locator('[data-fav-matches]').getByText(/Erzurum BB.*Goztepe/).count(),0,'legacy passive match favorite stays hidden');
+  assert.equal(await main.locator('[data-fav-teams]').getByText('Erzurum BB').count(),0,'legacy passive team favorite stays hidden');
+  assert.match(await main.locator('[data-fav-count]').innerText(),/2 maç · 2 takım kaydedildi/);
+  assert.match(await main.locator('[data-fav-scope-note]').innerText(),/2 pasif veya eşleşmeyen lig favorisi saklandı/);
+  assert.deepEqual(await main.evaluate(()=>{const p=JSON.parse(localStorage.getItem('mam-product-hub-v1'));return [p.favoriteMatches,p.favoriteTeams];}),[['legacy-active-match','legacy-passive-match'],['legacy-active-team','legacy-passive-team']]);
   const espnProfile=JSON.parse(readFileSync(new URL('./fixtures/espn-arsenal-profile-20261123.json',import.meta.url),'utf8'));
   await main.evaluate(sample=>{
    const originalFetch=window.fetch.bind(window);
@@ -371,10 +387,10 @@ async function verifyMainApp(context,browserName){
   await table.getByText(/Kaydedilmiş ESPN tablosu/).waitFor();
   assert.equal(await main.evaluate(()=>window.historicalStandingsRequests),2);
   await main.locator('#mamStandingsBack').click();
-  await main.locator('#mamStandingsScreen [data-standing-league="206"]').first().click();
-  const officialCup=table.getByRole('link',{name:'TFF resmî kupa fikstürünü aç'});
-  assert.equal(await officialCup.getAttribute('href'),'https://www.tff.org/default.aspx?pageID=598');
-  assert.equal(await table.locator('table').count(),0);
+  const excludedCup=main.locator('#mamStandingsScreen [data-standing-league="206"]').first();
+  await excludedCup.waitFor({state:'attached'});
+  assert.equal(await excludedCup.isVisible(),false,'excluded Turkish Cup must stay hidden from active-league controls');
+  assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/https:\/\/www\.tff\.org\/default\.aspx\?pageID=598/,'the existing official Turkish Cup source link must remain intact');
   await main.waitForFunction(()=>navigator.serviceWorker.controller?.scriptURL.endsWith('/sw.js'));
   console.log('Main mobile timing '+JSON.stringify(measurements));
   const transition=JSON.parse(readFileSync(new URL('./fixtures/espn-esp2-401883109-transition.json',import.meta.url),'utf8'));
@@ -382,11 +398,10 @@ async function verifyMainApp(context,browserName){
    await main.evaluate(({transition,step})=>{
     const {fixture}=transition,record=transition[step];
     const clock=mamEspnClock(record),short=mamEspnStatus(record.status.type);
-    const side=key=>fixture.competitors.find(row=>row.homeAway===key).team;
-    const team=key=>({id:side(key).id,name:side(key).displayName});
     const scores=Object.fromEntries(record.scores);
-    allMatches=[{fixture:{id:'espn-'+transition.league+'-'+fixture.id,date:fixture.date,status:{short,...clock}},
-     league:transition.league==='bra.1'?{id:'71',name:'Brasileirão',country:'Brazil'}:{id:'141',name:'La Liga 2',country:'Spain'},teams:{home:team('home'),away:team('away')},
+    // The captured status/score records remain untouched; render them through an in-scope Turkish-league fixture shell.
+    allMatches=[{fixture:{id:'espn-tur.1-401888243',date:fixture.date,status:{short,...clock}},
+     league:{id:'203',name:'Süper Lig',country:'Türkiye'},teams:{home:{id:'19267',name:'Erzurum BB'},away:{id:'789',name:'Goztepe'}},
      goals:{home:Number(scores.home),away:Number(scores.away)}}];
     setMamScreen('live');
     document.getElementById('date').value=mamIstanbulDay(allMatches[0].fixture.date);
@@ -425,7 +440,9 @@ async function verifyMainApp(context,browserName){
    await main.clock.setFixedTime(new Date(Date.parse(sample.fixture.date)-60000));
    await main.evaluate(sample=>{
     window.getTeamFixtures=async teamId=>sample.history[String(teamId)]??[];
-    const match={league:sample.league,teams:sample.teams,fixture:{...sample.fixture,status:{short:'NS'}}};
+    // Keep the original passive-competition history rows unchanged; only the upcoming UI fixture uses an active league shell.
+    const fixtureId='espn-tur.1-'+String(sample.fixture.id).split('-').at(-1);
+    const match={league:{id:'203',name:'Süper Lig',country:'Türkiye'},teams:sample.teams,fixture:{...sample.fixture,id:fixtureId,status:{short:'NS'}}};
     setMamScreen('home');
     allMatches=[match];
     renderMatches();
@@ -674,6 +691,33 @@ for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
     await reconnected.locator('#mamFavoriteBottom').click();
     await reconnected.locator('[data-fav-teams]').getByText(/Fenerbahçe/).waitFor();
    }finally{await reconnected.close();}
+   const legacyContext=await page.context().browser().newContext({isMobile:true,hasTouch:true,serviceWorkers:'block'});
+   await legacyContext.addInitScript(()=>{
+    const active={fixture:{id:'legacy-active-match'},league:{id:'39',name:'Premier League',country:'England'},teams:{home:{id:'legacy-active-team',name:'Arsenal'},away:{id:'legacy-active-peer',name:'Chelsea'}}};
+    const passive={fixture:{id:'legacy-passive-match'},league:{id:'206',name:'Ziraat Türkiye Kupası',country:'Türkiye'},teams:{home:{id:'legacy-passive-team',name:'Erzurum BB'},away:{id:'legacy-passive-peer',name:'Goztepe'}}};
+    localStorage.setItem('mam_product_hub_fixtures_v1',JSON.stringify({savedAt:Date.now(),matches:[active,passive]}));
+    localStorage.setItem('mam-product-hub-v1',JSON.stringify({favoriteMatches:['legacy-active-match','legacy-passive-match'],favoriteTeams:['legacy-active-team','legacy-passive-team'],alerts:false}));
+    localStorage.setItem('mam_favorite_labels_v1',JSON.stringify({matches:{'legacy-active-match':'Arsenal – Chelsea','legacy-passive-match':'Erzurum BB – Goztepe'},teams:{'legacy-active-team':'Arsenal','legacy-passive-team':'Erzurum BB'}}));
+   });
+   const legacyHub=await legacyContext.newPage();
+   try{
+    await legacyHub.goto(url+'?legacy-favorite-regression=1');
+    await legacyHub.locator('[data-tab="favorites"]').click();
+    await legacyHub.locator('#favMatches').getByText(/Arsenal.*Chelsea/).waitFor();
+    await legacyHub.locator('#favTeams').getByText('Arsenal').waitFor();
+    const metadata=await legacyHub.evaluate(()=>JSON.parse(localStorage.getItem('mam_favorite_labels_v1')));
+    assert.equal(metadata.matchLeagues['legacy-active-match'],'39','active legacy match favorite receives validated league metadata');
+    assert.equal(metadata.teamLeagues['legacy-active-team'],'39','active legacy team favorite receives validated league metadata');
+    assert.equal(metadata.matchLeagues['legacy-passive-match'],undefined,'passive match favorite receives no active metadata');
+    await legacyHub.evaluate(()=>localStorage.removeItem('mam_product_hub_fixtures_v1'));
+    await legacyHub.reload();
+    await legacyHub.locator('[data-tab="favorites"]').click();
+    await legacyHub.locator('#favMatches').getByText(/Arsenal.*Chelsea/).waitFor();
+    await legacyHub.locator('#favTeams').getByText('Arsenal').waitFor();
+    assert.equal(await legacyHub.locator('#favMatches').getByText(/Erzurum BB.*Goztepe/).count(),0,'passive legacy match remains hidden without deleting it');
+    assert.equal(await legacyHub.locator('#favTeams').getByText('Erzurum BB').count(),0,'passive legacy team remains hidden without deleting it');
+    assert.deepEqual(await legacyHub.evaluate(()=>{const prefs=JSON.parse(localStorage.getItem('mam-product-hub-v1'));return [prefs.favoriteMatches,prefs.favoriteTeams];}),[['legacy-active-match','legacy-passive-match'],['legacy-active-team','legacy-passive-team']]);
+   }finally{await legacyContext.close();}
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true);
   }finally{
    try{await browser?.close();}finally{await stopServer(server);}

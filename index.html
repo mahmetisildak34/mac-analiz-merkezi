@@ -2538,9 +2538,10 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
 <div class="league-picker">
 <label id="leagueLabel" for="leagueTrigger">Lig filtresi</label>
 <select id="league" class="league-native" aria-hidden="true" tabindex="-1">
-<option value="all">Tüm ligler</option>
+ <option value="all">Tüm ligler</option>
  <option value="39">Premier League</option>
  <option value="203">Süper Lig</option>
+ <option value="204">1. Lig</option>
  <option value="140">La Liga</option>
  <option value="78">Bundesliga</option>
  <option value="135">Serie A</option>
@@ -2562,6 +2563,8 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
  <option value="3">UEFA Avrupa Ligi</option>
  <option value="848">UEFA Konferans Ligi</option>
  <option value="5">UEFA Uluslar Ligi</option>
+ <option value="1">FIFA Dünya Kupası</option>
+ <option value="4">UEFA Avrupa Şampiyonası</option>
  <option value="253">MLS</option>
  <option value="71">Brezilya Serie A</option>
  <option value="128">Arjantin Primera División</option>
@@ -2664,6 +2667,7 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
  <button type="button" data-mam-bottom="special"><span>⭐</span>Özel</button>
 </nav>
 
+<script src="./active-league-scope.js"></script>
 <script src="./team-identity-registry.js"></script>
 <script src="./data-center-client.js"></script>
 <script src="./half-goal-algorithm.js"></script>
@@ -2956,7 +2960,9 @@ $("loadStandings").addEventListener("click",loadStandings);
 (function initLeaguePicker(){
  const select=$("league"),trigger=$("leagueTrigger"),menu=$("leagueMenu"),current=$("leagueCurrent");
  if(!select||!trigger||!menu||!current)return;
- Array.from(select.options).forEach(option=>{option.textContent=mamDisplayLeagueName(option.textContent||"");});
+ const activeLeagueScope=window.MAMActiveLeagueScope;
+ Array.from(select.options).forEach(option=>{option.textContent=mamDisplayLeagueName(option.textContent||"");option.hidden=option.value!=="all"&&!activeLeagueScope.isActiveLeagueId(option.value);});
+ if(select.value!=="all"&&!activeLeagueScope.isActiveLeagueId(select.value))select.value="all";
  const leagueIcons={"all":"🏆","39":"🏴","203":"🇹🇷","140":"🇪🇸","78":"🇩🇪","135":"🇮🇹","61":"🇫🇷","2":"🏆"};
  function leagueIcon(value){return leagueIcons[String(value)]||"⚽"}
  function syncLeaguePicker(){
@@ -2968,7 +2974,7 @@ $("loadStandings").addEventListener("click",loadStandings);
    item.innerHTML='<span class="league-option-name"><span class="league-option-icon" aria-hidden="true">'+leagueIcon(item.dataset.leagueValue)+'</span><span>'+esc(item.dataset.leagueLabel)+'</span></span>'+(active?'<span class="league-check" aria-hidden="true">✓</span>':"");
   });
  }
- menu.innerHTML=Array.from(select.options).map(option=>
+ menu.innerHTML=Array.from(select.options).filter(option=>option.value==="all"||activeLeagueScope.isActiveLeagueId(option.value)).map(option=>
   '<button type="button" class="league-option" role="option" data-league-value="'+esc(option.value)+'" data-league-label="'+esc(option.text)+'" aria-selected="false"><span class="league-option-name"><span class="league-option-icon" aria-hidden="true">'+leagueIcon(option.value)+'</span><span>'+esc(option.text)+'</span></span></button>'
  ).join("");
  function closeMenu(){menu.hidden=true;trigger.setAttribute("aria-expanded","false")}
@@ -6329,7 +6335,7 @@ function renderMatches(){
   if(safeRows.length) localStorage.setItem("mam_product_hub_fixtures_v1",JSON.stringify({savedAt:Date.now(),matches:safeRows}));
  } catch (_) { /* Storage is optional. */ }
  const league=$("league").value;
- let list=league==="all"?allMatches:allMatches.filter(m=>String(m.league?.id)===league);
+ let list=(league==="all"?allMatches:allMatches.filter(m=>String(m.league?.id)===league)).filter(m=>window.MAMActiveLeagueScope.isActiveMatch(m));
  const liveCodes=new Set(["1H","HT","2H","ET","BT","P","SUSP","INT","LIVE"]);
  const mamNow=Date.now();
  const mamTodayKey=mamIstanbulDay(new Date(mamNow).toISOString());
@@ -6450,7 +6456,7 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
   const cardLabel=isLiveStatus?"":statusCode==="NS"?(dayLabel||"Saat bekleniyor"):statusLabel;
   const kickoffLabel=[dayLabel,time].filter(Boolean).join(" ");
   const repeatedLiveLabel=isLiveStatus&&displayedTime===statusLabel;
-  return `<article class="match match-modern">
+  return `<article class="match match-modern" data-league-id="${esc(l.id)}" data-league-name="${esc(l.name)}">
    <div class="match-head"><span class="league-label">${esc(mamDisplayLeagueName(l.name,l.country))} · ${esc(mamDisplayCountryName(l.country))}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="match-time">${isLiveStatus?"🔴 ":""}<b class="mam-clock-text">${esc(displayedTime)}</b> ${repeatedLiveLabel?"":"<i>"+esc(statusLabel)+"</i>"}</span>${kickoffLabel&&(isLiveStatus||isFinishedStatus)?'<small class="mam-kickoff-time">'+esc(kickoffLabel)+'</small>':""}</span></div>
    <div class="match-versus">
     <div class="team-block">${teamBadge(t.home)}<strong>${esc(mamDisplayTeamName(t.home?.name))}</strong>${isFinishedStatus?mamOutcomeBadge(g.home,g.away):""}</div>
@@ -6872,13 +6878,24 @@ if(!window.mamLiveStatsTimer){
 /* KUPON OLUŞTURUCU — yalnızca ekrandaki maç verisini kullanır; API çağırmaz. */
 const COUPON_KEY="mam_coupon_v1";
 const COUPON_CANDIDATES_KEY="mam_coupon_candidates_v1";
+const mamActiveScope=window.MAMActiveLeagueScope;
+function mamIsActiveCouponItem(item){
+ if(item?.leagueId!=null&&mamActiveScope.isActiveLeagueId(item.leagueId))return true;
+ if(item?.leagueId!=null&&/^\d+$/.test(String(item.leagueId)))return false;
+ const rows=Array.isArray(allMatches)?allMatches:[];
+ const fixture=rows.find(match=>String(match?.fixture?.id??match?.id??"")===String(item?.id??""));
+ if(fixture)return mamActiveScope.isActiveMatch(fixture);
+ try{const saved=JSON.parse(localStorage.getItem("mam_product_hub_fixtures_v1")||"{}");const match=(Array.isArray(saved.matches)?saved.matches:[]).find(row=>String(row?.fixture?.id??row?.id??"")===String(item?.id??""));return !!match&&mamActiveScope.isActiveMatch(match);}catch{return false;}
+}
 let couponItems=[],couponCandidates=[];
 try{couponItems=JSON.parse(localStorage.getItem(COUPON_KEY)||"[]");if(!Array.isArray(couponItems))couponItems=[];}catch(e){couponItems=[];}
 try{couponCandidates=JSON.parse(localStorage.getItem(COUPON_CANDIDATES_KEY)||"[]");if(!Array.isArray(couponCandidates))couponCandidates=[];}catch(e){couponCandidates=[];}
 function saveCoupon(){try{localStorage.setItem(COUPON_KEY,JSON.stringify(couponItems));}catch(e){}renderCoupon();}
 function recordCouponCandidates(id,home,away,date,markets){
  for(const m of markets.filter(x=>Number.isFinite(x.probability)&&x.probability>0&&x.probability<1)){
-  const item={id:String(id),home,away,date,market:m.name,probability:m.probability,odds:null};
+  const sourceMatch=(Array.isArray(allMatches)?allMatches:[]).find(match=>String(match?.fixture?.id??match?.id??"")===String(id));
+  if(!sourceMatch||!mamActiveScope.isActiveMatch(sourceMatch))continue;
+  const item={id:String(id),home,away,date,market:m.name,probability:m.probability,odds:null,leagueId:String(sourceMatch.league?.id??sourceMatch.leagueId??"")};
   const i=couponCandidates.findIndex(x=>String(x.id)===item.id&&x.market===item.market);
   if(i>=0)couponCandidates[i]=item;else couponCandidates.push(item);
  }
@@ -6887,7 +6904,7 @@ function recordCouponCandidates(id,home,away,date,markets){
 }
 function buildSuggestedCoupon(mode){
  const safe=mode==="safe";
- const pool=couponCandidates.filter(x=>safe?Number(x.probability)>=.65:Number(x.probability)>=.35&&Number(x.probability)<.65)
+ const pool=couponCandidates.filter(x=>mamIsActiveCouponItem(x)&&(safe?Number(x.probability)>=.65:Number(x.probability)>=.35&&Number(x.probability)<.65))
   .sort((a,b)=>safe?Number(b.probability)-Number(a.probability):Number(a.probability)-Number(b.probability));
  const picks=[],seen=new Set();
  for(const x of pool){if(seen.has(String(x.id)))continue;seen.add(String(x.id));picks.push({...x,odds:null});if(picks.length===(safe?10:6))break;}
@@ -6897,10 +6914,11 @@ function buildSuggestedCoupon(mode){
 }
 function renderCoupon(){
  const box=$("couponItems");if(!box)return;
- $("couponCount").textContent=couponItems.length+" seçim";$("couponLegCount").value=String(couponItems.length);
- if(!couponItems.length)box.innerHTML='<div class="coupon-empty">Henüz kupona maç eklemedin.</div>';
+ const visibleItems=couponItems.map((item,index)=>({item,index})).filter(entry=>mamIsActiveCouponItem(entry.item));
+ $("couponCount").textContent=visibleItems.length+" aktif seçim";$("couponLegCount").value=String(visibleItems.length);
+ if(!visibleItems.length)box.innerHTML=couponItems.length?'<div class="coupon-empty">Pasif liglere ait kupon kayıtları saklanıyor; lig yeniden etkinleştirildiğinde görünür.</div>':'<div class="coupon-empty">Henüz kupona maç eklemedin.</div>';
  else{
-  box.innerHTML=couponItems.map((x,i)=>{
+  box.innerHTML=visibleItems.map(({item:x,index:i})=>{
    const o=Number(x.odds),valid=Number.isFinite(o)&&o>1;
    return '<div class="coupon-leg"><div><strong>'+esc(mamDisplayTeamName(x.home))+' – '+esc(mamDisplayTeamName(x.away))+'</strong><small>'+esc(mamDisplayMarketName(x.market))+' · '+esc(x.date||"Tarih yok")+' · '+(Number(x.probability)>0?'Tahmin '+(Number(x.probability)*100).toFixed(1)+'%':'Manuel seçim')+'</small></div><input class="coupon-leg-odds" data-odds-index="'+i+'" type="number" min="1.01" step="0.01" placeholder="Oran" value="'+(valid?o.toFixed(2):'')+'"><button class="coupon-remove" type="button" data-remove-coupon="'+i+'">×</button></div>';
   }).join("");
@@ -6923,7 +6941,7 @@ function addCouponSelection(button){
  if(odds!==null&&(!Number.isFinite(odds)||odds<=1)){
   $("status").textContent="Oran gireceksen 1.00'dan büyük olmalı.";input.focus();return;
  }
- const item={id:button.dataset.id,home:button.dataset.homeName,away:button.dataset.awayName,date:button.dataset.date,market:market.value,odds:odds===null?null:Number(odds.toFixed(2))};
+ const item={id:button.dataset.id,home:button.dataset.homeName,away:button.dataset.awayName,date:button.dataset.date,market:market.value,odds:odds===null?null:Number(odds.toFixed(2)),leagueId:card.dataset.leagueId||""};
  const i=couponItems.findIndex(x=>String(x.id)===String(item.id)&&x.market===item.market);
  if(i>=0)couponItems[i]=item;else couponItems.push(item);
  saveCoupon();
@@ -9866,14 +9884,14 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
 (function(){
  const trigger=document.getElementById('mamSearchToggle'),panel=document.getElementById('mamTeamSearch'),input=document.getElementById('mamTeamSearchInput'),results=document.getElementById('mamTeamSearchResults'),close=document.getElementById('mamTeamSearchClose');
  if(!trigger||!panel||!input||!results)return;
- const LEAGUE_NAMES={'tur.1':'Süper Lig','eng.1':'Premier League','esp.1':'La Liga','ita.1':'Serie A','ger.1':'Bundesliga','fra.1':'Ligue 1','ned.1':'Eredivisie','por.1':'Primeira Liga','usa.1':'Major League Soccer','bra.1':'Brasileirão','arg.1':'Liga Profesional','uefa.champions':'UEFA Champions League','uefa.europa':'UEFA Europa League','uefa.europa.conf':'UEFA Conference League'};
+ const LEAGUE_NAMES={'tur.1':'Süper Lig','tur.2':'Türkiye 1. Lig','eng.1':'Premier League','eng.2':'Championship','esp.1':'La Liga','ita.1':'Serie A','ger.1':'Bundesliga','fra.1':'Ligue 1','ned.1':'Eredivisie','por.1':'Primeira Liga','uefa.champions':'UEFA Champions League','uefa.europa':'UEFA Europa League','uefa.europa.conf':'UEFA Conference League','fifa.world':'FIFA World Cup','uefa.euro':'UEFA European Championship','uefa.nations':'UEFA Nations League'};
  const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const normalize=value=>String(value??'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i');
  const read=key=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{return {};}};
  let previousFocus=null,teamSearchCatalog=null,teamSearchSource=null,teamSearchSourceLength=-1,teamSearchCatalogVersion=-1,teamSearchDirectoryVersion=0,drawTimer=0;
  const teamSearchRendered=new Map();
  // Public ESPN team directories supplement fixture-only results. No API-Football calls.
- const ESPN_LEAGUES=['tur.1','eng.1','esp.1','ita.1','ger.1','fra.1','ned.1','por.1','usa.1','bra.1','arg.1','uefa.champions','uefa.europa','uefa.europa.conf'];
+ const ESPN_LEAGUES=['tur.1','tur.2','eng.1','eng.2','esp.1','ita.1','ger.1','fra.1','ned.1','por.1','uefa.champions','uefa.europa','uefa.europa.conf','fifa.world','uefa.euro','uefa.nations'];
  // Keep essential Turkish clubs searchable when ESPN's directory is partial or blocked in Safari.
  const FALLBACK_TEAMS=['Beşiktaş','Fenerbahçe','Galatasaray','Trabzonspor'];
  const directory=new Map();
@@ -9903,7 +9921,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   const map=new Map();
   let rows=typeof allMatches!=='undefined'&&Array.isArray(allMatches)?allMatches:[];
   if(!rows.length){const saved=read('mam_product_hub_fixtures_v1');rows=Array.isArray(saved.matches)?saved.matches:[];}
-  for(const match of rows)for(const team of [match?.teams?.home,match?.teams?.away]){
+  for(const match of rows)if(globalThis.MAMActiveLeagueScope?.isActiveMatch(match))for(const team of [match?.teams?.home,match?.teams?.away]){
    if(team?.id==null||!team?.name)continue;
    const id=String(team.id);
    const espnSlug=String(match?.fixture?.id||'').match(/^espn-(.+)-\d+$/)?.[1];
@@ -9975,7 +9993,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   hide();
   trigger.focus();
   const espnCode=directoryLeague||team.espnSlug||Object.keys(LEAGUE_NAMES).find(code=>LEAGUE_NAMES[code]===team.league)||'tur.1';
-  const profileLeagueIds={'tur.1':'203','eng.1':'39','esp.1':'140','ita.1':'135','ger.1':'78','fra.1':'61','ned.1':'88','por.1':'94','usa.1':'253','bra.1':'71','arg.1':'128','uefa.champions':'2','uefa.europa':'3','uefa.europa.conf':'848'};
+  const profileLeagueIds={'tur.1':'203','tur.2':'204','eng.1':'39','eng.2':'40','esp.1':'140','ita.1':'135','ger.1':'78','fra.1':'61','ned.1':'88','por.1':'94','uefa.champions':'2','uefa.europa':'3','uefa.europa.conf':'848','fifa.world':'1','uefa.euro':'4','uefa.nations':'5'};
   open(row,profileLeagueIds[espnCode]||'203');
  });
  function hide(){panel.hidden=true;trigger.setAttribute('aria-expanded','false');document.body.style.overflow='';previousFocus?.focus();}
