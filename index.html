@@ -2224,8 +2224,6 @@ main.mam-screen-today #mamTodayTabs{display:none!important}
  .lineup-player-profile summary{min-height:44px;padding:11px;cursor:pointer}
  .lineup-player-profile dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}
  .lineup-player-profile dd{margin:0}
- #mamAuthGate a[hidden]{display:none!important}
- #mamAuthGate a:not([hidden]){display:block;padding:12px;min-height:44px;color:#80e9d2}
 </style>
 <style id="mamCompactMobile">
 @media (max-width: 600px) {
@@ -2462,17 +2460,6 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
 </head>
 <body>
 
-
-<div id="mamAuthGate" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:22px;background:#07111f">
- <form id="mamAuthForm" style="width:min(100%,380px);padding:24px;border:1px solid #30445f;border-radius:20px;background:#101d30;color:#f4f8ff;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
-  <div style="font-size:12px;letter-spacing:1px;color:#35e0b5;font-weight:800">MRTYLT • GÜVENLİ GİRİŞ</div>
-  <h2 style="margin:12px 0 6px">Maç Analiz Merkezi</h2>
-  <p style="color:#aebed2;font-size:14px">Devam etmek için erişim şifresini gir.</p>
-  <input id="mamAuthPassword" type="password" autocomplete="current-password" placeholder="Erişim şifresi" required style="width:100%;padding:14px;border-radius:12px;border:1px solid #30445f;background:#091626;color:white;font-size:16px">
-  <button id="mamAuthSubmit" type="submit" style="width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;background:#35e0b5;color:#06251f;font-weight:800">Giriş yap</button>
-  <p id="mamAuthMessage" style="min-height:20px;color:#ffc66e;font-size:13px"></p>
- </form>
-</div>
 
 <main>
 
@@ -6520,7 +6507,7 @@ const groupedMatches=[...list.reduce((map,match)=>{const league=match.league||{}
     <span class="small">${isLiveStatus?"🔴 Canlı maç":isFinishedStatus?"✓ Maç tamamlandı":"Maç ön analizi"}</span>
     ${isFinishedStatus
       ? '<span class="small" style="font-weight:700;color:#687384">Maç önü tahmini kapalı</span>'
-      : '<button class="predBtn" data-id="'+esc(f.id)+'" data-home="'+esc(t.home?.id)+'" data-away="'+esc(t.away?.id)+'" data-home-name="'+esc(t.home?.name)+'" data-away-name="'+esc(t.away?.name)+'" data-provider="'+esc(f.source||f.provider||f._source||"")+'" data-league="'+esc(l.id)+'" data-date="'+esc(matchDay)+'" data-kickoff="'+esc(f.timeUnknown?"":f.date)+'" data-status="'+esc(statusCode)+'">✦ Maçı analiz et</button>'}
+      : '<button class="predBtn" data-id="'+esc(f.id)+'" data-home="'+esc(t.home?.id)+'" data-away="'+esc(t.away?.id)+'" data-home-name="'+esc(t.home?.name)+'" data-away-name="'+esc(t.away?.name)+'" data-provider="'+esc(mamPreparedAnalysisIdentity(m)?.provider||"")+'" data-provider-fixture-id="'+esc(mamPreparedAnalysisIdentity(m)?.fixtureId||"")+'" data-league="'+esc(l.id)+'" data-date="'+esc(matchDay)+'" data-kickoff="'+esc(f.timeUnknown?"":f.date)+'" data-status="'+esc(statusCode)+'">✦ Maçı analiz et</button>'}
    </div>
    ${isFinishedStatus&&score?'<div class="analysis-preview">✓ Gerçekleşen sonuç: <b>'+esc(score)+'</b>. Maç önü tahmini bu karşılaşma için artık üretilemez.</div>':""}
 
@@ -6897,7 +6884,7 @@ async function refreshTodayScores(){
 
 let mamLastIstanbulFixtureDay=mamIstanbulDateString();
 async function refreshVisibleFixtureLists(){
- if(document.hidden||navigator.onLine===false||$("mamAuthGate")||window.mamLoadMatchesBusy)return;
+ if(document.hidden||navigator.onLine===false||window.mamLoadMatchesBusy)return;
  window.mamLastFixtureRefreshAt=Date.now();
  const previousDay=mamLastIstanbulFixtureDay;
  const currentDay=mamLastIstanbulFixtureDay=mamIstanbulDateString();
@@ -8308,12 +8295,21 @@ function mamCanAnalyzePrematch(status,kickoff,now=Date.now()){
  const scheduled=Date.parse(kickoff);
  return Number.isFinite(scheduled)&&scheduled>now;
 }
+function mamPreparedAnalysisIdentity(match){
+ const fixture=match?.fixture||{};
+ const rawId=String(fixture.id??match?.id??"").trim();
+ const rawProvider=String(match?.mamSource||match?._source||match?.source||fixture.provider||fixture.source||fixture._source||"").trim().toLowerCase();
+ const espnId=rawId.match(/^espn-[a-z0-9._-]+-(\d+)$/i);
+ const provider=rawProvider||(espnId?"espn":"");
+ const fixtureId=provider==="espn"&&espnId?espnId[1]:rawId;
+ return provider&&fixtureId?{provider,fixtureId}:null;
+}
 async function mamLoadAnalysisHistories(button,homeId,awayId,date){
- const provider=String(button?.dataset?.provider||"").toLowerCase();
- if(provider&&window.MAMDataCenterClient){
-  const prepared=await window.MAMDataCenterClient.loadPreparedAnalysis(({provider,fixtureId,signal})=>
-   api("data-center/fixture-bundle?"+qs({provider,fixtureId}),{signal}),
-   {provider,fixtureId:button.dataset.id,kickoff:button.dataset.kickoff,homeTeamId:homeId,awayTeamId:awayId});
+	const provider=String(button?.dataset?.provider||"").toLowerCase();
+	if(provider&&window.MAMDataCenterClient){
+		const prepared=await window.MAMDataCenterClient.loadPreparedAnalysis(({provider,fixtureId,signal})=>
+			api("data-center/fixture-bundle?"+qs({provider,fixtureId}),{signal}),
+			{provider,fixtureId:button.dataset.providerFixtureId||button.dataset.id,kickoff:button.dataset.kickoff,homeTeamId:homeId,awayTeamId:awayId});
   if(prepared)return [prepared.homeHistory,prepared.awayHistory];
  }
  return Promise.all([
@@ -9676,51 +9672,17 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
 <a class="mam-provider-credit" href="https://sportscore.com/" rel="dofollow">Powered by SportScore</a>
 <script>
 (async function(){
- const gate=document.getElementById("mamAuthGate"), form=document.getElementById("mamAuthForm");
- const pass=document.getElementById("mamAuthPassword"), msg=document.getElementById("mamAuthMessage"), submit=document.getElementById("mamAuthSubmit");
- const key="mam_session_token", base="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
- async function check(token){
+ const key="mam_session_token",base="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+ const token=localStorage.getItem(key);
+ if(token&&navigator.onLine!==false){
   try{
    const response=await fetch(base+"/auth/check",{headers:{Authorization:"Bearer "+token},signal:AbortSignal.timeout(6000)});
-   if(response.status===401||response.status===403)return false;
-   if(!response.ok)return null;
-   return (await response.json()).ok===true;
-  }catch{return null;}
+   if(response.status===401||response.status===403)localStorage.removeItem(key);
+  }catch(_){/* Network failures retain a still-usable local session token. */}
  }
- const retry=document.createElement("button");
- retry.type="button";retry.textContent="Bağlantıyı yeniden dene";retry.hidden=true;
- const cached=document.createElement("a");
- cached.href="./mobile/product-hub.html";
- cached.addEventListener("click",()=>{try{sessionStorage.setItem("mam_open_saved_records","1");}catch{}});
- cached.textContent="Cihazdaki kayıtları aç";
- cached.hidden=true;
- form.after(retry,cached);
- async function restoreSession(){
-  const token=localStorage.getItem(key);
-  const available=navigator.onLine!==false;
-  const valid=available&&token?await check(token):null;
-  if(valid===true){
-   if(gate.isConnected){gate.remove();document.dispatchEvent(new Event("mam:session-ready"));}
-   return;
-  }
-  if(valid===false)localStorage.removeItem(key);
-  retry.hidden=available&&(!token||valid===false);
-  cached.hidden=retry.hidden;
-  if(!retry.hidden)msg.textContent="Bağlantı kurulamadı. Canlı veriler görüntülenemiyor. Cihazdaki favoriler korunuyor. Kayıt ekranı salt okunur maç verisini gösterir.";
- }
- retry.addEventListener("click",restoreSession);
- window.addEventListener("online",()=>{if(gate.isConnected)restoreSession();});
- await restoreSession();
- form.addEventListener("submit",async function(e){
-  e.preventDefault();msg.textContent="Kontrol ediliyor…";submit.disabled=true;
-  try{
-   const r=await fetch(base+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pass.value})});
-   const data=await r.json();
-   if(!r.ok||!data.token)throw new Error(data.error||"Giriş başarısız");
-   localStorage.setItem(key,data.token);gate.remove();
-   location.reload();
-  }catch(err){msg.textContent=err.message||"Bağlantı hatası";submit.disabled=false;}
- });
+ // Authentication remains enforced by the Worker for every protected request;
+ // only the blocking client-side password overlay is removed.
+ document.dispatchEvent(new Event("mam:session-ready"));
 })();
 </script>
 
@@ -10143,7 +10105,6 @@ window.addEventListener("offline",()=>{
  $("status").textContent="Çevrimdışısınız. Güncel canlı skorlar gösterilemiyor.";
 });
 window.addEventListener("online",()=>{
- if($("mamAuthGate"))return;
  refreshOpenLiveScore();
  refreshOpenLiveStats();
  if(!allMatches.length&&["home","today","upcoming","finished"].includes(mamScreenMode))void loadMatches();
