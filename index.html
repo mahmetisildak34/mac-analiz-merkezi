@@ -8413,6 +8413,10 @@ async function analyze(button){
   const hs=homeVenueFallback?homeOverall:homeVenue;
   const as=awayVenueFallback?awayOverall:awayVenue;
   const lowSample=hs.count<5||as.count<5;
+  const lowSampleDetails=[
+   hs.count<5?mamDisplayTeamName(button.dataset.homeName)+" ("+hs.count+"/5)":"",
+   as.count<5?mamDisplayTeamName(button.dataset.awayName)+" ("+as.count+"/5)":""
+  ].filter(Boolean).join(" ve ");
 
   const lh=Math.max(.15,Math.min(4,(hs.gf+as.ga)/2));
   const la=Math.max(.15,Math.min(4,(as.gf+hs.ga)/2));
@@ -8511,7 +8515,7 @@ async function analyze(button){
    </div>
    <p class="note">${esc(homeLabel)}: ${homeOverall.count} doğrulanmış maç · ${esc(awayLabel)}: ${awayOverall.count} doğrulanmış maç. Model hesabı ${hs.count} ev sahibi / ${as.count} deplasman odaklı maç kullanıyor.</p>
    ${(homeVenueFallback||awayVenueFallback)?"<p class=\"note\">⚠️ İç saha veya deplasman örneği bulunamadığında model o takımın tüm geçmiş maçlarına geri döndü.</p>":""}
-   ${lowSample?'<p class="note">⚠️ Uyarı: Takımlardan en az birinde 3 maçtan az geçmiş veri var. Tahmin düşük örneklem nedeniyle daha az güvenilirdir.</p>':''}
+   ${lowSample?'<p class="note">⚠️ Uyarı: Gol modelinin kullandığı saha odaklı örneklem 5 maçın altında: '+esc(lowSampleDetails)+'. Tahmin düşük örneklem nedeniyle daha az güvenilirdir.</p>':''}
    <div class="section-title">Maç sonucu olasılıkları</div>
    ${probHTML("1 - Ev sahibi kazanır",win)}
    ${probHTML("X - Beraberlik",draw)}
