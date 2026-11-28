@@ -21,21 +21,12 @@ function loadFilter(verifiedScore, leagueIds = ["39"], verifyCalls = { count: 0 
       const goals = [match?.goals?.home, match?.goals?.away];
       return finished && goals.every(value => (typeof value === "number" || typeof value === "string" && /^\d+$/.test(value)) && Number.isSafeInteger(Number(value)) && Number(value) >= 0);
     },
-    async mamFindEspnHistoricalEvent() { verifyCalls.count++; return verifiedScore ? "espn-event-1" : ""; },
     ESPN_LEAGUES: Object.fromEntries(leagueIds.map(id => [String(id), { slug: "league-" + id }])),
     qs(value) { return new URLSearchParams(value).toString(); },
-    async api() {
-      return verifiedScore ? {
-        header: {
-          competitions: [{
-            status: { type: { completed: true, state: "post" } },
-            competitors: [
-              { homeAway: "home", score: String(verifiedScore[0]) },
-              { homeAway: "away", score: String(verifiedScore[1]) }
-            ]
-          }]
-        }
-      } : {};
+    async api(path) {
+      if (path !== "archive/verify-final") return {};
+      verifyCalls.count++;
+      return verifiedScore ? { verified: true, score: verifiedScore } : { verified: false };
     },
     console: { warn() {} }
   };
@@ -43,9 +34,10 @@ function loadFilter(verifiedScore, leagueIds = ["39"], verifyCalls = { count: 0 
   return { filter: context.filter, verifyCalls };
 }
 
-function row(score, { status = "FT", identity = "same-match", leagueId = "39", date = "2026-11-22T16:30:00Z" } = {}) {
+function row(score, { status = "FT", identity = "same-match", leagueId = "39", date = "2026-11-22T16:30:00Z", source = "espn" } = {}) {
   return {
     mamArchiveOnly: true,
+    mamSource: source,
     fixture: { id: identity + "-" + score.join("-"), date, status: { short: status } },
     league: { id: leagueId },
     teams: { home: { name: "Liverpool" }, away: { name: "Manchester United" } },
@@ -55,7 +47,7 @@ function row(score, { status = "FT", identity = "same-match", leagueId = "39", d
 
 test("verified ESPN score keeps only the matching finished D1 row and flags genuine finished-score disagreement", async () => {
   const { filter } = loadFilter([4, 0]);
-  const result = await filter([row([4, 0]), row([0, 0])], "39");
+  const result = await filter([row([4, 0]), row([0, 0], { source: "football-data" })], "39");
   assert.equal(result.length, 1);
   assert.equal(result.mamExcludedConflictCount, 1);
   assert.equal(result.mamExcludedConflictKeys.length, 1);
@@ -64,7 +56,7 @@ test("verified ESPN score keeps only the matching finished D1 row and flags genu
 
 test("unresolved conflicting completed scores are excluded rather than guessed", async () => {
   const { filter } = loadFilter(null);
-  const result = await filter([row([4, 0]), row([0, 0])], "39");
+  const result = await filter([row([4, 0]), row([0, 0], { source: "football-data" })], "39");
   assert.equal(result.length, 0);
   assert.equal(result.mamExcludedConflictCount, 2);
   assert.equal(result.mamExcludedConflictKeys.length, 1);
@@ -88,7 +80,7 @@ test("different LIVE and NS snapshots use only an ESPN-verified final result and
   const { filter } = loadFilter([1, 4]);
   const result = await filter([
     row([1, 1], { status: "LIVE" }),
-    row([0, 0], { status: "NS" })
+    row([0, 0], { status: "NS", source: "football-data" })
   ], "39");
   assert.equal(result.length, 1);
   assert.equal(JSON.stringify(result[0].goals), JSON.stringify({ home: 1, away: 4 }));
@@ -100,7 +92,7 @@ test("different LIVE and NS snapshots use only an ESPN-verified final result and
 
 test("conflicting finished scores recover an ESPN final absent from the archive while retaining the safety warning", async () => {
   const { filter } = loadFilter([3, 2]);
-  const result = await filter([row([2, 2]), row([0, 0])], "39");
+  const result = await filter([row([2, 2]), row([0, 0], { source: "football-data" })], "39");
   assert.equal(result.length, 1);
   assert.equal(JSON.stringify(result[0].goals), JSON.stringify({ home: 3, away: 2 }));
   assert.equal(result[0].fixture.status.short, "FT");
@@ -121,6 +113,7 @@ test("different kickoff minutes still share one identity for genuinely conflicti
   const { filter } = loadFilter([4, 0]);
   const late = row([0, 0]);
   late.fixture.date = "2026-11-22T19:00:00Z";
+  late.mamSource = "football-data";
   const result = await filter([row([4, 0]), late], "39");
   assert.equal(JSON.stringify(result.map(match => match.goals)), JSON.stringify([{ home: 4, away: 0 }]));
   assert.equal(result.mamExcludedConflictKeys.length, 1);
@@ -131,6 +124,7 @@ test("time-unknown rows cannot bypass the finished-score conflict filter", async
   const unknown = row([0, 0]);
   unknown.fixture.date = "2026-11-22";
   unknown.fixture.timeUnknown = true;
+  unknown.mamSource = "football-data";
   const result = await filter([row([4, 0]), unknown], "39");
   assert.equal(JSON.stringify(result.map(match => match.goals)), JSON.stringify([{ home: 4, away: 0 }]));
 });
@@ -141,7 +135,7 @@ test("the same status and verification rule applies to every active organization
     const { filter } = loadFilter([2, 1], activeLeagueIds);
     const result = await filter([
       row([1, 1], { status: "LIVE", leagueId }),
-      row([0, 0], { status: "NS", leagueId })
+      row([0, 0], { status: "NS", leagueId, source: "football-data" })
     ], leagueId);
     assert.equal(result.length, 1, "verified final was not recovered for league " + leagueId);
     assert.equal(JSON.stringify(result[0].goals), JSON.stringify({ home: 2, away: 1 }));

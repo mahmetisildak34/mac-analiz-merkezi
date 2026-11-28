@@ -2,6 +2,7 @@ import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import MAMTeamIdentity from '../team-identity-registry.js';
 const source=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const render=source.slice(source.indexOf('function renderMatches(){'),source.indexOf('function renderMatches(){')+18000);
 test('upcoming uses shared clickable match-card renderer instead of dead-end fixture rows',()=>{
@@ -22,12 +23,14 @@ test('known provider aliases collapse to one fixture without combining unrelated
  assert.ok(start>0&&end>start);
  const groupsStart=source.indexOf('const MAM_UEFA_TEAM_GROUPS=');
  const groupsEnd=source.indexOf(';',groupsStart)+1;
- const snippet=source.slice(groupsStart,groupsEnd)+'\n'+source.slice(start,end);
+ const canonicalHistoryKey=source.match(/function mamCanonicalHistoryTeamKey\([\s\S]*?\n\}/)?.[0];
+ assert.ok(canonicalHistoryKey,'shared history identity helper must be present');
+ const snippet=source.slice(groupsStart,groupsEnd)+'\n'+source.slice(start,end)+'\n'+canonicalHistoryKey;
  const create=(id,home,away,date='2026-11-23T17:00:00Z',league='203')=>({
   fixture:{id,date,status:{short:'NS'}},league:{id:league},
   teams:{home:{name:home},away:{name:away}},goals:{home:null,away:null}
  });
- const context={mamFixtureInstant:value=>Date.parse(value),mamCanonicalMatchStatus:()=> 'NS',mamHasCompletedScore:()=>false};
+ const context={MAMTeamIdentity,mamFixtureInstant:value=>Date.parse(value),mamCanonicalMatchStatus:()=> 'NS',mamHasCompletedScore:()=>false};
  runInNewContext(snippet+';globalThis.mergeFixtureRows=mamMergeFixtureRows;',context);
  const rows=[
   create('espn-401888370','İstanbul Başakşehir','Çorum FK'),

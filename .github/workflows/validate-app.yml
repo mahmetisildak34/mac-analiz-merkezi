@@ -5,24 +5,28 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "mam-cache-manager.js"
       - ".github/workflows/validate-app.yml"
       - "half-goal-algorithm.js"
       - "tests/half-goal-algorithm.test.js"
+      - "tests/cache-sweep.test.mjs"
   pull_request:
     branches: [main]
     paths:
       - "AGENTS.md"
       - "index.html"
+      - "mam-cache-manager.js"
       - ".github/workflows/validate-app.yml"
       - "half-goal-algorithm.js"
       - "tests/half-goal-algorithm.test.js"
+      - "tests/cache-sweep.test.mjs"
 
 permissions:
   contents: read
 
 jobs:
   syntax:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -57,3 +61,13 @@ jobs:
           done
       - name: Run half-goal algorithm regression tests
         run: node --test tests/*.test.js
+      - name: Run user-data-preserving cache sweep regression
+        run: node --test tests/cache-sweep.test.mjs
+      - name: Run Poisson v1.2 golden regression
+        run: node --test tests/poisson-v12-golden.test.mjs
+      - name: Install Chromium and WebKit for browser regressions
+        run: |
+          npm install --no-save --no-package-lock playwright@1.58.2
+          npx playwright install --with-deps chromium webkit
+      - name: Run real fixture identity and live preservation regression tests
+        run: node --test tests/live-fixture-preservation.test.mjs tests/targeted-data-layer-repair.test.mjs tests/iphone-team-history-analysis.test.mjs tests/team-history-request-timeout.test.mjs tests/d1-conflicting-score-filter.test.mjs tests/selected-date-filter.test.mjs tests/uefa-history-regression.test.mjs

@@ -40,6 +40,21 @@ async function mapLimit(items,limit,mapper){
  return results;
 }
 
+async function waitForScrollSettled(page){
+ await page.evaluate(()=>new Promise(resolve=>{
+  let previous=window.scrollY,stableFrames=0;
+  const started=performance.now();
+  const sample=()=>{
+   const current=window.scrollY;
+   stableFrames=Math.abs(current-previous)<0.5?stableFrames+1:0;
+   previous=current;
+   if(stableFrames>=4||performance.now()-started>=2000)resolve();
+   else requestAnimationFrame(sample);
+  };
+  requestAnimationFrame(sample);
+ }));
+}
+
 async function serverStart(){
  const child=spawn("python3",["-m","http.server","19172","--bind","127.0.0.1"],{stdio:"ignore"});
  for(let i=0;i<60;i++){
@@ -135,8 +150,64 @@ test("Public ESPN responses render through the iPhone fixture screens in Chromiu
       },{espn,payloads:[...payloads]});
       await page.goto(origin+"/index.html");
       await page.locator("#mamAuthGate").waitFor({state:"detached"});
+      await page.waitForFunction(()=>!window.mamLoadMatchesBusy,{timeout:25000});
       for(const [mode,{slug,leagueId,event}] of [["today",daily],["upcoming",future],["finished",finished]]){
-       await page.locator(`[data-match-mode="${mode}"]`).click();
+       await waitForScrollSettled(page);
+       const modeTab=page.locator(`#mamMatchTabs [data-match-mode="${mode}"]`);
+       let modeViaHomeShortcut=false;
+       await page.evaluate(mode=>{
+        window.__mamModeClickProbe={mode,pointerdown:false,click:false,target:null};
+        window.__mamHomeActionProbe={mode,pointerdown:false,click:false};
+        const selector=`[data-match-mode="${mode}"]`;
+        const homeSelector=`#mamHomeShortcuts [data-mam-action="${mode}"]`;
+        document.addEventListener("pointerdown",event=>{
+         const target=event.target.closest?.(selector);if(target){window.__mamModeClickProbe.pointerdown=true;window.__mamModeClickProbe.pointerType=event.pointerType;window.__mamModeClickProbe.trusted=event.isTrusted;window.__mamModeClickProbe.target=target.outerHTML.slice(0,240);}
+         const home=event.target.closest?.(homeSelector);if(home){window.__mamHomeActionProbe.pointerdown=true;window.__mamHomeActionProbe.trusted=event.isTrusted;}
+        },true);
+        document.addEventListener("click",event=>{
+         const target=event.target.closest?.(selector);if(target){window.__mamModeClickProbe.click=true;window.__mamModeClickProbe.clickTrusted=event.isTrusted;window.__mamModeClickProbe.target=target.outerHTML.slice(0,240);}
+         const home=event.target.closest?.(homeSelector);if(home){window.__mamHomeActionProbe.click=true;window.__mamHomeActionProbe.clickTrusted=event.isTrusted;}
+        },true);
+       },mode);
+       if(!(await modeTab.isVisible())){
+        modeViaHomeShortcut=true;
+        const homeAction=page.locator(`#mamHomeShortcuts [data-mam-action="${mode}"]`);
+        assert.equal(await homeAction.isVisible(),true,`${mode} mode must be reachable from the visible Home shortcut`);
+        const homePoint=await page.evaluate(mode=>{
+         const element=document.querySelector(`#mamHomeShortcuts [data-mam-action="${mode}"]`),rect=element.getBoundingClientRect();
+         const x=rect.left+rect.width/2,y=rect.top+rect.height/2,hit=document.elementFromPoint(x,y);
+         return {x,y,width:rect.width,height:rect.height,hitInside:!!hit&&element.contains(hit)};
+        },mode);
+        assert.ok(homePoint.width>0&&homePoint.height>0&&homePoint.hitInside,`Home ${mode} shortcut must be the physical input target`);
+        await page.mouse.click(homePoint.x,homePoint.y);
+        const homeProbe=await page.evaluate(()=>window.__mamHomeActionProbe);
+        assert.equal(homeProbe.pointerdown,true,`A trusted pointerdown must reach the Home ${mode} shortcut`);
+        assert.equal(homeProbe.click,true,`A trusted click must reach the Home ${mode} shortcut`);
+        assert.equal(homeProbe.trusted,true,`The Home ${mode} pointerdown must be browser-generated`);
+        assert.equal(homeProbe.clickTrusted,true,`The Home ${mode} click must be browser-generated`);
+        await page.waitForFunction(mode=>document.querySelector("main")?.classList.contains(`mam-screen-${mode}`),mode,{timeout:5000});
+       }
+       if(!modeViaHomeShortcut){
+        await modeTab.waitFor({state:"visible"});
+        assert.equal(await modeTab.isEnabled(),true,`${mode} tab must be enabled`);
+        const point=await page.evaluate(mode=>{
+         const element=document.querySelector(`#mamMatchTabs [data-match-mode="${mode}"]`),rect=element.getBoundingClientRect();
+         const x=rect.left+rect.width/2,y=rect.top+rect.height/2,hit=document.elementFromPoint(x,y);
+         return {x,y,width:rect.width,height:rect.height,disabled:element.disabled,
+          pointerEvents:getComputedStyle(element).pointerEvents,hitInside:!!hit&&element.contains(hit)};
+        },mode);
+        assert.ok(point.width>0&&point.height>0&&!point.disabled&&point.pointerEvents!=="none"&&point.hitInside,
+         `The ${mode} tab's physical input point must hit its visible, enabled target`);
+        // Locator.click stalls before sending input in this live mobile viewport; this remains a browser-generated input.
+        await page.mouse.click(point.x,point.y);
+        const clickProbe=await page.evaluate(()=>window.__mamModeClickProbe);
+        assert.equal(clickProbe.pointerdown,true,`A trusted pointerdown must reach the ${mode} tab`);
+        assert.equal(clickProbe.click,true,`A trusted click must reach the ${mode} tab`);
+        assert.equal(clickProbe.trusted,true,`The ${mode} pointerdown must be browser-generated`);
+        assert.equal(clickProbe.clickTrusted,true,`The ${mode} click must be browser-generated`);
+       }
+       await page.waitForFunction(()=>!window.mamLoadMatchesBusy,{timeout:25000});
+       await page.waitForFunction(mode=>document.querySelector("main")?.classList.contains(`mam-screen-${mode}`),mode,{timeout:5000});
        if(mode!=="today"){
         await page.locator("#date").fill(eventDay(event));
         await page.locator("#date").dispatchEvent("change");

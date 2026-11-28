@@ -64,7 +64,7 @@ test("B kill-switch reads bypass stale browser cache and propagate abort signals
   assert.ok(html.includes("const isDataCenterB=cleanPath.startsWith(\"data-center/fixture-bundle\");"));
   assert.ok(html.includes("if(!isDiagnostic&&!isDataCenterB&&cachedEntry?.time"));
   assert.ok(html.includes("!isLineupRequest&&!isArchiveBackfill&&!isDataCenterB"));
-  assert.ok(html.includes("cache:isEspnLiveScoreboard||isDataCenterB?\"no-store\":\"default\""));
+  assert.ok(html.includes("cache:isPost||isEspnLiveScoreboard||isDataCenterB?\"no-store\":\"default\""));
   assert.ok(html.includes("({provider,fixtureId,signal})=>"));
   assert.ok(html.includes("api(\"data-center/fixture-bundle?\"+qs({provider,fixtureId}),{signal})"));
 });

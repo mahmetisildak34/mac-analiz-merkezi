@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import test from "node:test";
 import {runInNewContext} from "node:vm";
+import MAMTeamIdentity from "../team-identity-registry.js";
 const source=readFileSync(new URL("../index.html",import.meta.url),"utf8");
 const live=source.slice(source.indexOf("function loadLiveMatchesNow(){"),source.indexOf("\n\nasync function mamSportScoreLiveStats("));
 const teamGroupsStart=source.indexOf("const MAM_UEFA_TEAM_GROUPS=");
@@ -9,7 +10,7 @@ const teamGroupsEnd=source.indexOf(";",teamGroupsStart)+1;
 const fixtureHelpers=expression=>{
  const start=source.indexOf("const mamFixtureTeamKeyBase=value=>"),end=source.indexOf("let mamFixtureLoadQueued=false;",start);
  assert.ok(teamGroupsStart>=0&&teamGroupsEnd>teamGroupsStart&&end>start);
- return source.slice(teamGroupsStart,teamGroupsEnd)+"\n"+source.slice(start,end)+"\n"+expression;
+ return source.slice(teamGroupsStart,teamGroupsEnd)+"\n"+source.slice(start,end)+"\nconst mamCanonicalHistoryTeamKey=value=>mamFixtureTeamKey(value);\n"+expression;
 };
 test("live polling publishes ESPN fixtures alongside live matches",()=>{
  assert.match(live,/const publishLiveSnapshot=liveRows=>/);
@@ -172,7 +173,7 @@ test("Today refresh reconciles the same ESPN and API fixture despite provider le
 	const refreshStart=source.indexOf("async function refreshTodayScores(){"),refreshEnd=source.indexOf("\n\nlet mamLastIstanbulFixtureDay",refreshStart);
 	const dateControl={value:"2026-11-23"};
 	let rendered=null;
-	const refreshContext={allMatches:[api],mamScreenMode:"today",mamTodayScoreRequest:null,mamActiveMatch:null,
+	 const refreshContext={allMatches:[api],mamScreenMode:"today",mamTodayScoreRequest:null,mamActiveMatch:null,
 		mamFixtureInstant:value=>Date.parse(value),
 		mamCanonicalMatchStatus:row=>String(row.fixture?.status?.short||"UNK").toUpperCase(),
 		mamHasCompletedScore:row=>row.goals?.home!=null&&row.goals?.away!=null,
@@ -181,7 +182,7 @@ test("Today refresh reconciles the same ESPN and API fixture despite provider le
 		$:id=>id==="date"?dateControl:{value:"all"},espnFixtures:async()=>[espn],
 		renderMatches:()=>{rendered=refreshContext.allMatches;}
 	};
-	const refresh=runInNewContext(source.slice(start,end)+"\n"+source.slice(refreshStart,refreshEnd)+"\nrefreshTodayScores",refreshContext);
+		const refresh=runInNewContext(source.slice(start,end)+"\nconst mamCanonicalHistoryTeamKey=value=>mamFixtureTeamKey(value);\n"+source.slice(refreshStart,refreshEnd)+"\nrefreshTodayScores",refreshContext);
 	await refresh();
 	assert.equal(refreshContext.allMatches.length,1,"the actual Today refresh path keeps one cross-provider row");
 	assert.equal(refreshContext.allMatches[0].fixture.status.short,"LIVE");
@@ -199,6 +200,20 @@ test("Today refresh reconciles the same ESPN and API fixture despite provider le
  assert.equal(apiThenEspnThenOtherLeague.length,2,"after API and ESPN are reconciled, another ESPN competition remains a separate fixture");
 	 assert.equal(apiThenEspnThenOtherLeague[1].fixture.id,"espn-afc-cup-7");
 	});
+
+test("real fixture identity ignores kickoff jitter but blocks unsafe merges",()=>{
+ const api=runInNewContext(fixtureHelpers("({mamSameRealMatch,mamSameFixture})"),{
+  mamFixtureInstant:value=>Date.parse(value), mamIstanbulDay:value=>String(value||"").slice(0,10),
+  MAMTeamIdentity
+ });
+ const row=(id,source,date,extra={})=>({mamSource:source,fixture:{id,date,status:{short:"FT"}},league:{id:"203",name:"Süper Lig",season:"2026"},teams:{home:{name:"Erzurum BB"},away:{name:"Amed SFK"}},goals:{home:1,away:0},...extra});
+ const a=row("101","ESPN","2026-11-27T16:00:00Z"),b=row("app-2","APP","2026-11-27T16:12:00Z");
+ assert.equal(api.mamSameRealMatch(a,b),true,"different-source kickoff drift beyond ten minutes is not a blocker");
+ assert.equal(api.mamSameRealMatch(a,row("102","ESPN","2026-11-27T16:12:00Z")),false,"same provider with a different event ID is not merged");
+ assert.equal(api.mamSameRealMatch(a,row("103","APP","2026-11-28T16:00:00Z")),false,"different Istanbul match days remain separate");
+ assert.equal(api.mamSameRealMatch(a,{...b,teams:{home:{name:"Amed SFK"},away:{name:"Erzurum BB"}}}),false,"home/away order is significant");
+ assert.equal(api.mamSameRealMatch(a,{...b,league:{...b.league,season:"2025"}}),false,"different known seasons remain separate");
+});
 
 test("Explicit club aliases merge across providers, but ID collisions and distinct competitions remain separate",()=>{
  const api=runInNewContext(fixtureHelpers("({mamSameFixture,mamMergeFixtureRows,mamFixtureTeamKey})"),{
@@ -227,14 +242,15 @@ test("Explicit club aliases merge across providers, but ID collisions and distin
  assert.equal(api.mamSameFixture(slavia,otherCompetition),false,"same teams/time in a different known competition remain distinct");
  assert.equal(api.mamMergeFixtureRows([slavia,otherCompetition]).length,2);
  const differentKickoff={...apiFootball,fixture:{...apiFootball.fixture,id:"api-late",date:"2026-11-23T18:30:00Z"}};
- assert.equal(api.mamSameFixture(slavia,differentKickoff),false,"kickoff outside the established tolerance remains separate");
+ assert.equal(api.mamSameFixture(slavia,differentKickoff),true,"cross-provider kickoff drift within the same competition/day does not split one real fixture");
 });
 
 test("known ESPN league IDs unify provider names in archive identity and team-history filtering",()=>{
  const identityStart=source.indexOf("function mamHistoricalIdentity("),identityEnd=source.indexOf("\nfunction mamHistoryCompetitionAllowed",identityStart);
+ const realMatchStart=source.indexOf("function mamSameRealMatch("),realMatchEnd=source.indexOf("\nfunction mamSameLiveProviderFixture",realMatchStart);
  const allowance=source.match(/function mamHistoryCompetitionAllowed\([\s\S]*?\n\}/)?.[0];
  assert.ok(identityStart>=0&&identityEnd>identityStart&&allowance);
- const history=runInNewContext(fixtureHelpers("")+source.slice(identityStart,identityEnd)+"\n"+allowance+"\n({mamHistoricalIdentity,mamDeduplicateHistoricalMatches,mamHistoryCompetitionAllowed})",{
+ const history=runInNewContext(fixtureHelpers("")+source.slice(realMatchStart,realMatchEnd)+"\n"+source.slice(identityStart,identityEnd)+"\n"+allowance+"\n({mamHistoricalIdentity,mamDeduplicateHistoricalMatches,mamHistoryCompetitionAllowed})",{
   ESPN_LEAGUES:{"3":{slug:"uefa.europa",name:"UEFA Europa League"},uefa_europa:{slug:"uefa.europa",name:"UEFA Europa League"}},
   mamIstanbulDay:value=>String(value||"").slice(0,10),mamCanonicalHistoryTeamKey:value=>String(value||"").toLowerCase()
  });
