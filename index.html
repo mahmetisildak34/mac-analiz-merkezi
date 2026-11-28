@@ -7193,6 +7193,11 @@ function mamHistoricalScorePair(match){
  if(![home,away].every(value=>(typeof value==="number"||typeof value==="string"&&/^\d+$/.test(value))&&Number.isSafeInteger(Number(value))&&Number(value)>=0))return null;
  return [Number(home),Number(away)];
 }
+function mamMakeVerifiedHistoricalResult(match,verified){
+ const status={...(match?.fixture?.status||{}),short:"FT",long:"Match Finished"};
+ delete status.elapsed;delete status.extra;
+ return {...match,fixture:{...(match?.fixture||{}),status},goals:{...(match?.goals||{}),home:verified[0],away:verified[1]},mamSource:"espn-verified",mamVerifiedHistoricalFinal:true};
+}
 function mamHistoricalConflictIdentity(match){
  const day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);
  const home=mamCanonicalHistoryTeamKey(match?.teams?.home?.name),away=mamCanonicalHistoryTeamKey(match?.teams?.away?.name);
@@ -7228,28 +7233,41 @@ async function mamFilterConflictingHistoricalScores(matches,leagueId){
   groups.get(key).push(match);
  }
  for(const group of groups.values()){
-  const scoreKeys=new Set(group.map(match=>{
+  const finishedMatches=group.filter(mamHasCompletedScore);
+  const finishedScoreKeys=new Set(finishedMatches.map(match=>{
    const score=mamHistoricalScorePair(match);return score?score.join(":"):"";
   }).filter(Boolean));
-  if(scoreKeys.size<2){accepted.push(...group);continue;}
+  const recordedScoreKeys=new Set(group.map(match=>{
+   const score=mamHistoricalScorePair(match);return score?score.join(":"):"";
+  }).filter(Boolean));
+  if(!finishedMatches.length){
+   if(recordedScoreKeys.size>1){
+    let verified=null;
+    for(const candidate of group){try{verified=await mamVerifyHistoricalScore(candidate,leagueId);if(verified)break;}catch(_){/* no completed result was verified */}}
+    if(verified)accepted.push(mamMakeVerifiedHistoricalResult(group.find(match=>mamHistoricalScorePair(match))||group[0],verified));
+   }
+   continue;
+  }
+  if(finishedScoreKeys.size<2){accepted.push(...finishedMatches);continue;}
   let verified=null;
-  for(const candidate of group){
+  for(const candidate of finishedMatches){
    try{verified=await mamVerifyHistoricalScore(candidate,leagueId);if(verified)break;}catch(_){/* unresolved conflict remains excluded */}
   }
   if(!verified){
-   console.warn("Doğrulanamayan çelişkili D1 skoru analizden çıkarıldı",group[0]?.fixture?.id||"");
+   console.warn("Doğrulanamayan çelişkili bitmiş D1 skoru analizden çıkarıldı",group[0]?.fixture?.id||"");
    excludedConflictKeys.push([...groups].find(([,items])=>items===group)?.[0]||"");
-   excludedConflictCount+=group.length;
+   excludedConflictCount+=finishedMatches.length;
    continue;
   }
-  const verifiedMatches=group.filter(match=>{
+  const verifiedMatches=finishedMatches.filter(match=>{
    const score=mamHistoricalScorePair(match);
    return score&&score[0]===verified[0]&&score[1]===verified[1];
   });
-  if(verifiedMatches.length<group.length){
+  if(verifiedMatches.length<finishedMatches.length){
    excludedConflictKeys.push([...groups].find(([,items])=>items===group)?.[0]||"");
-   excludedConflictCount+=group.length-verifiedMatches.length;
+   excludedConflictCount+=finishedMatches.length-verifiedMatches.length;
   }
+  if(!verifiedMatches.length)accepted.push(mamMakeVerifiedHistoricalResult(finishedMatches[0],verified));
   accepted.push(...verifiedMatches);
  }
  accepted.mamExcludedConflictKeys=excludedConflictKeys.filter(Boolean);
@@ -7289,7 +7307,7 @@ function mamEnrichHistoricalStats(matches,leagueId){
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false, teamSource=""){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v80_"+leagueId+"_"+teamSource+"_"+teamId+"_"+mamCanonicalHistoryTeamKey(teamName)+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v81_"+leagueId+"_"+teamSource+"_"+teamId+"_"+mamCanonicalHistoryTeamKey(teamName)+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -7638,7 +7656,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     }
     excludedConflictKeys=verifiedD1Matches.mamExcludedConflictKeys||[];
     excludedConflictCount=Number(verifiedD1Matches.mamExcludedConflictCount||0);
-    if(excludedConflictKeys.length)sourceError+=excludedConflictKeys.length+" çelişkili maç analiz dışı bırakıldı.";
+    if(excludedConflictKeys.length)sourceError+=excludedConflictKeys.length+" maçta çelişkili bitmiş skor kaydı filtrelendi.";
     for(const match of verifiedD1Matches)addMatch({...match,mamSource:String(match?.mamSource||match?.source||"app").toLowerCase(),mamArchiveOnly:true});
   }catch(d1Error){
     sourceError+=" D1 arşivi: "+String(d1Error?.message||d1Error);
@@ -8366,7 +8384,7 @@ async function analyze(button){
   target.textContent="İki takımın geçmiş maçları paralel yükleniyor...";
   const [homeHistory,awayHistory]=await mamLoadAnalysisHistories(button,homeId,awayId,date);
   const excludedConflictKeys=[...new Set([...(homeHistory.mamExcludedConflictKeys||[]),...(awayHistory.mamExcludedConflictKeys||[])].filter(Boolean))];
-  if(excludedConflictKeys.length)conflictWarning='<p class="note">⚠️ '+excludedConflictKeys.length+' çelişkili maç analiz dışı bırakıldı; doğrulanamayan skorlar tahmine alınmadı.</p>';
+  if(excludedConflictKeys.length)conflictWarning='<p class="note">⚠️ '+excludedConflictKeys.length+' maçta çelişen bitmiş skor kayıtları görüldü; doğrulanmış nihai skor öncelendi, doğrulanamayan skorlar kullanılmadı.</p>';
   if(!mamCanAnalyzePrematch(button.dataset.status,button.dataset.kickoff)){
    target.textContent="Başlama zamanı geçti. Maç önü tahmini gösterilmiyor.";
    return;
@@ -8388,7 +8406,7 @@ async function analyze(button){
     mamDisplayTeamName(button.dataset.homeName)+": "+homeOverall.count+" toplam maç; "+
     mamDisplayTeamName(button.dataset.awayName)+": "+awayOverall.count+" toplam maç. "+
     "Gerekli: her takımda 10 doğrulanmış geçmiş maç. Veri tamamlanmadan tahmin gösterilmiyor."+
-    (conflictWarning?" "+excludedConflictKeys.length+" çelişkili maç analiz dışı bırakıldı.":""));
+    (conflictWarning?" "+excludedConflictKeys.length+" maçta çelişen bitmiş skor kayıtları güvenlik filtresine alındı.":""));
   }
   const homeVenueFallback=homeVenue.count<3;
   const awayVenueFallback=awayVenue.count<3;
