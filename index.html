@@ -2694,7 +2694,7 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
 <script src="./half-goal-algorithm.js"></script>
 <script>"use strict";
 const $=id=>document.getElementById(id);
-const MAM_WORKER_API_BASE=(location.hostname==="mam-iphone-preview.pages.dev"||location.hostname.endsWith(".mam-iphone-preview.pages.dev"))?"https://repair-worker-archive-guards-20261128-odd-sunset-6c83.m-ahmetisildak34.workers.dev":"https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+const MAM_WORKER_API_BASE=(location.hostname!=="mam-iphone-preview.pages.dev"&&location.hostname.endsWith(".mam-iphone-preview.pages.dev"))?"/mam-api":"https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
 const WORKER=MAM_WORKER_API_BASE;
 const CACHE_HOURS=12;
 MAMCacheManager.sweep();
