@@ -7051,17 +7051,15 @@ function mamDeduplicateHistoricalMatches(matches){
 }
 
 function mamHistoryCompetitionAllowed(match,leagueId){
- const selected=mamCanonicalFixtureLeagueId(leagueId),matchLeague=mamCanonicalFixtureLeagueId(match?.league?.id??match?.leagueId??"");
- const source=String(match?.mamSource||"").toLowerCase();
- const normalize=value=>String(value||"").normalize("NFD").toLowerCase().replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/[^a-z0-9]+/g," ").trim();
- const name=normalize(match?.league?.name||match?.competition?.name||"");
- if(["2","3","848"].includes(selected)){
-  const expected={"2":["champions league","uefa champions"],"3":["europa league","uefa europa","europe league"],"848":["conference league","uefa conference"]}[selected]||[];
-  if(source==="football-data-team")return expected.some(token=>name.includes(normalize(token)));
-  if(matchLeague)return matchLeague===selected;
-  return !name||expected.some(token=>name.includes(normalize(token)));
- }
- return !matchLeague||matchLeague===selected;
+ const selected=mamCanonicalFixtureLeagueId(leagueId),competition=mamFixtureCompetitionKey(match);
+ if(competition.canonical)return competition.id===selected;
+ const league=match?.league||match?.competition||{};
+ const identifiedLeague=typeof MAMActiveLeagueScope!="undefined"&&MAMActiveLeagueScope?.leagueIdFor({
+  ...match,
+  league:{...league,id:"",slug:"",code:""},
+  leagueId:"",competitionId:"",leagueSlug:""
+ });
+ return Boolean(identifiedLeague&&identifiedLeague===selected);
 }
 function mamTeamHistoryCompetitionAllowed(match,leagueId){
  const selected=mamCanonicalFixtureLeagueId(leagueId);
@@ -7291,7 +7289,7 @@ function mamEnrichHistoricalStats(matches,leagueId){
 /* GEÇMİŞ MAÇLAR */
 async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixtureId, forceRefresh=false, archiveOnly=false, teamSource=""){
   // Cache is scoped to the exact target match date: later fixtures must not reuse an older cutoff, and earlier fixtures must never see future results.
-   const key="mam_history_v79_"+leagueId+"_"+teamSource+"_"+teamId+"_"+mamCanonicalHistoryTeamKey(teamName)+"_"+matchDate+(archiveOnly?"_archive_v1":"");
+   const key="mam_history_v80_"+leagueId+"_"+teamSource+"_"+teamId+"_"+mamCanonicalHistoryTeamKey(teamName)+"_"+matchDate+(archiveOnly?"_archive_v1":"");
   const cached=localStorage.getItem(key);
   if(cached&&!forceRefresh){
     try{
@@ -9136,12 +9134,13 @@ window.mamSportScoreTeamSchedule = async function mamSportScoreTeamSchedule(team
   }finally{clearTimeout(timer);}
  };
  const norm=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\b(football|club|de|the|fc|cf|afc)\b/g," ").replace(/[^a-z0-9]/g,"");
+ const providerQuery=value=>String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i").replace(/\s+/g," ").trim();
  const wanted=norm(teamName),candidates=[];
  const aliases={
   "realunionirun":["Real Union Club de Irun","Real Union Irun"],
   "realunionclubdeirun":["Real Union Irun","Real Union Club de Irun"]
  };
- const searchTerms=[String(teamName||"").trim(),...(aliases[wanted]||[])];
+ const searchTerms=[String(teamName||"").trim(),providerQuery(teamName),...(aliases[wanted]||[]),...(aliases[wanted]||[]).map(providerQuery)];
  const uniqueSearchTerms=[...new Set(searchTerms.filter(Boolean))];
  const walk=(value,depth=0)=>{
   if(!value||typeof value!=="object"||depth>8)return;
