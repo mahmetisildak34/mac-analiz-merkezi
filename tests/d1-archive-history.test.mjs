@@ -20,7 +20,7 @@ const helpers = vm.runInNewContext(`${source.slice(helperStart, helperEnd)};({ma
 
 function archiveLoaderHarness(responseRows) {
   const start = source.indexOf("async function mamLoadD1LeagueArchive");
-  const end = source.indexOf("\nconst MAM_LEAGUE_ARCHIVE_TTL", start);
+  const end = source.indexOf("\nasync function mamFindEspnHistoricalEvent", start);
   assert.ok(start >= 0 && end > start);
   const values = new Map();
   const apiCalls = [];
@@ -49,7 +49,7 @@ function archiveLoaderHarness(responseRows) {
 
 function bournemouthArchiveHarness() {
   const start = source.indexOf("async function mamLoadBournemouthRelatedLeagueArchives");
-  const end = source.indexOf("\nconst MAM_LEAGUE_ARCHIVE_TTL", start);
+  const end = source.indexOf("\nasync function mamFindEspnHistoricalEvent", start);
   assert.ok(start >= 0 && end > start);
   const calls = [];
   const context = {

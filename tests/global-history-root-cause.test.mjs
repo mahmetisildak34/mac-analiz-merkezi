@@ -12,13 +12,18 @@ const sw = readFileSync(new URL("../sw.js", import.meta.url), "utf8");
 const mobileSw = readFileSync(new URL("../mobile/sw.js", import.meta.url), "utf8");
 
 function helperApi() {
+  const leagueStart = source.indexOf("const ESPN_LEAGUES={");
+  const leagueEnd = source.indexOf("};", leagueStart) + 2;
   const competitionStart = source.indexOf("function mamCanonicalFixtureLeagueId(");
   const competitionEnd = source.indexOf("function mamFixtureCompetitionCompatible(", competitionStart);
+  const matchStart = source.indexOf("function mamFixtureProviderKeys(");
+  const matchEnd = source.indexOf("function mamUnrepresentedLiveFixtures(", matchStart);
   const start = source.indexOf("const MAM_UEFA_TEAM_GROUPS=");
   const end = source.indexOf("// D1 kalıcı maç arşivi", start);
   assert.ok(start >= 0 && end > start);
   assert.ok(competitionStart >= 0 && competitionEnd > competitionStart);
-  return vm.runInNewContext(`${source.slice(competitionStart, competitionEnd)}\n${source.slice(start, end)};({mamUefaTeamMatch,mamCanonicalHistoryTeamKey,mamHistoryTeamSearchNames,mamHistoricalIdentity,mamDeduplicateHistoricalMatches,mamHistoryCompetitionAllowed,mamTeamHistoryCompetitionAllowed})`, {
+  assert.ok(leagueStart >= 0 && leagueEnd > leagueStart && matchStart >= 0 && matchEnd > matchStart);
+  return vm.runInNewContext(`${source.slice(leagueStart, leagueEnd)}\n${source.slice(competitionStart, competitionEnd)}\n${source.slice(matchStart, matchEnd)}\n${source.slice(start, end)};({mamUefaTeamMatch,mamCanonicalHistoryTeamKey,mamHistoryTeamSearchNames,mamHistoricalIdentity,mamDeduplicateHistoricalMatches,mamSameRealMatch,mamHistoryCompetitionAllowed,mamTeamHistoryCompetitionAllowed})`, {
     MAMTeamIdentity,
     MAMActiveLeagueScope,
     mamFixtureTeamKey(value) {
@@ -63,8 +68,10 @@ function serviceWorkerReloadHarness(storage, controlled = true) {
 }
 
 test("Service Worker sürümü eski app-shell cache'ini geçersiz kılar", () => {
-  assert.match(sw, /cachePrefix:'mam-main-shell-',version:'v4'/);
+  assert.match(sw, /cachePrefix:'mam-main-shell-',version:'v5'/);
   assert.match(sw, /'team-identity-registry\.js'/, "offline shell must include the shared identity helper");
+  for (const asset of ["mam-cache-manager.js", "active-league-scope.js", "data-center-client.js", "premium-dark-red.css"])
+    assert.ok(sw.includes(`'${asset}'`), `offline shell must include ${asset}`);
   assert.match(mobileSw, /cachePrefix:'mam-mobile-shell-',version:'v4'/);
   assert.match(mobileSw, /'\.\.\/active-league-scope\.js'/, "offline mobile shell must include the shared active league scope");
   assert.match(source, /updateViaCache:"none"/);
@@ -170,11 +177,11 @@ test("Türkçe noktasız ı içeren takım araması sağlayıcıya ASCII sorgu a
 
 test("aynı gerçek maçta skor güncellemesi duplicate oluşturmaz, ayrı maçlar korunur", () => {
   const api = helperApi();
-  const row = (id, home, away, date, score = [2, 1], league = "UEFA Europa League") => ({ fixture: { id, date }, league: { name: league }, teams: { home: { name: home }, away: { name: away } }, goals: { home: score[0], away: score[1] }, mamSource: id });
+  const row = (id, home, away, date, score = [2, 1], league = "UEFA Europa League", source = id.startsWith("fd-") ? "FOOTBALL_DATA" : "ESPN") => ({ fixture: { id, date }, league: { name: league }, teams: { home: { name: home }, away: { name: away } }, goals: { home: score[0], away: score[1] }, mamSource: source });
   const rows = [
     row("fd-uefa-1", "Hapoel Be'er", "Beşiktaş", "2026-09-25T01:00:00Z"),
     row("espn-401", "Hapoel Beer-Sheva", "Besiktas", "2026-09-25T04:00:00+03:00"),
-    row("espn-402", "Hapoel Beer-Sheva", "Besiktas", "2026-09-25T04:00:00+03:00", [1, 0]),
+    row("espn-401", "Hapoel Beer-Sheva", "Besiktas", "2026-09-25T04:00:00+03:00", [1, 0]),
     row("espn-cup-403", "Hapoel Beer-Sheva", "Besiktas", "2026-09-25T04:00:00+03:00", [2, 1], "National Cup"),
     row("espn-late-404", "Hapoel Beer-Sheva", "Besiktas", "2026-09-25T04:30:00+03:00", [2, 1])
   ];
@@ -182,7 +189,8 @@ test("aynı gerçek maçta skor güncellemesi duplicate oluşturmaz, ayrı maçl
   const merged = api.mamDeduplicateHistoricalMatches(rows);
   assert.equal(merged.length, 3, "score revisions merge, but another competition and kickoff stay distinct");
   assert.deepEqual([merged[0].goals.home, merged[0].goals.away], [1, 0], "the merged fixture retains the latest score");
-  assert.deepEqual(Array.from(merged[0].mamSources), ["fd-uefa-1", "espn-401", "espn-402"]);
+  assert.deepEqual(Array.from(merged[0].mamSources), ["FOOTBALL_DATA", "ESPN"]);
+  assert.equal(api.mamSameRealMatch(rows[1], rows[4]), false, "the same provider's different fixture ID must remain a separate candidate");
   assert.deepEqual(rows.map(match => match.fixture.id), originalIds, "presentation dedupe never deletes or mutates archived source rows");
 });
 
@@ -205,9 +213,9 @@ test("conflicting completed D1 duplicates keep the first archive-preferred score
 
 test("Sabah FA/FK and Barcelona provider aliases merge across score updates without losing source matches", () => {
   const api = helperApi();
-  const row = (id, home, away, date, score, source = id, league = "UEFA Europa League") => ({ fixture: { id, date }, league: { name: league }, teams: { home: { name: home }, away: { name: away } }, goals: { home: score[0], away: score[1] }, mamSource: source });
+  const row = (id, home, away, date, score, source = "ESPN", league = "UEFA Europa League") => ({ fixture: { id, date }, league: { name: league }, teams: { home: { name: home }, away: { name: away } }, goals: { home: score[0], away: score[1] }, mamSource: source });
   const rows = [
-    row("sabah-fa", "Sabah FA", "FC Barcelona", "2026-09-25T01:00:00Z", [0, 2]),
+    row("sabah-fa", "Sabah FA", "FC Barcelona", "2026-09-25T01:00:00Z", [0, 2], "FOOTBALL_DATA"),
     row("sabah-fk", "Sabah FK", "Barcelona", "2026-09-25T04:00:00+03:00", [1, 2]),
     row("sabah-another-kickoff", "Sabah FK", "Barcelona", "2026-09-25T04:30:00+03:00", [0, 2]),
     row("sabah-another-competition", "Sabah FK", "Barcelona", "2026-09-25T04:00:00+03:00", [0, 2], "national-cup", "National Cup")
@@ -216,7 +224,7 @@ test("Sabah FA/FK and Barcelona provider aliases merge across score updates with
   const merged = api.mamDeduplicateHistoricalMatches(rows);
   assert.equal(merged.length, 3, "Sabah aliases and Barcelona variants resolve one fixture; distinct kickoff/competition remain");
   assert.deepEqual([merged[0].goals.home, merged[0].goals.away], [1, 2], "score update is applied to the single merged fixture");
-  assert.deepEqual(Array.from(merged[0].mamSources), ["sabah-fa", "sabah-fk"]);
+  assert.deepEqual(Array.from(merged[0].mamSources), ["FOOTBALL_DATA", "ESPN"]);
   assert.deepEqual(rows.map(match => match.fixture.id), originalIds, "all original real-match source rows remain unchanged");
 });
 

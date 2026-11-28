@@ -164,3 +164,17 @@ test("schema stores versioned names and provider IDs while keeping ambiguous ali
     db.close();
   }
 });
+
+test("shared canonical aliases repair only deterministic mojibake and preserve collision guards", () => {
+  const crypto = require("node:crypto");
+  const hash = crypto.createHash("sha256").update(fs.readFileSync(path.join(root, "team-identity-registry.js"))).digest("hex");
+  assert.equal(hash, "7dde8ab382d3a638ab2eb9f765ca232b09e6a0a6c5ddc6407f427235f3380d0f", "frontend and Worker registry copies must stay synchronized");
+  assert.equal(MAMTeamIdentity.canonicalKey("Erzurum BB"), MAMTeamIdentity.canonicalKey("Erzurumspor"));
+  assert.equal(MAMTeamIdentity.canonicalKey("Amed SFK"), MAMTeamIdentity.canonicalKey("Amedspor"));
+  assert.equal(MAMTeamIdentity.canonicalKey("Leeds"), "leeds");
+  assert.notEqual(MAMTeamIdentity.canonicalKey("Leeds"), MAMTeamIdentity.canonicalKey("Leeds United"));
+  assert.notEqual(MAMTeamIdentity.canonicalKey("Inter Miami"), MAMTeamIdentity.canonicalKey("Internazionale"));
+  assert.notEqual(MAMTeamIdentity.canonicalKey("Paris FC"), MAMTeamIdentity.canonicalKey("Paris Saint-Germain"));
+  assert.equal(MAMTeamIdentity.repairMojibake("FenerbahÃ§e"), "Fenerbahçe");
+  assert.equal(MAMTeamIdentity.canonicalKey("Fenerbah\uFFFD"), "");
+});

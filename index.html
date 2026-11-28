@@ -2687,6 +2687,7 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
  <button type="button" data-mam-bottom="special"><span>⭐</span>Özel</button>
 </nav>
 
+<script src="./mam-cache-manager.js"></script>
 <script src="./active-league-scope.js"></script>
 <script src="./team-identity-registry.js"></script>
 <script src="./data-center-client.js"></script>
@@ -2695,6 +2696,7 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
 const $=id=>document.getElementById(id);
 const WORKER="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
 const CACHE_HOURS=12;
+MAMCacheManager.sweep();
 $("date").value=mamIstanbulDateString();
 
 function mamRelativeIstanbulDay(offset,now=new Date()){
@@ -2799,7 +2801,8 @@ async function api(path,options={}){
   const rateCooldownKey="mam_api_football_rate_cooldown_until";
   const livePrimaryKey="mam_api_football_live_next_allowed";
   const cacheKey="mam_api_cache_v2_"+cleanPath;
-  const cached=localStorage.getItem(cacheKey);
+  const isPost=String(options?.method||"GET").toUpperCase()==="POST";
+  const cached=isPost?null:localStorage.getItem(cacheKey);
   let cachedEntry=null;
   try{cachedEntry=JSON.parse(cached||"null");}catch(e){cachedEntry=null;}
 
@@ -2861,7 +2864,7 @@ async function api(path,options={}){
     const timeoutId=setTimeout(()=>controller.abort(),cleanPath.startsWith("archive/backfill-all?")?60000:isLiveStats?9000:15000);
     let response,data;
     try{
-      response=await fetch(url,{signal:controller.signal,cache:isEspnLiveScoreboard||isDataCenterB?"no-store":"default",headers:{Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||"")}});
+      response=await fetch(url,{method:isPost?"POST":"GET",body:isPost?(options.body||""):undefined,signal:controller.signal,cache:isPost||isEspnLiveScoreboard||isDataCenterB?"no-store":"default",headers:{Authorization:"Bearer "+(localStorage.getItem("mam_session_token")||""),...(options.headers||{})}});
       // The timeout must cover streamed response bodies too, not only response headers.
       data=await response.json();
     }catch(networkError){
@@ -2926,7 +2929,7 @@ async function api(path,options={}){
         try{localStorage.setItem(dailyCooldownKey,String(nextUtcMidnight));}catch(_){}
       }
     }
-    if(!isLineupRequest&&!isArchiveBackfill&&!isDataCenterB){try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));}catch(e){}}
+    if(!isPost&&!isLineupRequest&&!isArchiveBackfill&&!isDataCenterB){try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data}));}catch(e){}}
     return data;
   };
 
@@ -3855,6 +3858,12 @@ function mamFixtureProviderKeys(match){
 	else if(id)providers.add("OTHER");
 	return [...providers];
 }
+function mamFixtureProviderIds(match){
+	const ids={...(match?._mamProviderFixtureIds||{})};
+	const id=String(match?.fixture?.id??match?.id??"").trim();
+	if(id)for(const provider of mamFixtureProviderKeys(match))if(provider!=="OTHER"&&!ids[provider])ids[provider]=id;
+	return ids;
+}
 function mamCanonicalFixtureLeagueId(value){
 	const id=String(value??"");
 	const registry=typeof ESPN_LEAGUES==="undefined"?{}:ESPN_LEAGUES;
@@ -3885,7 +3894,8 @@ function mamFixtureCompetitionCompatible(a,b){
 }
 function mamMergeFixtureSources(existing,incoming){
 	const providers=[...new Set([...mamFixtureProviderKeys(existing),...mamFixtureProviderKeys(incoming)])];
-	return providers.length?{...existing,_mamSourceProviders:providers}:existing;
+	const fixtureIds={...mamFixtureProviderIds(existing),...mamFixtureProviderIds(incoming)};
+	return providers.length?{...existing,_mamSourceProviders:providers,_mamProviderFixtureIds:fixtureIds}:existing;
 }
 function mamSameFixture(a,b){
  return mamSameLiveProviderFixture(a,b);
@@ -3896,14 +3906,25 @@ function mamFindSameFixtureIndex(rows,target){
 	for(let i=0;i<list.length;i++)if(mamSameFixture(list[i],target))candidates.push(i);
 	return candidates.length===1?candidates[0]:-1;
 }
-function mamSameLiveProviderFixture(a,b){
-	const homeA=mamFixtureTeamKey(a?.teams?.home?.name),awayA=mamFixtureTeamKey(a?.teams?.away?.name);
-  const homeB=mamFixtureTeamKey(b?.teams?.home?.name),awayB=mamFixtureTeamKey(b?.teams?.away?.name);
-  if(!homeA||!awayA||homeA!==homeB||awayA!==awayB)return false;
- if(!mamFixtureCompetitionCompatible(a,b))return false;
-  const timeA=mamFixtureInstant(a?.fixture?.date),timeB=mamFixtureInstant(b?.fixture?.date);
- return Number.isFinite(timeA)&&Number.isFinite(timeB)&&Math.abs(timeA-timeB)<=10*60*1000;
+function mamSameRealMatch(a,b){
+ const homeA=mamCanonicalHistoryTeamKey(a?.teams?.home?.name),awayA=mamCanonicalHistoryTeamKey(a?.teams?.away?.name);
+ const homeB=mamCanonicalHistoryTeamKey(b?.teams?.home?.name),awayB=mamCanonicalHistoryTeamKey(b?.teams?.away?.name);
+ if(!homeA||!awayA||homeA!==homeB||awayA!==awayB||!mamFixtureCompetitionCompatible(a,b))return false;
+ const dayOf=row=>(typeof mamIstanbulDay==="function"?mamIstanbulDay(row?.fixture?.date):"")||String(row?.fixture?.date||"").slice(0,10);
+ const dayA=dayOf(a),dayB=dayOf(b);if(!/^\d{4}-\d{2}-\d{2}$/.test(dayA)||dayA!==dayB)return false;
+ const phase=row=>[row?.league?.season,row?.league?.round,row?.fixture?.round,row?.round,row?.leg,row?.fixture?.leg].map(value=>String(value??"").trim().toLowerCase()).filter(Boolean);
+ const phaseA=phase(a),phaseB=phase(b);
+ if(phaseA.length&&phaseB.length&&phaseA.some(value=>!phaseB.includes(value)))return false;
+	const providersA=mamFixtureProviderKeys(a),providersB=mamFixtureProviderKeys(b);
+	const idOf=row=>String(row?.fixture?.id??row?.id??"").trim();
+	const idA=idOf(a),idB=idOf(b);
+	const sharedProviders=providersA.filter(provider=>provider!=="OTHER"&&providersB.includes(provider));
+	const providerIdsA=mamFixtureProviderIds(a),providerIdsB=mamFixtureProviderIds(b);
+	if(sharedProviders.some(provider=>providerIdsA[provider]&&providerIdsB[provider]&&providerIdsA[provider]!==providerIdsB[provider]))return false;
+	if(idA&&idB&&sharedProviders.length&&idA!==idB&&!sharedProviders.some(provider=>providerIdsA[provider]&&providerIdsB[provider]))return false;
+	return true;
 }
+function mamSameLiveProviderFixture(a,b){return mamSameRealMatch(a,b);}
 function mamUnrepresentedLiveFixtures(primaryRows,supplementRows){
  const primary=Array.isArray(primaryRows)?primaryRows:[];
  return (Array.isArray(supplementRows)?supplementRows:[]).filter(candidate=>
@@ -7015,7 +7036,9 @@ function mamUefaTeamMatch(a,b){
 }
 
 function mamCanonicalHistoryTeamKey(value){
- return MAMTeamIdentity.canonicalHistoryKey(value,MAM_UEFA_TEAM_GROUPS,mamFixtureTeamKey,[["Plzen","Viktoria Plzen"]]);
+ if(typeof MAMTeamIdentity==="undefined")return mamFixtureTeamKey(value);
+ const legacy=MAMTeamIdentity.canonicalHistoryKey(value,MAM_UEFA_TEAM_GROUPS,mamFixtureTeamKey,[["Plzen","Viktoria Plzen"]]);
+ return MAMTeamIdentity.canonicalKey(legacy)||legacy;
 }
 function mamHistoryTeamSearchNames(teamName,acceptedNames){
 	const names=MAMTeamIdentity.historySearchNames(teamName,acceptedNames,MAM_UEFA_TEAM_GROUPS,[["Plzen","Viktoria Plzen"]]);
@@ -7026,32 +7049,53 @@ function mamHistoryTeamSearchNames(teamName,acceptedNames){
 	return [...new Set(names.filter(Boolean))];
 }
 function mamHistoricalIdentity(match){
- const day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);
+ const day=(typeof mamIstanbulDay==="function"?mamIstanbulDay(match?.fixture?.date):"")||String(match?.fixture?.date||"").slice(0,10);
  const home=mamCanonicalHistoryTeamKey(match?.teams?.home?.name),away=mamCanonicalHistoryTeamKey(match?.teams?.away?.name);
- const rawDate=String(match?.fixture?.date||""),instant=Date.parse(rawDate),competitionKey=mamFixtureCompetitionKey(match);
+ const competitionKey=mamFixtureCompetitionKey(match);
  const competition=competitionKey.canonical?"id:"+competitionKey.id:competitionKey.name;
  const gh=match?.goals?.home,ga=match?.goals?.away;
- if(!day||!home||!away||!competition||match?.fixture?.timeUnknown===true||!/[T ]\d{2}:\d{2}/.test(rawDate)||!Number.isFinite(instant)||gh===null||gh===undefined||ga===null||ga===undefined)return "";
- return [day,Math.round(instant/60000),competition,home,away].join("|");
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!home||!away||!competition||gh===null||gh===undefined||ga===null||ga===undefined)return "";
+ return [day,competition,home,away].join("|");
 }
 function mamDeduplicateHistoricalMatches(matches){
  const out=[],byKey=new Map();
  for(const match of Array.isArray(matches)?matches:[]){
   const key=mamHistoricalIdentity(match);if(!key){out.push(match);continue;}
-  const index=byKey.get(key);if(index===undefined){byKey.set(key,out.length);out.push(match);continue;}
+  const indices=byKey.get(key)||[];
+  const index=indices.find(candidateIndex=>mamSameRealMatch(out[candidateIndex],match));
+  if(index===undefined){indices.push(out.length);byKey.set(key,indices);out.push(match);continue;}
   const previous=out[index],merge=(older={},newer={})=>({...newer,...older});
   const hasFinishedScore=row=>["FT","AET","PEN","AWD","WO"].includes(String(row?.fixture?.status?.short||"").toUpperCase())&&
    [row?.goals?.home,row?.goals?.away].every(value=>(typeof value==="number"||typeof value==="string"&&/^\d+$/.test(value))&&Number.isSafeInteger(Number(value))&&Number(value)>=0);
   const conflictingArchiveScores=previous.mamArchiveOnly===true&&match.mamArchiveOnly===true&&hasFinishedScore(previous)&&hasFinishedScore(match)&&
    (Number(previous.goals.home)!==Number(match.goals.home)||Number(previous.goals.away)!==Number(match.goals.away));
   const goals=conflictingArchiveScores?{...(match.goals||{}),...(previous.goals||{})}:{...(previous.goals||{}),...(match.goals||{})};
-  out[index]={...match,...previous,fixture:{...(match.fixture||{}),...(previous.fixture||{})},goals,statistics:{home:merge(match.statistics?.home,previous.statistics?.home),away:merge(match.statistics?.away,previous.statistics?.away)},mamSources:[...new Set([...(previous.mamSources||[previous.mamSource||"unknown"]),match.mamSource||"unknown"])]};
+	  out[index]={...match,...previous,...mamMergeFixtureSources(previous,match),fixture:{...(match.fixture||{}),...(previous.fixture||{})},goals,statistics:{home:merge(match.statistics?.home,previous.statistics?.home),away:merge(match.statistics?.away,previous.statistics?.away)},mamSources:[...new Set([...(previous.mamSources||[previous.mamSource||"unknown"]),match.mamSource||"unknown"])]};
  }
  return out;
 }
 
+function mamBuildVerifiedHistory(rows,{kickoff,teamName,teamId}={}){
+ const cutoff=Date.parse(kickoff),targetDay=mamIstanbulDay(kickoff)||String(kickoff||"").slice(0,10);
+ const targetKey=mamCanonicalHistoryTeamKey(teamName);
+ const eligible=(Array.isArray(rows)?rows:[]).filter(match=>{
+  if(!mamHasCompletedScore(match))return false;
+  const date=String(match?.fixture?.date||""),day=mamIstanbulDay(date)||date.slice(0,10);
+  if(!day||!targetDay)return false;
+  if(match?.fixture?.timeUnknown===true||!/[T ]\d{2}:\d{2}/.test(date))return day<targetDay;
+  const stamp=Date.parse(date);return Number.isFinite(cutoff)&&Number.isFinite(stamp)&&stamp<cutoff;
+ }).filter(match=>{
+  const home=match?.teams?.home||{},away=match?.teams?.away||{};
+  const byName=targetKey&&(mamCanonicalHistoryTeamKey(home.name)===targetKey||mamCanonicalHistoryTeamKey(away.name)===targetKey);
+  const byId=teamId!=null&&(String(home.id)===String(teamId)||String(away.id)===String(teamId));
+  return Boolean(byName||byId);
+ });
+ return mamDeduplicateHistoricalMatches(eligible).sort((a,b)=>{
+  const da=Date.parse(a?.fixture?.date||"")||0,db=Date.parse(b?.fixture?.date||"")||0;return db-da;
+ }).slice(0,10);
+}
 function mamHistoryCompetitionAllowed(match,leagueId){
- const selected=mamCanonicalFixtureLeagueId(leagueId),competition=mamFixtureCompetitionKey(match);
+ const selected=typeof mamCanonicalFixtureLeagueId==="function"?mamCanonicalFixtureLeagueId(leagueId):String(leagueId??""),competition=mamFixtureCompetitionKey(match);
  if(competition.canonical)return competition.id===selected;
  const league=match?.league||match?.competition||{};
  const identifiedLeague=typeof MAMActiveLeagueScope!="undefined"&&MAMActiveLeagueScope?.leagueIdFor({
@@ -7101,10 +7145,17 @@ async function mamSaveMatchesToD1(matches, leagueId){
 }
 // D1 merkezi arşivini takım geçmişi analizinden önce oku.
 async function mamPersistLiveStatsToD1(fixtureId, sourceLabel, statsRows){
-  const record=allMatches.find(match=>String(match?.fixture?.id??match?.id)===String(fixtureId));
-  if(!record||!Array.isArray(statsRows)||!statsRows.length)return;
-  record.statistics={source:String(sourceLabel||"live"),rows:statsRows};
-  await mamSaveMatchesToD1([record],record.league?.id);
+ const record=allMatches.find(match=>String(match?.fixture?.id??match?.id)===String(fixtureId));
+ if(!record||!Array.isArray(statsRows)||!statsRows.length)return;
+ const statistics={source:String(sourceLabel||"live"),rows:statsRows};
+ try{
+  const response=await api("archive/statistics",{method:"POST",body:JSON.stringify({
+   source:String(record?.mamSource||record?._source||record?.source||"app"),
+   fixtureId:String(record?.fixture?.id??record?.id??fixtureId),statistics
+  })});
+  if(!response?.ok||Number(response.updated)!==1)throw new Error("D1 live-statistics update was not persisted");
+  record.statistics=statistics;
+ }catch(error){console.warn("D1 canlı istatistiği yazılamadı:",error);}
 }
 // Share an in-flight D1 archive read for the same league/date/team on this device.
 const mamD1ArchiveInFlight = new Map();
@@ -7163,19 +7214,6 @@ async function mamLoadBournemouthRelatedLeagueArchives(leagueId,matchDate,teamNa
   return [];
  });
 }
-const MAM_LEAGUE_ARCHIVE_TTL=6*60*60*1000;
-async function mamFindEspnHistoricalEvent(match,leagueId){
- const slug=ESPN_LEAGUES[String(leagueId)]?.slug,day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);
- if(!slug||!/^\d{4}-\d{2}-\d{2}$/.test(day))return "";
- const home=mamCanonicalHistoryTeamKey(match?.teams?.home?.name),away=mamCanonicalHistoryTeamKey(match?.teams?.away?.name);if(!home||!away)return "";
- const base=new Date(day+"T12:00:00Z");
- for(const offset of [-1,0,1]){const queryDay=mamIstanbulDateString(new Date(base.getTime()+offset*86400000)).replace(/-/g,"");try{
-  const payload=await api("espn/"+slug+"/scoreboard?"+qs({dates:queryDay,limit:500}));
-  const event=(payload?.events||[]).find(candidate=>{const teams=((candidate.competitions||[])[0]||{}).competitors||[],h=teams.find(x=>x.homeAway==="home")?.team||{},a=teams.find(x=>x.homeAway==="away")?.team||{};return mamCanonicalHistoryTeamKey(h.displayName||h.name||h.shortDisplayName)===home&&mamCanonicalHistoryTeamKey(a.displayName||a.name||a.shortDisplayName)===away&&mamIstanbulDay(candidate.date)===day;});
-  if(event?.id)return String(event.id);
- }catch(_){} }
- return "";
-}
 async function mamFindEspnHistoricalEvent(match,leagueId){
  const slug=ESPN_LEAGUES[String(leagueId)]?.slug,day=mamIstanbulDay(match?.fixture?.date)||String(match?.fixture?.date||"").slice(0,10);
  if(!slug||!/^\d{4}-\d{2}-\d{2}$/.test(day))return "";
@@ -7216,12 +7254,11 @@ function mamEspnCompletedScore(summary){
  return values.every(Number.isSafeInteger)&&values.every(value=>value>=0)?values:null;
 }
 async function mamVerifyHistoricalScore(match,leagueId){
- const eventId=await mamFindEspnHistoricalEvent(match,leagueId);
- if(!eventId)return null;
- const slug=ESPN_LEAGUES[String(leagueId)]?.slug;
- if(!slug)return null;
- const summary=await api("espn/"+slug+"/summary?"+qs({event:eventId}));
- return mamEspnCompletedScore(summary);
+ const fixtureId=String(match?.fixture?.id??match?.id??"");
+ const source=String(match?.mamSource||match?.source||"").toUpperCase();
+ if(!fixtureId||!source)return null;
+ const result=await api("archive/verify-final",{method:"POST",body:JSON.stringify({leagueId:String(leagueId||""),source,fixtureId})});
+ return result?.verified&&Array.isArray(result.score)&&result.score.length===2&&result.score.every(value=>Number.isSafeInteger(value)&&value>=0)?result.score:null;
 }
 async function mamFilterConflictingHistoricalScores(matches,leagueId){
  const groups=new Map(),accepted=[],excludedConflictKeys=[];
@@ -7672,15 +7709,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
     const seasons=[seasonStart,seasonStart-1,seasonStart-2].filter(y=>y>=2024); // Avrupa kupalarında da 2024/25, 2025/26 ve mevcut sezonu tara.
     const fetchSeason=async year=>{
       const seasonCode=String(year).slice(-2)+String(year+1).slice(-2);
-      const archiveKey="mam_league_csv_v13_"+folder+"_"+seasonCode;
-      if(!forceRefresh){
-        try{
-          const saved=JSON.parse(localStorage.getItem(archiveKey)||"null");
-          if(saved?.csv&&Date.now()-saved.time<MAM_LEAGUE_ARCHIVE_TTL)return saved.csv;
-        }catch(e){}
-      }else{
-        try{localStorage.removeItem(archiveKey);}catch(e){}
-      }
       const path="data/"+folder+"/results_"+seasonCode+".csv";
       const urls=[
         // Önce uygulamanın kendi GitHub Pages arşivi; yalnızca hata olursa yedek kaynaklara geç.
@@ -7694,11 +7722,10 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
           const controller=new AbortController();
           const timer=setTimeout(()=>controller.abort(),9000);
           try{
-            const response=await fetch(url,{signal:controller.signal,cache:"no-store"});
+            const response=await fetch(url,{signal:controller.signal,cache:forceRefresh?"no-cache":"default"});
             if(!response.ok)throw new Error("CSV HTTP "+response.status);
             const body=await response.text();
             if(!body||!body.includes("ft_home")||!body.includes("ft_away"))throw new Error("CSV başlıkları geçersiz");
-            try{localStorage.setItem(archiveKey,JSON.stringify({time:Date.now(),csv:body}));}catch(e){}
             return body;
           }catch(error){
             lastError=String(error?.message||error);
@@ -7725,7 +7752,6 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
             }
             if(csv.length<2)throw new Error("JSON feed içinde tamamlanmış maç bulunamadı");
             const body=csv.join("\n");
-            try{localStorage.setItem(archiveKey,JSON.stringify({time:Date.now(),csv:body}));}catch(e){}
             return body;
           }catch(jsonError){
             sourceError+=" "+seasonCode+" JSON arşivi alınamadı: "+String(jsonError?.message||jsonError);
@@ -7745,7 +7771,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
         if(gh===null||ga===null)continue;
         addMatch({
           mamSource:"open-matchday",
-          fixture:{date:row.date+"T12:00:00Z",status:{short:"FT"}},
+          fixture:{date:row.date,timeUnknown:true,status:{short:"FT"}},
           league:{id:String(leagueId),name:folder.replaceAll("_"," ")},
           teams:{home:{id:hm?Number(teamId):-1,name:row.home},away:{id:am?Number(teamId):-1,name:row.away}},
           goals:{home:gh,away:ga},
@@ -7818,7 +7844,7 @@ async function getTeamFixtures(teamId, matchDate, teamName, leagueId, sourceFixt
           if(homeTarget===awayTarget)continue;
           addMatch({
             mamSource:"fixture-download-uefa",
-            fixture:{id:"fd-uefa-"+job.slug+"-"+job.year+"-"+(row.matchNumber??row.date),date:row.date+"T12:00:00Z",status:{short:"FT"}},
+            fixture:{id:"fd-uefa-"+job.slug+"-"+job.year+"-"+(row.matchNumber??row.date),date:row.date,timeUnknown:true,status:{short:"FT"}},
             league:{id:String(leagueId),name:job.slug+" "+job.year},
             teams:{
               home:{id:homeTarget?Number(teamId):-1,name:row.home},
@@ -8390,9 +8416,8 @@ async function analyze(button){
    return;
   }
   const kickoff=Date.parse(button.dataset.kickoff);
-  const beforeKickoff=match=>mamHasCompletedScore(match)&&Date.parse(match.fixture?.date??"")<kickoff;
-  const homeMatches=homeHistory.filter(beforeKickoff).slice(0,10);
-  const awayMatches=awayHistory.filter(beforeKickoff).slice(0,10);
+  const homeMatches=mamBuildVerifiedHistory(homeHistory,{kickoff:button.dataset.kickoff,teamName:button.dataset.homeName,teamId:homeId});
+  const awayMatches=mamBuildVerifiedHistory(awayHistory,{kickoff:button.dataset.kickoff,teamName:button.dataset.awayName,teamId:awayId});
 
   const homeOverall=teamStats(homeMatches,homeId,"all");
   const awayOverall=teamStats(awayMatches,awayId,"all");

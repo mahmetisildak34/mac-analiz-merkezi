@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const require=createRequire(import.meta.url);
+const MAMActiveLeagueScope=require('../active-league-scope.js');
 const renderStart=html.indexOf('function renderMatches(){');
 const filterStart=html.indexOf(' const league=$("league").value;',renderStart);
 const filterEnd=html.indexOf(' // Today\'s scoreboard order',filterStart);
@@ -50,7 +53,7 @@ function filterMatches({mode='today',selectedDate='2026-11-23',matches=rows,now=
   mamIstanbulDateString:helpers.mamIstanbulDateString,mamOffsetFixtureDate:helpers.mamOffsetFixtureDate,
   mamCanonicalMatchStatus:helpers.mamCanonicalMatchStatus,mamFixtureInstant:helpers.mamFixtureInstant,
   mamIstanbulDay:helpers.mamIstanbulDay,mamIsFutureUnplayed:helpers.mamIsFutureUnplayed,
-  navigator:{onLine:online},$:get
+  navigator:{onLine:online},window:{MAMActiveLeagueScope},$:get
  });
 }
 
@@ -72,9 +75,9 @@ test('today filters status within the selected Istanbul day, including extra tim
  assert.deepEqual(filterMatches({mode:'today',todayFilter:'upcoming'}).map(row=>row.fixture.id),['nov23-future']);
 });
 
-test('live view is restricted to live fixtures on the selected Istanbul date and respects offline state',()=>{
+test('live view retains active fixtures across selected-date changes and respects offline state',()=>{
  assert.deepEqual(filterMatches({mode:'live'}).map(row=>row.fixture.id),['nov23-live','nov23-extra']);
- assert.deepEqual(filterMatches({mode:'live',selectedDate:'2026-11-22'}),[]);
+ assert.deepEqual(filterMatches({mode:'live',selectedDate:'2026-11-22'}).map(row=>row.fixture.id),['nov23-live','nov23-extra']);
  assert.deepEqual(filterMatches({mode:'live',online:false}),[]);
 });
 
