@@ -2694,7 +2694,8 @@ main.mam-screen-standings .mam-home-intro{display:none!important}
 <script src="./half-goal-algorithm.js"></script>
 <script>"use strict";
 const $=id=>document.getElementById(id);
-const WORKER="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+const MAM_WORKER_API_BASE=(location.hostname==="mam-iphone-preview.pages.dev"||location.hostname.endsWith(".mam-iphone-preview.pages.dev"))?"https://repair-worker-archive-guards-20261128-odd-sunset-6c83.m-ahmetisildak34.workers.dev":"https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+const WORKER=MAM_WORKER_API_BASE;
 const CACHE_HOURS=12;
 MAMCacheManager.sweep();
 $("date").value=mamIstanbulDateString();
@@ -9733,7 +9734,7 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
 <a class="mam-provider-credit" href="https://sportscore.com/" rel="dofollow">Powered by SportScore</a>
 <script>
 (async function(){
- const key="mam_session_token",base="https://odd-sunset-6c83.m-ahmetisildak34.workers.dev";
+ const key="mam_session_token",base=MAM_WORKER_API_BASE;
  const token=localStorage.getItem(key);
  if(token&&navigator.onLine!==false){
   try{
@@ -9894,8 +9895,8 @@ const openStandingTeamHistory=async (row,leagueId=selectedStandingsLeague)=>{
   const setKpi=(id,value)=>{const node=$(id);if(node)node.textContent=value;};
   try{
    const [d1,queue]=await Promise.all([
-    fetch("https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/archive/d1-status").then(r=>r.ok?r.json():null),
-    fetch("https://odd-sunset-6c83.m-ahmetisildak34.workers.dev/api/archive/sync-status").then(r=>r.ok?r.json():null)
+    fetch(MAM_WORKER_API_BASE+"/api/archive/d1-status").then(r=>r.ok?r.json():null),
+    fetch(MAM_WORKER_API_BASE+"/api/archive/sync-status").then(r=>r.ok?r.json():null)
    ]);
    if(d1?.ok){
     const st=d1.statistics||{};
